@@ -9,9 +9,10 @@ interface WishlistSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onViewAttraction: (id: string) => void;
+  onViewFullWishlist?: () => void;
 }
 
-export default function WishlistSidebar({ isOpen, onClose, onViewAttraction }: WishlistSidebarProps) {
+export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onViewFullWishlist }: WishlistSidebarProps) {
   const { wishlist, toggleWishlist, clearWishlist } = useWishlist();
   const { formatPrice, t } = useSettings();
 
@@ -174,13 +175,17 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction }: W
             <button
               onClick={() => {
                 onClose();
-                // Navigate to search page or main attractions catalog
-                const el = document.getElementById('discover-attractions-section') || document.getElementById('search-container');
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth' });
+                if (onViewFullWishlist) {
+                  onViewFullWishlist();
+                } else {
+                  // Fallback
+                  const el = document.getElementById('discover-attractions-section') || document.getElementById('search-container');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                  }
                 }
               }}
-              className="w-full h-11 bg-brand text-white text-[13.5px] font-black uppercase tracking-wider rounded-xl hover:bg-opacity-95 shadow-md flex items-center justify-center gap-2 group cursor-pointer"
+              className="w-full h-11 bg-[#e3000f] text-white text-[13.5px] font-black uppercase tracking-wider rounded-xl hover:bg-opacity-95 shadow-md flex items-center justify-center gap-2 group cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               <span>Explore Saved Favorites</span>

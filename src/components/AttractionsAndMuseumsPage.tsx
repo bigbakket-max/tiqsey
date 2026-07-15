@@ -13,7 +13,9 @@ import {
 import { useSettings } from "../contexts/SettingsContext";
 import { POPULAR_ATTRACTIONS } from "../data/mockData";
 import AttractionCard from "./AttractionCard";
+import AttractionCardSkeleton from "./AttractionCardSkeleton";
 import { motion, AnimatePresence } from "motion/react";
+import { Helmet } from "react-helmet-async";
 
 interface Props {
   onBackToHome: () => void;
@@ -33,20 +35,39 @@ export default function AttractionsAndMuseumsPage({
     "popularity" | "rating" | "price-asc" | "price-desc"
   >("popularity");
 
+  const [rev, setRev] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  React.useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedCategory, selectedRegion, selectedCity, sortBy, rev]);
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      setRev(prev => prev + 1);
+    };
+    window.addEventListener("tiqsey_attractions_updated", handleUpdate);
+    return () => window.removeEventListener("tiqsey_attractions_updated", handleUpdate);
+  }, []);
+
   // Dynamically extract categories and cities from POPULAR_ATTRACTIONS
   const categories = useMemo(() => {
     const cats = new Set(
       POPULAR_ATTRACTIONS.map((a) => a.category).filter(Boolean),
     );
     return ["All", ...Array.from(cats)];
-  }, []);
+  }, [rev]);
 
   const regions = useMemo(() => {
     const regs = new Set(
       POPULAR_ATTRACTIONS.map((a) => a.region).filter(Boolean),
     );
     return ["All", ...Array.from(regs)];
-  }, []);
+  }, [rev]);
 
   const cities = useMemo(() => {
     const filteredByRegion =
@@ -55,7 +76,7 @@ export default function AttractionsAndMuseumsPage({
         : POPULAR_ATTRACTIONS.filter((a) => a.region === selectedRegion);
     const cits = new Set(filteredByRegion.map((a) => a.city).filter(Boolean));
     return ["All", ...Array.from(cits)];
-  }, [selectedRegion]);
+  }, [selectedRegion, rev]);
 
   // Filter and sort attractions automatically
   const filteredAndSortedAttractions = useMemo(() => {
@@ -120,8 +141,39 @@ export default function AttractionsAndMuseumsPage({
     setSortBy("popularity");
   };
 
+  const seoTitle = useMemo(() => {
+    let titleStr = "";
+    if (selectedCategory !== "All") {
+      titleStr += `${selectedCategory} `;
+    } else {
+      titleStr += "Top Attractions & Museums ";
+    }
+
+    if (selectedCity !== "All") {
+      titleStr += `in ${selectedCity} `;
+    } else if (selectedRegion !== "All") {
+      titleStr += `in ${selectedRegion} `;
+    } else {
+      titleStr += "Worldwide ";
+    }
+
+    return `${titleStr.trim()} | Tiqsey`;
+  }, [selectedCategory, selectedCity, selectedRegion]);
+
+  const seoDescription = useMemo(() => {
+    const categoryPart = selectedCategory !== "All" ? selectedCategory.toLowerCase() : "attractions, museums, tours, and activities";
+    const locationPart = selectedCity !== "All" ? `in ${selectedCity}` : (selectedRegion !== "All" ? `in ${selectedRegion}` : "around the world");
+    return `Discover and book top-rated ${categoryPart} ${locationPart} with Tiqsey. Save time with skip-the-line tickets and best price guarantee.`;
+  }, [selectedCategory, selectedCity, selectedRegion]);
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] dark:bg-slate-950 pb-20 pt-8 transition-colors duration-300">
+      <Helmet>
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
+        <meta property="og:title" content={seoTitle} />
+        <meta property="og:description" content={seoDescription} />
+      </Helmet>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Navigation Breadcrumb & Back action */}
         <div className="flex items-center justify-between mb-8">
@@ -164,22 +216,22 @@ export default function AttractionsAndMuseumsPage({
         </div>
 
         {/* Dynamic Interactive Controls Bar */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-850 p-5 mb-8 shadow-sm flex flex-col gap-5">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/50 dark:border-slate-800/60 p-5 mb-8 shadow-xs flex flex-col gap-5">
           {/* Search Bar & Sort Dropdown */}
-          <div className="flex flex-col lg:flex-row gap-4 justify-between">
+          <div className="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center">
             <div className="relative flex-1 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 dark:text-slate-500 group-focus-within:text-brand transition-colors" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 group-focus-within:text-brand transition-colors" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by attraction name, description, city, or category..."
-                className="w-full pl-11 pr-11 py-3 bg-[#F4F7F9] dark:bg-slate-950 text-[#1A2B48] dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl font-semibold border border-transparent focus:border-brand/30 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition-all text-sm shadow-inner focus:shadow-md focus:ring-2 focus:ring-brand/10"
+                className="w-full pl-11 pr-11 py-2.5 bg-slate-50/50 dark:bg-slate-950/60 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl font-medium border border-slate-200 dark:border-slate-800/80 focus:border-brand/50 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition-all text-sm focus:ring-2 focus:ring-brand/10 shadow-xs"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer select-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer select-none"
                   title="Clear search query"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -187,15 +239,15 @@ export default function AttractionsAndMuseumsPage({
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest shrink-0 select-none">
-                <SlidersHorizontal className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <span>Sort By:</span>
+            <div className="flex flex-row gap-3 items-center">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider shrink-0 select-none">
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span>SORT BY:</span>
               </div>
               <select
                 value={sortBy}
                 onChange={(e: any) => setSortBy(e.target.value)}
-                className="px-4 py-3 bg-[#F4F7F9] dark:bg-slate-950 text-[#1A2B48] dark:text-slate-100 font-bold border border-transparent rounded-xl focus:border-brand/40 focus:outline-none transition-colors text-sm cursor-pointer"
+                className="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-950/60 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-800 dark:text-slate-100 font-bold border border-slate-200 dark:border-slate-800/80 rounded-xl focus:border-brand/40 focus:outline-none transition-all text-sm cursor-pointer"
               >
                 <option value="popularity">Popularity</option>
                 <option value="rating">Rating (Highest First)</option>
@@ -205,75 +257,66 @@ export default function AttractionsAndMuseumsPage({
             </div>
           </div>
 
-          {/* Region Filter Row */}
-          <div className="flex flex-col gap-2.5 mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-0.5 flex items-center gap-1.5 select-none">
-              <Globe className="w-3.5 h-3.5 text-slate-400" />
-              <span>Filter by Region:</span>
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {regions.map((region) => (
-                <button
-                  key={region}
-                  onClick={() => {
-                    setSelectedRegion(region);
-                    setSelectedCity("All"); // Reset city when region changes
-                  }}
-                  className={`px-3.5 py-2 text-xs font-bold rounded-xl border transition-all select-none cursor-pointer ${
-                    selectedRegion === region
-                      ? "border-brand bg-brand/5 text-brand dark:bg-brand/10 dark:border-brand"
-                      : "border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-600 dark:text-slate-350 hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
-                  }`}
-                >
-                  {region === "All" ? "All Regions" : region}
-                </button>
-              ))}
+          {/* Filters Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Region Filter */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5 select-none">
+                <Globe className="w-3.5 h-3.5" />
+                <span>FILTER BY REGION:</span>
+              </span>
+              <select
+                value={selectedRegion}
+                onChange={(e) => {
+                  setSelectedRegion(e.target.value);
+                  setSelectedCity("All"); // Reset city when region changes
+                }}
+                className="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-950/60 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-800 dark:text-slate-100 font-semibold border border-slate-200 dark:border-slate-800/80 rounded-xl focus:border-brand/40 focus:outline-none transition-all text-sm cursor-pointer w-full"
+              >
+                {regions.map((region) => (
+                  <option key={region} value={region}>
+                    {region === "All" ? "All Regions" : region}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          {/* City Filter Row */}
-          <div className="flex flex-col gap-2.5">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-0.5 flex items-center gap-1.5 select-none">
-              <MapPin className="w-3.5 h-3.5 text-slate-400" />
-              <span>Filter by Destination:</span>
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {cities.map((city) => (
-                <button
-                  key={city}
-                  onClick={() => setSelectedCity(city)}
-                  className={`px-3.5 py-2 text-xs font-bold rounded-xl border transition-all select-none cursor-pointer ${
-                    selectedCity === city
-                      ? "border-brand bg-brand/5 text-brand dark:bg-brand/10 dark:border-brand"
-                      : "border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-600 dark:text-slate-350 hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
-                  }`}
-                >
-                  {city === "All" ? "All Destinations" : city}
-                </button>
-              ))}
+            {/* City Filter */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5 select-none">
+                <MapPin className="w-3.5 h-3.5" />
+                <span>FILTER BY DESTINATION:</span>
+              </span>
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-950/60 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-800 dark:text-slate-100 font-semibold border border-slate-200 dark:border-slate-800/80 rounded-xl focus:border-brand/40 focus:outline-none transition-all text-sm cursor-pointer w-full"
+              >
+                {cities.map((city) => (
+                  <option key={city} value={city}>
+                    {city === "All" ? "All Destinations" : city}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          {/* Category Filter Tabs */}
-          <div className="flex flex-col gap-2.5 border-t border-slate-100 dark:border-slate-850/60 pt-4">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-0.5 flex items-center gap-1.5 select-none">
-              <Compass className="w-3.5 h-3.5 text-slate-400" />
-              <span>Filter by Category:</span>
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`px-3.5 py-2 text-xs font-bold rounded-xl border transition-all select-none cursor-pointer ${
-                    selectedCategory === category
-                      ? "border-brand bg-brand/5 text-brand dark:bg-brand/10 dark:border-brand"
-                      : "border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-600 dark:text-slate-350 hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
-                  }`}
-                >
-                  {category === "All" ? "All Categories" : category}
-                </button>
-              ))}
+            {/* Category Filter */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5 select-none">
+                <Compass className="w-3.5 h-3.5" />
+                <span>FILTER BY CATEGORY:</span>
+              </span>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-950/60 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-800 dark:text-slate-100 font-semibold border border-slate-200 dark:border-slate-800/80 rounded-xl focus:border-brand/40 focus:outline-none transition-all text-sm cursor-pointer w-full"
+              >
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category === "All" ? "All Categories" : category}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -307,7 +350,18 @@ export default function AttractionsAndMuseumsPage({
 
         {/* Grid List with Animation */}
         <AnimatePresence mode="popLayout">
-          {filteredAndSortedAttractions.length > 0 ? (
+          {isLoading ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fadeIn"
+            >
+              {Array.from({ length: 8 }).map((_, i) => (
+                <AttractionCardSkeleton key={i} />
+              ))}
+            </motion.div>
+          ) : filteredAndSortedAttractions.length > 0 ? (
             <motion.div
               layout
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"

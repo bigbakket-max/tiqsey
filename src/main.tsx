@@ -1,19 +1,34 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
+import AdminApp from './admin/AdminApp.tsx';
 import './index.css';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { WishlistProvider } from './contexts/WishlistContext';
+import { BlogProvider } from './contexts/BlogContext';
+import { HelmetProvider } from 'react-helmet-async';
+
+function Root() {
+  const isAdminRoute = window.location.pathname.startsWith('/admin');
+  
+  return (
+    <HelmetProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <WishlistProvider>
+            <BlogProvider>
+              {isAdminRoute ? <AdminApp /> : <App />}
+            </BlogProvider>
+          </WishlistProvider>
+        </AuthProvider>
+      </SettingsProvider>
+    </HelmetProvider>
+  );
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <SettingsProvider>
-      <AuthProvider>
-        <WishlistProvider>
-          <App />
-        </WishlistProvider>
-      </AuthProvider>
-    </SettingsProvider>
+    <Root />
   </StrictMode>,
 );

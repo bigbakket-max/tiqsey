@@ -30,12 +30,22 @@ export default function HotDeals({
   const [showLeftScroll, setShowLeftScroll] = useState(false);
   const [showRightScroll, setShowRightScroll] = useState(true);
 
+  const [rev, setRev] = useState(0);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setRev(prev => prev + 1);
+    };
+    window.addEventListener("tiqsey_attractions_updated", handleUpdate);
+    return () => window.removeEventListener("tiqsey_attractions_updated", handleUpdate);
+  }, []);
+
   // Filter attractions that have a discount price
   const dealAttractions = useMemo(() => {
     return POPULAR_ATTRACTIONS.filter(
       (attr) => attr.discountPrice && attr.discountPrice < attr.price,
     );
-  }, []);
+  }, [rev]);
 
   const checkScroll = () => {
     if (scrollRef.current) {

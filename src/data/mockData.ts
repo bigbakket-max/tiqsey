@@ -2542,3 +2542,43 @@ export const DESTINATIONS: Destination[] = [
       "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1200",
   },
 ];
+
+// Initialize dynamic synchronization from localStorage on module load
+if (typeof window !== "undefined") {
+  const saved = localStorage.getItem("tiqsey_custom_attractions");
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        POPULAR_ATTRACTIONS.length = 0;
+        POPULAR_ATTRACTIONS.push(...parsed);
+      }
+    } catch (e) {
+      console.error("Failed to parse custom attractions from localStorage", e);
+    }
+  } else {
+    try {
+      localStorage.setItem("tiqsey_custom_attractions", JSON.stringify(POPULAR_ATTRACTIONS));
+    } catch (e) {
+      console.error("Failed to write initial attractions to localStorage", e);
+    }
+  }
+}
+
+/**
+ * Synchronizes the live POPULAR_ATTRACTIONS array and persists it to localStorage.
+ * This triggers a reactive window event so components can optionally update.
+ */
+export function syncCustomAttractions(newAttractions: Attraction[]) {
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem("tiqsey_custom_attractions", JSON.stringify(newAttractions));
+    } catch (e) {
+      console.error("Failed to persist attractions to localStorage", e);
+    }
+    POPULAR_ATTRACTIONS.length = 0;
+    POPULAR_ATTRACTIONS.push(...newAttractions);
+    window.dispatchEvent(new Event("tiqsey_attractions_updated"));
+  }
+}
+

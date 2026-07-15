@@ -353,31 +353,67 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!localStorage.getItem('tiqsey_autodetected')) {
-      fetch('https://ipapi.co/json/')
-        .then(res => res.json())
-        .then(data => {
-          const currencyCode = data.currency;
+      const countryToCurrency: Record<string, string> = {
+        US: 'USD', GB: 'GBP', AU: 'AUD', CA: 'CAD', CH: 'CHF', DK: 'DKK', NO: 'NOK',
+        PL: 'PLN', SE: 'SEK', AE: 'AED', HU: 'HUF', SG: 'SGD', HK: 'HKD', JP: 'JPY',
+        CO: 'COP', NZ: 'NZD', MY: 'MYR', CZ: 'CZK', MX: 'MXN', IN: 'INR', TH: 'THB',
+        BR: 'BRL', AZ: 'AZN', BHD: 'BHD', BYN: 'BYN', CLP: 'CLP', CNY: 'CNY', ID: 'IDR',
+        ILS: 'ILS', JOD: 'JOD', KRW: 'KRW', KWD: 'KWD', KZT: 'KZT', LAK: 'LAK', MNT: 'MNT',
+        MOP: 'MOP', OMR: 'OMR', PHP: 'PHP', PKR: 'PKR', QAR: 'QAR', RUB: 'RUB', SAR: 'SAR',
+        TRY: 'TRY', TWD: 'TWD', VND: 'VND', ZAR: 'ZAR',
+        AT: 'EUR', BE: 'EUR', CY: 'EUR', EE: 'EUR', FI: 'EUR', FR: 'EUR', DE: 'EUR', GR: 'EUR',
+        IE: 'EUR', IT: 'EUR', LV: 'EUR', LT: 'EUR', LU: 'EUR', MT: 'EUR', NL: 'EUR', PT: 'EUR',
+        SK: 'EUR', SI: 'EUR', ES: 'EUR'
+      };
+
+      const handleDetectionSuccess = (currencyCode: string) => {
+        const detectedCurr = CURRENCIES.find(c => c.code === currencyCode);
+        if (detectedCurr) {
+          setDetectedLocalCurrency(detectedCurr);
+          localStorage.setItem('tiqsey_detected_curr', detectedCurr.code);
           
-          let matchedCurrCode = currencyCode;
-          if (matchedCurrCode) {
-            const detectedCurr = CURRENCIES.find(c => c.code === matchedCurrCode);
-            if (detectedCurr) {
-              setDetectedLocalCurrency(detectedCurr);
-              localStorage.setItem('tiqsey_detected_curr', detectedCurr.code);
-              
-              if (!localStorage.getItem('tiqsey_curr_overridden')) {
-                setCurrency(detectedCurr);
-                localStorage.setItem('tiqsey_curr', detectedCurr.code);
+          if (!localStorage.getItem('tiqsey_curr_overridden')) {
+            setCurrency(detectedCurr);
+            localStorage.setItem('tiqsey_curr', detectedCurr.code);
+          }
+        }
+        localStorage.setItem('tiqsey_autodetected', 'true');
+      };
+
+      const tryGeoServices = async () => {
+        try {
+          const res = await fetch('https://ipapi.co/json/');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.currency) {
+              handleDetectionSuccess(data.currency);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Geo service 1 (ipapi) failed:', e);
+        }
+
+        try {
+          const res = await fetch('https://ip-api.com/json/');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.countryCode) {
+              const mappedCurrency = countryToCurrency[data.countryCode.toUpperCase()];
+              if (mappedCurrency) {
+                handleDetectionSuccess(mappedCurrency);
+                return;
               }
             }
           }
-          
-          localStorage.setItem('tiqsey_autodetected', 'true');
-        })
-        .catch(err => {
-          console.error('Geo-detection failed or blocked, falling back to browser detection:', err);
-          localStorage.setItem('tiqsey_autodetected', 'true');
-        });
+        } catch (e) {
+          console.warn('Geo service 2 (ip-api) failed:', e);
+        }
+
+        localStorage.setItem('tiqsey_autodetected', 'true');
+      };
+
+      tryGeoServices();
     }
   }, []);
 

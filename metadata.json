@@ -1,6 +1,8 @@
 {
   "name": "Tiqsey",
   "description": "Discover and book the world's most incredible attractions and experiences. From museums to theme parks, your cultural journey starts with Tiqsey.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "clipboard-write"
+  ],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

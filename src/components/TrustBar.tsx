@@ -7,15 +7,15 @@ import { useSettings } from '../contexts/SettingsContext';
 function StarTravelerCharacter() {
   return (
     <motion.div 
-      className="relative w-14 h-14 flex items-center justify-center shrink-0 select-none cursor-pointer"
+      className="relative w-11 h-11 flex items-center justify-center shrink-0 select-none cursor-pointer"
       whileHover={{ 
-        y: -3.5,
+        y: -2.5,
         rotate: 1.5,
-        transition: { duration: 0.3 }
+        transition: { duration: 0.25 }
       }}
     >
       <div className="absolute inset-0 bg-emerald-500/20 blur-md rounded-full" />
-      <svg viewBox="0 0 100 100" className="w-12 h-12 drop-shadow-md z-10 overflow-visible">
+      <svg viewBox="0 0 100 100" className="w-9.5 h-9.5 drop-shadow-md z-10 overflow-visible">
         <defs>
           <radialGradient id="greenBallGrad" cx="35%" cy="35%" r="65%">
             <stop offset="0%" stopColor="#10b981" />
@@ -105,14 +105,14 @@ function StarTravelerCharacter() {
 function SightseeingOwlCharacter() {
   return (
     <motion.div 
-      className="relative w-14 h-14 flex items-center justify-center shrink-0 select-none cursor-pointer"
+      className="relative w-11 h-11 flex items-center justify-center shrink-0 select-none cursor-pointer"
       whileHover={{ 
-        y: -3.5,
-        transition: { duration: 0.3 }
+        y: -2.5,
+        transition: { duration: 0.25 }
       }}
     >
       <div className="absolute inset-0 bg-red-500/20 blur-md rounded-full" />
-      <svg viewBox="0 0 100 100" className="w-12 h-12 drop-shadow-md z-10 overflow-visible">
+      <svg viewBox="0 0 100 100" className="w-9.5 h-9.5 drop-shadow-md z-10 overflow-visible">
         <defs>
           <radialGradient id="redBallGrad" cx="35%" cy="35%" r="65%">
             <stop offset="0%" stopColor="#f43f5e" />
@@ -208,14 +208,14 @@ function SightseeingOwlCharacter() {
 function VaultBuddyCharacter() {
   return (
     <motion.div 
-      className="relative w-14 h-14 flex items-center justify-center shrink-0 select-none cursor-pointer"
+      className="relative w-11 h-11 flex items-center justify-center shrink-0 select-none cursor-pointer"
       whileHover={{ 
-        y: -3,
-        transition: { duration: 0.3 }
+        y: -2,
+        transition: { duration: 0.25 }
       }}
     >
       <div className="absolute inset-0 bg-amber-500/20 blur-md rounded-full" />
-      <svg viewBox="0 0 100 100" className="w-12 h-12 drop-shadow-md z-10 overflow-visible">
+      <svg viewBox="0 0 100 100" className="w-9.5 h-9.5 drop-shadow-md z-10 overflow-visible">
         <defs>
           <radialGradient id="orangeBallGrad" cx="35%" cy="35%" r="65%">
             <stop offset="0%" stopColor="#f97316" />
@@ -364,13 +364,13 @@ export default function TrustBar() {
   };
 
   return (
-    <section className="relative w-full bg-white dark:bg-slate-950/20 py-12 md:py-16" id="trust-bar-section">
+    <section className="relative w-full bg-white dark:bg-slate-950/20 py-8 md:py-10" id="trust-bar-section">
       <div className="max-w-7xl mx-auto px-6 md:px-12">
-        <div className="flex flex-col items-start gap-8 w-full">
+        <div className="flex flex-col items-start gap-5 w-full">
           
           {/* Left-Aligned Title */}
           <div className="text-left w-full">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               <span>{t('whyBook')} <span className="text-brand">Tiqsey</span>?</span>
             </h2>
           </div>
@@ -379,7 +379,7 @@ export default function TrustBar() {
           <div 
             ref={scrollContainerRef}
             onScroll={handleScroll}
-            className="w-full flex md:grid md:grid-cols-3 gap-6 md:gap-8 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 snap-x snap-mandatory no-scrollbar scroll-smooth"
+            className="w-full flex md:grid md:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 snap-x snap-mandatory no-scrollbar scroll-smooth"
           >
             {trustItems.map((item, index) => {
               const characterElement = index === 0 ? (
@@ -393,36 +393,36 @@ export default function TrustBar() {
               return (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: 12 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.1, duration: 0.4 }}
-                  className="flex flex-col items-start gap-5 p-6 md:p-8 bg-[#f1f5fb] dark:bg-slate-900/60 rounded-3xl w-[85vw] sm:w-[320px] md:w-auto shrink-0 snap-center hover:-translate-y-1 transition-all duration-300"
+                  transition={{ delay: index * 0.08, duration: 0.35 }}
+                  className="flex flex-col items-start gap-3.5 p-5 md:p-6 bg-slate-50 dark:bg-slate-900/40 border border-slate-100/80 dark:border-slate-800/60 rounded-2xl w-[80vw] sm:w-[280px] md:w-auto shrink-0 snap-center hover:-translate-y-1 hover:shadow-xs transition-all duration-300"
                 >
                   <div className="flex items-start justify-start w-full pointer-events-none">
                     {characterElement}
                   </div>
-                  <div className="flex flex-col gap-1.5 mt-2 text-left">
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+                  <div className="flex flex-col gap-1 mt-1 text-left">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
                       {item.title}
                     </h3>
 
                     {item.isTrustpilot && (
-                      <div className="flex items-center gap-1.5 mt-1 mb-0.5">
+                      <div className="flex items-center gap-1.5 mt-0.5 mb-0.5">
                         <div className="flex gap-0.5">
                           {[1, 2, 3, 4, 5].map((s) => (
-                            <div key={s} className="w-3.5 h-3.5 bg-[#00b67a] flex items-center justify-center rounded-[2px] shadow-sm">
-                              <svg className="w-2.5 h-2.5 text-white fill-current" viewBox="0 0 24 24">
+                            <div key={s} className="w-3 h-3 bg-[#00b67a] flex items-center justify-center rounded-[2px] shadow-xs">
+                              <svg className="w-2 h-2 text-white fill-current" viewBox="0 0 24 24">
                                 <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                               </svg>
                             </div>
                           ))}
                         </div>
-                        <span className="text-xs font-black text-slate-900 dark:text-white leading-none">4.8</span>
+                        <span className="text-[11px] font-black text-slate-900 dark:text-white leading-none">4.8</span>
                       </div>
                     )}
 
-                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-0.5">
+                    <p className="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-0.5">
                       {item.subtitle}
                     </p>
                   </div>
@@ -437,12 +437,12 @@ export default function TrustBar() {
               <button
                 key={idx}
                 onClick={() => scrollToItem(idx)}
-                className="w-11 h-11 flex items-center justify-center outline-none select-none transition-transform active:scale-95"
+                className="w-10 h-10 flex items-center justify-center outline-none select-none transition-transform active:scale-95"
                 aria-label={`Go to slide ${idx + 1}`}
               >
                 <span
                   className={`h-1.5 rounded-full transition-all duration-300 ${
-                    activeIndex === idx ? 'w-5.5 bg-brand' : 'w-1.5 bg-slate-300 dark:bg-slate-700/60'
+                    activeIndex === idx ? 'w-5 bg-brand' : 'w-1.5 bg-slate-300 dark:bg-slate-700/60'
                   }`}
                 />
               </button>

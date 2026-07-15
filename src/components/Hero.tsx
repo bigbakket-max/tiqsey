@@ -404,24 +404,12 @@ export default function Hero({ onSelectDestination, onSearch }: HeroProps) {
             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-[38px] xl:text-[42px] font-black text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)] tracking-tight leading-[1.4] max-w-[700px] mx-auto mb-0">
               <span className="inline-block align-middle">
                 Explore
-                <span className="inline-flex items-center gap-0.5 ml-1.5 mr-1 select-none">
-                  <span className="inline-block text-2xl sm:text-3xl md:text-[34px] hover:rotate-12 transition-transform duration-300" role="img" aria-label="airplane">✈️</span>
-                  <span className="inline-block text-2xl sm:text-3xl md:text-[34px] hover:translate-x-1 transition-transform duration-300" role="img" aria-label="car">🚗</span>
-                  <span className="inline-block text-2xl sm:text-3xl md:text-[34px] hover:rotate-6 transition-transform duration-300" role="img" aria-label="steam train">🚂</span>
-                  <span className="inline-block text-2xl sm:text-3xl md:text-[34px] hover:-translate-y-1 transition-transform duration-300" role="img" aria-label="train">🚆</span>
-                </span>
               </span>{" "}
               <span className="inline-block align-middle">
                 <span className="text-white font-extrabold">unforgettable experiences</span>
-                <span className="inline-block text-2xl sm:text-3xl md:text-[34px] ml-1.5 select-none hover:scale-110 transition-transform duration-300" role="img" aria-label="camera">📸</span>
               </span>{" "}
               <span className="inline-block align-middle">
                 around the <span className="text-brand">world</span>
-                <span className="inline-flex items-center gap-0.5 ml-1.5 select-none">
-                  <span className="inline-block text-2xl sm:text-3xl md:text-[34px] hover:rotate-6 transition-transform duration-300" role="img" aria-label="globe">🌍</span>
-                  <span className="inline-block text-2xl sm:text-3xl md:text-[34px] hover:scale-110 transition-transform duration-300" role="img" aria-label="beach umbrella">🏖️</span>
-                  <span className="inline-block text-2xl sm:text-3xl md:text-[34px] hover:-translate-y-1 transition-transform duration-300" role="img" aria-label="luggage">🧳</span>
-                </span>
               </span>
             </h1>
           </motion.div>

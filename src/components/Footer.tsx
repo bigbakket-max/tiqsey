@@ -1,11 +1,25 @@
-import React, { useState } from 'react';
-import { Globe, Instagram, Facebook, ChevronDown, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Instagram, Facebook, ChevronDown, Server } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import SettingsModal from './SettingsModal';
+import { getCurrencyCountryCode } from '../utils/currencyFlags';
 
-export default function Footer({ onExplore, onNavigate }: { onExplore?: () => void, onNavigate?: (page: 'home' | 'attractions-and-museums' | 'hot-deals') => void }) {
+export default function Footer({ onExplore, onNavigate }: { onExplore?: () => void, onNavigate?: (page: 'home' | 'attractions-and-museums' | 'hot-deals' | 'blog' | 'wishlist') => void }) {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const { currency } = useSettings();
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  useEffect(() => {
+    fetch('/api/health')
+      .then(res => {
+        if (res.ok) {
+          setBackendStatus('online');
+        } else {
+          setBackendStatus('offline');
+        }
+      })
+      .catch(() => setBackendStatus('offline'));
+  }, []);
 
   const currentYear = new Date().getFullYear();
 
@@ -32,12 +46,13 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
           </div>
 
           {/* Links block */}
-          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8 text-sm mt-4 lg:mt-0 lg:pl-16">
+          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-8 text-sm mt-4 lg:mt-0 lg:pl-16">
             <div className="space-y-4">
               <h4 className="font-bold text-white uppercase tracking-widest text-xs">Platform</h4>
               <ul className="space-y-2 font-semibold text-gray-400">
                 <li><a href="#" onClick={(e) => { e.preventDefault(); if (onExplore) onExplore(); }} className="hover:text-brand transition-colors">Destinations</a></li>
                 <li><a href="#" className="hover:text-brand transition-colors font-bold text-amber-400" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('hot-deals'); }}>Hot Deals 🔥</a></li>
+                <li><a href="#" className="hover:text-brand transition-colors" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('blog'); }}>Travel Blog 📖</a></li>
                 <li><a href="#" className="hover:text-brand transition-colors">Gift Cards</a></li>
               </ul>
             </div>
@@ -60,6 +75,24 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
                 <li><a href="#" className="hover:text-brand transition-colors">Cancellation</a></li>
               </ul>
             </div>
+
+            <div className="space-y-4">
+              <h4 className="font-bold text-white uppercase tracking-widest text-xs">Social Media</h4>
+              <ul className="space-y-3 font-semibold text-gray-400">
+                <li>
+                  <a href="#" className="flex items-center gap-3 hover:text-[#1877F2] transition-all group duration-200">
+                    <Facebook className="w-5.5 h-5.5 text-gray-500 group-hover:text-[#1877F2] transition-colors" />
+                    <span className="text-sm">Facebook</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="flex items-center gap-3 hover:text-[#E4405F] transition-all group duration-200">
+                    <Instagram className="w-5.5 h-5.5 text-gray-500 group-hover:text-[#E4405F] transition-colors" />
+                    <span className="text-sm">Instagram</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -67,6 +100,13 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
         <div className="flex flex-col border-t border-white/10 pt-6 md:flex-row justify-between items-center gap-6 text-xs font-bold text-gray-500">
           <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
             <p>© {currentYear} Tiqsey. All rights reserved.</p>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+              <Server className="w-3.5 h-3.5" />
+              <span className="text-gray-400">Backend:</span>
+              {backendStatus === 'checking' && <span className="text-gray-500 animate-pulse">Checking...</span>}
+              {backendStatus === 'online' && <span className="text-emerald-400">Online</span>}
+              {backendStatus === 'offline' && <span className="text-rose-400">Offline</span>}
+            </div>
             <div className="flex items-center gap-6">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
@@ -74,30 +114,24 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
             </div>
           </div>
 
-          <div className="flex items-center gap-6 sm:gap-10 flex-col sm:flex-row w-full sm:w-auto">
-            <div className="flex items-center gap-6">
-              {[
-                { icon: Instagram, name: 'Instagram', hoverColor: 'hover:text-[#E4405F]' },
-                { icon: Facebook, name: 'Facebook', hoverColor: 'hover:text-[#1877F2]' },
-              ].map((social) => (
-                <a 
-                  key={social.name}
-                  href="#" 
-                  className={`text-gray-400 ${social.hoverColor} transition-colors block transform hover:scale-110`}
-                  aria-label={social.name}
-                >
-                  <social.icon className="w-5 h-5" />
-                </a>
-              ))}
-            </div>
-
+          <div className="flex items-center justify-end w-full sm:w-auto">
             <button 
               onClick={() => setSettingsModalOpen(true)}
-              className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 px-5 py-3 rounded-full transition-all border border-white/10 hover:border-white/20 text-white shadow-lg w-full sm:w-auto"
+              className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 px-3 py-2 rounded-lg transition-all border border-gray-200 text-slate-700 shadow-sm w-full sm:w-auto font-sans"
             >
-              <Globe className="w-4 h-4 text-brand" />
-              <span className="uppercase tracking-wider">{currency.code}</span>
-              <ChevronDown className="w-4 h-4 opacity-50" />
+              <div className="w-6 h-4.5 select-none shrink-0 rounded-sm overflow-hidden flex items-center justify-center">
+                <img
+                  src={`https://flagcdn.com/w40/${getCurrencyCountryCode(currency.code)}.png`}
+                  alt={`${currency.code} flag`}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                />
+              </div>
+              <span className="text-[14px] font-semibold tracking-wide flex items-center gap-1 ml-0.5">
+                {currency.code} {currency.symbol}
+              </span>
+              <ChevronDown className="w-4 h-4 text-slate-500 ml-0.5" strokeWidth={2.5} />
             </button>
           </div>
         </div>

@@ -56,6 +56,7 @@ export interface User {
   avatarUrl?: string;
   bio?: string;
   createdAt: string;
+  role?: 'admin' | 'user';
 }
 
 export interface Booking {
@@ -68,7 +69,15 @@ export interface Booking {
   ticketsCount: number;
   totalPrice: number;
   bookingRef: string; // e.g. TQ-104925-NL
-  status: 'confirmed' | 'cancelled';
+  order_number?: string;
+  pnr_number?: string;
+  orderId?: string;
+  timeslot?: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rejected';
   rating?: number;
+  childCount?: number;
+  guestInfo?: { name: string; email: string; passengers?: any[] };
+  passengers?: any[];
+  createdAt?: string;
 }
 

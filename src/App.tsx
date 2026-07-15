@@ -27,6 +27,12 @@ import { POPULAR_ATTRACTIONS } from "./data/mockData";
 import { Attraction } from "./types";
 import AttractionsAndMuseumsPage from "./components/AttractionsAndMuseumsPage";
 import HotDealsPage from "./components/HotDealsPage";
+import BlogPage from "./components/BlogPage";
+import SignInPage from "./components/SignInPage";
+import RegisterPage from "./components/RegisterPage";
+import WishlistPage from "./components/WishlistPage";
+import MyBookingsPage from "./components/MyBookingsPage";
+import ProfilePage from "./components/ProfilePage";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -34,7 +40,7 @@ export default function App() {
   const { t } = useSettings();
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState<
-    "home" | "attractions-and-museums" | "hot-deals"
+    "home" | "attractions-and-museums" | "hot-deals" | "blog" | "sign-in" | "register" | "wishlist" | "my-bookings" | "profile"
   >("home");
   const [selectedDestination, setSelectedDestination] = useState<string | null>(
     null,
@@ -42,6 +48,7 @@ export default function App() {
   const [selectedAttractionId, setSelectedAttractionId] = useState<
     string | null
   >(null);
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string | null>(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
 
   const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => {
@@ -108,6 +115,10 @@ export default function App() {
             .join(" ");
           setSelectedDestination(formattedDest);
         }
+      } else if (path === "/blog" || path.startsWith("/blog/") || params.has("post")) {
+        setCurrentPage("blog");
+      } else if (path === "/wishlist" || params.has("items")) {
+        setCurrentPage("wishlist");
       }
 
       if (attrId) {
@@ -164,6 +175,31 @@ export default function App() {
           attractionId={selectedAttractionId}
           onClose={handleCloseDetail}
           onViewAttraction={handleViewAttraction}
+          onNavigateToDestination={(city, category) => {
+            setSelectedAttractionId(null);
+            setSelectedDestination(city);
+            if (category) {
+              setActiveCategoryFilter(category);
+            } else {
+              setActiveCategoryFilter(null);
+            }
+            // Update URL
+            window.history.pushState(
+              {},
+              "",
+              `/destinations/${encodeURIComponent(city.toLowerCase().replace(/\s+/g, "-"))}`,
+            );
+            window.scrollTo(0, 0);
+          }}
+          onNavigateToHome={() => {
+            setSelectedAttractionId(null);
+            setSelectedDestination(null);
+            setActiveCategoryFilter(null);
+            setCurrentPage("home");
+            // Update URL
+            window.history.pushState({}, "", "/");
+            window.scrollTo(0, 0);
+          }}
         />
       );
     }
@@ -174,9 +210,11 @@ export default function App() {
           destination={selectedDestination}
           onBack={() => {
             setSelectedDestination(null);
+            setActiveCategoryFilter(null);
             window.scrollTo(0, 0);
           }}
           onViewAttraction={handleViewAttraction}
+          initialCategory={activeCategoryFilter}
         />
       );
     }
@@ -205,6 +243,98 @@ export default function App() {
       );
     }
 
+    if (currentPage === "blog") {
+      return (
+        <BlogPage
+          onBackToHome={() => {
+            setCurrentPage("home");
+            window.scrollTo(0, 0);
+          }}
+          onViewAttraction={handleViewAttraction}
+        />
+      );
+    }
+
+    if (currentPage === "sign-in") {
+      return (
+        <SignInPage
+          onBackToHome={() => {
+            setCurrentPage("home");
+            window.scrollTo(0, 0);
+          }}
+          onNavigateToRegister={() => {
+            setCurrentPage("register");
+            window.scrollTo(0, 0);
+          }}
+        />
+      );
+    }
+
+    if (currentPage === "register") {
+      return (
+        <RegisterPage
+          onBackToHome={() => {
+            setCurrentPage("home");
+            window.scrollTo(0, 0);
+          }}
+          onNavigateToSignIn={() => {
+            setCurrentPage("sign-in");
+            window.scrollTo(0, 0);
+          }}
+        />
+      );
+    }
+
+    if (currentPage === "wishlist") {
+      return (
+        <WishlistPage
+          onBackToHome={() => {
+            setCurrentPage("home");
+            window.scrollTo(0, 0);
+          }}
+          onNavigateToAttractions={() => {
+            setCurrentPage("attractions-and-museums");
+            window.scrollTo(0, 0);
+          }}
+          onViewAttraction={handleViewAttraction}
+          onNavigateToSignIn={() => {
+            setCurrentPage("sign-in");
+            window.scrollTo(0, 0);
+          }}
+        />
+      );
+    }
+
+    if (currentPage === "my-bookings") {
+      return (
+        <MyBookingsPage
+          onBackToHome={() => {
+            setCurrentPage("home");
+            window.scrollTo(0, 0);
+          }}
+          onNavigateToAttractions={() => {
+            setCurrentPage("attractions-and-museums");
+            window.scrollTo(0, 0);
+          }}
+          onNavigateToSignIn={() => {
+            setCurrentPage("sign-in");
+            window.scrollTo(0, 0);
+          }}
+        />
+      );
+    }
+
+    if (currentPage === "profile") {
+      return (
+        <ProfilePage
+          onBackToHome={() => {
+            setCurrentPage("home");
+            window.scrollTo(0, 0);
+          }}
+        />
+      );
+    }
+
     return (
       <main>
         <Hero
@@ -213,7 +343,7 @@ export default function App() {
             window.history.pushState(
               {},
               "",
-              `/destinations/${encodeURIComponent(dest.toLowerCase().replace(/\\s+/g, "-"))}`,
+              `/destinations/${encodeURIComponent(dest.toLowerCase().replace(/\s+/g, "-"))}`,
             );
             window.scrollTo(0, 0);
           }}
@@ -229,14 +359,14 @@ export default function App() {
               window.history.pushState(
                 {},
                 "",
-                `/destinations/${encodeURIComponent(matchingAttraction.city.toLowerCase().replace(/\\s+/g, "-"))}`,
+                `/destinations/${encodeURIComponent(matchingAttraction.city.toLowerCase().replace(/\s+/g, "-"))}`,
               );
             } else {
               setSelectedDestination(q);
               window.history.pushState(
                 {},
                 "",
-                `/destinations/${encodeURIComponent(q.toLowerCase().replace(/\\s+/g, "-"))}`,
+                `/destinations/${encodeURIComponent(q.toLowerCase().replace(/\s+/g, "-"))}`,
               );
             }
             setSelectedAttractionId(null);
@@ -275,11 +405,12 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen max-w-full overflow-x-clip bg-[#f8f9fa] dark:bg-slate-950 font-sans selection:bg-brand/10 selection:text-brand transition-colors duration-300">
+      <div className="min-h-screen max-w-full overflow-x-clip bg-[#f0f4f8] dark:bg-slate-950 font-sans selection:bg-brand/10 selection:text-brand transition-colors duration-300">
         <Header
           activePage={currentPage}
           activeDestination={selectedDestination}
           onWishlistOpen={() => setWishlistOpen(true)}
+          onViewAttraction={handleViewAttraction}
           onExplore={() => {
             setSelectedDestination(null);
             setSelectedAttractionId(null);
@@ -303,14 +434,14 @@ export default function App() {
               window.history.pushState(
                 {},
                 "",
-                `/destinations/${encodeURIComponent(matchingAttraction.city.toLowerCase().replace(/\\s+/g, "-"))}`,
+                `/destinations/${encodeURIComponent(matchingAttraction.city.toLowerCase().replace(/\s+/g, "-"))}`,
               );
             } else {
               setSelectedDestination(q);
               window.history.pushState(
                 {},
                 "",
-                `/destinations/${encodeURIComponent(q.toLowerCase().replace(/\\s+/g, "-"))}`,
+                `/destinations/${encodeURIComponent(q.toLowerCase().replace(/\s+/g, "-"))}`,
               );
             }
             setSelectedAttractionId(null);
@@ -339,6 +470,12 @@ export default function App() {
               isOpen={wishlistOpen}
               onClose={() => setWishlistOpen(false)}
               onViewAttraction={handleViewAttraction}
+              onViewFullWishlist={() => {
+                setSelectedDestination(null);
+                setSelectedAttractionId(null);
+                setCurrentPage("wishlist");
+                window.scrollTo(0, 0);
+              }}
             />
           )}
         </AnimatePresence>

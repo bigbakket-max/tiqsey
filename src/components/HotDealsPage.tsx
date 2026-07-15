@@ -37,12 +37,22 @@ export default function HotDealsPage({
     "discount-desc" | "price-asc" | "price-desc" | "rating"
   >("discount-desc");
 
+  const [rev, setRev] = useState(0);
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      setRev(prev => prev + 1);
+    };
+    window.addEventListener("tiqsey_attractions_updated", handleUpdate);
+    return () => window.removeEventListener("tiqsey_attractions_updated", handleUpdate);
+  }, []);
+
   // Filter only Hot Deals (discounted items)
   const hotDealsList = useMemo(() => {
     return POPULAR_ATTRACTIONS.filter(
       (attr) => attr.discountPrice && attr.discountPrice < attr.price,
     );
-  }, []);
+  }, [rev]);
 
   // Extract categories, regions and cities specifically from hot deals
   const categories = useMemo(() => {
@@ -235,75 +245,66 @@ export default function HotDealsPage({
             </div>
           </div>
 
-          {/* Region Filter Row */}
-          <div className="flex flex-col gap-2.5">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-zinc-500 mb-0.5 flex items-center gap-1.5 select-none">
-              <Globe className="w-3.5 h-3.5 text-amber-500" />
-              <span>Filter by Region:</span>
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {regions.map((region) => (
-                <button
-                  key={region}
-                  onClick={() => {
-                    setSelectedRegion(region);
-                    setSelectedCity("All"); // Reset city when region changes
-                  }}
-                  className={`px-3.5 py-2 text-xs font-bold rounded-xl border transition-all select-none cursor-pointer ${
-                    selectedRegion === region
-                      ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                      : "border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-900"
-                  }`}
-                >
-                  {region === "All" ? "All Regions" : region}
-                </button>
-              ))}
+          {/* Filters Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Region Filter */}
+            <div className="flex flex-col gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-zinc-500 mb-0.5 flex items-center gap-1.5 select-none">
+                <Globe className="w-3.5 h-3.5 text-amber-500" />
+                <span>Filter by Region:</span>
+              </span>
+              <select
+                value={selectedRegion}
+                onChange={(e) => {
+                  setSelectedRegion(e.target.value);
+                  setSelectedCity("All"); // Reset city when region changes
+                }}
+                className="px-4 py-3 bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-100 font-bold border border-slate-200 dark:border-zinc-800 rounded-xl focus:border-amber-500/40 dark:focus:border-amber-500/40 focus:outline-none transition-colors text-sm cursor-pointer w-full"
+              >
+                {regions.map((region) => (
+                  <option key={region} value={region}>
+                    {region === "All" ? "All Regions" : region}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          {/* Destination Filter Row */}
-          <div className="flex flex-col gap-2.5 border-t border-slate-100 dark:border-zinc-850 pt-4">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-zinc-500 mb-0.5 flex items-center gap-1.5 select-none">
-              <MapPin className="w-3.5 h-3.5 text-amber-500" />
-              <span>Filter by Destination:</span>
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {cities.map((city) => (
-                <button
-                  key={city}
-                  onClick={() => setSelectedCity(city)}
-                  className={`px-3.5 py-2 text-xs font-bold rounded-xl border transition-all select-none cursor-pointer ${
-                    selectedCity === city
-                      ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                      : "border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-900"
-                  }`}
-                >
-                  {city === "All" ? "All Destinations" : city}
-                </button>
-              ))}
+            {/* Destination Filter */}
+            <div className="flex flex-col gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-zinc-500 mb-0.5 flex items-center gap-1.5 select-none">
+                <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                <span>Filter by Destination:</span>
+              </span>
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="px-4 py-3 bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-100 font-bold border border-slate-200 dark:border-zinc-800 rounded-xl focus:border-amber-500/40 dark:focus:border-amber-500/40 focus:outline-none transition-colors text-sm cursor-pointer w-full"
+              >
+                {cities.map((city) => (
+                  <option key={city} value={city}>
+                    {city === "All" ? "All Destinations" : city}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          {/* Category Filter Row */}
-          <div className="flex flex-col gap-2.5 border-t border-slate-100 dark:border-zinc-850 pt-4">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-zinc-500 mb-0.5 flex items-center gap-1.5 select-none">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Filter by Deal Category:</span>
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`px-3.5 py-2 text-xs font-bold rounded-xl border transition-all select-none cursor-pointer ${
-                    selectedCategory === category
-                      ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                      : "border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-900"
-                  }`}
-                >
-                  {category === "All" ? "All Categories" : category}
-                </button>
-              ))}
+            {/* Category Filter */}
+            <div className="flex flex-col gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-zinc-500 mb-0.5 flex items-center gap-1.5 select-none">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Filter by Deal Category:</span>
+              </span>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-4 py-3 bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-100 font-bold border border-slate-200 dark:border-zinc-800 rounded-xl focus:border-amber-500/40 dark:focus:border-amber-500/40 focus:outline-none transition-colors text-sm cursor-pointer w-full"
+              >
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category === "All" ? "All Categories" : category}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
