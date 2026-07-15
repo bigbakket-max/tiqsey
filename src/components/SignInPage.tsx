@@ -27,6 +27,13 @@ export default function SignInPage({
     setError('');
 
     try {
+      // TODO: Reconnect Supabase signInWithPassword authentication when ready.
+      // const { data, error: supabaseError } = await supabase.auth.signInWithPassword({
+      //   email,
+      //   password
+      // });
+      // if (supabaseError) { ... }
+
       await login(email, password);
       onBackToHome();
     } catch (err: any) {

@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Instagram, Facebook, ChevronDown, Server } from 'lucide-react';
+import { Instagram, Facebook, ChevronDown, Server, ShieldCheck } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 import SettingsModal from './SettingsModal';
 import { getCurrencyCountryCode } from '../utils/currencyFlags';
 
 export default function Footer({ onExplore, onNavigate }: { onExplore?: () => void, onNavigate?: (page: 'home' | 'attractions-and-museums' | 'hot-deals' | 'blog' | 'wishlist') => void }) {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const { currency } = useSettings();
+  const { user } = useAuth();
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  const isAdmin = !!user && (
+    user.role === 'admin' ||
+    user.email.toLowerCase() === 'admin@tiqsey.com' ||
+    user.email.toLowerCase() === 'bigbakket@gmail.com'
+  );
 
   useEffect(() => {
     fetch('/api/health')
@@ -100,13 +108,25 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
         <div className="flex flex-col border-t border-white/10 pt-6 md:flex-row justify-between items-center gap-6 text-xs font-bold text-gray-500">
           <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
             <p>© {currentYear} Tiqsey. All rights reserved.</p>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-              <Server className="w-3.5 h-3.5" />
-              <span className="text-gray-400">Backend:</span>
-              {backendStatus === 'checking' && <span className="text-gray-500 animate-pulse">Checking...</span>}
-              {backendStatus === 'online' && <span className="text-emerald-400">Online</span>}
-              {backendStatus === 'offline' && <span className="text-rose-400">Offline</span>}
-            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                <Server className="w-3.5 h-3.5" />
+                <span className="text-gray-400">Backend:</span>
+                {backendStatus === 'checking' && <span className="text-gray-500 animate-pulse">Checking...</span>}
+                {backendStatus === 'online' && <span className="text-emerald-400">Online</span>}
+                {backendStatus === 'offline' && <span className="text-rose-400">Offline</span>}
+              </div>
+            )}
+            {isAdmin && (
+              <a 
+                href="/admin" 
+                id="footer-admin-portal-link"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-400 hover:text-emerald-350 transition-all cursor-pointer font-sans text-xs font-bold"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" strokeWidth={2.5} />
+                <span>Admin Portal</span>
+              </a>
+            )}
             <div className="flex items-center gap-6">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>

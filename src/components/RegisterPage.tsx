@@ -16,6 +16,7 @@ export default function RegisterPage({
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const validateEmail = (emailStr: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr);
@@ -40,8 +41,16 @@ export default function RegisterPage({
 
     setIsLoading(true);
     setError('');
+    setSuccessMessage('');
 
     try {
+      // TODO: Reconnect Supabase signUp authentication when ready.
+      // const { data, error: supabaseError } = await supabase.auth.signUp({
+      //   email,
+      //   password
+      // });
+      // if (supabaseError) { ... }
+
       await register(name, email, password);
       onBackToHome();
     } catch (err: any) {
@@ -73,6 +82,13 @@ export default function RegisterPage({
           <div className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 p-4 rounded-xl text-sm font-medium flex items-start gap-3">
             <Info className="w-5 h-5 shrink-0 mt-0.5" />
             <p>{error}</p>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 p-4 rounded-xl text-sm font-medium flex items-start gap-3">
+            <Info className="w-5 h-5 shrink-0 mt-0.5" />
+            <p>{successMessage}</p>
           </div>
         )}
 

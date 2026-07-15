@@ -119,6 +119,12 @@ export default function App() {
         setCurrentPage("blog");
       } else if (path === "/wishlist" || params.has("items")) {
         setCurrentPage("wishlist");
+      } else if (path === "/my-bookings") {
+        setCurrentPage("my-bookings");
+      } else if (path === "/profile") {
+        setCurrentPage("profile");
+      } else if (path === "/login" || path === "/sign-in") {
+        setCurrentPage("sign-in");
       }
 
       if (attrId) {
@@ -135,6 +141,24 @@ export default function App() {
       console.error("Error handling initial attraction from URL", e);
     }
   }, []);
+
+  // Protect private pages with local session check
+  useEffect(() => {
+    const checkSession = () => {
+      const privatePages = ["wishlist", "my-bookings", "profile"];
+      if (privatePages.includes(currentPage)) {
+        // TODO: Reconnect Supabase authentication session check here.
+        // const { data: { session } } = await supabase.auth.getSession();
+        // if (!session) { ... }
+        if (!user) {
+          // Redirect to /login
+          window.history.pushState({}, "", "/login");
+          setCurrentPage("sign-in");
+        }
+      }
+    };
+    checkSession();
+  }, [currentPage, user]);
 
   const handleCloseDetail = () => {
     setSelectedAttractionId(null);

@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import * as dotenv from 'dotenv';
 import { GoogleGenAI } from "@google/genai";
 import Database from 'better-sqlite3';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -58,7 +59,105 @@ db.exec(`
     created_at TEXT NOT NULL
   );
   CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_booking_id ON reviews(booking_id);
+
+  CREATE TABLE IF NOT EXISTS backend_users (
+    id TEXT PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT,
+    password_hash TEXT NOT NULL,
+    password_salt TEXT NOT NULL,
+    role TEXT NOT NULL,
+    department TEXT,
+    status TEXT NOT NULL,
+    last_login TEXT,
+    created_at TEXT NOT NULL,
+    two_factor_enabled INTEGER DEFAULT 0,
+    two_factor_secret TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS backend_sessions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS backend_logs (
+    id TEXT PRIMARY KEY,
+    timestamp TEXT NOT NULL,
+    username TEXT NOT NULL,
+    action TEXT NOT NULL,
+    ip TEXT,
+    details TEXT
+  );
 `);
+
+// Seed initial backend users if not present
+try {
+  const count = db.prepare("SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name='backend_users'").get() as { count: number };
+  if (count && count.count > 0) {
+    const userCount = db.prepare("SELECT COUNT(*) as count FROM backend_users").get() as { count: number };
+    if (userCount.count === 0) {
+      const usersToSeed = [
+        {
+          id: "be-user-1",
+          full_name: "Super Administrator",
+          username: "superadmin",
+          email: "superadmin@tiqsey.com",
+          password: "SuperPassword123!",
+          role: "super_admin",
+          department: "IT & Systems",
+          status: "Active"
+        },
+        {
+          id: "be-user-2",
+          full_name: "Admin User",
+          username: "admin",
+          email: "admin@tiqsey.com",
+          password: "AdminPassword123!",
+          role: "admin",
+          department: "Operations",
+          status: "Active"
+        },
+        {
+          id: "be-user-3",
+          full_name: "Manager User",
+          username: "manager",
+          email: "manager@tiqsey.com",
+          password: "ManagerPassword123!",
+          role: "manager",
+          department: "Marketing",
+          status: "Active"
+        },
+        {
+          id: "be-user-4",
+          full_name: "Employee User",
+          username: "employee",
+          email: "employee@tiqsey.com",
+          password: "EmployeePassword123!",
+          role: "employee",
+          department: "Support",
+          status: "Active"
+        }
+      ];
+
+      const insertStmt = db.prepare(`
+        INSERT INTO backend_users (id, full_name, username, email, password_hash, password_salt, role, department, status, created_at, two_factor_enabled)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+      `);
+
+      usersToSeed.forEach(user => {
+        const salt = crypto.randomBytes(16).toString('hex');
+        const hash = crypto.pbkdf2Sync(user.password, salt, 1000, 64, 'sha512').toString('hex');
+        insertStmt.run(user.id, user.full_name, user.username, user.email, hash, salt, user.role, user.department, user.status, new Date().toISOString());
+      });
+      console.log("[Database] Successfully seeded initial backend user accounts!");
+    }
+  }
+} catch (err) {
+  console.error("[Database] Error seeding backend users:", err);
+}
 
 function generateOrderNumber(): string {
   // OD + 15 digits
@@ -353,6 +452,570 @@ async function startServer() {
       res.json({ success: true, token: "dummy-jwt-token" });
     } else {
       res.status(400).json({ error: "All fields are required" });
+    }
+  });
+
+  // Login Rate Limiter In-Memory Store
+  const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
+
+  // Token session validator helper
+  function getBackendUserByToken(token: string) {
+    if (!token) return null;
+    try {
+      const session = db.prepare("SELECT * FROM backend_sessions WHERE id = ?").get(token) as any;
+      if (!session) return null;
+
+      // Check session expiration
+      if (new Date() > new Date(session.expires_at)) {
+        // Destroy expired session
+        db.prepare("DELETE FROM backend_sessions WHERE id = ?").run(token);
+        return null;
+      }
+
+      // Slide expiration (automatically extend active sessions by 30 mins)
+      const newExpiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      db.prepare("UPDATE backend_sessions SET expires_at = ? WHERE id = ?").run(newExpiresAt, token);
+
+      const user = db.prepare("SELECT * FROM backend_users WHERE id = ?").get(session.user_id) as any;
+      if (!user || user.status !== "Active") {
+        return null;
+      }
+
+      return {
+        id: user.id,
+        full_name: user.full_name,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        status: user.status,
+        last_login: user.last_login,
+        created_at: user.created_at,
+        two_factor_enabled: user.two_factor_enabled === 1
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Backend Authentication and Login Endpoint with Rate Limiting
+  app.post("/api/backend/login", (req, res) => {
+    const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ error: "Username and password are required" });
+    }
+
+    // Rate Limiting: max 5 attempts in 15 minutes per username + IP
+    const limitKey = `${username}_${ip}`;
+    const attemptRecord = loginAttempts.get(limitKey);
+    const now = Date.now();
+    
+    if (attemptRecord) {
+      if (now - attemptRecord.lastAttempt > 15 * 60 * 1000) {
+        loginAttempts.delete(limitKey);
+      } else if (attemptRecord.count >= 5) {
+        // Log brute-force rate-limiting
+        try {
+          db.prepare(`
+            INSERT INTO backend_logs (id, timestamp, username, action, ip, details)
+            VALUES (?, ?, ?, 'login_rate_limited', ?, 'Too many failed attempts. Suspended for 15 minutes.')
+          `).run(`log-${Date.now()}-${Math.random()}`, new Date().toISOString(), username, ip);
+        } catch (_) {}
+
+        return res.status(429).json({ 
+          error: "Too many login attempts. This account/IP has been temporarily locked. Please try again in 15 minutes." 
+        });
+      }
+    }
+
+    try {
+      const user = db.prepare("SELECT * FROM backend_users WHERE username = ? OR email = ?").get(username, username) as any;
+      if (!user) {
+        // Track failed attempt
+        const attempt = loginAttempts.get(limitKey) || { count: 0, lastAttempt: now };
+        attempt.count++;
+        attempt.lastAttempt = now;
+        loginAttempts.set(limitKey, attempt);
+
+        db.prepare(`
+          INSERT INTO backend_logs (id, timestamp, username, action, ip, details)
+          VALUES (?, ?, ?, 'login_failed', ?, 'User not found')
+        `).run(`log-${Date.now()}-${Math.random()}`, new Date().toISOString(), username, ip);
+
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      // Check account status
+      if (user.status !== "Active") {
+        db.prepare(`
+          INSERT INTO backend_logs (id, timestamp, username, action, ip, details)
+          VALUES (?, ?, ?, 'login_failed', ?, ?)
+        `).run(`log-${Date.now()}-${Math.random()}`, new Date().toISOString(), username, ip, `Login blocked: status is ${user.status}`);
+
+        return res.status(403).json({ error: `Your account status is ${user.status}. Access is denied.` });
+      }
+
+      // Secure PBKDF2 Password Hashing verification
+      const calculatedHash = crypto.pbkdf2Sync(password, user.password_salt, 1000, 64, 'sha512').toString('hex');
+      if (calculatedHash !== user.password_hash) {
+        // Track failed attempt
+        const attempt = loginAttempts.get(limitKey) || { count: 0, lastAttempt: now };
+        attempt.count++;
+        attempt.lastAttempt = now;
+        loginAttempts.set(limitKey, attempt);
+
+        db.prepare(`
+          INSERT INTO backend_logs (id, timestamp, username, action, ip, details)
+          VALUES (?, ?, ?, 'login_failed', ?, 'Incorrect password')
+        `).run(`log-${Date.now()}-${Math.random()}`, new Date().toISOString(), username, ip);
+
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      // Successful login - clear rate-limit tracking
+      loginAttempts.delete(limitKey);
+
+      // Create a secure 32-byte session token
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30-minute idle expiry
+
+      db.prepare(`
+        INSERT INTO backend_sessions (id, user_id, created_at, expires_at)
+        VALUES (?, ?, ?, ?)
+      `).run(token, user.id, new Date().toISOString(), expiresAt);
+
+      // Log last login details
+      const lastLoginTime = new Date().toISOString();
+      db.prepare("UPDATE backend_users SET last_login = ? WHERE id = ?").run(lastLoginTime, user.id);
+
+      db.prepare(`
+        INSERT INTO backend_logs (id, timestamp, username, action, ip, details)
+        VALUES (?, ?, ?, 'login_success', ?, 'Successfully logged in')
+      `).run(`log-${Date.now()}-${Math.random()}`, lastLoginTime, username, ip);
+
+      return res.json({
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          full_name: user.full_name,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          department: user.department,
+          status: user.status,
+          last_login: lastLoginTime,
+          created_at: user.created_at,
+          two_factor_enabled: user.two_factor_enabled === 1
+        }
+      });
+    } catch (err: any) {
+      console.error("Backend login error:", err);
+      return res.status(500).json({ error: "Server error during authentication" });
+    }
+  });
+
+  // Get active backend staff user profile
+  app.get("/api/backend/me", (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthenticated" });
+    }
+    const token = authHeader.split(" ")[1];
+    const user = getBackendUserByToken(token);
+    if (!user) {
+      return res.status(401).json({ error: "Session expired or invalid" });
+    }
+    res.json({ success: true, user });
+  });
+
+  // Logout backend staff
+  app.post("/api/backend/logout", (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      try {
+        const session = db.prepare("SELECT * FROM backend_sessions WHERE id = ?").get(token) as any;
+        if (session) {
+          const user = db.prepare("SELECT username FROM backend_users WHERE id = ?").get(session.user_id) as any;
+          const username = user ? user.username : 'unknown';
+          const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+          
+          db.prepare(`
+            INSERT INTO backend_logs (id, timestamp, username, action, ip, details)
+            VALUES (?, ?, ?, 'logout', ?, 'User logged out and session destroyed')
+          `).run(`log-${Date.now()}-${Math.random()}`, new Date().toISOString(), username, ip);
+        }
+        db.prepare("DELETE FROM backend_sessions WHERE id = ?").run(token);
+      } catch (_) {}
+    }
+    res.json({ success: true });
+  });
+
+  // Get backend users list (Super Admin/Admin only)
+  app.get("/api/backend/users", (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthenticated" });
+    }
+    const token = authHeader.split(" ")[1];
+    const currentUser = getBackendUserByToken(token);
+    if (!currentUser) {
+      return res.status(401).json({ error: "Session expired" });
+    }
+
+    if (currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+      return res.status(403).json({ error: "Access denied: insufficient permissions" });
+    }
+
+    try {
+      const users = db.prepare(`
+        SELECT id, full_name, username, email, role, department, status, last_login, created_at, two_factor_enabled 
+        FROM backend_users 
+        ORDER BY created_at DESC
+      `).all() as any[];
+      
+      const mappedUsers = users.map(u => ({
+        ...u,
+        two_factor_enabled: u.two_factor_enabled === 1
+      }));
+
+      res.json({ success: true, users: mappedUsers });
+    } catch (err: any) {
+      res.status(500).json({ error: "Database error", details: err.message });
+    }
+  });
+
+  // Create or Update backend user (Super Admin / Admin only)
+  app.post("/api/backend/users", (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthenticated" });
+    }
+    const token = authHeader.split(" ")[1];
+    const currentUser = getBackendUserByToken(token);
+    if (!currentUser) {
+      return res.status(401).json({ error: "Session expired" });
+    }
+
+    if (currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    const { id, full_name, username, email, password, role, department, status } = req.body;
+
+    if (!full_name || !username || !role || !status) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+
+    try {
+      if (id) {
+        // Update user
+        // If password is provided, update password. Admins can reset passwords this way!
+        if (password) {
+          const salt = crypto.randomBytes(16).toString('hex');
+          const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+          
+          db.prepare(`
+            UPDATE backend_users 
+            SET full_name = ?, username = ?, email = ?, password_hash = ?, password_salt = ?, role = ?, department = ?, status = ?
+            WHERE id = ?
+          `).run(full_name, username, email, hash, salt, role, department, status, id);
+        } else {
+          db.prepare(`
+            UPDATE backend_users 
+            SET full_name = ?, username = ?, email = ?, role = ?, department = ?, status = ?
+            WHERE id = ?
+          `).run(full_name, username, email, role, department, status, id);
+        }
+
+        db.prepare(`
+          INSERT INTO backend_logs (id, timestamp, username, action, ip, details)
+          VALUES (?, ?, ?, 'user_updated', ?, ?)
+        `).run(`log-${Date.now()}-${Math.random()}`, new Date().toISOString(), currentUser.username, ip, `Updated backend user: ${username} (${role})`);
+
+        res.json({ success: true, message: "User updated successfully" });
+      } else {
+        // Create user (Only Super Admin can create, or Admin if creating non-SuperAdmin)
+        if (currentUser.role !== 'super_admin' && role === 'super_admin') {
+          return res.status(403).json({ error: "Only Super Admins can create another Super Admin account." });
+        }
+
+        // Check unique username
+        const existing = db.prepare("SELECT id FROM backend_users WHERE username = ?").get(username);
+        if (existing) {
+          return res.status(400).json({ error: "Username already exists. Please choose a different one." });
+        }
+
+        if (!password) {
+          return res.status(400).json({ error: "Password is required for new users." });
+        }
+
+        const newId = `be-user-${Date.now()}`;
+        const salt = crypto.randomBytes(16).toString('hex');
+        const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+
+        db.prepare(`
+          INSERT INTO backend_users (id, full_name, username, email, password_hash, password_salt, role, department, status, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(newId, full_name, username, email, hash, salt, role, department, status, new Date().toISOString());
+
+        db.prepare(`
+          INSERT INTO backend_logs (id, timestamp, username, action, ip, details)
+          VALUES (?, ?, ?, 'user_created', ?, ?)
+        `).run(`log-${Date.now()}-${Math.random()}`, new Date().toISOString(), currentUser.username, ip, `Created backend user: ${username} (${role})`);
+
+        res.json({ success: true, message: "User created successfully" });
+      }
+    } catch (err: any) {
+      console.error("Failed to save backend user:", err);
+      res.status(500).json({ error: "Failed to save user", details: err.message });
+    }
+  });
+
+  // Delete backend user (Super Admin only)
+  app.delete("/api/backend/users/:id", (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthenticated" });
+    }
+    const token = authHeader.split(" ")[1];
+    const currentUser = getBackendUserByToken(token);
+    if (!currentUser) {
+      return res.status(401).json({ error: "Session expired" });
+    }
+
+    if (currentUser.role !== 'super_admin') {
+      return res.status(403).json({ error: "Only Super Admins can delete backend staff accounts." });
+    }
+
+    const { id } = req.params;
+    if (id === currentUser.id) {
+      return res.status(400).json({ error: "You cannot delete your own account!" });
+    }
+
+    const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+
+    try {
+      const userToDelete = db.prepare("SELECT username FROM backend_users WHERE id = ?").get(id) as any;
+      if (!userToDelete) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      db.prepare("DELETE FROM backend_users WHERE id = ?").run(id);
+
+      db.prepare(`
+        INSERT INTO backend_logs (id, timestamp, username, action, ip, details)
+        VALUES (?, ?, ?, 'user_deleted', ?, ?)
+      `).run(`log-${Date.now()}-${Math.random()}`, new Date().toISOString(), currentUser.username, ip, `Deleted backend user: ${userToDelete.username}`);
+
+      res.json({ success: true, message: "User deleted successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: "Failed to delete user", details: err.message });
+    }
+  });
+
+  // Toggle Two-Factor Authentication (2FA)
+  app.post("/api/backend/users/:id/toggle-2fa", (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthenticated" });
+    }
+    const token = authHeader.split(" ")[1];
+    const currentUser = getBackendUserByToken(token);
+    if (!currentUser) {
+      return res.status(401).json({ error: "Session expired" });
+    }
+
+    const { id } = req.params;
+    const { enabled } = req.body;
+
+    // Users can toggle their own, or Admin/SuperAdmin can toggle
+    if (currentUser.id !== id && currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+
+    try {
+      const user = db.prepare("SELECT username, role FROM backend_users WHERE id = ?").get(id) as any;
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const val = enabled ? 1 : 0;
+      db.prepare("UPDATE backend_users SET two_factor_enabled = ? WHERE id = ?").run(val, id);
+
+      db.prepare(`
+        INSERT INTO backend_logs (id, timestamp, username, action, ip, details)
+        VALUES (?, ?, ?, '2fa_toggled', ?, ?)
+      `).run(`log-${Date.now()}-${Math.random()}`, new Date().toISOString(), currentUser.username, ip, `Toggled 2FA for ${user.username} to ${enabled ? 'Enabled' : 'Disabled'}`);
+
+      res.json({ success: true, message: `Two-Factor Authentication has been ${enabled ? 'enabled' : 'disabled'} successfully.` });
+    } catch (err: any) {
+      res.status(500).json({ error: "Database error", details: err.message });
+    }
+  });
+
+  // Get Backend logs (Super Admin/Admin only)
+  app.get("/api/backend/logs", (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthenticated" });
+    }
+    const token = authHeader.split(" ")[1];
+    const currentUser = getBackendUserByToken(token);
+    if (!currentUser) {
+      return res.status(401).json({ error: "Session expired" });
+    }
+
+    if (currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    try {
+      const logs = db.prepare("SELECT * FROM backend_logs ORDER BY timestamp DESC LIMIT 200").all() as any[];
+      res.json({ success: true, logs });
+    } catch (err: any) {
+      res.status(500).json({ error: "Database error", details: err.message });
+    }
+  });
+
+  // Secure SQL execution (Super Admin/Admin only)
+  app.post("/api/backend/sql/execute", (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthenticated" });
+    }
+    const token = authHeader.split(" ")[1];
+    const currentUser = getBackendUserByToken(token);
+    if (!currentUser) {
+      return res.status(401).json({ error: "Session expired" });
+    }
+
+    if (currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    const { sql } = req.body;
+    if (!sql || typeof sql !== 'string' || !sql.trim()) {
+      return res.status(400).json({ error: "SQL statement is required" });
+    }
+
+    const trimmedSql = sql.trim();
+    // Match queries that fetch data (SELECT, PRAGMA, EXPLAIN, WITH)
+    const isQuery = /^\s*(SELECT|PRAGMA|EXPLAIN|SHOW|DESCRIBE|WITH)\b/i.test(trimmedSql);
+    const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+
+    try {
+      const startTime = process.hrtime();
+      let result: any;
+      let affectedRows = 0;
+      let lastInsertRowid: any = null;
+
+      if (isQuery) {
+        result = db.prepare(trimmedSql).all();
+      } else {
+        const info = db.prepare(trimmedSql).run();
+        affectedRows = info.changes;
+        lastInsertRowid = info.lastInsertRowid;
+        result = [{ message: "Statement executed successfully", changes: info.changes, lastInsertRowid: info.lastInsertRowid }];
+      }
+
+      const diff = process.hrtime(startTime);
+      const executionTimeMs = (diff[0] * 1e3 + diff[1] * 1e-6).toFixed(2);
+
+      // Log this execution in the audit logs for accountability
+      db.prepare(`
+        INSERT INTO backend_logs (id, timestamp, username, action, ip, details)
+        VALUES (?, ?, ?, 'sql_executed', ?, ?)
+      `).run(
+        `log-${Date.now()}-${Math.random()}`,
+        new Date().toISOString(),
+        currentUser.username,
+        ip,
+        `Executed SQL query (took ${executionTimeMs}ms): ${trimmedSql.substring(0, 150)}${trimmedSql.length > 150 ? '...' : ''}`
+      );
+
+      res.json({
+        success: true,
+        isQuery,
+        result,
+        executionTimeMs,
+        affectedRows,
+        lastInsertRowid
+      });
+    } catch (err: any) {
+      // Log failed execution attempts too
+      db.prepare(`
+        INSERT INTO backend_logs (id, timestamp, username, action, ip, details)
+        VALUES (?, ?, ?, 'sql_failed', ?, ?)
+      `).run(
+        `log-${Date.now()}-${Math.random()}`,
+        new Date().toISOString(),
+        currentUser.username,
+        ip,
+        `SQL Query failed: ${err.message}. Statement: ${trimmedSql.substring(0, 150)}`
+      );
+
+      res.status(400).json({
+        error: err.message || "Failed to execute SQL query"
+      });
+    }
+  });
+
+  // Get schema and tables (Super Admin/Admin only)
+  app.get("/api/backend/sql/tables", (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthenticated" });
+    }
+    const token = authHeader.split(" ")[1];
+    const currentUser = getBackendUserByToken(token);
+    if (!currentUser) {
+      return res.status(401).json({ error: "Session expired" });
+    }
+
+    if (currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    try {
+      // Get all tables
+      const tables = db.prepare(`
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name NOT LIKE 'sqlite_%'
+        ORDER BY name
+      `).all() as any[];
+
+      const schema: any[] = [];
+
+      for (const table of tables) {
+        // Get columns
+        const columns = db.prepare(`PRAGMA table_info(${table.name})`).all() as any[];
+        // Get row count
+        const countObj = db.prepare(`SELECT count(*) as count FROM ${table.name}`).get() as any;
+        schema.push({
+          name: table.name,
+          rowCount: countObj ? countObj.count : 0,
+          columns: columns.map(c => ({
+            cid: c.cid,
+            name: c.name,
+            type: c.type,
+            notnull: c.notnull === 1,
+            pk: c.pk === 1,
+            defaultValue: c.dflt_value
+          }))
+        });
+      }
+
+      res.json({ success: true, schema });
+    } catch (err: any) {
+      res.status(500).json({ error: "Database error", details: err.message });
     }
   });
 

@@ -507,18 +507,6 @@ export default function Header({
                             <Ticket className="w-4 h-4 text-brand" />
                             My Bookings
                           </button>
-                          {user && user.email.toLowerCase() === 'admin@tiqsey.com' && (
-                            <a
-                              href="/admin"
-                              onClick={() => {
-                                setUserDropdownOpen(false);
-                              }}
-                              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-sm transition-colors text-left mb-1"
-                            >
-                              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                              Admin Portal
-                            </a>
-                          )}
                           <button
                             onClick={() => {
                               logout();
@@ -604,8 +592,8 @@ export default function Header({
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
                   <line x1="4" y1="7" x2="20" y2="7"></line>
-                  <line x1="8" y1="12" x2="20" y2="12"></line>
-                  <line x1="14" y1="17" x2="20" y2="17"></line>
+                  <line x1="4" y1="12" x2="16" y2="12"></line>
+                  <line x1="4" y1="17" x2="10" y2="17"></line>
                 </svg>
               </motion.button>
             </div>
@@ -691,18 +679,6 @@ export default function Header({
                           <Ticket className="w-5 h-5 text-brand" />
                           <span>My Bookings</span>
                         </button>
-                        {user && user.email.toLowerCase() === 'admin@tiqsey.com' && (
-                          <a
-                            href="/admin"
-                            onClick={() => {
-                              setMobileMenuOpen(false);
-                            }}
-                            className="flex items-center gap-3 text-lg font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 py-3 px-4 rounded-xl transition-colors text-left"
-                          >
-                            <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                            <span>Admin Portal</span>
-                          </a>
-                        )}
                         <button
                           onClick={() => {
                             logout();
