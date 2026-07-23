@@ -15,6 +15,7 @@ import {
 import { useSettings } from "../contexts/SettingsContext";
 import { useWishlist } from "../contexts/WishlistContext";
 import { POPULAR_ATTRACTIONS } from "../data/mockData";
+import { getDisplayProductId } from "../utils/productIdGenerator";
 import { motion, AnimatePresence } from "motion/react";
 
 interface Props {
@@ -96,7 +97,9 @@ export default function HotDealsPage({
           a.name.toLowerCase().includes(q) ||
           (a.description || "").toLowerCase().includes(q) ||
           a.city.toLowerCase().includes(q) ||
-          a.category.toLowerCase().includes(q),
+          a.category.toLowerCase().includes(q) ||
+          getDisplayProductId(a).toLowerCase().includes(q) ||
+          a.id.toLowerCase().includes(q),
       );
     }
 
@@ -439,10 +442,10 @@ export default function HotDealsPage({
                       <div className="border-t border-slate-100 dark:border-zinc-850 pt-3 flex items-end justify-between mt-auto">
                         <div className="flex flex-col">
                           <span className="text-[9px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest line-through">
-                            Reg. {formatPrice(attr.price)}
+                            Reg. {formatPrice(attr.price, attr.currency)}
                           </span>
                           <span className="text-base font-black text-amber-600 dark:text-amber-400 leading-none mt-1">
-                            {formatPrice(attr.discountPrice || attr.price)}
+                            {formatPrice(attr.discountPrice || attr.price, attr.currency)}
                           </span>
                         </div>
 

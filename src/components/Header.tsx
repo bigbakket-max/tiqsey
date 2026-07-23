@@ -37,10 +37,16 @@ import {
 
 const POPULAR_REGIONS = [
   {
-    name: "Europe",
-    query: "Europe",
+    name: "Africa",
+    query: "Africa",
     image:
-      "https://images.unsplash.com/photo-1490642914619-7955a3fd483c?auto=format&fit=crop&w=120&h=120&q=80",
+      "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=120&h=120&q=80",
+  },
+  {
+    name: "The Americas",
+    query: "The Americas",
+    image:
+      "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=120&h=120&q=80",
   },
   {
     name: "Asia",
@@ -49,22 +55,16 @@ const POPULAR_REGIONS = [
       "https://images.unsplash.com/photo-1535139262971-c51845709a48?auto=format&fit=crop&w=120&h=120&q=80",
   },
   {
-    name: "North America",
-    query: "North America",
+    name: "Europe",
+    query: "Europe",
     image:
-      "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=120&h=120&q=80",
+      "https://images.unsplash.com/photo-1490642914619-7955a3fd483c?auto=format&fit=crop&w=120&h=120&q=80",
   },
   {
     name: "Oceania",
     query: "Oceania",
     image:
       "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    name: "Middle East",
-    query: "Middle East",
-    image:
-      "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=120&h=120&q=80",
   },
 ];
 
@@ -220,7 +220,7 @@ export default function Header({
         className={`sticky top-0 left-0 right-0 z-50 flex flex-col transition-all duration-300 ${!scrolled && pageName === "home" && !activeDestination ? "bg-[#F4F7F9] dark:bg-slate-950 shadow-none" : "bg-white dark:bg-slate-900 shadow-sm"}`}
       >
         <div
-          className={`h-[46px] sm:h-[52px] relative z-50 backdrop-blur-md transition-colors ${!scrolled && pageName === "home" && !activeDestination ? "bg-[#F4F7F9]/95 dark:bg-slate-950/95 border-b border-gray-200/60 dark:border-slate-800/50 md:border-b-transparent" : "bg-white/95 dark:bg-slate-900/95 border-b border-gray-100/80 dark:border-slate-850/80"}`}
+          className={`h-[56px] sm:h-[68px] relative z-50 backdrop-blur-md transition-colors ${!scrolled && pageName === "home" && !activeDestination ? "bg-[#F4F7F9]/95 dark:bg-slate-950/95 border-b border-gray-200/60 dark:border-slate-800/50 md:border-b-transparent" : "bg-white/95 dark:bg-slate-900/95 border-b border-gray-100/80 dark:border-slate-850/80"}`}
         >
           <div className="max-w-[1400px] mx-auto pl-1.5 pr-4 sm:pl-3 sm:pr-6 lg:pl-4 lg:pr-8 h-full flex items-center justify-between gap-3 sm:gap-4 md:gap-8">
             <div className="flex items-center gap-2 sm:gap-3 shrink-0 mr-2 sm:mr-4 md:mr-6">
@@ -231,7 +231,7 @@ export default function Header({
                   window.scrollTo(0, 0);
                 }}
               >
-                <span className="font-black tracking-tight text-[26px] sm:text-[31px] text-brand dark:text-brand transition-colors leading-none">
+                <span className="font-black tracking-tight text-[22px] sm:text-[25px] text-brand dark:text-brand transition-colors leading-none">
                   Tiqsey
                 </span>
               </div>
@@ -410,12 +410,12 @@ export default function Header({
                 onClick={onWishlistOpen}
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.93 }}
-                className="relative flex items-center justify-center p-2.5 rounded-full text-slate-700 dark:text-slate-300 hover:text-brand dark:hover:text-brand hover:bg-brand/[0.06] dark:hover:bg-brand/[0.08] transition-all select-none cursor-pointer shrink-0"
+                className="relative flex items-center justify-center p-1.5 rounded-full text-slate-700 dark:text-slate-300 hover:text-brand dark:hover:text-brand hover:bg-brand/[0.06] dark:hover:bg-brand/[0.08] transition-all select-none cursor-pointer shrink-0"
                 title="Wishlist"
                 aria-label="Wishlist"
               >
                 <Heart
-                  className={`w-5 h-5 transition-all duration-300 ${wishlist.length > 0 ? "text-brand fill-brand scale-110" : "text-current group-hover:text-brand"}`}
+                  className={`w-4.5 h-4.5 transition-all duration-300 ${wishlist.length > 0 ? "text-brand fill-brand scale-110" : "text-current group-hover:text-brand"}`}
                   strokeWidth={wishlist.length > 0 ? 2 : 2.25}
                 />
                 <AnimatePresence>
@@ -425,7 +425,7 @@ export default function Header({
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0, opacity: 0 }}
                       key="wishlist-badge"
-                      className="absolute -top-0.5 -right-0.5 bg-brand text-white text-[9.5px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white dark:border-slate-900 select-none shadow-sm"
+                      className="absolute -top-0.5 -right-0.5 bg-brand text-white text-[9.5px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-slate-900 select-none shadow-sm"
                     >
                       {wishlist.length}
                     </motion.span>
@@ -436,10 +436,10 @@ export default function Header({
               {/* Combined Settings Trigger */}
               <button
                 onClick={() => setSettingsModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-all active:scale-95 select-none cursor-pointer shrink-0 border border-transparent font-sans"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-all active:scale-95 select-none cursor-pointer shrink-0 border border-transparent font-sans"
                 title={`${currency.code.toUpperCase()}`}
               >
-                <div className="w-6 h-4.5 select-none shrink-0 border border-slate-200 dark:border-slate-800 rounded overflow-hidden bg-slate-100 dark:bg-slate-900 shadow-sm flex items-center justify-center">
+                <div className="w-5 h-3.5 select-none shrink-0 border border-slate-200 dark:border-slate-800 rounded overflow-hidden bg-slate-100 dark:bg-slate-900 shadow-sm flex items-center justify-center">
                   <img
                     src={`https://flagcdn.com/w40/${getCurrencyCountryCode(currency.code)}.png`}
                     alt={`${currency.code} flag`}
@@ -448,11 +448,11 @@ export default function Header({
                     loading="lazy"
                   />
                 </div>
-                <span className="text-[14px] font-semibold text-slate-700 dark:text-slate-200 tracking-wide flex items-center gap-1 font-sans">
+                <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 tracking-wide flex items-center gap-1 font-sans">
                   {currency.code} {currency.symbol}
                 </span>
                 <ChevronDown
-                  className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400"
+                  className="w-3 h-3 text-slate-500 dark:text-slate-400"
                   strokeWidth={2.5}
                 />
               </button>

@@ -24,7 +24,7 @@ interface AdminBooking {
   bookingDate: string;
   timeslot?: string;
   children?: number;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rejected';
+  status: string;
   passengers: Passenger[];
 }
 

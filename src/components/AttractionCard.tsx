@@ -47,7 +47,7 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
           src={imgSrc} 
           alt={attr.name}
           onError={handleImageError}
-          className="relative z-10 w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
+          className={`relative z-10 w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110 ${attr.isAvailable === false ? 'grayscale opacity-70' : ''}`}
           referrerPolicy="no-referrer"
         />
         
@@ -80,8 +80,12 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
             />
           </motion.div>
         </motion.button>
-
-        {attr.discountPrice && (
+ 
+        {attr.isAvailable === false ? (
+          <div className="absolute top-3 left-3 z-20 flex items-center bg-rose-950/90 text-rose-200 border border-rose-500/35 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider shadow-md backdrop-blur-xs select-none">
+            <span>Currently Unavailable</span>
+          </div>
+        ) : attr.discountPrice ? (
           <div className="absolute top-3 left-3 z-20 flex items-center bg-black/80 rounded-full p-0.5 shadow-md select-none border border-white/5">
             <div className="flex items-center gap-1 bg-[#FF0000] text-white rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider">
               <Flame className="w-2.5 h-2.5 fill-white stroke-none animate-pulse" />
@@ -91,14 +95,14 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
               -{Math.round(((attr.price - attr.discountPrice) / attr.price) * 100)}%
             </span>
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="flex-1 flex flex-col p-5">
         <p className="text-slate-400 dark:text-slate-500 text-[10px] font-extrabold uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
           <span>{attr.city}</span>
           <span className="w-1.5 h-1.5 rounded-full bg-slate-350 dark:bg-slate-700" />
-          <span>{attr.category}</span>
+          <span className="whitespace-nowrap">{attr.category}</span>
         </p>
         
         <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 leading-snug group-hover:text-brand transition-colors line-clamp-2 mb-2 min-h-[2.5rem]">
@@ -120,25 +124,36 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
           </div>
           
           {/* Stacked Modern Premium Price feed */}
-          <div className="text-right flex flex-col items-end shrink-0 select-none">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
-              From
-            </span>
-            {attr.discountPrice ? (
-              <div className="flex flex-col items-end gap-0.5 select-none">
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 line-through font-bold leading-none">
-                  {formatPrice(attr.price)}
-                </span>
-                <span className="text-sm sm:text-base font-black text-[#FF0022] dark:text-[#FF3E4E] leading-none">
-                  {formatPrice(attr.discountPrice)}
-                </span>
-              </div>
-            ) : (
-              <span className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 leading-none">
-                {formatPrice(attr.price)}
+          {attr.isAvailable === false ? (
+            <div className="text-right flex flex-col items-end shrink-0 select-none">
+              <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider mb-1">
+                Status
               </span>
-            )}
-          </div>
+              <span className="text-[11px] sm:text-xs font-black text-rose-600 dark:text-rose-400 leading-none bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/30 px-2 py-1 rounded">
+                Not Available
+              </span>
+            </div>
+          ) : (
+            <div className="text-right flex flex-col items-end shrink-0 select-none">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                From
+              </span>
+              {attr.discountPrice ? (
+                <div className="flex flex-col items-end gap-0.5 select-none">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 line-through font-bold leading-none">
+                    {formatPrice(attr.price, attr.currency)}
+                  </span>
+                  <span className="text-sm sm:text-base font-black text-[#FF0022] dark:text-[#FF3E4E] leading-none">
+                    {formatPrice(attr.discountPrice, attr.currency)}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 leading-none">
+                  {formatPrice(attr.price, attr.currency)}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

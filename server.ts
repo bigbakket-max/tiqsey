@@ -5,11 +5,153 @@ import * as dotenv from 'dotenv';
 import { GoogleGenAI } from "@google/genai";
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
 // Initialize SQLite database
 const db = new Database('bookings.db');
+
+// Initialize Supabase client lazily
+let supabaseClient: any = null;
+
+function getSupabaseClient() {
+  if (!supabaseClient) {
+    const supabaseUrl = process.env.SUPABASE_URL || 'https://lzjjwsvalvfkgwtzuime.supabase.co';
+    const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_KxzN2RLPv5Q7nVqDRqPw-w_mi317li6';
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.warn("[Supabase] SUPABASE_URL or SUPABASE_KEY is missing. Supabase integration is disabled.");
+      return null;
+    }
+    
+    try {
+      supabaseClient = createClient(supabaseUrl, supabaseKey);
+      console.log("[Supabase] Client initialized successfully.");
+    } catch (err) {
+      console.error("[Supabase] Failed to initialize client:", err);
+    }
+  }
+  return supabaseClient;
+}
+
+// Map a row from either SQLite or Supabase back to standard booking frontend format
+function mapRowToBooking(row: any) {
+  let guestInfo = { 
+    name: row.guest_name || "", 
+    email: row.guest_email || "", 
+    phone: row.guest_phone || "" 
+  };
+  let passengers = [];
+  try {
+    if (row.passengers_json) {
+      passengers = typeof row.passengers_json === 'string' ? JSON.parse(row.passengers_json) : row.passengers_json;
+    }
+  } catch (_) {}
+
+  return {
+    id: row.id,
+    orderId: row.order_number,
+    order_number: row.order_number,
+    pnr_number: row.pnr_number,
+    bookingRef: row.pnr_number,
+    attractionId: row.attraction_id || "",
+    attractionName: row.attraction_name || "",
+    attractionImageUrl: row.attraction_image_url || "",
+    city: row.city || "",
+    bookingDate: row.booking_date || "",
+    ticketsCount: row.tickets_count || 1,
+    totalPrice: row.total_price || 0,
+    status: row.status || "confirmed",
+    childCount: row.child_count || 0,
+    guestInfo,
+    passengers,
+    timeslot: row.timeslot || "",
+    createdAt: row.created_at || "",
+    rating: row.rating
+  };
+}
+
+// Fetch bookings from Supabase
+async function fetchFromSupabase() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  try {
+    console.log("[Supabase] Fetching bookings from Supabase...");
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*');
+
+    if (error) {
+      if (error.code === 'PGRST205') {
+        console.log("[Supabase Status] Bookings table does not exist in Supabase yet. Run the SQL schema to create it.");
+      } else {
+        console.log("[Supabase Status] Sync skipped due to code:", error.code, "-", error.message);
+      }
+      return null;
+    }
+
+    return data;
+  } catch (err: any) {
+    console.log("[Supabase Status] Unexpected issue during fetch:", err.message || err);
+    return null;
+  }
+}
+
+// Save/Update booking in Supabase
+async function saveToSupabase(booking: any) {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    console.log("[Supabase Status] Client not available. Skipping sync.");
+    return false;
+  }
+
+  const payload = {
+    id: booking.id,
+    order_number: booking.order_number || booking.orderId || "",
+    pnr_number: booking.pnr_number || booking.bookingRef || "",
+    attraction_id: booking.attractionId || "",
+    attraction_name: booking.attractionName || "",
+    attraction_image_url: booking.attractionImageUrl || "",
+    city: booking.city || "",
+    booking_date: booking.bookingDate || "",
+    tickets_count: Number(booking.ticketsCount || booking.travelers || 1),
+    total_price: Number(booking.totalPrice || booking.collectedAmount || 0),
+    status: booking.status || "confirmed",
+    child_count: Number(booking.childCount || booking.children || 0),
+    guest_name: booking.guestInfo?.name || booking.customerName || "",
+    guest_email: booking.guestInfo?.email || booking.customerEmail || "",
+    guest_phone: booking.guestInfo?.phone || booking.customerPhone || "",
+    passengers_json: JSON.stringify(booking.passengers || booking.guestInfo?.passengers || []),
+    created_at: booking.createdAt || "",
+    rating: booking.rating !== undefined && booking.rating !== null ? Number(booking.rating) : null
+  };
+
+  try {
+    console.log(`[Supabase] Syncing booking ${payload.id} to Supabase...`);
+    // Try to upsert so it works for both insert and update
+    const actualResult = await supabase
+      .from('bookings')
+      .upsert(payload, { onConflict: 'id' });
+
+    if (actualResult.error) {
+      if (actualResult.error.code === 'PGRST205') {
+        console.log("[Supabase Status] Bookings table does not exist in Supabase yet.");
+      } else {
+        console.log("[Supabase Status] Upsert skipped. Code:", actualResult.error.code, "-", actualResult.error.message);
+      }
+      return false;
+    }
+
+    console.log(`[Supabase] Successfully synced booking ${payload.id} to Supabase bookings table.`);
+    return true;
+  } catch (err: any) {
+    console.log("[Supabase Status] Unexpected issue during upsert:", err.message || err);
+    return false;
+  }
+}
+
 
 try {
   // Check if we have the old schema by testing if 'attraction_name' column exists
@@ -18,6 +160,17 @@ try {
   if (tableInfo.length > 0 && !hasAttractionName) {
     console.log("[Database] Old bookings table detected. Dropping and recreating with full schema...");
     db.exec("DROP TABLE IF EXISTS bookings;");
+  }
+
+  // Check and add timeslot column if missing
+  const hasTimeslot = tableInfo.some(col => col.name === 'timeslot');
+  if (tableInfo.length > 0 && !hasTimeslot) {
+    console.log("[Database] Adding timeslot column to bookings table...");
+    try {
+      db.exec("ALTER TABLE bookings ADD COLUMN timeslot TEXT;");
+    } catch (err) {
+      console.error("Failed to alter table bookings:", err);
+    }
   }
 } catch (e) {
   console.warn("[Database] Check table failed or table does not exist yet.", e);
@@ -42,7 +195,8 @@ db.exec(`
     guest_phone TEXT,
     passengers_json TEXT,
     created_at TEXT,
-    rating INTEGER
+    rating INTEGER,
+    timeslot TEXT
   );
   CREATE UNIQUE INDEX IF NOT EXISTS idx_order_number ON bookings(order_number);
   CREATE UNIQUE INDEX IF NOT EXISTS idx_pnr_number ON bookings(pnr_number);
@@ -213,43 +367,69 @@ async function startServer() {
   });
 
   // Get all bookings from backend database
-  app.get("/api/bookings", (req, res) => {
+  app.get("/api/bookings", async (req, res) => {
     try {
       console.log("[Database] Fetching all bookings...");
-      const rows = db.prepare('SELECT * FROM bookings').all() as any[];
       
-      const bookings = rows.map(row => {
-        let guestInfo = { name: row.guest_name || "", email: row.guest_email || "", phone: row.guest_phone || "" };
-        let passengers = [];
-        try {
-          if (row.passengers_json) {
-            passengers = JSON.parse(row.passengers_json);
+      // Fetch from SQLite first
+      const localRows = db.prepare('SELECT * FROM bookings').all() as any[];
+      const localBookings = localRows.map(mapRowToBooking);
+
+      // Fetch from Supabase (graceful fallback)
+      const remoteRows = await fetchFromSupabase();
+      
+      if (remoteRows && Array.isArray(remoteRows)) {
+        console.log(`[Supabase] Successfully fetched ${remoteRows.length} bookings from remote database.`);
+        const remoteBookings = remoteRows.map(mapRowToBooking);
+        
+        // Merge bookings (using a map keyed by ID, remote overrides local if exists)
+        const mergedMap = new Map<string, any>();
+        
+        // First add all local
+        localBookings.forEach(b => {
+          if (b.id && !b.id.startsWith('temp-')) {
+            mergedMap.set(b.id, b);
           }
-        } catch (_) {}
+        });
+        
+        // Then add/overwrite with remote (since it's the external source of truth)
+        remoteBookings.forEach(b => {
+          if (b.id) {
+            mergedMap.set(b.id, b);
+            
+            // Also, if this remote booking is not in SQLite, we cache/insert it locally
+            const existsInLocal = localRows.some(r => r.id === b.id);
+            if (!existsInLocal) {
+              try {
+                const stmt = db.prepare(`
+                  INSERT INTO bookings (
+                    id, order_number, pnr_number, attraction_id, attraction_name, 
+                    attraction_image_url, city, booking_date, tickets_count, total_price, 
+                    status, child_count, guest_name, guest_email, guest_phone, 
+                    passengers_json, created_at, rating, timeslot
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `);
+                stmt.run(
+                  b.id, b.order_number, b.pnr_number, b.attractionId, b.attractionName,
+                  b.attractionImageUrl, b.city, b.bookingDate, b.ticketsCount, b.totalPrice,
+                  b.status, b.childCount, b.guestInfo.name, b.guestInfo.email, b.guestInfo.phone,
+                  JSON.stringify(b.passengers), b.createdAt, b.rating !== undefined && b.rating !== null ? b.rating : null,
+                  b.timeslot || ""
+                );
+                console.log(`[Sync] Cached remote booking ${b.id} to SQLite database.`);
+              } catch (e) {
+                // Ignore insert error if unique constraint or duplicate
+              }
+            }
+          }
+        });
+        
+        const bookings = Array.from(mergedMap.values());
+        return res.json({ success: true, bookings });
+      }
 
-        return {
-          id: row.id,
-          orderId: row.order_number,
-          order_number: row.order_number,
-          pnr_number: row.pnr_number,
-          bookingRef: row.pnr_number,
-          attractionId: row.attraction_id || "",
-          attractionName: row.attraction_name || "",
-          attractionImageUrl: row.attraction_image_url || "",
-          city: row.city || "",
-          bookingDate: row.booking_date || "",
-          ticketsCount: row.tickets_count || 1,
-          totalPrice: row.total_price || 0,
-          status: row.status || "confirmed",
-          childCount: row.child_count || 0,
-          guestInfo,
-          passengers,
-          createdAt: row.created_at || "",
-          rating: row.rating
-        };
-      });
-
-      res.json({ success: true, bookings });
+      // If Supabase fetch was skipped or failed, fall back to SQLite bookings
+      res.json({ success: true, bookings: localBookings });
     } catch (err: any) {
       console.error("[Database Error] Failed to fetch bookings from SQLite:", err);
       res.status(500).json({ error: "Failed to fetch bookings from database", details: err.message });
@@ -257,7 +437,7 @@ async function startServer() {
   });
 
   // Save/Update booking details in backend database
-  app.post("/api/bookings", (req, res) => {
+  app.post("/api/bookings", async (req, res) => {
     try {
       const booking = req.body;
       if (!booking || !booking.id) {
@@ -286,6 +466,7 @@ async function startServer() {
       
       const created_at = booking.createdAt || "";
       const rating = booking.rating !== undefined ? booking.rating : null;
+      const timeslot = booking.timeslot || "";
 
       // Check if there is an existing row for this order_number or id
       const existing = db.prepare('SELECT id FROM bookings WHERE id = ? OR order_number = ?').get(id, order_number);
@@ -309,7 +490,8 @@ async function startServer() {
             guest_phone = ?,
             passengers_json = ?,
             created_at = ?,
-            rating = ?
+            rating = ?,
+            timeslot = ?
           WHERE id = ? OR order_number = ?
         `);
         stmt.run(
@@ -330,6 +512,7 @@ async function startServer() {
           passengers_json,
           created_at,
           rating,
+          timeslot,
           id,
           order_number
         );
@@ -339,8 +522,8 @@ async function startServer() {
             id, order_number, pnr_number, attraction_id, attraction_name, 
             attraction_image_url, city, booking_date, tickets_count, total_price, 
             status, child_count, guest_name, guest_email, guest_phone, 
-            passengers_json, created_at, rating
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            passengers_json, created_at, rating, timeslot
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         stmt.run(
           id,
@@ -360,12 +543,22 @@ async function startServer() {
           guest_phone,
           passengers_json,
           created_at,
-          rating
+          rating,
+          timeslot
         );
       }
 
-      console.log(`[Database] Booking saved/updated successfully: ${id}`);
-      res.json({ success: true });
+      console.log(`[Database] Booking saved/updated locally: ${id}`);
+
+      // Gracefully attempt to sync to Supabase (non-blocking but awaited for reliable logging)
+      const supabaseSuccess = await saveToSupabase(booking);
+      if (supabaseSuccess) {
+        console.log(`[Database] Booking synced successfully to Supabase for ID: ${id}`);
+      } else {
+        console.warn(`[Database] Supabase sync failed or skipped for ID: ${id}. Kept safely in SQLite.`);
+      }
+
+      res.json({ success: true, supabaseSynced: supabaseSuccess });
     } catch (err: any) {
       console.error("[Database Error] Error saving/updating booking:", err);
       res.status(500).json({ error: "Failed to save booking to database", details: err.message });

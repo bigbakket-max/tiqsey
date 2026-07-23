@@ -62,5 +62,18 @@ html, body {
   color: #ffffff;
 }
 
+/* Tiptap Placeholder Style */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #94a3b8;
+  pointer-events: none;
+  height: 0;
+}
+.dark .ProseMirror p.is-editor-empty:first-child::before {
+  color: #475569;
+}
+
+
 
 

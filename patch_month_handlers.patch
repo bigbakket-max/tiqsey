@@ -1,0 +1,37 @@
+--- src/admin/pages/Inventory.tsx
++++ src/admin/pages/Inventory.tsx
+@@ -645,6 +645,34 @@
+     });
+   };
+ 
++  const getMonthsString = (months: string[]) => {
++    if (months.length === 12) return "All Year";
++    if (months.length === 0) return "";
++    return months.map(m => m.substring(0, 3)).join(", ");
++  };
++
++  const handleMonthToggle = (month: string) => {
++    setSelectedMonths(prev => {
++      let updated: string[];
++      if (prev.includes(month)) {
++        updated = prev.filter(m => m !== month);
++      } else {
++        updated = [...prev, month];
++      }
++      
++      const orderedMonths = MONTHS_OF_YEAR.filter(m => updated.includes(m));
++      
++      // We just keep month selection independent of the opening hours string for now,
++      // or we could append it. Let's just manage the state.
++      return orderedMonths;
++    });
++  };
++
++  const handleSelectPresetMonths = (presetType: "all" | "none") => {
++    let updated = presetType === "all" ? [...MONTHS_OF_YEAR] : [];
++    setSelectedMonths(updated);
++  };
++
+   const handleTimeRangeChange = (newVal: string) => {
+     setTimeRangeInput(newVal);
+     const daysStr = getDaysString(selectedDays);

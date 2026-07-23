@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { AdminLoaderProvider } from './contexts/AdminLoaderContext';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import AdminLayout from './layouts/AdminLayout';
 import Dashboard from './pages/Dashboard';
@@ -54,21 +55,25 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
 
 export default function AdminApp() {
   return (
-    <BrowserRouter basename="/admin">
-      <Routes>
-        <Route path="/" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
-          <Route index element={<Dashboard />} />
-          <Route path="inventory" element={<Inventory />} />
-          <Route path="bookings" element={<Bookings />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="blog" element={<Blog />} />
-          <Route path="blog/new" element={<BlogPostForm />} />
-          <Route path="blog/:id" element={<BlogPostForm />} />
-          <Route path="gemini-logo" element={<GeminiLogoShowcase />} />
-          {/* Catch-all redirect to dashboard */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AdminLoaderProvider>
+      <BrowserRouter basename="/admin">
+        <Routes>
+          <Route path="/" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+            <Route index element={<Dashboard />} />
+            <Route path="inventory" element={<Inventory />} />
+            <Route path="inventory/edit/:id" element={<Inventory />} />
+            <Route path="inventory/new" element={<Inventory />} />
+            <Route path="bookings" element={<Bookings />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="blog" element={<Blog />} />
+            <Route path="blog/new" element={<BlogPostForm />} />
+            <Route path="blog/:id" element={<BlogPostForm />} />
+            <Route path="gemini-logo" element={<GeminiLogoShowcase />} />
+            {/* Catch-all redirect to dashboard */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AdminLoaderProvider>
   );
 }

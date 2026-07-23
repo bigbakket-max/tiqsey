@@ -27,6 +27,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
+import { getDisplayProductId } from "../utils/productIdGenerator";
 import SearchBar from "./SearchBar";
 import { ApiService } from "../services/apiService";
 import { Attraction } from "../types";
@@ -442,7 +443,9 @@ export default function ActivitiesPage({
         !searchQuery ||
         attr.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         attr.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        attr.location.toLowerCase().includes(searchQuery.toLowerCase());
+        attr.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        getDisplayProductId(attr).toLowerCase().includes(searchQuery.toLowerCase()) ||
+        attr.id.toLowerCase().includes(searchQuery.toLowerCase());
 
       const itemPrice = attr.discountPrice || attr.price;
       const matchesPrice =
@@ -643,7 +646,7 @@ export default function ActivitiesPage({
                   Starting Rate
                 </span>
                 <span className="text-base font-black text-slate-800 dark:text-slate-150">
-                  From {formatPrice(cityStats.startingPrice)}
+                  From {formatPrice(cityStats.startingPrice, "EUR")}
                 </span>
               </div>
             </div>
@@ -756,10 +759,10 @@ export default function ActivitiesPage({
                       <span>
                         Price:{" "}
                         {selectedPriceRange === "budget"
-                          ? `Under ${formatPrice(20)}`
+                          ? `Under ${formatPrice(20, "EUR")}`
                           : selectedPriceRange === "mid"
-                            ? `${formatPrice(20)} - ${formatPrice(50)}`
-                            : `Over ${formatPrice(50)}`}
+                            ? `${formatPrice(20, "EUR")} - ${formatPrice(50, "EUR")}`
+                            : `Over ${formatPrice(50, "EUR")}`}
                       </span>
                       <button
                         onClick={() => setSelectedPriceRange("All")}
@@ -897,9 +900,9 @@ export default function ActivitiesPage({
                     }`}
                   >
                     <option value="All">Any Price ({filterCounts.prices.total})</option>
-                    <option value="budget">Budget (Under {formatPrice(20)}) ({filterCounts.prices.budget})</option>
-                    <option value="mid">{formatPrice(20)} - {formatPrice(50)} ({filterCounts.prices.mid})</option>
-                    <option value="premium">Premium (Over {formatPrice(50)}) ({filterCounts.prices.premium})</option>
+                    <option value="budget">Budget (Under {formatPrice(20, "EUR")}) ({filterCounts.prices.budget})</option>
+                    <option value="mid">{formatPrice(20, "EUR")} - {formatPrice(50, "EUR")} ({filterCounts.prices.mid})</option>
+                    <option value="premium">Premium (Over {formatPrice(50, "EUR")}) ({filterCounts.prices.premium})</option>
                   </select>
                   <ChevronDown className={`absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none transition-colors ${
                     selectedPriceRange !== "All" ? "text-brand" : "text-slate-400 dark:text-slate-500"

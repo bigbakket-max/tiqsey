@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { POPULAR_ATTRACTIONS, DESTINATIONS } from "../data/mockData";
+import { getDisplayProductId } from "../utils/productIdGenerator";
 import { useSettings } from "../contexts/SettingsContext";
 
 interface SearchBarProps {
@@ -136,7 +137,9 @@ export default function SearchBar({
           const queryMatch =
             isMatch(a.name, searchQuery) ||
             isMatch(a.city, searchQuery) ||
-            isMatch(a.description, searchQuery);
+            isMatch(a.description, searchQuery) ||
+            getDisplayProductId(a).toLowerCase().includes(searchQuery.toLowerCase()) ||
+            a.id.toLowerCase().includes(searchQuery.toLowerCase());
           if (!queryMatch) return false;
           if (isPageFilter && currentDestination) {
             const destLower = currentDestination.toLowerCase();

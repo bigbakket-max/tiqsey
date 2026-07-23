@@ -21,6 +21,7 @@ import {
   Lock,
 } from "lucide-react";
 import { useWishlist } from "../contexts/WishlistContext";
+import { getDisplayProductId } from "../utils/productIdGenerator";
 import { useSettings } from "../contexts/SettingsContext";
 import { useAuth } from "../contexts/AuthContext";
 import { Attraction } from "../types";
@@ -103,8 +104,11 @@ export default function WishlistPage({
     if (["Australia", "New Zealand"].includes(country)) {
       return "Oceania";
     }
-    if (["USA", "United States", "Canada"].includes(country)) {
-      return "North America";
+    if (["USA", "United States", "Canada", "Brazil", "Peru", "Mexico"].includes(country)) {
+      return "The Americas";
+    }
+    if (["Egypt", "South Africa", "Morocco", "Kenya"].includes(country)) {
+      return "Africa";
     }
     return "Other";
   };
@@ -250,7 +254,9 @@ export default function WishlistPage({
         (item) =>
           item.name.toLowerCase().includes(q) ||
           item.city.toLowerCase().includes(q) ||
-          (item.description || "").toLowerCase().includes(q)
+          (item.description || "").toLowerCase().includes(q) ||
+          getDisplayProductId(item).toLowerCase().includes(q) ||
+          item.id.toLowerCase().includes(q)
       );
     }
 
@@ -502,7 +508,7 @@ export default function WishlistPage({
                         Potential Discount Savings
                       </span>
                       <span className="text-3xl sm:text-4xl font-black mt-0.5 block">
-                        {formatPrice(stats.savings)}
+                        {formatPrice(stats.savings, "EUR")}
                       </span>
                     </div>
                   </div>

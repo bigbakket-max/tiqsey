@@ -396,7 +396,7 @@ export default function MyBookingsPage({
 
                             {/* Price */}
                             <div className="font-bold text-slate-800 dark:text-slate-200">
-                              {formatPrice(booking.totalPrice)}
+                              {formatPrice(booking.totalPrice, "EUR")}
                             </div>
                           </div>
                         </div>

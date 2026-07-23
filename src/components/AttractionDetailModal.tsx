@@ -2,16 +2,19 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Star, Calendar, Users, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, 
-  MapPin, Clock, Languages, ShieldAlert, Check, Flame, CreditCard, Sparkles, Ticket,
+  MapPin, Clock, Languages, Check, Flame, CreditCard, Sparkles, Ticket,
+  Globe,
   Phone, ArrowLeft, Image, Smartphone, Zap, BookOpen, Compass, Info, RotateCcw, Map,
   MessageSquare, Plus, ChevronLeft, ChevronRight, Heart, Share2, Copy, Mail, ExternalLink,
   Tag, ShieldCheck, Download
 } from 'lucide-react';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings, CURRENCIES } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { downloadTicketVoucher } from '../utils/ticketDownloader';
 import { POPULAR_ATTRACTIONS } from '../data/mockData';
+import { getDisplayProductId } from '../utils/productIdGenerator';
+import { Attraction } from '../types';
 import AttractionCard from './AttractionCard';
 import { Breadcrumb, BreadcrumbItem } from './Breadcrumb';
 import { Helmet } from 'react-helmet-async';
@@ -213,6 +216,27 @@ const COUNTRIES = [
   { name: 'Zimbabwe', code: 'ZW', dial: '+263' }
 ];
 
+const getOperatingDays = (attr?: Attraction): number[] => {
+  if (attr?.operatingDays && attr.operatingDays.length > 0) {
+    const map: Record<string, number> = { "Sunday": 0, "Monday": 1, "Tuesday": 2, "Wednesday": 3, "Thursday": 4, "Friday": 5, "Saturday": 6 };
+    return attr.operatingDays.map(d => map[d]).filter(d => d !== undefined);
+  }
+  const str = attr?.openingHours || "";
+  let daysPart = str.includes(":") ? str.split(":")[0].trim().toLowerCase() : str.trim().toLowerCase();
+  
+  if (daysPart.includes("daily")) return [0, 1, 2, 3, 4, 5, 6];
+  if (daysPart.includes("weekdays") || daysPart.includes("mon-fri") || daysPart.includes("mon - fri")) return [1, 2, 3, 4, 5];
+  if (daysPart.includes("weekends") || daysPart.includes("sat-sun") || daysPart.includes("sat - sun")) return [0, 6];
+  
+  const map: Record<string, number> = { "sunday": 0, "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, "friday": 5, "saturday": 6, "sun": 0, "mon": 1, "tue": 2, "wed": 3, "thu": 4, "fri": 5, "sat": 6 };
+  const res: number[] = [];
+  Object.keys(map).forEach(key => {
+    if (daysPart.includes(key)) res.push(map[key]);
+  });
+  if (res.length > 0) return Array.from(new Set(res));
+  return [0, 1, 2, 3, 4, 5, 6]; 
+};
+
 interface Props {
   attractionId: string;
   onClose: () => void;
@@ -254,10 +278,96 @@ export default function AttractionDetailModal({
     // Standardize to uppercase currency code space value, like EUR 55
     return `${currency.code} ${formattedVal}`;
   };
+
+  const formatLocalPrice = (priceInEur: number) => {
+    if (!attraction || !attraction.currency) return null;
+    if (attraction.currency.toUpperCase() === currency.code.toUpperCase()) return null;
+    
+    // Look up timezone-defined local currency
+    const localCurrObj = CURRENCIES.find(c => c.code === attraction.currency?.toUpperCase());
+    if (!localCurrObj) return null;
+
+    const converted = priceInEur * localCurrObj.rate;
+    const formattedVal = converted % 1 === 0 ? converted.toFixed(0) : converted.toFixed(2);
+    // Format nicely e.g., "approx. USD 120.00"
+    return `(approx. ${localCurrObj.code} ${formattedVal})`;
+  };
+
+  // Timezone-aware date and slot calculations
+  const getLocalTodayInTimezone = (tz: string) => {
+    try {
+      const d = new Date();
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const parts = formatter.formatToParts(d);
+      const year = parseInt(parts.find(p => p.type === 'year')?.value || '0', 10);
+      const month = parseInt(parts.find(p => p.type === 'month')?.value || '0', 10) - 1;
+      const day = parseInt(parts.find(p => p.type === 'day')?.value || '0', 10);
+      
+      const localToday = new Date(year, month, day);
+      return localToday;
+    } catch (e) {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      return today;
+    }
+  };
+
+  const getLocalCurrentTimeInTimezone = (tz: string) => {
+    try {
+      const d = new Date();
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      const parts = formatter.formatToParts(d);
+      const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+      const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+      return { hour, minute };
+    } catch (e) {
+      const d = new Date();
+      return { hour: d.getHours(), minute: d.getMinutes() };
+    }
+  };
+
+  const parseTimeSlot = (timeStr: string) => {
+    const match = timeStr.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+    if (!match) return { hour: 0, minute: 0 };
+    let hour = parseInt(match[1], 10);
+    const minute = parseInt(match[2], 10);
+    const ampm = match[3].toUpperCase();
+    if (ampm === 'PM' && hour < 12) hour += 12;
+    if (ampm === 'AM' && hour === 12) hour = 0;
+    return { hour, minute };
+  };
   
-  const attraction = useMemo(() => {
+  const [bookingDate, setBookingDate] = useState<string>('');
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState('11:00 AM');
+  const [isTimeSlotExpanded, setIsTimeSlotExpanded] = useState(false);
+
+  const [attraction, setAttraction] = useState<Attraction | undefined>(() => {
     return POPULAR_ATTRACTIONS.find(a => a.id === attractionId);
+  });
+
+  useEffect(() => {
+    setAttraction(POPULAR_ATTRACTIONS.find(a => a.id === attractionId));
   }, [attractionId]);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setAttraction(POPULAR_ATTRACTIONS.find(a => a.id === attractionId));
+    };
+    window.addEventListener("tiqsey_attractions_updated", handleUpdate);
+    return () => window.removeEventListener("tiqsey_attractions_updated", handleUpdate);
+  }, [attractionId]);
+
+  const operatingDays = useMemo(() => getOperatingDays(attraction), [attraction]);
 
   const dynamicPackages = useMemo(() => {
     if (!attraction) return [];
@@ -269,6 +379,53 @@ export default function AttractionDetailModal({
 
     const basePrice = attraction.discountPrice || attraction.price;
 
+    if (attraction.variants && attraction.variants.length > 0) {
+      return attraction.variants.map((v) => {
+        // Find matching rule for selected date & timeslot
+        const matchedRule = v.rules?.find(
+          r => r.date === bookingDate && 
+          (r.timeSlot.toLowerCase() === selectedTimeSlot.toLowerCase() || 
+           r.timeSlot.toLowerCase() === 'all' || 
+           r.timeSlot.toLowerCase() === 'all day' ||
+           r.timeSlot === '')
+        );
+
+        // Calculate priceOffset so that basePrice + priceOffset = rule.price (or basePrice if no rule)
+        const targetPrice = matchedRule ? matchedRule.price : basePrice;
+        const priceOffset = targetPrice - basePrice;
+
+        const descParts = [];
+        if (v.agePolicy) descParts.push(`Age Policy: ${v.agePolicy}`);
+        if (v.priceIncludes) descParts.push(`Includes: ${v.priceIncludes}`);
+        if (v.notes) descParts.push(`Notes: ${v.notes}`);
+        if (v.otherDetails) descParts.push(`Details: ${v.otherDetails}`);
+        
+        const description = descParts.length > 0 
+          ? descParts.join(' | ') 
+          : `Custom ticket variant: ${v.name}`;
+
+        const inventoryText = matchedRule 
+          ? ` (${matchedRule.inventory} remaining)` 
+          : '';
+
+        return {
+          id: v.id,
+          listName: v.name + inventoryText,
+          name: v.name,
+          shortName: v.name,
+          priceOffset,
+          couponDiscount: matchedRule ? 0 : 3.80,
+          description,
+          duration: attraction.duration || 'Flexible',
+          inventory: matchedRule ? matchedRule.inventory : undefined,
+          agePolicy: v.agePolicy,
+          priceIncludes: v.priceIncludes,
+          notes: v.notes,
+          otherDetails: v.otherDetails
+        };
+      });
+    }
+
     return [
       { 
         id: 'general', 
@@ -278,7 +435,8 @@ export default function AttractionDetailModal({
         priceOffset: 0,
         couponDiscount: 3.80,
         description: `Admission to ${cleanName} permanent collection. Timed entry slots guarantee immediate access without waiting.`,
-        duration: '2 Hours'
+        duration: '2 Hours',
+        inventory: undefined
       },
       { 
         id: 'non-stop-2day', 
@@ -288,7 +446,8 @@ export default function AttractionDetailModal({
         priceOffset: Math.round(basePrice * 0.15),
         couponDiscount: 4.36,
         description: `Experience two days of unrestricted exploration with fast-track admission past standard queues.`,
-        duration: 'Flexible 48 Hours'
+        duration: 'Flexible 48 Hours',
+        inventory: undefined
       },
       { 
         id: '2day-7days', 
@@ -298,12 +457,11 @@ export default function AttractionDetailModal({
         priceOffset: Math.round(basePrice * 0.45),
         couponDiscount: 5.52,
         description: `Visit twice at any time within a 7-day period. Perfect for paced discovery of temporary galleries.`,
-        duration: '7 Days Validity'
+        duration: '7 Days Validity',
+        inventory: undefined
       }
     ];
-  }, [attraction]);
-
-  const [bookingDate, setBookingDate] = useState<string>('');
+  }, [attraction, bookingDate, selectedTimeSlot]);
 
   const [guestCount, setGuestCount] = useState(2); // default to 2 like the image
   const [childCount, setChildCount] = useState(0);
@@ -370,6 +528,7 @@ export default function AttractionDetailModal({
     const dayStr = String(day).padStart(2, '0');
     setBookingDate(`${calendarYear}-${monthStr}-${dayStr}`);
     setShowCalendarDropdown(false);
+    setIsTimeSlotExpanded(true);
   };
 
   const formattedDate = useMemo(() => {
@@ -453,10 +612,75 @@ export default function AttractionDetailModal({
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [highlightPackages, setHighlightPackages] = useState(false);
 
+  const [allBookings, setAllBookings] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchAllBookings = async () => {
+      try {
+        const res = await fetch('/api/bookings');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.bookings)) {
+          setAllBookings(data.bookings);
+        }
+      } catch (err) {
+        console.error("Failed to fetch all bookings:", err);
+      }
+    };
+    fetchAllBookings();
+  }, [attractionId]);
+
+  const getBookedTicketsCount = (variantName: string, date: string, slot: string) => {
+    let count = 0;
+    allBookings.forEach(b => {
+      if (b.attractionId !== attractionId) return;
+      if (b.bookingDate !== date) return;
+      if (!b.timeslot || b.timeslot.toLowerCase() !== slot.toLowerCase()) return;
+      if (b.status === 'cancelled' || b.status === 'rejected') return;
+      
+      const normalizedBookingName = b.attractionName.toLowerCase();
+      const normalizedVariantName = variantName.toLowerCase();
+      if (normalizedBookingName.includes(normalizedVariantName) || normalizedVariantName.includes(normalizedBookingName)) {
+        count += b.ticketsCount || 1;
+      }
+    });
+    return count;
+  };
+
+  const getSlotCapacityLimit = (variant: any, date: string, slot: string) => {
+    const originalVariant = attraction?.variants?.find((v: any) => v.name === variant.name || v.id === variant.id);
+    const rule = originalVariant?.rules?.find(
+      (r: any) => r.date === date && r.timeSlot.toLowerCase() === slot.toLowerCase()
+    );
+    if (rule) {
+      return rule.inventory;
+    }
+    return -1;
+  };
+
   // New Booking Form states
   const [bookingFormStep, setBookingFormStep] = useState(false);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState('11:00 AM');
   const [specialRequests, setSpecialRequests] = useState('');
+  
+  const [promoCode, setPromoCode] = useState('');
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoError, setPromoError] = useState('');
+  const [promoSuccess, setPromoSuccess] = useState('');
+
+  const handleApplyPromo = () => {
+    setPromoError('');
+    setPromoSuccess('');
+    if (!promoCode.trim()) {
+      setPromoError('Please enter a promo code');
+      return;
+    }
+    if (promoCode.trim().toUpperCase() === 'DISCOUNT10') {
+      setPromoDiscount(10);
+      setPromoSuccess('Promo code applied successfully!');
+    } else {
+      setPromoDiscount(0);
+      setPromoError('Invalid promo code');
+    }
+  };
 
   const guestName = `${travelerFirstName} ${travelerLastName}`.trim();
   const travelerPhone = `${travelerCountryCode} ${travelerPhoneNumber}`.trim();
@@ -466,6 +690,10 @@ export default function AttractionDetailModal({
     setBookingFormStep(false);
     setBookingSuccess(null);
     setCheckoutError(null);
+    setPromoCode('');
+    setPromoDiscount(0);
+    setPromoError('');
+    setPromoSuccess('');
     setGuestCount(2);
     setChildCount(0);
     setBookingDate('');
@@ -563,7 +791,8 @@ export default function AttractionDetailModal({
   const basePrice = attraction.discountPrice || attraction.price;
   const pricePerItem = basePrice + selectedPackage.priceOffset;
   const childPricePerItem = pricePerItem * 0.6; // 40% discount for children
-  const totalPriceFloat = (pricePerItem * guestCount) + (childPricePerItem * childCount);
+  const subtotalFloat = (pricePerItem * guestCount) + (childPricePerItem * childCount);
+  const totalPriceFloat = Math.max(0, subtotalFloat - promoDiscount);
 
   // Multi-image bento layout: Left image tall, 4 right images in a 2x2 grid
   const galleryUrls = attraction.galleryUrls && attraction.galleryUrls.length > 0 ? attraction.galleryUrls : [];
@@ -752,6 +981,25 @@ export default function AttractionDetailModal({
       }
     }
 
+    // Validate capacity
+    const activePkg = attraction?.variants?.find(v => v.id === selectedPackageId) || attraction?.variants?.[0];
+    if (activePkg && bookingDate && selectedTimeSlot) {
+      const capacity = getSlotCapacityLimit(activePkg, bookingDate, selectedTimeSlot);
+      if (capacity !== -1) {
+        const booked = getBookedTicketsCount(activePkg.name, bookingDate, selectedTimeSlot);
+        const totalRequested = guestCount + childCount;
+        if (booked + totalRequested > capacity) {
+          const remaining = Math.max(0, capacity - booked);
+          if (remaining === 0) {
+            setCheckoutError(`This timeslot (${selectedTimeSlot}) is Sold Out. Please select another time slot.`);
+          } else {
+            setCheckoutError(`Not enough capacity left. Only ${remaining} ticket(s) left for this timeslot (${selectedTimeSlot}). You are trying to book ${totalRequested} tickets.`);
+          }
+          return;
+        }
+      }
+    }
+
     setIsSubmitting(true);
     try {
       // Create guest info object if needed
@@ -767,7 +1015,9 @@ export default function AttractionDetailModal({
         guestInfo,
         childCount,
         childPricePerItem,
-        additionalPassengers
+        additionalPassengers,
+        totalPriceFloat,
+        selectedTimeSlot
       );
       setBookingSuccess(response);
     } catch (err: any) {
@@ -926,7 +1176,7 @@ export default function AttractionDetailModal({
         <Breadcrumb items={breadcrumbItems} />
       </div>
 
-      {!bookingSuccess && (
+      {!bookingSuccess && !bookingFormStep && (
         <div id="gallery-hero-section" className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-2 select-none">
           <div className="relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden group pointer-events-auto">
             {/* Main single image */}
@@ -1028,15 +1278,18 @@ export default function AttractionDetailModal({
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                   
                   {/* Left Column - Form Fields (8 cols) */}
-                  <div className="lg:col-span-8 space-y-6">
+                  <div className="lg:col-span-8 space-y-6 order-2 lg:order-1">
                     
                     {/* STEP A: Select Visit Date (High-Fidelity Interactive Calendar) */}
                     <div id="visit-date-section" className="bg-white dark:bg-slate-900 p-6 rounded-[24px] border border-gray-200 dark:border-slate-800 space-y-4 shadow-3xs">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-[6px] h-[22px] bg-[#e3000f] rounded-sm shrink-0" />
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-                          1. Select Visit Date<span className="text-[#e3000f] ml-1">*</span>
-                        </h3>
+                      <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-[6px] h-[22px] bg-[#e3000f] rounded-sm shrink-0" />
+                          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                            1. Select Visit Date<span className="text-[#e3000f] ml-1">*</span>
+                          </h3>
+                        </div>
+                        {/* Visit date header */}
                       </div>
 
                       {/* Display Selected Date elegantly */}
@@ -1092,15 +1345,29 @@ export default function AttractionDetailModal({
                             const isSelected = bookingDate === thisDateStr;
                             
                             // Prevent selecting past dates
-                            const today = new Date();
-                            today.setHours(0,0,0,0);
+                            const today = getLocalTodayInTimezone(attraction?.timezone || 'Europe/London');
                             const cellDate = new Date(calendarYear, calendarMonth, day);
                             const isPast = cellDate < today;
                             const dayOfWeek = cellDate.getDay();
                             
-                            // Monday is closed (dayOfWeek === 1)
-                            const isUnavailable = dayOfWeek === 1;
-                            const isDisabled = isPast || isUnavailable;
+                            const isUnavailable = !operatingDays.includes(dayOfWeek);
+                            
+                            // Check lead time for the LAST timeslot (4:30 PM = 16:30)
+                            let isCutoffPast = false;
+                            if (attraction?.leadTimeEnabled && !attraction?.allowLastMinuteBooking) {
+                                const dayDiff = Math.round((cellDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+                                const { hour: currentHour, minute: currentMinute } = getLocalCurrentTimeInTimezone(attraction.timezone || 'Europe/London');
+                                const totalMinutesDiff = (dayDiff * 24 * 60) + (16 * 60 + 30) - (currentHour * 60 + currentMinute);
+                                
+                                let leadTimeInMinutes = 0;
+                                if (attraction.leadTimeUnit === 'minutes') leadTimeInMinutes = attraction.leadTimeValue || 0;
+                                else if (attraction.leadTimeUnit === 'hours') leadTimeInMinutes = (attraction.leadTimeValue || 0) * 60;
+                                else if (attraction.leadTimeUnit === 'days') leadTimeInMinutes = (attraction.leadTimeValue || 0) * 24 * 60;
+                                
+                                isCutoffPast = totalMinutesDiff < leadTimeInMinutes;
+                            }
+                            
+                            const isDisabled = isPast || isUnavailable || isCutoffPast;
 
                             // Filling fast on Fridays and Saturdays (weekend rush)
                             const isFillingFast = !isDisabled && (dayOfWeek === 5 || dayOfWeek === 6);
@@ -1162,40 +1429,143 @@ export default function AttractionDetailModal({
                     </div>
 
                     {/* STEP B: Select Time Slot */}
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-[24px] border border-gray-200 dark:border-slate-800 space-y-4 shadow-3xs">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-[6px] h-[22px] bg-[#e3000f] rounded-sm shrink-0" />
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-                          2. Select Entry Time Slot
-                        </h3>
+                    <div className={`bg-white dark:bg-slate-900 p-6 rounded-[24px] border border-gray-200 dark:border-slate-800 space-y-4 shadow-3xs transition-opacity duration-300 ${!bookingDate ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                      <div 
+                        className="flex items-center justify-between flex-wrap gap-2 cursor-pointer select-none"
+                        onClick={() => {
+                          if (bookingDate) setIsTimeSlotExpanded(!isTimeSlotExpanded);
+                        }}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-[6px] h-[22px] bg-[#e3000f] rounded-sm shrink-0" />
+                          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                            2. Select Entry Time Slot
+                          </h3>
+                        </div>
+                        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${isTimeSlotExpanded ? 'rotate-180' : ''}`} />
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-normal">
-                        Please choose a preferred admission window. Keeping to your scheduled time ensures quick skip-the-line check-in.
-                      </p>
+                      
+                      <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${isTimeSlotExpanded && bookingDate ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0 mt-0'}`}>
+                        <div className="overflow-hidden space-y-4">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-normal">
+                            Please choose a preferred admission window. Keeping to your scheduled time ensures quick skip-the-line check-in.
+                          </p>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {['09:00 AM', '10:30 AM', '12:00 PM', '01:30 PM', '03:00 PM', '04:30 PM'].map((time) => {
-                          const isSelected = selectedTimeSlot === time;
-                          return (
-                            <button
-                              key={time}
-                              type="button"
-                              onClick={() => setSelectedTimeSlot(time)}
-                              className={`py-3 px-4 rounded-xl border-2 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
-                                isSelected
-                                  ? 'border-[#e3000f] bg-red-50/20 dark:bg-red-950/10'
-                                  : 'border-slate-250 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
-                              }`}
-                            >
-                              <span className={`text-sm font-black ${isSelected ? 'text-[#e3000f]' : 'text-slate-850 dark:text-slate-100'}`}>
-                                {time}
-                              </span>
-                              <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-0.5">
-                                <span className="w-1 h-1 rounded-full bg-emerald-500 inline-block" /> Available
-                              </span>
-                            </button>
-                          );
-                        })}
+                          {(() => {
+                            const timezone = attraction?.timezone || 'Europe/London';
+                            const todayLocal = getLocalTodayInTimezone(timezone);
+                            const todayLocalStr = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
+                            const isTodaySelected = bookingDate === todayLocalStr;
+                            const { hour: currentHour, minute: currentMinute } = getLocalCurrentTimeInTimezone(timezone);
+
+                            const dynamicSlots = (() => {
+                              const activePkg = attraction?.variants?.find(v => v.id === selectedPackageId) || attraction?.variants?.[0];
+                              if (!activePkg || !activePkg.rules || activePkg.rules.length === 0) {
+                                return ['09:00 AM', '10:30 AM', '12:00 PM', '01:30 PM', '03:00 PM', '04:30 PM'];
+                              }
+                              const dateRules = activePkg.rules.filter(r => r.date === bookingDate);
+                              if (dateRules.length === 0) {
+                                const slotsSet = new Set<string>();
+                                activePkg.rules.forEach(r => {
+                                  if (r.timeSlot && r.timeSlot !== 'All Day' && r.timeSlot !== 'All' && r.timeSlot !== '') {
+                                    slotsSet.add(r.timeSlot);
+                                  }
+                                });
+                                if (slotsSet.size > 0) {
+                                  return Array.from(slotsSet).sort();
+                                }
+                                return ['09:00 AM', '10:30 AM', '12:00 PM', '01:30 PM', '03:00 PM', '04:30 PM'];
+                              }
+                              return dateRules.map(r => r.timeSlot).filter(Boolean).sort();
+                            })();
+
+                            // Ensure currently selected timeslot is in the list, or select first available
+                            if (bookingDate && dynamicSlots.length > 0 && !dynamicSlots.includes(selectedTimeSlot)) {
+                              setTimeout(() => {
+                                setSelectedTimeSlot(dynamicSlots[0]);
+                              }, 10);
+                            }
+
+                            return (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {dynamicSlots.map((time) => {
+                                  const isSelected = selectedTimeSlot === time;
+                                  const slotTimeObj = parseTimeSlot(time);
+                                  
+                                  const slotYear = parseInt(bookingDate.split('-')[0], 10);
+                                  const slotMonth = parseInt(bookingDate.split('-')[1], 10) - 1;
+                                  const slotDay = parseInt(bookingDate.split('-')[2], 10);
+                                  
+                                  const slotDateObj = new Date(slotYear, slotMonth, slotDay);
+                                  const currentLocalDay = new Date(todayLocal.getFullYear(), todayLocal.getMonth(), todayLocal.getDate());
+                                  const dayDiff = Math.round((slotDateObj.getTime() - currentLocalDay.getTime()) / (1000 * 3600 * 24));
+                                  
+                                  const totalMinutesDiff = (dayDiff * 24 * 60) + (slotTimeObj.hour * 60 + slotTimeObj.minute) - (currentHour * 60 + currentMinute);
+                                  
+                                  let leadTimeInMinutes = 0;
+                                  if (attraction?.leadTimeEnabled && !attraction?.allowLastMinuteBooking) {
+                                    if (attraction.leadTimeUnit === 'minutes') leadTimeInMinutes = attraction.leadTimeValue || 0;
+                                    else if (attraction.leadTimeUnit === 'hours') leadTimeInMinutes = (attraction.leadTimeValue || 0) * 60;
+                                    else if (attraction.leadTimeUnit === 'days') leadTimeInMinutes = (attraction.leadTimeValue || 0) * 24 * 60;
+                                  }
+                                  
+                                  const isPastBasic = totalMinutesDiff < 0;
+                                  const isCutoffPast = totalMinutesDiff < leadTimeInMinutes;
+                                  const isSlotPast = isCutoffPast;
+
+                                  // Determine capacity and sold-out status
+                                  const activePkg = attraction?.variants?.find(v => v.id === selectedPackageId) || attraction?.variants?.[0];
+                                  let isSoldOut = false;
+                                  let remainingInventory = -1;
+                                  
+                                  if (activePkg && bookingDate) {
+                                    const capacity = getSlotCapacityLimit(activePkg, bookingDate, time);
+                                    if (capacity !== -1) {
+                                      const booked = getBookedTicketsCount(activePkg.name, bookingDate, time);
+                                      remainingInventory = Math.max(0, capacity - booked);
+                                      if (remainingInventory <= 0) {
+                                        isSoldOut = true;
+                                      }
+                                    }
+                                  }
+
+                                  return (
+                                    <button
+                                      key={time}
+                                      type="button"
+                                      disabled={isSlotPast || isSoldOut}
+                                      onClick={() => setSelectedTimeSlot(time)}
+                                      className={`py-3 px-4 rounded-xl border-2 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                                        isSlotPast || isSoldOut
+                                          ? 'border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-950/25 opacity-40 cursor-not-allowed pointer-events-none'
+                                          : isSelected
+                                            ? 'border-[#e3000f] bg-red-50/20 dark:bg-red-950/10 shadow-sm'
+                                            : 'border-slate-250 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
+                                      }`}
+                                    >
+                                      <span className={`text-sm font-black ${(isSlotPast || isSoldOut) ? 'text-slate-400 dark:text-slate-600 line-through font-normal' : isSelected ? 'text-[#e3000f]' : 'text-slate-850 dark:text-slate-100'}`}>
+                                        {time}
+                                      </span>
+                                      {isSlotPast ? (
+                                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-wider flex items-center gap-0.5">
+                                          Booking Closed
+                                        </span>
+                                      ) : isSoldOut ? (
+                                        <span className="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider flex items-center gap-0.5">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block shrink-0 animate-pulse" /> Sold Out
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-0.5">
+                                          <span className="w-1 h-1 rounded-full bg-emerald-500 inline-block" /> {remainingInventory !== -1 ? `${remainingInventory} Left` : 'Available'}
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
 
@@ -1490,7 +1860,7 @@ export default function AttractionDetailModal({
                   </div>
 
                   {/* Right Column - Order Summary Panel (4 cols) */}
-                  <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-6">
+                  <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-6 order-1 lg:order-2">
                     <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-gray-200 dark:border-slate-800 p-6 shadow-sm select-none">
                       <h4 className="text-base font-black text-[#111e38] dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-slate-850 pb-3.5 mb-4 font-mono">
                         Booking Summary
@@ -1564,6 +1934,34 @@ export default function AttractionDetailModal({
                           <span>Local Taxes & VAT</span>
                           <span className="text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Included</span>
                         </div>
+                        {promoDiscount > 0 && (
+                          <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400">
+                            <span>Promo Discount</span>
+                            <span>-{currency.code} {(promoDiscount * currency.rate).toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Promo Code Field */}
+                      <div className="mb-6 space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Promo Code"
+                            value={promoCode}
+                            onChange={(e) => setPromoCode(e.target.value)}
+                            className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#E03A2B] focus:border-transparent transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleApplyPromo}
+                            className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                        {promoError && <p className="text-rose-500 text-xs font-semibold">{promoError}</p>}
+                        {promoSuccess && <p className="text-emerald-600 text-xs font-semibold">{promoSuccess}</p>}
                       </div>
 
                       {/* Grand total price block */}
@@ -1573,6 +1971,17 @@ export default function AttractionDetailModal({
                           <span className="text-xl font-black text-slate-900 dark:text-white leading-none">
                             {currency.code} {(totalPriceFloat * currency.rate).toFixed(2)}
                           </span>
+                          {(() => {
+                            const localPriceStr = formatLocalPrice(totalPriceFloat);
+                            if (localPriceStr) {
+                              return (
+                                <span className="text-[11px] text-slate-500 font-bold block mt-1">
+                                  {localPriceStr}
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                         <span className="text-[10px] font-black text-[#F36C21] bg-[#FFF9EE] dark:bg-amber-900/30 px-2 py-1 rounded-[4px] border border-[#FFEEDB] dark:border-amber-900/40">
                           Secure Rate
@@ -1580,32 +1989,60 @@ export default function AttractionDetailModal({
                       </div>
 
                       {/* Final Submit & Alerts */}
-                      <form onSubmit={handleCreateBooking} className="space-y-4">
-                        {checkoutError && (
-                          <div className="p-3 bg-rose-500/10 text-rose-500 text-xs font-semibold rounded-xl flex items-center gap-2 select-none">
-                            <AlertCircle className="w-4.5 h-4.5 shrink-0" />
-                            <span className="leading-tight">{checkoutError}</span>
-                          </div>
-                        )}
+                      {attraction?.isAvailable === false ? (
+                        <div className="space-y-4">
+                          {/* Gray Disabled Unavailable Button matching mockup */}
+                          <button
+                            type="button"
+                            disabled
+                            className="w-full bg-[#cccccc] dark:bg-slate-700 text-white text-[15px] sm:text-[16px] font-[1000] tracking-wide rounded-[8px] py-3.5 flex items-center justify-center cursor-not-allowed select-none shadow-sm border border-transparent"
+                          >
+                            Currently Unavailable
+                          </button>
 
-                        <button
-                          type="submit"
-                          disabled={isSubmitting}
-                          className="w-full bg-[#E03A2B] hover:bg-[#be000b] disabled:bg-slate-400 text-white text-[15px] font-bold rounded-[8px] py-3.5 border border-[#E03A2B] transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer disabled:cursor-not-allowed shadow-md"
-                        >
-                          {isSubmitting ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin shrink-0" />
-                              <span>Completing Booking...</span>
-                            </>
-                          ) : (
-                            <>
-                              <ShieldCheck className="w-4.5 h-4.5 text-white/90" />
-                              <span>Complete Secure Booking</span>
-                            </>
+                          {/* Not Available Alert Block */}
+                          <div className="p-4 bg-rose-50 dark:bg-rose-950/25 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex flex-col items-center text-center gap-3 select-none">
+                            <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-950 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                              <AlertCircle className="w-5.5 h-5.5" />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-black text-rose-800 dark:text-rose-300">
+                                Product Currently Not Available
+                              </p>
+                              <p className="text-xs text-rose-650/80 dark:text-rose-400/80 font-medium">
+                                We are sorry, but this tour/activity is currently unavailable for bookings. Please explore other attractions.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <form onSubmit={handleCreateBooking} className="space-y-4">
+                          {checkoutError && (
+                            <div className="p-3 bg-rose-500/10 text-rose-500 text-xs font-semibold rounded-xl flex items-center gap-2 select-none">
+                              <AlertCircle className="w-4.5 h-4.5 shrink-0" />
+                              <span className="leading-tight">{checkoutError}</span>
+                            </div>
                           )}
-                        </button>
-                      </form>
+
+                          <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full bg-[#E03A2B] hover:bg-[#be000b] disabled:bg-slate-400 text-white text-[15px] font-bold rounded-[8px] py-3.5 border border-[#E03A2B] transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer disabled:cursor-not-allowed shadow-md"
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin shrink-0" />
+                                <span>Completing Booking...</span>
+                              </>
+                            ) : (
+                              <>
+                                <ShieldCheck className="w-4.5 h-4.5 text-white/90" />
+                                <span>Complete Secure Booking</span>
+                              </>
+                            )}
+                          </button>
+                        </form>
+                      )}
 
                       {/* Visual trust markers typical of checkout forms */}
                       <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-850 flex items-center justify-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -1637,18 +2074,28 @@ export default function AttractionDetailModal({
                       Bestseller
                     </span>
                   )}
+                  {attraction.fastTrack && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider bg-sky-500/10 dark:bg-sky-500/5 text-sky-700 dark:text-sky-400 border border-sky-500/15 dark:border-sky-500/5 px-2.5 py-0.5 rounded-full">
+                      <Sparkles className="w-3 h-3 text-sky-500" />
+                      Trending
+                    </span>
+                  )}
                 </div>
 
                 <h1 className="text-2xl md:text-3.5xl font-serif font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
                   {attraction.name}
                 </h1>
 
-                <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs font-bold text-slate-500 dark:text-slate-400">
+                <div className="flex flex-wrap items-center gap-y-2 gap-x-3 text-xs font-bold text-slate-500 dark:text-slate-400">
                   <span className="flex items-center gap-1.5">
                     <MapPin className="w-4 h-4 text-brand" />
                     <span>{attraction.location || `${attraction.city}, Europe`}</span>
                   </span>
-                  {/* Removed duration and opening hours block */}
+                  <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">•</span>
+                  <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100/65 dark:bg-slate-800/40 px-3 py-1 rounded-full border border-slate-200/50 dark:border-slate-700/50 shadow-3xs transition-all duration-200 hover:bg-slate-150/70 dark:hover:bg-slate-800/60">
+                    <Tag className="w-3 h-3 text-[#5fa6d9] shrink-0" />
+                    Product ID: {getDisplayProductId(attraction)}
+                  </span>
                 </div>
               </div>
               
@@ -1691,149 +2138,246 @@ export default function AttractionDetailModal({
                 </div>
 
                 {/* Select Package Options Panel styled according to uploaded mockup layout */}
-                <div id="select-package-options-section" className="space-y-4 pt-1 scroll-mt-24">
+                {attraction?.isAvailable !== false && (
+                  <div id="select-package-options-section" className="space-y-4 pt-1 scroll-mt-24">
                   <div className={`p-4 sm:p-5 md:p-6 rounded-[24px] border space-y-4 transition-all duration-700 ease-in-out ${
-                    highlightPackages
-                      ? 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 ring-4 ring-slate-100 dark:ring-slate-700 shadow-xl scale-[1.01]'
-                      : 'bg-[#f4f7f9] dark:bg-slate-900/60 border-[#e2e8f0] dark:border-slate-800/65 shadow-none scale-100'
-                  }`}>
-                    <div className="flex items-center gap-3 select-none">
-                      <div className={`w-[6px] h-[22px] sm:h-[24px] bg-[#e3000f] rounded-sm shrink-0 transition-all duration-700 ${
-                        highlightPackages ? 'shadow-[0_0_12px_rgba(224,58,43,0.8)] scale-y-110' : ''
-                      }`} />
-                      <h2 className="text-[19px] sm:text-[21px] font-bold text-[#111e38] dark:text-white tracking-tight leading-none">
-                        Select Package Options
-                      </h2>
-                    </div>
+                      highlightPackages
+                        ? 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 ring-4 ring-slate-100 dark:ring-slate-700 shadow-xl scale-[1.01]'
+                        : 'bg-[#f4f7f9] dark:bg-slate-900/60 border-[#e2e8f0] dark:border-slate-800/65 shadow-none scale-100'
+                    }`}>
+                      <div className="flex items-center gap-3 select-none">
+                        <div className={`w-[6px] h-[22px] sm:h-[24px] bg-[#e3000f] rounded-sm shrink-0 transition-all duration-700 ${
+                          highlightPackages ? 'shadow-[0_0_12px_rgba(224,58,43,0.8)] scale-y-110' : ''
+                        }`} />
+                        <h2 className="text-[19px] sm:text-[21px] font-bold text-[#111e38] dark:text-white tracking-tight leading-none">
+                          Select Package Options
+                        </h2>
+                      </div>
 
-                    <div className="space-y-3">
-                      {dynamicPackages.map((pkg, index) => {
-                        const isSelected = selectedPackageId === pkg.id;
-                        
-                        return (
-                          <div
-                            key={pkg.id}
-                            id={index === 0 ? "package-card-first" : `package-card-${pkg.id}`}
-                            onClick={() => {
-                              setSelectedPackageId(pkg.id);
-                              setExpandedPackageId(pkg.id);
-                            }}
-                            className={`relative bg-white dark:bg-slate-900 rounded-xl transition-all duration-300 select-none outline-none scroll-mt-24 cursor-pointer ${
-                              isSelected
-                                ? 'border-2 border-[#e3000f] p-4 sm:p-5 shadow-sm'
-                                : 'border border-[#dce6f0] dark:border-slate-800 p-4 sm:p-5 hover:border-[#c5d6e6] dark:hover:border-slate-700 hover:shadow-xs'
-                            }`}
-                          >
-
+                      <div className="space-y-3">
+                        {dynamicPackages.map((pkg, index) => {
+                          const isSelected = selectedPackageId === pkg.id;
+                          
+                          return (
+                            <div
+                              key={pkg.id}
+                              id={index === 0 ? "package-card-first" : `package-card-${pkg.id}`}
+                              onClick={() => {
+                                setSelectedPackageId(pkg.id);
+                                setExpandedPackageId(pkg.id);
+                              }}
+                              className={`relative bg-white dark:bg-slate-900 rounded-xl transition-all duration-300 select-none outline-none scroll-mt-24 cursor-pointer ${
+                                isSelected
+                                  ? 'border-2 border-[#e3000f] p-4 sm:p-5 shadow-sm'
+                                  : 'border border-[#dce6f0] dark:border-slate-800 p-4 sm:p-5 hover:border-[#c5d6e6] dark:hover:border-slate-700 hover:shadow-xs'
+                              }`}
+                            >
                             {isSelected ? (
-                              /* ================== EXPANDED STATE (Screenshot 2) ================== */
-                              <div>
+                              /* ================== EXPANDED STATE ================== */
+                              <div className="flex flex-col">
                                 {index === 0 && (
-                                  <div className="mb-2">
+                                  <div className="mb-3">
                                     <span className="inline-flex items-center gap-1 text-[10px] font-black bg-[#00875a] text-white px-2 py-0.5 rounded-[4px] uppercase tracking-wide">
                                       ★ MOST BOOKED
                                     </span>
                                   </div>
                                 )}
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                  <div className="flex items-start gap-3">
-                                    {/* Red dot custom radio button */}
-                                    <div className="w-[18px] h-[18px] rounded-full bg-white border-2 border-[#e3000f] flex items-center justify-center shrink-0 mt-0.5">
-                                      <div className="w-2.5 h-2.5 rounded-full bg-[#e3000f]" />
-                                    </div>
-                                    
-                                    <div>
-                                      <h4 className="text-[15px] sm:text-base font-bold text-[#111e38] dark:text-white leading-snug pr-2">
-                                        {pkg.name}
-                                      </h4>
-                                      
-                                      {/* Clock icon with duration */}
-                                      <div className="flex items-center gap-1.5 mt-2 text-[#111e38] dark:text-slate-200 text-[13px] font-medium">
-                                        <Clock className="w-4 h-4 text-slate-500 shrink-0" />
-                                        <span>{pkg.duration}</span>
+                                
+                                <div className="flex items-start gap-3">
+                                  {/* Radio Indicator */}
+                                  <div className="w-[18px] h-[18px] rounded-full bg-white border-2 border-[#e3000f] flex items-center justify-center shrink-0 mt-1">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-[#e3000f]" />
+                                  </div>
+                                  
+                                  <div className="flex-1 flex flex-col">
+                                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                                      <div className="flex-1">
+                                        <h4 className="text-[15px] sm:text-base font-bold text-[#111e38] dark:text-white leading-snug">
+                                          {pkg.name}
+                                        </h4>
                                       </div>
                                       
-                                      {/* HIDE DETAILS text link */}
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setExpandedPackageId(null);
-                                          setSelectedPackageId('');
-                                        }}
-                                        className="text-[11px] font-bold text-[#e3000f] hover:text-[#be000b] uppercase tracking-wider block mt-4 text-left cursor-pointer transition-colors"
-                                      >
-                                        HIDE DETAILS
-                                      </button>
+                                      <div className="shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedPackageId(pkg.id);
+                                            setExpandedPackageId(pkg.id);
+                                            setBookingFormStep(true);
+                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                          }}
+                                          className="px-6 py-2.5 bg-[#e3000f] hover:bg-[#be000b] text-white rounded-[8px] text-[13px] font-bold uppercase transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer flex items-center justify-center whitespace-nowrap"
+                                        >
+                                          Book Now
+                                        </button>
+                                      </div>
                                     </div>
-                                  </div>
-
-                                  {/* Solid Red BOOK NOW CTA */}
-                                  <div className="shrink-0 self-stretch md:self-center flex items-center justify-end">
+                                    
+                                    <div className="flex items-center gap-1.5 mt-2 text-[#111e38] dark:text-slate-200 text-[13px] font-medium">
+                                      <Clock className="w-4 h-4 text-slate-500 shrink-0" />
+                                      <span>{pkg.duration}</span>
+                                    </div>
+                                    
                                     <button
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setSelectedPackageId(pkg.id);
-                                        setExpandedPackageId(pkg.id);
-                                        setBookingFormStep(true);
-                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                        setExpandedPackageId(null);
+                                        setSelectedPackageId('');
                                       }}
-                                      className="w-full md:w-auto inline-flex px-6 py-2.5 bg-[#e3000f] hover:bg-[#be000b] text-white rounded-[8px] text-[13px] font-bold uppercase transition-all items-center justify-center shadow-sm hover:shadow active:scale-95 cursor-pointer"
+                                      className="text-[11px] font-bold text-[#e3000f] hover:text-[#be000b] uppercase tracking-wider block mt-4 text-left cursor-pointer transition-colors"
                                     >
-                                      BOOK NOW
+                                      HIDE DETAILS
                                     </button>
                                   </div>
                                 </div>
+                                
+                                {/* Expanded Details */}
+                                <div className="mt-6 border-t border-gray-200 dark:border-slate-800 pt-6 space-y-6">
+                                  {pkg.notes && !pkg.agePolicy && !pkg.priceIncludes && !pkg.otherDetails ? (
+                                    <div className="space-y-3">
+                                      <h5 className="text-[12px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Package Details & Information</h5>
+                                      <div 
+                                        className="text-[13px] text-slate-600 dark:text-slate-400 space-y-1 leading-relaxed prose dark:prose-invert max-w-none"
+                                        dangerouslySetInnerHTML={{ 
+                                          __html: pkg.notes 
+                                        }}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <>
+                                      {/* Age Policy */}
+                                      {(pkg.agePolicy || attraction.agePolicy || index === 0) && (
+                                        <div className="space-y-2">
+                                          <h5 className="text-[12px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Age Policy</h5>
+                                          <div 
+                                            className="text-[13px] text-slate-600 dark:text-slate-400 space-y-1 leading-relaxed prose dark:prose-invert max-w-none"
+                                            dangerouslySetInnerHTML={{ 
+                                              __html: pkg.agePolicy || attraction.agePolicy || "Adult tickets are applicable for visitors aged 17 years and above." 
+                                            }}
+                                          />
+                                        </div>
+                                      )}
 
-                                {/* Footer block: Tickets are Non-Refundable */}
-                                <div className="mt-5 pt-3.5 border-t border-[#f4f7f9] dark:border-slate-800/80 flex items-center gap-1.5 text-[13px] text-[#e3000f] select-none">
-                                  <Info className="w-4 h-4 shrink-0" />
-                                  <span>Tickets are Non-Refundable</span>
+                                      {/* Note */}
+                                      {(pkg.notes || attraction.notes || index === 0) && (
+                                        <div className="space-y-2">
+                                          <h5 className="text-[12px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Important Notes</h5>
+                                          <div 
+                                            className="text-[13px] text-slate-600 dark:text-slate-400 space-y-1 leading-relaxed prose dark:prose-invert max-w-none"
+                                            dangerouslySetInnerHTML={{ 
+                                              __html: pkg.notes || attraction.notes || "Prices of tickets for this attraction are higher than what is mentioned on the tickets due to a substantial peak in demand. The prices of tickets are a combination of basic ticket charges, high sourcing costs, last-minute acquiring costs, and taxes." 
+                                            }}
+                                          />
+                                        </div>
+                                      )}
+
+                                      {/* Price Includes */}
+                                      {(pkg.priceIncludes || attraction.priceIncludes || index === 0) && (
+                                        <div className="space-y-2">
+                                          <h5 className="text-[12px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Price Includes</h5>
+                                          <div 
+                                            className="text-[13px] text-slate-600 dark:text-slate-400 space-y-1 leading-relaxed prose dark:prose-invert max-w-none"
+                                            dangerouslySetInnerHTML={{ 
+                                              __html: pkg.priceIncludes || attraction.priceIncludes || `Admission to ${attraction.name} permanent collection.` 
+                                            }}
+                                          />
+                                        </div>
+                                      )}
+
+                                      {/* Other Relevant Details */}
+                                      {(pkg.otherDetails || attraction.otherDetails) && (
+                                        <div className="space-y-2">
+                                          <h5 className="text-[12px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Other Relevant Details</h5>
+                                          <div 
+                                            className="text-[13px] text-slate-600 dark:text-slate-400 space-y-1 leading-relaxed prose dark:prose-invert max-w-none"
+                                            dangerouslySetInnerHTML={{ 
+                                              __html: pkg.otherDetails || attraction.otherDetails || "Instant mobile voucher confirmation." 
+                                            }}
+                                          />
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                  
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedPackageId(null);
+                                      setSelectedPackageId('');
+                                    }}
+                                    className="text-[11px] font-bold text-[#e3000f] hover:text-[#be000b] uppercase tracking-wider block mt-4 text-left cursor-pointer transition-colors"
+                                  >
+                                    HIDE DETAILS
+                                  </button>
                                 </div>
                               </div>
                             ) : (
-                              /* ================== COLLAPSED STATE (Screenshot 1) ================== */
+                              /* ================== COLLAPSED STATE ================== */
                               <div className="flex items-stretch justify-between gap-4">
-                                <div className="flex-1 flex flex-col">
-                                  {index === 0 && (
-                                    <div className="mb-2">
-                                      <span className="inline-flex items-center gap-1 text-[10px] font-black bg-[#00875a] text-white px-2 py-0.5 rounded-[4px] uppercase tracking-wide">
-                                        ★ MOST BOOKED
-                                      </span>
-                                    </div>
-                                  )}
+                                <div className="flex-1 flex flex-col justify-between">
                                   <div>
+                                    {index === 0 && (
+                                      <div className="mb-2">
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-black bg-[#00875a] text-white px-2 py-0.5 rounded-[4px] uppercase tracking-wide">
+                                          ★ MOST BOOKED
+                                        </span>
+                                      </div>
+                                    )}
                                     <h4 className="text-[15px] sm:text-base font-bold text-[#111e38] dark:text-white leading-snug">
                                       {pkg.name}
                                     </h4>
                                   </div>
 
-                                  {/* Pricing left side */}
+                                  {/* Show Details button */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedPackageId(pkg.id);
+                                      setExpandedPackageId(pkg.id);
+                                    }}
+                                    className="text-[11px] font-bold text-[#e3000f] hover:text-[#be000b] uppercase tracking-wider block mt-4 text-left cursor-pointer transition-colors"
+                                  >
+                                    SHOW DETAILS
+                                  </button>
+                                </div>
+
+                                <div className="flex flex-col justify-between items-end shrink-0 pl-2">
+                                  {/* Pricing right side */}
                                   {(() => {
                                     const basePriceVal = attraction.discountPrice || attraction.price;
                                     const currentPriceRaw = basePriceVal + pkg.priceOffset;
                                     const originalPriceRaw = Math.round(currentPriceRaw / 0.85) - 0.10;
+                                    const localPriceStr = formatLocalPrice(currentPriceRaw);
                                     return (
-                                      <div className="mt-3 flex flex-col items-start leading-none">
+                                      <div className="mb-3 flex flex-col items-end leading-none text-right">
                                         <span className="line-through decoration-[#94a3b8] text-[#94a3b8] font-medium text-[13px]">
                                           {currency.code} {(originalPriceRaw * currency.rate).toFixed(2)}
                                         </span>
-                                        <div className="flex items-baseline text-[#c22015] mt-1">
-                                          <span className="text-xs font-bold mr-1">{currency.code}</span>
-                                          <span className="text-[22px] font-extrabold tracking-tight">
-                                            {(currentPriceRaw * currency.rate).toFixed(2)}
-                                          </span>
+                                        <div className="flex items-baseline text-[#c22015] mt-1 flex-wrap gap-x-2 justify-end">
+                                          <div className="flex items-baseline">
+                                            <span className="text-xs font-bold mr-1">{currency.code}</span>
+                                            <span className="text-[22px] font-extrabold tracking-tight">
+                                              {(currentPriceRaw * currency.rate).toFixed(2)}
+                                            </span>
+                                          </div>
+                                          {localPriceStr && (
+                                            <span className="text-[11px] text-slate-500 font-semibold align-bottom">
+                                              {localPriceStr}
+                                            </span>
+                                          )}
                                         </div>
                                       </div>
                                     );
                                   })()}
-                                </div>
 
-                                <div className="flex flex-col justify-end items-end shrink-0 pl-2">
                                   {/* Book Now pill button */}
                                   <button 
                                     type="button"
+                                    disabled={attraction?.isAvailable === false}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSelectedPackageId(pkg.id);
@@ -1841,9 +2385,13 @@ export default function AttractionDetailModal({
                                       setBookingFormStep(true);
                                       window.scrollTo({ top: 0, behavior: 'smooth' });
                                     }}
-                                    className="px-6 py-2 bg-[#e3000f] hover:bg-[#be000b] text-white rounded-[8px] text-[13px] font-bold uppercase transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer flex items-center justify-center whitespace-nowrap"
+                                    className={`px-6 py-2 rounded-[8px] text-[13px] font-bold uppercase transition-all shadow-sm flex items-center justify-center whitespace-nowrap ${
+                                      attraction?.isAvailable === false
+                                        ? "bg-slate-200 dark:bg-slate-850 text-slate-400 dark:text-slate-500 cursor-not-allowed select-none"
+                                        : "bg-[#e3000f] hover:bg-[#be000b] text-white hover:shadow active:scale-95 cursor-pointer"
+                                    }`}
                                   >
-                                    Book Now
+                                    {attraction?.isAvailable === false ? "Unavailable" : "Book Now"}
                                   </button>
                                 </div>
                               </div>
@@ -1854,6 +2402,7 @@ export default function AttractionDetailModal({
                     </div>
                   </div>
                 </div>
+                )}
 
               </div>
               
@@ -1901,25 +2450,53 @@ export default function AttractionDetailModal({
                     );
                   })()}
 
-                  <form onSubmit={handleCreateBooking} className="space-y-4">
-                    {/* Error Alerts */}
-                    {checkoutError && (
-                      <div className="p-3 bg-rose-500/10 text-rose-500 text-xs font-semibold rounded-xl flex items-center gap-2 select-none">
-                        <AlertCircle className="w-4.5 h-4.5 shrink-0" />
-                        <span>{checkoutError}</span>
-                      </div>
-                    )}
+                  {attraction?.isAvailable === false ? (
+                    <div className="space-y-4">
+                      {/* Gray Disabled Unavailable Button matching mockup */}
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full bg-[#cccccc] dark:bg-slate-700 text-white text-[15.5px] sm:text-[16.5px] font-[1000] tracking-wide rounded-[8px] py-3.5 flex items-center justify-center cursor-not-allowed select-none shadow-sm border border-transparent"
+                      >
+                        Currently Unavailable
+                      </button>
 
-                    {/* Action Submit Button */}
-                    <button
-                      id="finalize-booking-cta-btn"
-                      type="button"
-                      onClick={handleScrollToPackages}
-                      className="w-full bg-brand hover:bg-[#be000b] text-white text-[15px] sm:text-[16px] font-bold rounded-[8px] py-3.5 border border-brand transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md"
-                    >
-                      <span>Check availability</span>
-                    </button>
-                  </form>
+                      {/* Not Available Alert Block */}
+                      <div className="p-4 bg-rose-50 dark:bg-rose-950/25 border border-rose-100 dark:border-rose-900/30 rounded-2xl flex flex-col items-center text-center gap-3 select-none">
+                        <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-950 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                          <AlertCircle className="w-5.5 h-5.5" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-black text-rose-800 dark:text-rose-300">
+                            Product Currently Not Available
+                          </p>
+                          <p className="text-xs text-rose-650/80 dark:text-rose-400/80 font-medium">
+                            We are sorry, but this tour/activity is currently unavailable for bookings. Please explore other attractions.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleCreateBooking} className="space-y-4">
+                      {/* Error Alerts */}
+                      {checkoutError && (
+                        <div className="p-3 bg-rose-500/10 text-rose-500 text-xs font-semibold rounded-xl flex items-center gap-2 select-none">
+                          <AlertCircle className="w-4.5 h-4.5 shrink-0" />
+                          <span>{checkoutError}</span>
+                        </div>
+                      )}
+
+                      {/* Action Submit Button */}
+                      <button
+                        id="finalize-booking-cta-btn"
+                        type="button"
+                        onClick={handleScrollToPackages}
+                        className="w-full bg-brand hover:bg-[#be000b] text-white text-[15px] sm:text-[16px] font-bold rounded-[8px] py-3.5 border border-brand transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md"
+                      >
+                        <span>Check availability</span>
+                      </button>
+                    </form>
+                  )}
 
                 </div>
 
@@ -2376,7 +2953,7 @@ export default function AttractionDetailModal({
                 )}
                 <div>
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Amount Processed</span>
-                  <span className="text-brand text-sm font-black">{formatPrice(bookingSuccess.totalPrice ?? totalPriceFloat)}</span>
+                  <span className="text-brand text-sm font-black">{formatPrice(bookingSuccess.totalPrice ?? totalPriceFloat, attraction?.currency)}</span>
                 </div>
                 <div>
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Pass Status</span>

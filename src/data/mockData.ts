@@ -4,6 +4,7 @@ import lindtImage from "../assets/images/lindt_chocolate_fountain_1779240843252.
 export const POPULAR_ATTRACTIONS: Attraction[] = [
   {
     id: "ams-rijksmuseum",
+    timezone: "W. Europe Standard Time",
     name: "Rijksmuseum: Skip-the-line Admission",
     location: "Amsterdam, Netherlands",
     city: "Amsterdam",
@@ -34,6 +35,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "lis-jeronimos",
+    timezone: "GMT Standard Time",
     name: "Jerónimos Monastery: Admission Ticket",
     location: "Lisbon, Portugal",
     city: "Lisbon",
@@ -59,6 +61,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "bcn-casa-batllo",
+    timezone: "Romance Standard Time",
     name: "Casa Batlló: Entrance Ticket + Audio Guide",
     location: "Barcelona, Spain",
     city: "Barcelona",
@@ -89,6 +92,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "bcn-casa-mila",
+    timezone: "Romance Standard Time",
     name: "La Pedrera - Casa Milà: Skip-the-line Ticket",
     location: "Barcelona, Spain",
     city: "Barcelona",
@@ -119,10 +123,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-edge",
+    timezone: "Eastern Standard Time",
     name: "Edge NYC: Observation Deck Admission",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Observation Deck",
     rating: 4.8,
     reviewsCount: 15200,
@@ -148,6 +153,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "zrh-lindt",
+    timezone: "W. Europe Standard Time",
     name: "Lindt Home of Chocolate Museum: Tour & Tasting",
     location: "Zurich, Switzerland",
     city: "Zurich",
@@ -172,6 +178,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "rom-colosseum",
+    timezone: "W. Europe Standard Time",
     name: "Colosseum: Priority Entrance Ticket",
     location: "Rome, Italy",
     city: "Rome",
@@ -202,6 +209,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "rom-forum",
+    timezone: "W. Europe Standard Time",
     name: "Roman Forum & Palatine Hill Admission",
     location: "Rome, Italy",
     city: "Rome",
@@ -227,6 +235,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "rom-castel",
+    timezone: "W. Europe Standard Time",
     name: "Castel Sant'Angelo: Fast Track Ticket",
     location: "Rome, Italy",
     city: "Rome",
@@ -252,6 +261,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "rom-vatican",
+    timezone: "W. Europe Standard Time",
     name: "Vatican Museums & Sistine Chapel Entrance Ticket",
     location: "Vatican City, Rome, Italy",
     city: "Rome",
@@ -282,10 +292,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ist-cistern",
+    timezone: "Türkiye Standard Time",
     name: "Basilica Cistern: Skip-the-Line Entry",
     location: "Istanbul, Turkey",
     city: "Istanbul",
-    region: "Middle East",
+    region: "Asia",
     category: "Landmark",
     rating: 4.8,
     reviewsCount: 18500,
@@ -307,10 +318,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ist-hagia",
+    timezone: "Türkiye Standard Time",
     name: "Hagia Sophia: Entry & Highlights Guided Tour",
     location: "Istanbul, Turkey",
     city: "Istanbul",
-    region: "Middle East",
+    region: "Asia",
     category: "Religious",
     rating: 4.9,
     reviewsCount: 52000,
@@ -332,10 +344,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ist-dolmabahce",
+    timezone: "Türkiye Standard Time",
     name: "Dolmabahçe Palace: Admission & Audio Guide",
     location: "Istanbul, Turkey",
     city: "Istanbul",
-    region: "Middle East",
+    region: "Asia",
     category: "Architecture",
     rating: 4.7,
     reviewsCount: 15600,
@@ -357,10 +370,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ist-topkapi",
+    timezone: "Türkiye Standard Time",
     name: "Topkapi Palace: Fast Track & Highlights Tour",
     location: "Istanbul, Turkey",
     city: "Istanbul",
-    region: "Middle East",
+    region: "Asia",
     category: "History",
     rating: 4.8,
     reviewsCount: 38000,
@@ -386,10 +400,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ist-galata",
+    timezone: "Türkiye Standard Time",
     name: "Galata Tower Entry Tickets",
     location: "Galata, Istanbul, Turkey",
     city: "Istanbul",
-    region: "Middle East",
+    region: "Asia",
     category: "Landmark",
     rating: 4.7,
     reviewsCount: 28000,
@@ -415,6 +430,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sin-universal",
+    timezone: "Singapore Standard Time",
     name: "Universal Studios Singapore Admission",
     location: "Sentosa Island, Singapore",
     city: "Singapore",
@@ -440,6 +456,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "tok-teamlab",
+    timezone: "Tokyo Standard Time",
     name: "teamLab Planets TOKYO: Admission Ticket",
     location: "Tokyo, Japan",
     city: "Tokyo",
@@ -465,6 +482,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ams-van-gogh",
+    timezone: "W. Europe Standard Time",
     name: "Van Gogh Museum: Entrance Ticket",
     location: "Amsterdam, Netherlands",
     city: "Amsterdam",
@@ -500,6 +518,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sagrada-familia",
+    timezone: "Romance Standard Time",
     name: "Sagrada Familia: Fast Track Ticket + Optional Towers",
     location: "Barcelona, Spain",
     city: "Barcelona",
@@ -539,6 +558,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "park-guell",
+    timezone: "Romance Standard Time",
     name: "Park Güell: Admission Ticket",
     location: "Barcelona, Spain",
     city: "Barcelona",
@@ -573,6 +593,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "1",
+    timezone: "Romance Standard Time",
     name: "The Louvre Museum",
     location: "Paris, France",
     city: "Paris",
@@ -623,6 +644,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "2",
+    timezone: "Singapore Standard Time",
     name: "Gardens by the Bay",
     location: "Singapore",
     city: "Singapore",
@@ -643,6 +665,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "3",
+    timezone: "SE Asia Standard Time",
     name: "The Grand Palace",
     location: "Bangkok, Thailand",
     city: "Bangkok",
@@ -663,6 +686,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "4",
+    timezone: "AUS Eastern Standard Time",
     name: "Sydney Opera House",
     location: "Sydney, Australia",
     city: "Sydney",
@@ -683,6 +707,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "5",
+    timezone: "Tokyo Standard Time",
     name: "Tokyo Tower",
     location: "Tokyo, Japan",
     city: "Tokyo",
@@ -703,6 +728,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "osaka-castle",
+    timezone: "Tokyo Standard Time",
     name: "Osaka Castle: Entrance & Observatory Ticket",
     location: "Osaka, Japan",
     city: "Osaka",
@@ -735,6 +761,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "osaka-usj",
+    timezone: "Tokyo Standard Time",
     name: "Universal Studios Japan (USJ) Osaka Studio Pass",
     location: "Osaka, Japan",
     city: "Osaka",
@@ -767,6 +794,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "usa-statue",
+    timezone: "Eastern Standard Time",
     name: "Statue of Liberty",
     location: "New York, USA",
     city: "USA",
@@ -801,6 +829,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "usa-disney",
+    timezone: "Eastern Standard Time",
     name: "Walt Disney World® Resort",
     location: "Orlando, USA",
     city: "USA",
@@ -828,10 +857,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-911-memorial",
+    timezone: "Eastern Standard Time",
     name: "9/11 Memorial Museum, New York | Skip-The-Line Admission Tickets",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Museum",
     rating: 4.8,
     reviewsCount: 15400,
@@ -851,10 +881,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-one-world",
+    timezone: "Eastern Standard Time",
     name: "One World Observatory Tickets, New York",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Observation Deck",
     rating: 4.6,
     reviewsCount: 12400,
@@ -874,10 +905,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-central-park",
+    timezone: "Eastern Standard Time",
     name: "Central Park Walking Tour, New York",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Tour",
     rating: 4.5,
     reviewsCount: 3500,
@@ -897,10 +929,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-moma",
+    timezone: "Eastern Standard Time",
     name: "Museum Of Modern Art Tickets, New York",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Museum",
     rating: 5.0,
     reviewsCount: 23000,
@@ -920,10 +953,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-met",
+    timezone: "Eastern Standard Time",
     name: "Metropolitan Museum of Art, New York | Skip-The-Line Admission Tickets",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Museum",
     rating: 4.0,
     reviewsCount: 4200,
@@ -943,10 +977,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-madame-tussauds",
+    timezone: "Eastern Standard Time",
     name: "Madame Tussauds Tickets, New York",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Entertainment",
     rating: 4.2,
     reviewsCount: 8900,
@@ -966,10 +1001,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-broadway-museum",
+    timezone: "Eastern Standard Time",
     name: "The Museum Of Broadway, New York | Skip-The-Line Admission Tickets",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Museum",
     rating: 4.7,
     reviewsCount: 1200,
@@ -989,10 +1025,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-go-pass",
+    timezone: "Eastern Standard Time",
     name: "Go City New York All-Inclusive Pass",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Card",
     rating: 4.5,
     reviewsCount: 37000,
@@ -1012,10 +1049,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-riseny",
+    timezone: "Eastern Standard Time",
     name: "RiseNY Tickets, New York",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Fun",
     rating: 4.8,
     reviewsCount: 6500,
@@ -1035,10 +1073,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-friends",
+    timezone: "Eastern Standard Time",
     name: "The FRIENDS Experience New York",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Fun",
     rating: 4.5,
     reviewsCount: 24000,
@@ -1058,10 +1097,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-statue-cruise",
+    timezone: "Eastern Standard Time",
     name: "Statue Of Liberty And Ellis Island Cruise, New York",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Cruise",
     rating: 4.5,
     reviewsCount: 36000,
@@ -1081,10 +1121,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-empire-state",
+    timezone: "Eastern Standard Time",
     name: "Empire State Building Tickets, New York",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Landmark",
     rating: 4.8,
     reviewsCount: 3200,
@@ -1104,10 +1145,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "dubai-burj",
+    timezone: "Arabian Standard Time",
     name: "Burj Khalifa",
     location: "Dubai, UAE",
     city: "Dubai",
-    region: "Middle East",
+    region: "Asia",
     category: "Landmark",
     rating: 4.9,
     reviewsCount: 85000,
@@ -1125,6 +1167,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "swiss-titlis",
+    timezone: "W. Europe Standard Time",
     name: "Mount Titlis Cable Car",
     location: "Engelberg, Switzerland",
     city: "Switzerland",
@@ -1172,6 +1215,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ams-heineken",
+    timezone: "W. Europe Standard Time",
     name: "Heineken Experience: Standard Entrance",
     location: "Amsterdam, Netherlands",
     city: "Amsterdam",
@@ -1186,6 +1230,8 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ams-canal",
+    productId: "64788876",
+    timezone: "W. Europe Standard Time",
     name: "1-Hour Amsterdam Canal Cruise",
     location: "Amsterdam, Netherlands",
     city: "Amsterdam",
@@ -1200,6 +1246,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ams-keukenhof",
+    timezone: "W. Europe Standard Time",
     name: "Keukenhof Gardens Entrance Ticket",
     location: "Lisse, Netherlands",
     city: "Amsterdam",
@@ -1214,6 +1261,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ams-madame-tussauds",
+    timezone: "W. Europe Standard Time",
     name: "Madame Tussauds Amsterdam",
     location: "Amsterdam, Netherlands",
     city: "Amsterdam",
@@ -1228,6 +1276,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ams-efteling",
+    timezone: "W. Europe Standard Time",
     name: "Efteling Theme Park Ticket",
     location: "Kaatsheuvel, Amsterdam Surroundings",
     city: "Amsterdam",
@@ -1242,6 +1291,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "paris-orsay",
+    timezone: "Romance Standard Time",
     name: "Musée d'Orsay: Skip-the-line Admission",
     location: "Paris, France",
     city: "Paris",
@@ -1271,6 +1321,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "par-disney",
+    timezone: "Romance Standard Time",
     name: "Disneyland® Paris: 1-Day Ticket",
     location: "Marne-la-Vallée, France",
     city: "Paris",
@@ -1296,6 +1347,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "par-eiffel",
+    timezone: "Romance Standard Time",
     name: "Eiffel Tower: Second Floor or Summit Access",
     location: "Paris, France",
     city: "Paris",
@@ -1322,6 +1374,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "par-sainte-pantheon",
+    timezone: "Romance Standard Time",
     name: "Sainte-Chapelle, Conciergerie & Panthéon Combo",
     location: "Paris, France",
     city: "Paris",
@@ -1347,6 +1400,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "par-orangerie",
+    timezone: "Romance Standard Time",
     name: "Musée de l'Orangerie: Water Lilies Ticket",
     location: "Paris, France",
     city: "Paris",
@@ -1375,6 +1429,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "par-rodin",
+    timezone: "Romance Standard Time",
     name: "Musée Rodin: Entrance Ticket",
     location: "Paris, France",
     city: "Paris",
@@ -1400,6 +1455,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "par-aquarium",
+    timezone: "Romance Standard Time",
     name: "Aquarium de Paris: Entrance Ticket",
     location: "Paris, France",
     city: "Paris",
@@ -1425,6 +1481,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ams-moco",
+    timezone: "W. Europe Standard Time",
     name: "Moco Museum Amsterdam",
     location: "Amsterdam, Netherlands",
     city: "Amsterdam",
@@ -1439,6 +1496,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ams-nemo",
+    timezone: "W. Europe Standard Time",
     name: "NEMO Science Museum",
     location: "Amsterdam, Netherlands",
     city: "Amsterdam",
@@ -1453,6 +1511,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ams-palace",
+    timezone: "W. Europe Standard Time",
     name: "Royal Palace Amsterdam",
     location: "Amsterdam, Netherlands",
     city: "Amsterdam",
@@ -1466,6 +1525,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ams-anne-frank",
+    timezone: "W. Europe Standard Time",
     name: "Anne Frank House",
     location: "Amsterdam, Netherlands",
     city: "Amsterdam",
@@ -1480,6 +1540,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "lis-oceanarium",
+    timezone: "GMT Standard Time",
     name: "Lisbon Oceanarium: Entry Ticket",
     location: "Lisbon, Portugal",
     city: "Lisbon",
@@ -1508,6 +1569,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ath-acropolis",
+    timezone: "GTB Standard Time",
     name: "Acropolis of Athens: Fast Track Ticket",
     location: "Athens, Greece",
     city: "Athens",
@@ -1536,6 +1598,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "flo-accademia",
+    timezone: "W. Europe Standard Time",
     name: "Accademia Gallery Florence: Skip-the-line Ticket",
     location: "Florence, Italy",
     city: "Florence",
@@ -1564,10 +1627,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "dxb-miracle",
+    timezone: "Arabian Standard Time",
     name: "Dubai Miracle Garden Admission Ticket",
     location: "Dubai, UAE",
     city: "Dubai",
-    region: "Middle East",
+    region: "Asia",
     category: "Nature",
     rating: 4.7,
     reviewsCount: 16500,
@@ -1589,6 +1653,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sin-zoo",
+    timezone: "Singapore Standard Time",
     name: "Singapore Zoo Tickets with Tram Ride",
     location: "Mandai Wildlife Reserve, Singapore",
     city: "Singapore",
@@ -1617,10 +1682,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-summit",
+    timezone: "Eastern Standard Time",
     name: "SUMMIT One Vanderbilt Admission Ticket",
     location: "New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Observation Deck",
     rating: 4.8,
     reviewsCount: 26300,
@@ -1645,6 +1711,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "lon-eye-entry",
+    timezone: "GMT Standard Time",
     name: "London Eye Entry Ticket",
     location: "London, United Kingdom",
     city: "London",
@@ -1670,6 +1737,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "lon-tower-crown-jewels",
+    timezone: "GMT Standard Time",
     name: "Tower of London: Home to the Crown Jewels - Admission",
     location: "London, United Kingdom",
     city: "London",
@@ -1698,6 +1766,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "lon-tower-bridge",
+    timezone: "GMT Standard Time",
     name: "Tower Bridge London General Admission Ticket",
     location: "London, United Kingdom",
     city: "London",
@@ -1726,10 +1795,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sd-zoo",
+    timezone: "Pacific Standard Time",
     name: "San Diego Zoo",
     location: "San Diego, California, USA",
     city: "San Diego",
-    region: "North America",
+    region: "The Americas",
     category: "Zoos & Aquariums",
     rating: 4.8,
     reviewsCount: 15420,
@@ -1755,10 +1825,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sd-safari-park",
+    timezone: "Pacific Standard Time",
     name: "San Diego Zoo Safari Park",
     location: "Escondido, California, USA",
     city: "San Diego",
-    region: "North America",
+    region: "The Americas",
     category: "Zoos & Aquariums",
     rating: 4.7,
     reviewsCount: 12105,
@@ -1783,10 +1854,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sd-uss-midway",
+    timezone: "Pacific Standard Time",
     name: "USS Midway Museum",
     location: "San Diego, California, USA",
     city: "San Diego",
-    region: "North America",
+    region: "The Americas",
     category: "Museums",
     rating: 4.9,
     reviewsCount: 20450,
@@ -1811,10 +1883,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ny-amnh",
+    timezone: "Eastern Standard Time",
     name: "American Museum of Natural History",
     location: "New York City, New York, USA",
     city: "New York",
-    region: "North America",
+    region: "The Americas",
     category: "Museums",
     rating: 4.7,
     reviewsCount: 18900,
@@ -1839,6 +1912,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "bkk-safari-world",
+    timezone: "SE Asia Standard Time",
     name: "Safari World Bangkok Tickets",
     location: "Bangkok, Thailand",
     city: "Bangkok",
@@ -1864,6 +1938,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "pat-underwater-world",
+    timezone: "SE Asia Standard Time",
     name: "Underwater World Pattaya Tickets",
     location: "Pattaya, Thailand",
     city: "Pattaya",
@@ -1889,6 +1964,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "pat-dolphinarium",
+    timezone: "SE Asia Standard Time",
     name: "Pattaya Dolphinarium Tickets",
     location: "Pattaya, Thailand",
     city: "Pattaya",
@@ -1914,6 +1990,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "bkk-sealife",
+    timezone: "SE Asia Standard Time",
     name: "SEA LIFE Ocean World Tickets, Bangkok",
     location: "Bangkok, Thailand",
     city: "Bangkok",
@@ -1939,6 +2016,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "bkk-mahanakhon",
+    timezone: "SE Asia Standard Time",
     name: "Mahanakhon Skywalk Tickets, Bangkok",
     location: "Bangkok, Thailand",
     city: "Bangkok",
@@ -1964,6 +2042,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "hkt-fantasea",
+    timezone: "SE Asia Standard Time",
     name: "Phuket Fantasea Tickets",
     location: "Phuket, Thailand",
     city: "Phuket",
@@ -1989,6 +2068,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "hkt-andamanda",
+    timezone: "SE Asia Standard Time",
     name: "Andamanda Waterpark Tickets, Phuket",
     location: "Phuket, Thailand",
     city: "Phuket",
@@ -2014,6 +2094,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "pat-ramayana",
+    timezone: "SE Asia Standard Time",
     name: "Ramayana Water Park Tickets, Pattaya",
     location: "Pattaya, Thailand",
     city: "Pattaya",
@@ -2039,6 +2120,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "pat-nong-nooch",
+    timezone: "SE Asia Standard Time",
     name: "Nong Nooch Tropical Botanical Garden Ticket, Pattaya",
     location: "Pattaya, Thailand",
     city: "Pattaya",
@@ -2064,6 +2146,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "pat-tiger-park",
+    timezone: "SE Asia Standard Time",
     name: "Tiger Park Pattaya Tickets",
     location: "Pattaya, Thailand",
     city: "Pattaya",
@@ -2089,6 +2172,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "pat-sanctuary-truth",
+    timezone: "SE Asia Standard Time",
     name: "Sanctuary Of Truth Pattaya Tickets",
     location: "Pattaya, Thailand",
     city: "Pattaya",
@@ -2114,6 +2198,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sin-bird-paradise",
+    timezone: "Singapore Standard Time",
     name: "Bird Paradise Tickets | Mandai Wildlife Reserve",
     location: "Singapore",
     city: "Singapore",
@@ -2138,6 +2223,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sin-flyer",
+    timezone: "Singapore Standard Time",
     name: "Singapore Flyer Tickets",
     location: "Singapore",
     city: "Singapore",
@@ -2162,6 +2248,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sin-wings-time",
+    timezone: "Singapore Standard Time",
     name: "Wings Of Time Tickets, Singapore",
     location: "Singapore",
     city: "Singapore",
@@ -2182,6 +2269,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sin-mbs-skypark",
+    timezone: "Singapore Standard Time",
     name: "Marina Bay Sands Skypark Observation Deck Tickets, Singapore",
     location: "Singapore",
     city: "Singapore",
@@ -2206,6 +2294,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sin-night-safari",
+    timezone: "Singapore Standard Time",
     name: "Singapore Night Safari Tickets with Tram Ride | Mandai Wildlife Reserve",
     location: "Singapore",
     city: "Singapore",
@@ -2230,6 +2319,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sin-oceanarium",
+    timezone: "Singapore Standard Time",
     name: "Singapore Oceanarium Tickets",
     location: "Singapore",
     city: "Singapore",
@@ -2254,6 +2344,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "sin-madame-tussauds",
+    timezone: "Singapore Standard Time",
     name: "Madame Tussauds Singapore Tickets",
     location: "Singapore",
     city: "Singapore",
@@ -2278,6 +2369,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "hkt-carnival-magic",
+    timezone: "SE Asia Standard Time",
     name: "Carnival Magic Tickets, Phuket",
     location: "Phuket, Thailand",
     city: "Phuket",
@@ -2302,6 +2394,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "bkk-ancient-city",
+    timezone: "SE Asia Standard Time",
     name: "Ancient City Bangkok Tickets",
     location: "Bangkok, Thailand",
     city: "Bangkok",
@@ -2326,6 +2419,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "bkk-erawan-museum",
+    timezone: "SE Asia Standard Time",
     name: "Erawan Museum Tickets",
     location: "Bangkok, Thailand",
     city: "Bangkok",
@@ -2350,6 +2444,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "bkk-siam-amazing-park",
+    timezone: "SE Asia Standard Time",
     name: "Siam Amazing Park Tickets, Bangkok",
     location: "Bangkok, Thailand",
     city: "Bangkok",
@@ -2374,6 +2469,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "hkt-aquaria",
+    timezone: "SE Asia Standard Time",
     name: "Aquaria Phuket Tickets",
     location: "Phuket, Thailand",
     city: "Phuket",
@@ -2398,6 +2494,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "bkk-madame-tussauds",
+    timezone: "SE Asia Standard Time",
     name: "Madame Tussauds Bangkok Tickets",
     location: "Bangkok, Thailand",
     city: "Bangkok",
@@ -2422,6 +2519,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "hkt-dolphin-show",
+    timezone: "SE Asia Standard Time",
     name: "Phuket Dolphin Show Ticket",
     location: "Phuket, Thailand",
     city: "Phuket",
@@ -2446,6 +2544,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "pat-colosseum-show",
+    timezone: "SE Asia Standard Time",
     name: "Colosseum Show Pattaya Tickets",
     location: "Pattaya, Thailand",
     city: "Pattaya",
@@ -2543,6 +2642,55 @@ export const DESTINATIONS: Destination[] = [
   },
 ];
 
+// Helper to get standard timezone based on location
+function getFallbackTz(city: string | undefined, location: string | undefined): string {
+  const cityLower = (city || "").toLowerCase();
+  const locLower = (location || "").toLowerCase();
+
+  if (cityLower === "amsterdam") return "W. Europe Standard Time";
+  if (cityLower === "lisbon") return "GMT Standard Time";
+  if (cityLower === "barcelona") return "Romance Standard Time";
+  if (cityLower === "new york" || cityLower === "usa" || locLower.includes("new york") || locLower.includes("california") || locLower.includes("orlando") || locLower.includes("san diego")) {
+    if (locLower.includes("california") || locLower.includes("san diego")) {
+      return "Pacific Standard Time";
+    }
+    return "Eastern Standard Time";
+  }
+  if (cityLower === "zurich") return "W. Europe Standard Time";
+  if (cityLower === "rome") return "W. Europe Standard Time";
+  if (cityLower === "istanbul") return "Türkiye Standard Time";
+  if (cityLower === "singapore") return "Singapore Standard Time";
+  if (cityLower === "tokyo") return "Tokyo Standard Time";
+  if (cityLower === "paris") return "Romance Standard Time";
+  if (cityLower === "bangkok") return "SE Asia Standard Time";
+  if (cityLower === "sydney") return "AUS Eastern Standard Time";
+  if (cityLower === "osaka") return "Tokyo Standard Time";
+  if (cityLower === "dubai") return "Arabian Standard Time";
+  if (cityLower === "switzerland") return "W. Europe Standard Time";
+  if (cityLower === "athens") return "GTB Standard Time";
+  if (cityLower === "florence") return "W. Europe Standard Time";
+  if (cityLower === "london") return "GMT Standard Time";
+  if (cityLower === "san diego") return "Pacific Standard Time";
+  if (cityLower === "pattaya") return "SE Asia Standard Time";
+  if (cityLower === "phuket") return "SE Asia Standard Time";
+
+  if (locLower.includes("spain") || locLower.includes("barcelona")) return "Romance Standard Time";
+  if (locLower.includes("italy") || locLower.includes("florence") || locLower.includes("rome")) return "W. Europe Standard Time";
+  if (locLower.includes("france") || locLower.includes("paris")) return "Romance Standard Time";
+  if (locLower.includes("united kingdom") || locLower.includes("london") || locLower.includes("uk")) return "GMT Standard Time";
+  if (locLower.includes("netherlands") || locLower.includes("amsterdam")) return "W. Europe Standard Time";
+  if (locLower.includes("turkey") || locLower.includes("istanbul")) return "Türkiye Standard Time";
+  if (locLower.includes("greece") || locLower.includes("athens")) return "GTB Standard Time";
+  if (locLower.includes("switzerland") || locLower.includes("zurich")) return "W. Europe Standard Time";
+  if (locLower.includes("thailand") || locLower.includes("bangkok") || locLower.includes("pattaya") || locLower.includes("phuket")) return "SE Asia Standard Time";
+  if (locLower.includes("japan") || locLower.includes("tokyo") || locLower.includes("osaka")) return "Tokyo Standard Time";
+  if (locLower.includes("singapore")) return "Singapore Standard Time";
+  if (locLower.includes("australia") || locLower.includes("sydney")) return "AUS Eastern Standard Time";
+  if (locLower.includes("dubai") || locLower.includes("uae")) return "Arabian Standard Time";
+
+  return "GMT Standard Time";
+}
+
 // Initialize dynamic synchronization from localStorage on module load
 if (typeof window !== "undefined") {
   const saved = localStorage.getItem("tiqsey_custom_attractions");
@@ -2550,8 +2698,34 @@ if (typeof window !== "undefined") {
     try {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        let hasChanges = false;
+
+        // Preserve and merge any new hardcoded attractions that are not present in localStorage
+        const hardcodedAttractions = [...POPULAR_ATTRACTIONS];
+        const merged = [...parsed];
+        const existingIds = new Set(parsed.map((item: any) => item.id));
+
+        for (const item of hardcodedAttractions) {
+          if (!existingIds.has(item.id)) {
+            merged.push(item);
+            hasChanges = true;
+          }
+        }
+
+        const migrated = merged.map((item: any) => {
+          if (!item.timezone) {
+            item.timezone = getFallbackTz(item.city, item.location);
+            hasChanges = true;
+          }
+          return item;
+        });
+
         POPULAR_ATTRACTIONS.length = 0;
-        POPULAR_ATTRACTIONS.push(...parsed);
+        POPULAR_ATTRACTIONS.push(...migrated);
+
+        if (hasChanges) {
+          localStorage.setItem("tiqsey_custom_attractions", JSON.stringify(migrated));
+        }
       }
     } catch (e) {
       console.error("Failed to parse custom attractions from localStorage", e);
@@ -2565,7 +2739,25 @@ if (typeof window !== "undefined") {
   }
 }
 
+if (typeof window !== "undefined") {
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'tiqsey_custom_attractions' && e.newValue) {
+      try {
+        const parsed = JSON.parse(e.newValue);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          POPULAR_ATTRACTIONS.length = 0;
+          POPULAR_ATTRACTIONS.push(...parsed);
+          window.dispatchEvent(new Event("tiqsey_attractions_updated"));
+        }
+      } catch (err) {
+        console.error('Failed to sync tiqsey_custom_attractions from storage event', err);
+      }
+    }
+  });
+}
+
 /**
+
  * Synchronizes the live POPULAR_ATTRACTIONS array and persists it to localStorage.
  * This triggers a reactive window event so components can optionally update.
  */

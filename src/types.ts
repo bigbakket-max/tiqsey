@@ -1,5 +1,6 @@
 export interface Attraction {
   id: string;
+  productId?: string;
   name: string;
   location: string;
   city: string;
@@ -11,6 +12,9 @@ export interface Attraction {
   imageUrl: string;
   isPopular?: boolean;
   region?: string;
+  subRegion?: string;
+  country?: string;
+  state?: string;
   description?: string;
   highlights?: string[];
   included?: string[];
@@ -24,7 +28,46 @@ export interface Attraction {
   fastTrack?: boolean;
   liveGuide?: string;
   maxGroupSize?: number;
+  noCapacityLimit?: boolean;
   openingHours?: string;
+  timezone?: string;
+  currency?: string;
+  variants?: Variant[];
+  isAvailable?: boolean;
+  operatingDays?: string[];
+  operatingMonths?: string[];
+  leadTimeEnabled?: boolean;
+  leadTimeValue?: number;
+  leadTimeUnit?: 'minutes' | 'hours' | 'days';
+  allowLastMinuteBooking?: boolean;
+  agePolicy?: string;
+  notes?: string;
+  priceIncludes?: string;
+  otherDetails?: string;
+}
+
+export interface VariantRule {
+  id: string;
+  date: string; // YYYY-MM-DD
+  timeSlot: string; // e.g., "09:00 AM" or "All"
+  price: number;
+  inventory: number;
+}
+
+export interface Variant {
+  id: string;
+  name: string;
+  agePolicy?: string;
+  notes?: string;
+  priceIncludes?: string;
+  otherDetails?: string;
+  rules?: VariantRule[];
+  isActive?: boolean;
+  basePrice?: number;
+  duration?: string;
+  language?: string;
+  isTicketed?: boolean;
+  transfer?: string;
 }
 
 export interface Destination {

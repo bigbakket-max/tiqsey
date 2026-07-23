@@ -1,4 +1,4 @@
-import { POPULAR_ATTRACTIONS } from "./src/data/mockDataTemp";
+import { POPULAR_ATTRACTIONS } from "./src/data/mockData";
 
 const hotDealsList = POPULAR_ATTRACTIONS.filter(
   (attr) => attr.discountPrice && attr.discountPrice < attr.price,

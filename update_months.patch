@@ -1,0 +1,24 @@
+--- src/admin/pages/Inventory.tsx
++++ src/admin/pages/Inventory.tsx
+@@ -204,6 +204,21 @@
+   "Sunday"
+ ];
+ 
++const MONTHS_OF_YEAR = [
++  "January",
++  "February",
++  "March",
++  "April",
++  "May",
++  "June",
++  "July",
++  "August",
++  "September",
++  "October",
++  "November",
++  "December"
++];
++
+ const daysMap: Record<string, string> = {
+   Monday: "Mon",
+   Tuesday: "Tue",

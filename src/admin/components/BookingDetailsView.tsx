@@ -43,7 +43,7 @@ interface AdminBooking {
   bookingDate: string;
   timeslot?: string;
   children?: number;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rejected';
+  status: string;
   passengers: Passenger[];
   notes?: string;
   attractionImageUrl?: string;
@@ -53,7 +53,7 @@ interface AdminBooking {
 interface BookingDetailsViewProps {
   booking: AdminBooking;
   onBack: () => void;
-  onUpdateStatus: (id: string, status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rejected') => void;
+  onUpdateStatus: (id: string, status: string) => void;
   onUpdateBooking: (updated: AdminBooking) => void;
 }
 
@@ -145,7 +145,7 @@ export default function BookingDetailsView({
       case 'rejected':
         return <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-slate-500/10 text-slate-500 border border-slate-200/50 uppercase tracking-wider">REJECTED</span>;
       default:
-        return <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-slate-500/10 text-slate-600 border border-slate-200/50 uppercase tracking-wider">{status.toUpperCase()}</span>;
+        return <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-slate-500/10 text-slate-600 border border-slate-200/50 uppercase tracking-wider">{status.replace(/_/g, ' ').toUpperCase()}</span>;
     }
   };
 

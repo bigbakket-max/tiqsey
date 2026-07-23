@@ -1,3 +1,4 @@
+import { useAdminLoader } from "../contexts/AdminLoaderContext";
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -156,6 +157,7 @@ const getLocalDatetime = (dateValue?: string | Date) => {
 };
 
 export default function BlogPostForm() {
+  const { showLoader, hideLoader } = useAdminLoader();
   const { id } = useParams();
   const navigate = useNavigate();
   const { getPostById, addPost, updatePost } = useBlog();
@@ -805,7 +807,9 @@ export default function BlogPostForm() {
     }
   };
 
-  const handleSave = (overrideStatus?: 'Draft' | 'Published' | 'Scheduled') => {
+  const handleSave = async (overrideStatus?: 'Draft' | 'Published' | 'Scheduled') => {
+    showLoader();
+    await new Promise(resolve => setTimeout(resolve, 500));
     const finalStatus = overrideStatus || status;
 
     // Form validation

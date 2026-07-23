@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, 
@@ -18,12 +18,24 @@ import {
   Text,
   PlaneTakeoff,
   Menu,
-  AlignLeft
+  AlignLeft,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAdminLoader } from '../contexts/AdminLoaderContext';
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const { isLoading, showLoader, hideLoader } = useAdminLoader();
+
+  useEffect(() => {
+    showLoader();
+    const timer = setTimeout(() => hideLoader(), 400);
+    return () => {
+      clearTimeout(timer);
+      hideLoader();
+    };
+  }, [location.pathname]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const isCollapsed = sidebarCollapsed;
@@ -39,6 +51,11 @@ export default function AdminLayout() {
       crumbs.push({ name: 'Activities', icon: undefined, path: '/inventory' });
       if (path.includes('/inventory')) {
         crumbs.push({ name: 'Products', icon: undefined, path: '/inventory' });
+        if (path.includes('/edit/')) {
+          crumbs.push({ name: 'Edit Product', icon: undefined, path: path });
+        } else if (path.includes('/new')) {
+          crumbs.push({ name: 'New Product', icon: undefined, path: path });
+        }
       }
     } else if (path.includes('/bookings') || path.includes('/orders')) {
       crumbs.push({ name: 'Bookings', icon: undefined, path: '/bookings' });
@@ -79,23 +96,23 @@ export default function AdminLayout() {
   const renderSidebarContent = (isCollapsed: boolean, isMobile: boolean) => (
     <>
       <div className={`flex-1 flex flex-col min-h-0 ${!isMobile ? 'border-r border-zinc-800/60' : ''}`}>
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-2.5 py-3 space-y-1 overflow-y-auto">
         <NavLink
           to="/"
           end
           onClick={() => setMobileMenuOpen(false)}
           title={isCollapsed ? "Home" : undefined}
           className={({ isActive }) =>
-            `flex items-center transition-all text-base group ${
-              isCollapsed ? 'justify-center mx-auto w-10 h-10 rounded-md' : 'w-full gap-3 px-3 py-2.5 rounded-lg'
+            `flex items-center transition-all text-sm group ${
+              isCollapsed ? 'justify-center mx-auto w-9 h-9 rounded-md' : 'w-full gap-2.5 px-3 py-2 rounded-lg'
             } ${
               isActive 
                 ? 'bg-white/15 text-white font-bold' 
-                : 'text-slate-200 hover:bg-white/10 hover:text-white font-semibold'
+                : 'text-slate-200 hover:bg-white/10 hover:text-white font-medium'
             }`
           }
         >
-          <Home className="w-5 h-5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+          <Home className="w-4.5 h-4.5 shrink-0 text-current group-hover:scale-105 transition-transform" />
           {!isCollapsed && <span>Home</span>}
         </NavLink>
         {/* Activities Menu */}
@@ -110,34 +127,34 @@ export default function AdminLayout() {
               }
             }}
             title={isCollapsed ? "Activities" : undefined}
-            className={`flex items-center transition-all text-base cursor-pointer w-full group ${
-              isCollapsed ? 'justify-center mx-auto w-10 h-10 rounded-md' : 'justify-between px-3 py-2.5 rounded-lg'
+            className={`flex items-center transition-all text-sm cursor-pointer w-full group ${
+              isCollapsed ? 'justify-center mx-auto w-9 h-9 rounded-md' : 'justify-between px-3 py-2 rounded-lg'
             } ${
               expandedMenus.activities
                 ? 'text-white bg-white/10 font-bold'
-                : 'text-slate-200 hover:bg-white/10 hover:text-white font-semibold'
+                : 'text-slate-200 hover:bg-white/10 hover:text-white font-medium'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <Map className="w-5 h-5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+            <div className="flex items-center gap-2.5">
+              <Map className="w-4.5 h-4.5 shrink-0 text-current group-hover:scale-105 transition-transform" />
               {!isCollapsed && <span>Activities</span>}
             </div>
-            {!isCollapsed && (expandedMenus.activities ? <ChevronDown className="w-5 h-5 text-slate-300 group-hover:text-white" /> : <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-white" />)}
+            {!isCollapsed && (expandedMenus.activities ? <ChevronDown className="w-4 h-4 text-slate-300 group-hover:text-white" /> : <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-white" />)}
           </button>
           {expandedMenus.activities && !isCollapsed && (
-            <div className="pl-11 pr-3 py-1 space-y-1">
+            <div className="pl-9 pr-2 py-0.5 space-y-0.5">
               <NavLink
                 to="/inventory"
                 onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-lg text-[15px] transition-colors group ${
+                  `flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13.5px] transition-colors group ${
                     isActive 
                       ? 'bg-white/10 text-white font-bold' 
-                      : 'text-slate-300 hover:text-white font-semibold hover:bg-white/5'
+                      : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
                   }`
                 }
               >
-                <Box className="w-5 h-5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+                <Box className="w-4 h-4 shrink-0 text-current group-hover:scale-105 transition-transform" />
                 Products
               </NavLink>
             </div>
@@ -155,34 +172,34 @@ export default function AdminLayout() {
               }
             }}
             title={isCollapsed ? "Bookings" : undefined}
-            className={`flex items-center transition-all text-base cursor-pointer w-full group ${
-              isCollapsed ? 'justify-center mx-auto w-10 h-10 rounded-md' : 'justify-between px-3 py-2.5 rounded-lg'
+            className={`flex items-center transition-all text-sm cursor-pointer w-full group ${
+              isCollapsed ? 'justify-center mx-auto w-9 h-9 rounded-md' : 'justify-between px-3 py-2 rounded-lg'
             } ${
               expandedMenus.bookings
                 ? 'text-white bg-white/10 font-bold'
-                : 'text-slate-200 hover:bg-white/10 hover:text-white font-semibold'
+                : 'text-slate-200 hover:bg-white/10 hover:text-white font-medium'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+            <div className="flex items-center gap-2.5">
+              <Calendar className="w-4.5 h-4.5 shrink-0 text-current group-hover:scale-105 transition-transform" />
               {!isCollapsed && <span>Bookings</span>}
             </div>
-            {!isCollapsed && (expandedMenus.bookings ? <ChevronDown className="w-5 h-5 text-slate-300 group-hover:text-white" /> : <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-white" />)}
+            {!isCollapsed && (expandedMenus.bookings ? <ChevronDown className="w-4 h-4 text-slate-300 group-hover:text-white" /> : <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-white" />)}
           </button>
           {expandedMenus.bookings && !isCollapsed && (
-            <div className="pl-11 pr-3 py-1 space-y-1">
+            <div className="pl-9 pr-2 py-0.5 space-y-0.5">
               <NavLink
                 to="/bookings"
                 onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-lg text-[15px] transition-colors group ${
+                  `flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13.5px] transition-colors group ${
                     isActive 
                       ? 'bg-white/10 text-white font-bold' 
-                      : 'text-slate-300 hover:text-white font-semibold hover:bg-white/5'
+                      : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
                   }`
                 }
               >
-                <FileText className="w-5 h-5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+                <FileText className="w-4 h-4 shrink-0 text-current group-hover:scale-105 transition-transform" />
                 Orders
               </NavLink>
             </div>
@@ -193,16 +210,16 @@ export default function AdminLayout() {
           onClick={() => setMobileMenuOpen(false)}
           title={isCollapsed ? "Agents" : undefined}
           className={({ isActive }) =>
-            `flex items-center transition-all text-base group ${
-              isCollapsed ? 'justify-center mx-auto w-10 h-10 rounded-md' : 'w-full gap-3 px-3 py-2.5 rounded-lg'
+            `flex items-center transition-all text-sm group ${
+              isCollapsed ? 'justify-center mx-auto w-9 h-9 rounded-md' : 'w-full gap-2.5 px-3 py-2 rounded-lg'
             } ${
               isActive 
                 ? 'bg-white/15 text-white font-bold' 
-                : 'text-slate-200 hover:bg-white/10 hover:text-white font-semibold'
+                : 'text-slate-200 hover:bg-white/10 hover:text-white font-medium'
             }`
           }
         >
-          <Users className="w-5 h-5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+          <Users className="w-4.5 h-4.5 shrink-0 text-current group-hover:scale-105 transition-transform" />
           {!isCollapsed && <span>Agents</span>}
         </NavLink>
         {/* Website Menu */}
@@ -217,64 +234,64 @@ export default function AdminLayout() {
               }
             }}
             title={isCollapsed ? "Website" : undefined}
-            className={`flex items-center transition-all text-base cursor-pointer w-full group ${
-              isCollapsed ? 'justify-center mx-auto w-10 h-10 rounded-md' : 'justify-between px-3 py-2.5 rounded-lg'
+            className={`flex items-center transition-all text-sm cursor-pointer w-full group ${
+              isCollapsed ? 'justify-center mx-auto w-9 h-9 rounded-md' : 'justify-between px-3 py-2 rounded-lg'
             } ${
               expandedMenus.website
                 ? 'text-white bg-white/10 font-bold'
-                : 'text-slate-200 hover:bg-white/10 hover:text-white font-semibold'
+                : 'text-slate-200 hover:bg-white/10 hover:text-white font-medium'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <Globe className="w-5 h-5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+            <div className="flex items-center gap-2.5">
+              <Globe className="w-4.5 h-4.5 shrink-0 text-current group-hover:scale-105 transition-transform" />
               {!isCollapsed && <span>Website</span>}
             </div>
-            {!isCollapsed && (expandedMenus.website ? <ChevronDown className="w-5 h-5 text-slate-300 group-hover:text-white" /> : <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-white" />)}
+            {!isCollapsed && (expandedMenus.website ? <ChevronDown className="w-4 h-4 text-slate-300 group-hover:text-white" /> : <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-white" />)}
           </button>
           {expandedMenus.website && !isCollapsed && (
-            <div className="pl-11 pr-3 py-1 space-y-1">
+            <div className="pl-9 pr-2 py-0.5 space-y-0.5">
               <NavLink
                 to="/blog"
                 onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-lg text-[15px] transition-colors group ${
+                  `flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13.5px] transition-colors group ${
                     isActive 
                       ? 'bg-white/10 text-white font-bold' 
-                      : 'text-slate-300 hover:text-white font-semibold hover:bg-white/5'
+                      : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
                   }`
                 }
               >
-                <Text className="w-5 h-5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+                <Text className="w-4 h-4 shrink-0 text-current group-hover:scale-105 transition-transform" />
                 Blog
               </NavLink>
             </div>
           )}
         </div>
       </nav>
-      <div className="p-4">
+      <div className="p-2.5">
         <button 
           onClick={handleLogout}
           title={isCollapsed ? "Logout" : undefined}
-          className={`flex items-center transition-all text-base cursor-pointer group ${
-            isCollapsed ? 'justify-center mx-auto w-10 h-10 rounded-md' : 'w-full gap-3 px-3 py-2.5 rounded-lg'
-          } text-slate-300 hover:bg-white/10 hover:text-white font-semibold`}
+          className={`flex items-center transition-all text-sm cursor-pointer group ${
+            isCollapsed ? 'justify-center mx-auto w-9 h-9 rounded-md' : 'w-full gap-2.5 px-3 py-2 rounded-lg'
+          } text-slate-300 hover:bg-white/10 hover:text-white font-medium`}
         >
-          <LogOut className="w-5 h-5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+          <LogOut className="w-4.5 h-4.5 shrink-0 text-current group-hover:scale-105 transition-transform" />
           {!isCollapsed && <span>Logout</span>}
         </button>
       </div>
-      <div className="p-4 border-t border-zinc-800/60">
-        <div className="flex items-center gap-3">
+      <div className="p-3 border-t border-zinc-800/60">
+        <div className="flex items-center gap-2.5">
           <div 
-            className="w-8 h-8 rounded-full bg-[#5fa6d9]/20 text-[#5fa6d9] flex items-center justify-center font-bold text-xs shrink-0"
+            className="w-7 h-7 rounded-full bg-[#5fa6d9]/20 text-[#5fa6d9] flex items-center justify-center font-bold text-xs shrink-0"
             title={isCollapsed ? `${user?.name || 'Jane Doe'} (Super Admin)` : undefined}
           >
             {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'JD'}
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white truncate">{user?.name || 'Jane Doe'}</p>
-              <p className="text-xs text-slate-400 truncate">Super Admin</p>
+              <p className="text-xs font-bold text-white truncate">{user?.name || 'Jane Doe'}</p>
+              <p className="text-[10.5px] text-slate-400 truncate">Super Admin</p>
             </div>
           )}
         </div>
@@ -285,48 +302,48 @@ export default function AdminLayout() {
   return (
     <div className="flex flex-col h-screen bg-[#F8F9FC] dark:bg-slate-950 font-sans">
       {/* Top Header */}
-      <header className="h-16 bg-[#5fa6d9] dark:bg-[#5fa6d9] border-b border-[#5fa6d9]/80 flex items-center justify-between px-4 lg:px-8 z-20 shrink-0 relative">
+      <header className="h-12 bg-[#5fa6d9] dark:bg-[#5fa6d9] border-b border-[#5fa6d9]/80 flex items-center justify-between px-4 lg:px-6 z-20 shrink-0 relative overflow-hidden">
         <div className="flex items-center gap-2">
           {/* Logo */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="text-white shrink-0">
-              <PlaneTakeoff className="w-7 h-7" strokeWidth={2.5} />
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="text-white shrink-0 flex items-center gap-1.5">
+              <PlaneTakeoff className="w-5.5 h-5.5" strokeWidth={2.5} />
             </div>
-            <span className="text-2xl font-bold text-white tracking-tight">TIQSEY</span>
+            <span className="text-xl font-extrabold text-white tracking-tight">TIQSEY</span>
           </div>
           {/* Desktop Sidebar Toggle */}
           <button 
             onClick={() => setSidebarCollapsed(!isCollapsed)}
-            className="p-2 text-blue-50 hover:text-white hidden md:flex items-center justify-center hover:bg-white/10 rounded-lg transition-all shrink-0"
+            className="p-1.5 text-blue-50 hover:text-white hidden md:flex items-center justify-center hover:bg-white/10 rounded-md transition-all shrink-0 ml-1"
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
-            <Menu className="w-6 h-6" strokeWidth={2.5} />
+            <Menu className="w-5 h-5" strokeWidth={2.5} />
           </button>
           {/* Mobile Sidebar Toggle */}
           <button 
             onClick={() => setMobileMenuOpen(true)}
-            className="p-2 text-blue-50 md:hidden hover:bg-white/10 rounded-lg shrink-0"
+            className="p-1.5 text-blue-50 md:hidden hover:bg-white/10 rounded-md shrink-0 ml-1"
           >
-            <Menu className="w-6 h-6" strokeWidth={2.5} />
+            <Menu className="w-5 h-5" strokeWidth={2.5} />
           </button>
         </div>
         {/* Search Bar */}
-        <div className="absolute left-1/2 -translate-x-1/2 max-w-md w-full hidden md:block">
+        <div className="absolute left-1/2 -translate-x-1/2 max-w-sm w-full hidden md:block">
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-slate-400" />
+            <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+              <Search className="h-3.5 w-3.5 text-slate-400" />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-slate-200/60 rounded-lg leading-5 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors shadow-sm"
+              className="block w-full pl-8 pr-3 py-1 border border-slate-200/60 rounded-md leading-5 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs transition-colors shadow-sm"
               placeholder="Search PNR, order ID, name, email or phone..."
             />
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button className="relative p-2 text-blue-50 hover:text-white transition-colors">
-            <span className="absolute top-2 right-2.5 block h-2 w-2 rounded-full bg-white ring-2 ring-[#5fa6d9]" />
-            <Bell className="w-5 h-5" />
+        <div className="flex items-center gap-3">
+          <button className="relative p-1.5 text-blue-50 hover:text-white transition-colors">
+            <span className="absolute top-1.5 right-1.5 block h-1.5 w-1.5 rounded-full bg-white ring-2 ring-[#5fa6d9]" />
+            <Bell className="w-4.5 h-4.5" />
           </button>
         </div>
       </header>
@@ -354,19 +371,19 @@ export default function AdminLayout() {
           </div>
         )}
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <div className="relative flex-1 flex flex-col h-full overflow-hidden">
           {/* Breadcrumbs Bar */}
-          <div className="h-12 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center px-4 lg:px-8 shrink-0">
-            <nav className="flex text-sm font-medium text-slate-500" aria-label="Breadcrumb">
-              <ol className="inline-flex items-center space-x-1 md:space-x-2">
+          <div className="h-9 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center px-4 lg:px-6 shrink-0">
+            <nav className="flex text-xs font-medium text-slate-500" aria-label="Breadcrumb">
+              <ol className="inline-flex items-center space-x-1 md:space-x-1.5">
                 {getBreadcrumbs().map((crumb, index) => (
                   <li key={crumb.name} className="inline-flex items-center">
-                    {index > 0 && <ChevronRight className="w-4 h-4 mx-1 text-slate-400" />}
+                    {index > 0 && <ChevronRight className="w-3.5 h-3.5 mx-0.5 text-slate-400" />}
                     <NavLink 
                       to={crumb.path}
-                      className={`flex items-center gap-1.5 ${index === getBreadcrumbs().length - 1 ? 'text-slate-900 dark:text-white font-semibold pointer-events-none' : 'hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer'}`}
+                      className={`flex items-center gap-1 ${index === getBreadcrumbs().length - 1 ? 'text-slate-900 dark:text-white font-semibold pointer-events-none' : 'hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer'}`}
                     >
-                      {crumb.icon && <crumb.icon className="w-4 h-4" />}
+                      {crumb.icon && <crumb.icon className="w-3.5 h-3.5" />}
                       <span className="capitalize">{crumb.name}</span>
                     </NavLink>
                   </li>

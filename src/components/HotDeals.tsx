@@ -235,7 +235,7 @@ export default function HotDeals({
                     <div className="p-4 flex-1 flex flex-col justify-between">
                       <div>
                         {/* Location text label */}
-                        <span className="text-[9px] font-extrabold uppercase tracking-widest text-amber-500/80 block mb-0.5">
+                        <span className="text-[9px] font-extrabold uppercase tracking-widest text-amber-500/80 block mb-0.5 whitespace-nowrap">
                           {attr.city} • {attr.category}
                         </span>
 
@@ -267,14 +267,14 @@ export default function HotDeals({
                       <div className="flex items-center justify-between mt-auto pt-1">
                         <div className="flex flex-col">
                           <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest leading-none">
-                            Original {formatPrice(attr.price)}
+                            Original {formatPrice(attr.price, attr.currency)}
                           </span>
                           <div className="flex items-center gap-1 mt-0.5">
                             <span className="text-lg font-black text-amber-400 leading-none">
-                              {formatPrice(attr.discountPrice || attr.price)}
+                              {formatPrice(attr.discountPrice || attr.price, attr.currency)}
                             </span>
                             <span className="text-[9px] px-1 py-0.5 rounded bg-amber-500/10 text-amber-300 font-extrabold border border-amber-500/10">
-                              Save {formatPrice(savedAmount)}
+                              Save {formatPrice(savedAmount, attr.currency)}
                             </span>
                           </div>
                         </div>

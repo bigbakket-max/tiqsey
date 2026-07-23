@@ -147,7 +147,7 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
                       </h4>
                       <p className="text-xs font-extrabold text-[#e3000f] mt-1.5 flex items-center gap-1.5">
                         <span className="text-[10px] text-slate-400 font-normal">From</span>
-                        <span>{formatPrice(item.discountPrice || item.price)}</span>
+                        <span>{formatPrice(item.discountPrice || item.price, item.currency)}</span>
                       </p>
                     </div>
 

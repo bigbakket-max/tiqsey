@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
 import { POPULAR_ATTRACTIONS } from "../data/mockData";
+import { getDisplayProductId } from "../utils/productIdGenerator";
 import AttractionCard from "./AttractionCard";
 import AttractionCardSkeleton from "./AttractionCardSkeleton";
 import { motion, AnimatePresence } from "motion/react";
@@ -90,7 +91,9 @@ export default function AttractionsAndMuseumsPage({
           a.name.toLowerCase().includes(q) ||
           (a.description || "").toLowerCase().includes(q) ||
           a.city.toLowerCase().includes(q) ||
-          a.category.toLowerCase().includes(q),
+          a.category.toLowerCase().includes(q) ||
+          getDisplayProductId(a).toLowerCase().includes(q) ||
+          a.id.toLowerCase().includes(q),
       );
     }
 

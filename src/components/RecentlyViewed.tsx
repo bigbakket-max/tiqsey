@@ -129,7 +129,7 @@ export default function RecentlyViewed({ items, onSelect, onClear }: RecentlyVie
                 <div className="p-3.5 flex flex-col flex-grow justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest truncate max-w-[100px]">
+                      <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap truncate max-w-[100px]">
                         {item.category || 'Attraction'}
                       </span>
                       <div className="flex items-center gap-0.5 px-2 py-0.5 bg-[#FFF9EB] dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 rounded-full h-5">
@@ -156,7 +156,7 @@ export default function RecentlyViewed({ items, onSelect, onClear }: RecentlyVie
                         From
                       </span>
                       <span className="text-[11px] md:text-xs font-black text-slate-950 dark:text-slate-200 leading-none">
-                        {formatPrice(item.price)}
+                        {formatPrice(item.price, item.currency)}
                       </span>
                     </div>
                   </div>

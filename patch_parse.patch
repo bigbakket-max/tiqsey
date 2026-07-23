@@ -1,0 +1,30 @@
+--- src/admin/pages/Inventory.tsx
++++ src/admin/pages/Inventory.tsx
+@@ -252,14 +252,22 @@
+   if (str.includes("\n")) {
+     const lines = str.split("\n");
+     const days: string[] = [];
++    const months: string[] = [];
+     const dayWise: Record<string, string> = {};
++    const monthWise: Record<string, string> = {};
+     let firstTime = "";
+     lines.forEach(line => {
+       if (line.includes(":")) {
+          const p = line.split(":");
+          const d = p[0].trim();
+-         days.push(d);
+-         dayWise[d] = p.slice(1).join(":").trim();
++         const val = p.slice(1).join(":").trim();
++         if (MONTHS_OF_YEAR.includes(d) || MONTHS_OF_YEAR.some(m => m.startsWith(d))) {
++            months.push(d);
++            monthWise[d] = val;
++         } else {
++            days.push(d);
++            dayWise[d] = val;
++         }
+          if (!firstTime) firstTime = dayWise[d];
+       }
+     });
+-    return { days, time: firstTime || "09:00 - 18:00", dayWise };
++    return { days, months, time: firstTime || "09:00 - 18:00", dayWise, monthWise };
+   }

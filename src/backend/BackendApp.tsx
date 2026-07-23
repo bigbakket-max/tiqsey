@@ -146,10 +146,15 @@ function RequireBackendAuth({ children, allowedRoles }: { children: React.ReactN
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-[#5fa6d9] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm text-slate-500 font-semibold">Verifying secure staff session...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FC] dark:bg-slate-950 p-4 select-none">
+        <div className="relative bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xl rounded-2xl p-6 flex flex-col items-center justify-center gap-3.5 min-w-[150px]">
+          <div className="grid grid-cols-2 gap-2.5 p-1 animate-spin" style={{ animationDuration: '3.2s' }}>
+            <div className="w-3.5 h-3.5 rounded-full bg-[#5fa6d9] shadow-sm shadow-[#5fa6d9]/60 animate-pulse" />
+            <div className="w-3.5 h-3.5 rounded-full bg-[#5fa6d9] shadow-sm shadow-[#5fa6d9]/60 animate-pulse [animation-delay:200ms]" />
+            <div className="w-3.5 h-3.5 rounded-full bg-[#5fa6d9] shadow-sm shadow-[#5fa6d9]/60 animate-pulse [animation-delay:600ms]" />
+            <div className="w-3.5 h-3.5 rounded-full bg-[#5fa6d9] shadow-sm shadow-[#5fa6d9]/60 animate-pulse [animation-delay:400ms]" />
+          </div>
+          <p className="text-[11px] font-bold tracking-wider text-slate-700 dark:text-slate-300 uppercase">Verifying session...</p>
         </div>
       </div>
     );

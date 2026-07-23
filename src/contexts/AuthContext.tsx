@@ -22,7 +22,9 @@ interface AuthContextType {
     guestInfo?: { name: string; email: string; passengers?: any[] },
     childCount?: number,
     childPrice?: number,
-    passengers?: any[]
+    passengers?: any[],
+    totalPriceOverride?: number,
+    timeslot?: string
   ) => Promise<Booking>;
   rateBooking: (bookingId: string, rating: number) => Promise<void>;
   submitReview: (
@@ -452,7 +454,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     guestInfo?: { name: string; email: string; passengers?: any[] },
     childCount?: number,
     childPrice?: number,
-    passengers?: any[]
+    passengers?: any[],
+    totalPriceOverride?: number,
+    timeslot?: string
   ): Promise<Booking> => {
     let activeUser = user;
     if (!activeUser && guestInfo) {
@@ -511,10 +515,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       city,
       bookingDate: date,
       ticketsCount: count + (childCount || 0),
-      totalPrice: (count * pricePerTicket) + ((childCount || 0) * (childPrice || 0)),
+      totalPrice: totalPriceOverride !== undefined ? totalPriceOverride : (count * pricePerTicket) + ((childCount || 0) * (childPrice || 0)),
       bookingRef: pnr_number, // PNR is the bookingRef
       order_number, // OD...
       pnr_number,   // BK...
+      timeslot,     // Set the selected timeslot
       status: 'confirmed',
       childCount: childCount || 0,
       guestInfo,

@@ -88,7 +88,7 @@ interface SettingsContextType {
   theme: Theme;
   setCurrency: (curr: Currency) => void;
   setTheme: (theme: Theme) => void;
-  formatPrice: (priceInEur: number) => string;
+  formatPrice: (price: number, baseCurrencyCode?: string) => string;
   t: (key: string) => string;
 }
 
@@ -452,9 +452,21 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('tiqsey_theme', t);
   };
 
-  const formatPrice = (priceInEur: number) => {
+  const formatPrice = (price: number, baseCurrencyCode: string = 'EUR') => {
+    const baseCurr = CURRENCIES.find(c => c.code === baseCurrencyCode) || CURRENCIES.find(c => c.code === 'EUR') || { rate: 1 };
+    const priceInEur = price / baseCurr.rate;
     const converted = priceInEur * currency.rate;
-    return `${converted.toFixed(2)} ${currency.code}`;
+    
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency.code,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(converted);
+    } catch(e) {
+      return `${currency.symbol}${converted.toFixed(2)}`;
+    }
   };
 
   const t = (key: string) => {

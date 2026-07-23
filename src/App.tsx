@@ -105,9 +105,9 @@ export default function App() {
       let attrId = params.get("attraction");
 
       if (path.startsWith("/activities/")) {
-        attrId = path.split("/activities/")[1];
+        attrId = path.split("/activities/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim();
       } else if (path.startsWith("/destinations/")) {
-        const destId = path.split("/destinations/")[1];
+        const destId = path.split("/destinations/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim();
         if (destId) {
           const formattedDest = destId
             .split("-")
