@@ -87,7 +87,10 @@ export type Currency = {
 export type Language = {
   code: string;
   name: string;
+  nativeName: string;
   flag: string;
+  countryCode: string;
+  dir?: 'ltr' | 'rtl';
 };
 
 export type Theme = 'light' | 'dark' | 'system';
@@ -122,5 +125,8 @@ export interface Booking {
   guestInfo?: { name: string; email: string; passengers?: any[] };
   passengers?: any[];
   createdAt?: string;
+  paymentCurrency?: string;
+  paymentPrice?: number;
+  paymentSymbol?: string;
 }
 

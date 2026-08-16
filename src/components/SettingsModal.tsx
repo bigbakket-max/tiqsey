@@ -7,6 +7,7 @@ import { getCurrencyFlag } from '../utils/currencyFlags';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultTab?: 'language' | 'currency';
 }
 
 const getCurrencyLabel = (curr: typeof CURRENCIES[0], isSelected: boolean) => {
@@ -95,19 +96,21 @@ const getCurrencyLabel = (curr: typeof CURRENCIES[0], isSelected: boolean) => {
   );
 };
 
-export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const { currency, setCurrency, detectedLocalCurrency } = useSettings();
+export default function SettingsModal({ isOpen, onClose, defaultTab = 'language' }: SettingsModalProps) {
+  const { currency, setCurrency, detectedLocalCurrency, language, languages, setLanguage, t } = useSettings();
+  const [activeTab, setActiveTab] = useState<'language' | 'currency'>(defaultTab);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Autofocus search on open or tab change
   useEffect(() => {
     if (isOpen) {
+      setActiveTab(defaultTab);
+      setSearchQuery('');
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultTab]);
 
   // Keyboard controls: Close on Escape
   useEffect(() => {
@@ -132,7 +135,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     onClose();
   };
 
-  // Filters
+  const handleSelectLanguage = (lang: typeof languages[0]) => {
+    setLanguage(lang);
+    onClose();
+  };
+
+  // Filters for Currencies
   const topCurrencyCodes = Array.from(
     new Set([
       detectedLocalCurrency.code,
@@ -155,6 +163,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const filteredAllCurrencies = sortedAllCurrencies.filter((curr) =>
     curr.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
     curr.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Filters for Languages
+  const filteredLanguages = languages.filter((lang) =>
+    lang.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    lang.nativeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    lang.code.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const isSearching = searchQuery.trim() !== '';
@@ -182,7 +197,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="w-full max-w-[800px] h-[640px] max-h-[90vh] bg-white dark:bg-slate-900 rounded-xl shadow-2xl overflow-hidden flex flex-col font-sans border border-slate-100 dark:border-slate-800 transition-colors duration-300"
+              className="w-full max-w-[800px] h-[640px] max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col font-sans border border-slate-100 dark:border-slate-800 transition-colors duration-300"
               id="settings-modal-container"
               role="dialog"
               aria-modal="true"
@@ -216,16 +231,46 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 {/* Tab buttons Row */}
                 <div className="flex items-center justify-between px-6 md:px-8 pt-6 relative">
                   <div className="flex gap-6 md:gap-8 relative" id="modal-title">
+                    {/* Language Tab */}
                     <button
-                      className="pb-4 text-base md:text-[17px] font-extrabold tracking-tight relative cursor-default outline-none select-none text-[#1A2B48] dark:text-white"
+                      onClick={() => { setActiveTab('language'); setSearchQuery(''); }}
+                      className={`pb-4 text-base md:text-[17px] font-bold tracking-tight relative cursor-pointer outline-none select-none transition-colors duration-200 flex items-center gap-2 ${
+                        activeTab === 'language'
+                          ? 'text-[#1A2B48] dark:text-white font-extrabold'
+                          : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+                      }`}
+                      id="tab-language"
+                    >
+                      <Globe className="w-5 h-5" />
+                      {t('language', 'Language')}
+                      {activeTab === 'language' && (
+                        <motion.div
+                          layoutId="activeTabUnderline"
+                          className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#1A2B48] dark:bg-white rounded-full z-10"
+                          transition={{ type: 'spring', damping: 30, stiffness: 380 }}
+                        />
+                      )}
+                    </button>
+
+                    {/* Currency Tab */}
+                    <button
+                      onClick={() => { setActiveTab('currency'); setSearchQuery(''); }}
+                      className={`pb-4 text-base md:text-[17px] font-bold tracking-tight relative cursor-pointer outline-none select-none transition-colors duration-200 flex items-center gap-2 ${
+                        activeTab === 'currency'
+                          ? 'text-[#1A2B48] dark:text-white font-extrabold'
+                          : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+                      }`}
                       id="tab-currency"
                     >
-                      Currency
-                      <motion.div
-                        layoutId="activeTabUnderline"
-                        className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#1A2B48] dark:bg-white rounded-full z-10"
-                        transition={{ type: 'spring', damping: 30, stiffness: 380 }}
-                      />
+                      <Coins className="w-5 h-5" />
+                      {t('currency', 'Currency')}
+                      {activeTab === 'currency' && (
+                        <motion.div
+                          layoutId="activeTabUnderline"
+                          className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#1A2B48] dark:bg-white rounded-full z-10"
+                          transition={{ type: 'spring', damping: 30, stiffness: 380 }}
+                        />
+                      )}
                     </button>
                   </div>
 
@@ -252,7 +297,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder='Search currencies...'
+                      placeholder={activeTab === 'language' ? 'Search languages...' : 'Search currencies...'}
                       className="w-full pl-11 pr-10 py-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 text-[13.5px] font-medium text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 hover:bg-slate-50 dark:hover:bg-slate-950/70 focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10 dark:focus:ring-blue-500/5 transition-all duration-200"
                     />
                     {isSearching && (
@@ -274,11 +319,86 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 id="settings-modal-content-container"
                 style={{ scrollbarWidth: 'thin' }}
               >
-                {/* CURRENCY CONTAINER */}
-                {isSearching ? (
+                {activeTab === 'language' ? (
+                  /* LANGUAGE TAB CONTENT */
+                  filteredLanguages.length > 0 ? (
+                    <div className="flex flex-col gap-3">
+                      <div className="text-[13px] font-bold text-slate-400 dark:text-slate-500 select-none tracking-wide uppercase">
+                        {t('selectLanguage', 'Select Language')}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                        {filteredLanguages.map((lang) => {
+                          const isSelected = language.code === lang.code;
+                          return (
+                            <button
+                              key={`lang-${lang.code}`}
+                              onClick={() => handleSelectLanguage(lang)}
+                              className={`p-3.5 sm:p-4 rounded-2xl text-left transition-all duration-200 cursor-pointer outline-none flex items-center justify-between group select-none min-h-[64px] ${
+                                isSelected
+                                  ? 'bg-[#f0f6ff] dark:bg-blue-950/40 border-2 border-[#2563eb] dark:border-blue-500 shadow-xs'
+                                  : 'bg-white dark:bg-slate-850/50 border border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/80 dark:hover:bg-slate-800/80'
+                              }`}
+                              id={`lang-item-${lang.code}`}
+                            >
+                              <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                                <div className="w-8 h-5.5 rounded-xs overflow-hidden border border-slate-200/80 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-800 shadow-2xs shrink-0 flex items-center justify-center relative">
+                                  <span className="text-xs leading-none select-none absolute inset-0 flex items-center justify-center">
+                                    {lang.flag}
+                                  </span>
+                                  <img
+                                    src={`https://flagcdn.com/w40/${lang.countryCode}.png`}
+                                    alt={lang.name}
+                                    className="absolute inset-0 w-full h-full object-cover"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                                <div className="flex flex-col min-w-0 truncate">
+                                  <span className={`text-[14.5px] truncate font-bold ${isSelected ? 'text-[#2563eb] dark:text-blue-400' : 'text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
+                                    {lang.nativeName}
+                                  </span>
+                                  {lang.nativeName !== lang.name && (
+                                    <span className="text-[12.5px] text-slate-500 dark:text-slate-400 truncate font-normal mt-0.5">
+                                      {lang.name}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {isSelected && (
+                                <div className="w-2.5 h-2.5 rounded-full bg-[#2563eb] dark:bg-blue-400 shrink-0 ml-2" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-16 text-center flex flex-col items-center justify-center">
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-full mb-3 text-slate-400">
+                        <Globe className="w-8 h-8" />
+                      </div>
+                      <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                        No languages found
+                      </h3>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-[280px]">
+                        We couldn't find any language matching "{searchQuery}"
+                      </p>
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="mt-4 px-4 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-full transition-all duration-200 cursor-pointer"
+                      >
+                        Reset search
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  /* CURRENCY TAB CONTENT */
+                  isSearching ? (
                     filteredAllCurrencies.length > 0 ? (
                       <div className="flex flex-col gap-3">
-                        <div className="text-[13px] font-bold text-slate-400 dark:text-slate-550 select-none tracking-wide uppercase">
+                        <div className="text-[13px] font-bold text-slate-400 dark:text-slate-500 select-none tracking-wide uppercase">
                           Search Results
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
@@ -304,7 +424,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     ) : (
                       /* Currencies Empty Result */
                       <div className="py-16 text-center flex flex-col items-center justify-center">
-                        <div className="p-4 bg-slate-50 dark:bg-slate-850 rounded-full mb-3 text-slate-400">
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-full mb-3 text-slate-400">
                           <Coins className="w-8 h-8" />
                         </div>
                         <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
@@ -371,7 +491,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                   isSelected
                                     ? 'bg-slate-100 dark:bg-slate-800 font-bold'
                                     : 'hover:bg-slate-50 dark:hover:bg-slate-800/40 bg-transparent'
-                                  }`}
+                                }`}
                                 id={`curr-all-${curr.code}`}
                               >
                                 {getCurrencyLabel(curr, isSelected)}
@@ -382,13 +502,15 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
                     </div>
                   )
-                }
+                )}
               </div>
 
               {/* Disclaimer footer */}
-              <div className="px-6 md:px-8 py-2 bg-slate-50/50 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-800 shrink-0 select-none transition-colors duration-300">
+              <div className="px-6 md:px-8 py-2.5 bg-slate-50/50 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-800 shrink-0 select-none transition-colors duration-300">
                 <p className="text-slate-400 dark:text-slate-500 text-[10px] font-medium tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
-                  Where applicable, prices will be converted and shown in the currency you select. The currency you pay in may differ based on your reservation.
+                  {activeTab === 'language'
+                    ? 'Changing the language will translate supported UI elements and content across Tiqsey.'
+                    : 'Where applicable, prices will be converted and shown in the currency you select. The currency you pay in may differ based on your reservation.'}
                 </p>
               </div>
             </motion.div>

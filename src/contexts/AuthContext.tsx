@@ -24,7 +24,10 @@ interface AuthContextType {
     childPrice?: number,
     passengers?: any[],
     totalPriceOverride?: number,
-    timeslot?: string
+    timeslot?: string,
+    paymentCurrency?: string,
+    paymentPrice?: number,
+    paymentSymbol?: string
   ) => Promise<Booking>;
   rateBooking: (bookingId: string, rating: number) => Promise<void>;
   submitReview: (
@@ -456,7 +459,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     childPrice?: number,
     passengers?: any[],
     totalPriceOverride?: number,
-    timeslot?: string
+    timeslot?: string,
+    paymentCurrency?: string,
+    paymentPrice?: number,
+    paymentSymbol?: string
   ): Promise<Booking> => {
     let activeUser = user;
     if (!activeUser && guestInfo) {
@@ -524,7 +530,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       childCount: childCount || 0,
       guestInfo,
       passengers,
-      createdAt: createdAtStr
+      createdAt: createdAtStr,
+      paymentCurrency,
+      paymentPrice,
+      paymentSymbol
     };
     
     const updatedBookings = [newBooking, ...bookings];

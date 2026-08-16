@@ -3149,7 +3149,7 @@ export default function Inventory() {
                     <>
                       <span>Edit Product</span>
                       <span className="text-slate-300 dark:text-slate-700 font-normal">—</span>
-                      <span className="text-[#5fa6d9] dark:text-[#7bb5e0]">{name || editingAttraction.name}</span>
+                      <span className="text-slate-900 dark:text-white">{name || editingAttraction.name}</span>
                     </>
                   ) : (
                     "Add New Product"

@@ -73,6 +73,9 @@ interface AdminBooking {
   source?: string;
   type?: string;
   review?: string;
+  paymentCurrency?: string;
+  paymentPrice?: number;
+  paymentSymbol?: string;
 }
 
 export default function Bookings() {
@@ -236,7 +239,10 @@ export default function Bookings() {
           status: b.status || 'confirmed',
           city: b.city || 'Paris',
           attractionImageUrl: b.attractionImageUrl || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=600",
-          passengers: b.passengers || []
+          passengers: b.passengers || [],
+          paymentCurrency: b.paymentCurrency,
+          paymentPrice: b.paymentPrice,
+          paymentSymbol: b.paymentSymbol
         }));
         console.log(`[Admin] Successfully loaded ${backendBookings.length} bookings from backend database.`);
         setFetchError(null);
@@ -458,7 +464,10 @@ export default function Bookings() {
                     attractionImageUrl: b.attractionImageUrl || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=600",
                     passengers: b.passengers || b.guestInfo?.passengers || [
                       { name: b.guestInfo?.name || userName, type: 'Adult' }
-                    ]
+                    ],
+                    paymentCurrency: b.paymentCurrency,
+                    paymentPrice: b.paymentPrice,
+                    paymentSymbol: b.paymentSymbol
                   });
                 }
               });
@@ -833,7 +842,14 @@ export default function Bookings() {
         timeSlot: '11:15 AM - Standard Admission',
         passengerName: booking.customerName,
         ticketsCount: booking.travelers,
-        totalPrice: booking.totalPrice,
+        totalPrice: booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+          new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: booking.paymentCurrency,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          }).format(booking.paymentPrice)
+        ) : booking.totalPrice,
         additionalPassengers: booking.passengers?.map(p => {
           const names = p.name.split(' ');
           return {
@@ -1250,7 +1266,16 @@ export default function Bookings() {
                           Total Amount
                         </div>
                         <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1">
-                          USD {booking.totalPrice}
+                          {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+                            new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: booking.paymentCurrency,
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            }).format(booking.paymentPrice)
+                          ) : (
+                            `USD ${booking.totalPrice}`
+                          )}
                         </p>
                       </div>
 
@@ -1261,7 +1286,16 @@ export default function Bookings() {
                           Collected/Authorized
                         </div>
                         <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1">
-                          USD {booking.collectedAmount}
+                          {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+                            new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: booking.paymentCurrency,
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            }).format(booking.paymentPrice)
+                          ) : (
+                            `USD ${booking.collectedAmount}`
+                          )}
                         </p>
                       </div>
                     </div>

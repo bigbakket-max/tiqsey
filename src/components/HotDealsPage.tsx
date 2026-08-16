@@ -11,6 +11,7 @@ import {
   Percent,
   X,
   Globe,
+  ChevronDown,
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
 import { useWishlist } from "../contexts/WishlistContext";
@@ -186,16 +187,26 @@ export default function HotDealsPage({
         </div>
 
         {/* Hero Section */}
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-amber-50 via-orange-50/40 to-yellow-50 dark:from-zinc-900/80 dark:via-amber-950/15 dark:to-zinc-900 border border-amber-100/70 dark:border-amber-500/15 p-8 sm:p-12 md:p-16 mb-10 shadow-[0_10px_30px_rgba(245,158,11,0.03)] dark:shadow-[0_20px_50px_rgba(245,158,11,0.08)]">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1600')] bg-cover bg-center mix-blend-overlay opacity-10 dark:opacity-10" />
+        <div className="relative rounded-3xl overflow-hidden bg-[#fff5ea] dark:from-zinc-900/80 dark:via-amber-950/15 dark:to-zinc-900 border border-amber-100/70 dark:border-amber-500/15 p-8 sm:p-12 md:p-16 mb-10 shadow-[0_10px_30px_rgba(245,158,11,0.03)] dark:shadow-[0_20px_50px_rgba(245,158,11,0.08)]">
+          <div className="absolute inset-0 bg-[url('https://chatgpt.com/backend-api/estuary/content?id=file_00000000617882118946b0516596950c&ts=496321&p=fs&cid=1&sig=23a9284c38a206461d638be53ae67b654e1c7ac817acf3ca0edea46e9fe67625&v=0')] bg-cover bg-right sm:bg-center opacity-100 dark:opacity-20" />
 
-          <div className="relative z-10 max-w-3xl">
+          <div className="relative z-10 max-w-5xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 dark:border-amber-500/30 rounded-full text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-wider mb-4">
               <Flame className="w-3.5 h-3.5 animate-bounce fill-amber-500 stroke-none" />
-              <span>Limited Stock remaining</span>
+              <span>{t('limitedStock', 'Limited Stock remaining')}</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-4 leading-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 dark:from-amber-200 dark:via-amber-300 dark:to-yellow-400">
-              Hot Deals & Special Offers
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-4 leading-tight text-slate-900 dark:text-zinc-50 flex items-center flex-nowrap whitespace-nowrap gap-2 sm:gap-3 overflow-visible pt-2">
+              <span className="text-[#FF5500] dark:text-[#FF6611] relative inline-block pr-6 mr-1 shrink-0">
+                {t('navHotDeals', 'Hot Deals')}
+                <svg className="absolute -top-4 -right-1 w-6 h-6 text-[#FF5500]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M5 15L2 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M12 13V2" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M19 15L22 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+              </span>
+              <span className="text-slate-900 dark:text-zinc-100 inline shrink-0">
+                & {t('specialOffers', 'Special Offers')}
+              </span>
             </h1>
             <p className="text-slate-600 dark:text-zinc-400 text-sm sm:text-base font-medium leading-relaxed mb-0">
               Instantly secure top attraction passes, historic tours, and
@@ -203,111 +214,129 @@ export default function HotDealsPage({
               automatically compiled, loaded in real-time, and refreshed as new
               promotional inventory is released.
             </p>
+            {/* Search Pill */}
+            <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-full p-1.5 shadow-lg border border-slate-200/10 flex flex-col sm:flex-row items-stretch sm:items-center mt-6 gap-2 sm:gap-0 focus-within:ring-4 focus-within:ring-amber-500/10 transition-all">
+              <div className="flex items-center flex-1 min-w-0 pl-4">
+                <Search className="w-5 h-5 text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search hot deals, cities or categories..."
+                  className="w-full pl-3 pr-4 py-2 bg-transparent text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none text-sm font-medium"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors mr-2 cursor-pointer select-none"
+                    title="Clear"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <button
+                className="bg-amber-600 hover:bg-amber-700 text-white px-7 py-3 rounded-full font-bold text-sm tracking-wide transition-all shadow-md active:scale-95 shrink-0"
+              >
+                Search
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Dynamic Interactive Filters Panel */}
-        <div className="bg-white dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-850 rounded-2xl p-5 mb-8 shadow-sm flex flex-col gap-5">
-          {/* Search Bar & Sort Dropdown */}
-          <div className="flex flex-col lg:flex-row gap-4 justify-between">
-            <div className="relative flex-1 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 dark:text-zinc-500 group-focus-within:text-amber-600 dark:group-focus-within:text-amber-400 transition-colors" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search hot deals by name, tour description, city, or category..."
-                className="w-full pl-11 pr-11 py-3 bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl font-medium border border-slate-200 dark:border-zinc-800 focus:border-amber-500/40 dark:focus:border-amber-500/40 focus:outline-none transition-all text-sm"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer select-none"
-                  title="Clear search query"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+        {/* Clean Modern Inline Filters Bar */}
+        <div className="flex flex-wrap items-center gap-3 mb-8 pb-1">
+          <button
+            onClick={handleResetFilters}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer select-none active:scale-95 shrink-0 shadow-xs"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-slate-400" />
+            <span>Filters</span>
+            {(selectedRegion !== "All" || selectedCity !== "All" || selectedCategory !== "All" || searchQuery) && (
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
+          </button>
 
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-widest shrink-0 select-none">
-                <SlidersHorizontal className="w-4 h-4 text-amber-500" />
-                <span>Sort Deals:</span>
-              </div>
+          {/* Region Filter */}
+          <div className="relative shrink-0">
+            <select
+              value={selectedRegion}
+              onChange={(e) => {
+                setSelectedRegion(e.target.value);
+                setSelectedCity("All");
+              }}
+              className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+            >
+              {regions.map((region) => (
+                <option key={region} value={region}>
+                  {region === "All" ? "Regions" : region}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* City Filter */}
+          <div className="relative shrink-0">
+            <select
+              value={selectedCity}
+              onChange={(e) => setSelectedCity(e.target.value)}
+              className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+            >
+              {cities.map((city) => (
+                <option key={city} value={city}>
+                  {city === "All" ? "Destinations" : city}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* Category Filter */}
+          <div className="relative shrink-0">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+            >
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category === "All" ? "Categories" : category}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* Active Reset helper badge */}
+          {(selectedRegion !== "All" || selectedCity !== "All" || selectedCategory !== "All" || searchQuery) && (
+            <button
+              onClick={handleResetFilters}
+              className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer select-none ml-2 shrink-0"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
+
+          {/* Sort By Aligned Right */}
+          <div className="flex items-center gap-2 sm:ml-auto ml-0 mt-2 sm:mt-0 w-full sm:w-auto shrink-0 justify-between sm:justify-start">
+            <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">
+              SORT BY:
+            </span>
+            <div className="relative">
               <select
                 value={sortBy}
                 onChange={(e: any) => setSortBy(e.target.value)}
-                className="px-4 py-3 bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-100 font-bold border border-slate-200 dark:border-zinc-800 rounded-xl focus:border-amber-500/40 dark:focus:border-amber-500/40 focus:outline-none transition-colors text-sm cursor-pointer"
+                className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs w-full sm:w-auto"
               >
+                <option value="discount-desc">Recommended</option>
                 <option value="discount-desc">Highest Discount First</option>
                 <option value="price-asc">Price: Low to High</option>
                 <option value="price-desc">Price: High to Low</option>
                 <option value="rating">Top Rated First</option>
               </select>
-            </div>
-          </div>
-
-          {/* Filters Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Region Filter */}
-            <div className="flex flex-col gap-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-zinc-500 mb-0.5 flex items-center gap-1.5 select-none">
-                <Globe className="w-3.5 h-3.5 text-amber-500" />
-                <span>Filter by Region:</span>
-              </span>
-              <select
-                value={selectedRegion}
-                onChange={(e) => {
-                  setSelectedRegion(e.target.value);
-                  setSelectedCity("All"); // Reset city when region changes
-                }}
-                className="px-4 py-3 bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-100 font-bold border border-slate-200 dark:border-zinc-800 rounded-xl focus:border-amber-500/40 dark:focus:border-amber-500/40 focus:outline-none transition-colors text-sm cursor-pointer w-full"
-              >
-                {regions.map((region) => (
-                  <option key={region} value={region}>
-                    {region === "All" ? "All Regions" : region}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Destination Filter */}
-            <div className="flex flex-col gap-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-zinc-500 mb-0.5 flex items-center gap-1.5 select-none">
-                <MapPin className="w-3.5 h-3.5 text-amber-500" />
-                <span>Filter by Destination:</span>
-              </span>
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="px-4 py-3 bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-100 font-bold border border-slate-200 dark:border-zinc-800 rounded-xl focus:border-amber-500/40 dark:focus:border-amber-500/40 focus:outline-none transition-colors text-sm cursor-pointer w-full"
-              >
-                {cities.map((city) => (
-                  <option key={city} value={city}>
-                    {city === "All" ? "All Destinations" : city}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Category Filter */}
-            <div className="flex flex-col gap-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-zinc-500 mb-0.5 flex items-center gap-1.5 select-none">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>Filter by Deal Category:</span>
-              </span>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-3 bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-100 font-bold border border-slate-200 dark:border-zinc-800 rounded-xl focus:border-amber-500/40 dark:focus:border-amber-500/40 focus:outline-none transition-colors text-sm cursor-pointer w-full"
-              >
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category === "All" ? "All Categories" : category}
-                  </option>
-                ))}
-              </select>
+              <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -392,14 +421,19 @@ export default function HotDealsPage({
                           e.stopPropagation();
                           toggleWishlist(attr);
                         }}
-                        className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-zinc-950/60 backdrop-blur-sm flex items-center justify-center border border-slate-100 dark:border-zinc-800 hover:bg-rose-500 hover:border-transparent text-slate-600 dark:text-zinc-300 transition-all active:scale-90"
+                        className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xs flex items-center justify-center border border-slate-100/50 dark:border-zinc-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:border-rose-200/50 dark:hover:border-rose-900/30 text-slate-600 dark:text-zinc-300 transition-all active:scale-90 group/fav cursor-pointer"
+                        title={isWishlisted(attr.id) ? "Remove from Wishlist" : "Save to Wishlist"}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
                           fill={isWishlisted(attr.id) ? "currentColor" : "none"}
                           stroke="currentColor"
-                          className={`w-4 h-4 ${isWishlisted(attr.id) ? "text-rose-500 fill-rose-500 stroke-none" : ""}`}
+                          className={`w-4 h-4 transition-colors duration-200 ${
+                            isWishlisted(attr.id) 
+                              ? "text-[#e3000f] fill-[#e3000f]" 
+                              : "text-slate-600 dark:text-zinc-350 group-hover/fav:text-[#e3000f] group-hover/fav:fill-[#e3000f]/10"
+                          }`}
                         >
                           <path
                             strokeLinecap="round"

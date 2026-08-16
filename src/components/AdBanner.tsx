@@ -13,7 +13,8 @@ import {
   MousePointerClick,
   ArrowRight,
   Ticket,
-  Compass
+  Compass,
+  Gift
 } from 'lucide-react';
 
 interface AdBannerProps {
@@ -70,115 +71,182 @@ export default function AdBanner({ onSelectDestination }: AdBannerProps) {
           
           {/* Horizontal Drag/Scroll Container Track */}
           <div 
-            className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto md:overflow-visible scrollbar-none pb-3 md:pb-0 px-1 snap-x snap-mandatory"
+            className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto md:overflow-visible scrollbar-none pb-3 md:pb-0 px-1 snap-x snap-mandatory"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             
-            {/* -------------------- CARD 1: Purple Playful DEALS Card -------------------- */}
+            {/* -------------------- CARD 1: Anne Frank House Bestseller Card -------------------- */}
             <div 
               onClick={() => handleCardClick('deals')}
-              className="w-[280px] sm:w-[325px] md:w-full shrink-0 md:shrink aspect-[16/7.8] bg-gradient-to-br from-[#7700e6] via-[#5c03c4] to-[#3a018a] rounded-[1.25rem] relative overflow-hidden flex flex-col justify-between p-3.5 sm:p-4 cursor-pointer shadow-sm select-none snap-start group/card hover:shadow-md transition-all hover:-translate-y-0.5 duration-200"
+              className="w-[280px] sm:w-[335px] md:w-full shrink-0 md:shrink aspect-[16/7.8] bg-[#fdfcff] dark:bg-[#130b24] rounded-[1.25rem] relative overflow-hidden flex flex-row cursor-pointer shadow-sm select-none snap-start group/card hover:shadow-lg transition-all hover:-translate-y-0.5 duration-200 border border-purple-200/70 dark:border-purple-800/40"
             >
-              {/* Halftone Dot pattern */}
-              <div 
-                className="absolute inset-0 opacity-15 pointer-events-none mix-blend-overlay"
-                style={{
-                  backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1.5px)',
-                  backgroundSize: '16px 16px'
-                }}
-              />
-              
-              {/* Star sparks & lighting */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 opacity-30 pointer-events-none" />
+              {/* Left Column: Visual Media with Building, Historic Atmosphere & Golden Seal (40% width) */}
+              <div className="relative w-[38%] sm:w-[40%] h-full overflow-hidden shrink-0 select-none bg-gradient-to-br from-[#120324] via-[#350a58] to-[#6a157e]">
+                
+                <img src="/Canva.png" alt="Canva Banner" className="absolute inset-0 w-full h-full object-cover object-left" />
 
-              {/* Floating Ticket elements exactly styled */}
-              <motion.div 
-                initial={{ rotate: 12 }}
-                className="absolute top-4 left-5 w-10 sm:w-11 aspect-[1.8/1] bg-gradient-to-r from-amber-300 to-yellow-400 rounded shadow border border-yellow-250/20 flex items-center justify-between px-1.5 pointer-events-none"
-              >
-                <div className="w-1.5 h-1.5 bg-[#5c03c4] rounded-full -left-0.5 absolute" />
-                <span className="font-black text-purple-950 text-xs italic mx-auto">%</span>
-                <div className="w-1.5 h-1.5 bg-[#5c03c4] rounded-full -right-0.5 absolute" />
-              </motion.div>
-
-              <motion.div 
-                initial={{ rotate: -20 }}
-                className="absolute top-5 right-11 w-10 sm:w-11 aspect-[1.8/1] bg-gradient-to-r from-amber-300 to-yellow-400 rounded shadow border border-yellow-250/20 flex items-center justify-between px-1.5 pointer-events-none"
-              >
-                <div className="w-1.5 h-1.5 bg-[#5c03c4] rounded-full -left-0.5 absolute" />
-                <span className="font-black text-purple-950 text-xs italic mx-auto">%</span>
-                <div className="w-1.5 h-1.5 bg-[#5c03c4] rounded-full -right-0.5 absolute" />
-              </motion.div>
-
-              <motion.div 
-                initial={{ rotate: -15 }}
-                className="absolute bottom-8 left-6 w-11 sm:w-12 aspect-[1.8/1] bg-gradient-to-r from-amber-300 to-yellow-400 rounded shadow border border-yellow-250/20 flex items-center justify-between px-1.5 pointer-events-none"
-              >
-                <div className="w-1.5 h-1.5 bg-[#5c03c4] rounded-full -left-0.5 absolute" />
-                <span className="font-black text-purple-950 text-sm italic mx-auto">%</span>
-                <div className="w-1.5 h-1.5 bg-[#5c03c4] rounded-full -right-0.5 absolute" />
-              </motion.div>
-
-              <motion.div 
-                initial={{ rotate: 28 }}
-                className="absolute bottom-6 right-10 w-10 sm:w-11 aspect-[1.8/1] bg-gradient-to-r from-amber-300 to-yellow-400 rounded shadow border border-yellow-250/20 flex items-center justify-between px-1.5 pointer-events-none"
-              >
-                <div className="w-1.5 h-1.5 bg-[#5c03c4] rounded-full -left-0.5 absolute" />
-                <span className="font-black text-purple-950 text-xs italic mx-auto">%</span>
-                <div className="w-1.5 h-1.5 bg-[#5c03c4] rounded-full -right-0.5 absolute" />
-              </motion.div>
-
-              {/* Top info row */}
-              <div className="z-10 flex items-center justify-between">
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-yellow-400 text-purple-950 text-[9px] font-black uppercase tracking-wider shadow-sm">
-                  <Flame className="w-2.5 h-2.5 text-orange-600 fill-orange-500" />
-                  <span>PLAY DEAL</span>
-                </div>
+                {/* 4. Watercolor Edge Feathering Mask to Right Side */}
+                <div 
+                  className="absolute top-0 bottom-0 right-0 w-12 pointer-events-none z-10"
+                  style={{
+                    background: 'linear-gradient(to right, transparent, rgba(253, 252, 255, 0.4) 30%, #fdfcff 100%)'
+                  }}
+                />
               </div>
 
-              {/* Central Title Splash Block */}
-              <div className="flex-1 flex flex-col items-center justify-center text-center z-10">
-                <span className="block text-yellow-300 font-extrabold text-[11px] sm:text-xs italic tracking-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)] transform -rotate-1">
+              {/* Right Column: High-Impact Typography & Interactive Controls (60% width) */}
+              <div className="relative flex-1 h-full flex flex-col justify-between items-center text-center p-2 sm:p-2.5 sm:py-2.5 z-20 overflow-hidden text-slate-900 dark:text-white">
+                
+                {/* Background ambient watercolor glow */}
+                <div 
+                  className="absolute inset-0 opacity-30 dark:opacity-15 pointer-events-none"
+                  style={{
+                    backgroundImage: 'radial-gradient(circle at 90% 10%, #e9d5ff 0%, transparent 50%), radial-gradient(circle at 10% 90%, #fbcfe8 0%, transparent 40%)',
+                  }}
+                />
+
+                {/* Top Row: BESTSELLER Pill */}
+                <div className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-gradient-to-r from-[#5110d9] via-[#8e2de2] to-[#d81b60] text-white text-[7.5px] sm:text-[8.5px] font-black uppercase tracking-wider shadow-sm mt-0.5">
+                  <Flame className="w-2.5 h-2.5 text-yellow-300 fill-yellow-300" />
+                  <span>BESTSELLER</span>
+                </div>
+
+                {/* Script sub-heading */}
+                <span className="block text-[#6200ea] dark:text-purple-300 font-extrabold text-[9.5px] sm:text-[11.5px] italic tracking-tight leading-none">
                   Grab all your
                 </span>
-                <h1 className="text-2xl sm:text-3xl md:text-3xl font-[1000] tracking-tighter text-white italic leading-none select-none uppercase drop-shadow-[0_2.5px_0px_#1e004a] filter drop-shadow-[0_0_10px_rgba(255,255,255,0.15)] my-1 transform group-hover/card:scale-105 transition-transform duration-300">
-                  PLAY PASSES
-                </h1>
-                <div className="flex items-center justify-center gap-1 relative">
-                  <span className="block text-lg sm:text-xl font-black text-[#ff22ab] drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)] uppercase italic tracking-widest transform rotate-2">
-                    here!
-                  </span>
-                  <div className="bg-slate-900/60 p-0.5 rounded-full border border-white/20 shadow">
-                    <MousePointerClick className="w-3 h-3 text-yellow-300 fill-yellow-200" strokeWidth={2.5} />
+
+                {/* Main Header with Action Speed Lines & Confetti */}
+                <div className="relative my-0.5 flex items-center justify-center">
+                  {/* Action speed lines on left */}
+                  <div className="absolute -left-3.5 sm:-left-4 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 opacity-80 pointer-events-none">
+                    <div className="w-2.5 h-[2px] bg-[#6200ea] dark:bg-purple-400 rounded-full transform -rotate-12" />
+                    <div className="w-3.5 h-[2px] bg-[#6200ea] dark:bg-purple-400 rounded-full transform -rotate-12" />
+                  </div>
+
+                  <h1 className="text-[14px] sm:text-[17px] md:text-[14.5px] lg:text-[18px] font-[1000] tracking-tight text-[#110738] dark:text-white uppercase leading-[0.92] select-none italic text-center -skew-x-[6deg]">
+                    ANNE FRANK<br />HOUSE
+                  </h1>
+
+                  {/* Confetti flakes on right */}
+                  <div className="absolute -right-3.5 sm:-right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5 opacity-90 pointer-events-none">
+                    <div className="w-1.5 h-1.5 bg-yellow-400 rounded-xs transform rotate-45" />
+                    <div className="w-2 h-1 bg-pink-500 rounded-full transform -rotate-15" />
                   </div>
                 </div>
-              </div>
 
-              {/* Footer row containing interactive Code copiers */}
-              <div className="z-10 flex items-center justify-between border-t border-white/10 pt-1.5">
-                <span className="text-[8.5px] text-white/75 font-semibold uppercase tracking-wider">
-                  🎉 Code: <span className="text-yellow-300 font-extrabold font-mono">TIQSEYPLAY</span>
-                </span>
-                
-                <button
-                  onClick={(e) => handleCopy(e, 'TIQSEYPLAY')}
-                  title="Copy coupon code"
-                  className="px-1.5 py-0.5 rounded bg-slate-950/60 hover:bg-slate-950 border border-yellow-400/30 text-[8px] text-white flex items-center gap-0.5 font-bold transition-colors"
-                >
-                  {copiedCode === 'TIQSEYPLAY' ? (
-                    <>
-                      <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-2.5 h-2.5 text-yellow-300" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
-              </div>
+                {/* Hot Pink Brushstroke BESTSELLER Ribbon */}
+                <div className="relative inline-flex items-center justify-center px-4 sm:px-5 py-0.5 my-0.5">
+                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 36" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="pinkBrushGrad" x1="0%" y1="50%" x2="100%" y2="50%">
+                        <stop offset="0%" stopColor="#ff007f" />
+                        <stop offset="50%" stopColor="#f50057" />
+                        <stop offset="100%" stopColor="#c51162" />
+                      </linearGradient>
+                    </defs>
+                    <path 
+                      d="M 6,3 Q 1,18 5,33 L 15,32 Q 30,35 185,33 L 195,30 Q 199,16 194,4 L 180,5 Q 160,1 14,3 Z" 
+                      fill="url(#pinkBrushGrad)" 
+                    />
+                  </svg>
+                  <span className="relative z-10 text-white font-[1000] text-[9.5px] sm:text-[12px] italic uppercase tracking-wider select-none transform -rotate-1 drop-shadow-xs">
+                    BESTSELLER!
+                  </span>
+                </div>
 
+                {/* Experience Tag / Pill */}
+                <div className="hidden xs:inline-flex items-center gap-1.5 bg-white dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/60 rounded-full px-2.5 py-0.5 text-[7px] sm:text-[8px] text-[#1e1035] dark:text-purple-200 font-semibold shadow-xs max-w-fit">
+                  <div className="w-3 h-3 rounded-full bg-[#5110d9] flex items-center justify-center text-white text-[6.5px] shrink-0">
+                    ★
+                  </div>
+                  <span className="truncate">Step into history. A must-visit experience.</span>
+                </div>
+
+                {/* Bottom Row: Promo Code & Action Buttons */}
+                <div className="w-full flex items-center justify-center gap-1 sm:gap-1.5 mt-auto pt-0.5 px-0.5 z-30">
+                  {/* Dashed Promo Code Pill */}
+                  <div className="border border-dashed border-[#6200ea] bg-purple-50/95 dark:bg-purple-950/70 rounded-full px-1.5 sm:px-2 py-0.5 text-[6.5px] sm:text-[7.5px] font-bold text-[#1e1035] dark:text-purple-200 whitespace-nowrap flex items-center gap-0.5 shrink-0">
+                    <Gift className="w-2.5 h-2.5 text-[#6200ea] shrink-0" />
+                    <span>CODE: <strong className="font-mono text-[#d81b60] font-black">TIQSEYPLAY</strong></span>
+                  </div>
+
+                  {/* BOOK NOW Button */}
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCardClick('deals');
+                    }}
+                    className="px-2 sm:px-3 py-0.5 rounded-full bg-gradient-to-r from-[#5110d9] via-[#8e2de2] to-[#d81b60] hover:brightness-110 text-white text-[7px] sm:text-[8px] font-black tracking-wide flex items-center gap-1 shadow-sm transition-transform active:scale-95 whitespace-nowrap shrink-0"
+                  >
+                    <span>BOOK NOW</span>
+                    <ArrowRight className="w-2.5 h-2.5 shrink-0" />
+                  </button>
+
+                  {/* Copy Code Button */}
+                  <button
+                    onClick={(e) => handleCopy(e, 'TIQSEYPLAY')}
+                    title="Copy promo code"
+                    className="px-1.5 sm:px-2 py-0.5 rounded-full bg-white hover:bg-slate-50 border border-purple-200 text-[6.5px] sm:text-[7.5px] text-[#6200ea] dark:text-purple-300 dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-slate-700 flex items-center gap-0.5 font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap shrink-0"
+                  >
+                    {copiedCode === 'TIQSEYPLAY' ? (
+                      <>
+                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-2.5 h-2.5 text-[#6200ea] dark:text-purple-400 shrink-0" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Floating 3D Yellow Ticket Badges with Discount % and stub notches */}
+                {/* Ticket 1: Top Right */}
+                <div className="absolute top-1.5 right-1.5 rotate-[15deg] pointer-events-none drop-shadow-sm z-10">
+                  <svg viewBox="0 0 54 32" className="w-7 h-4 sm:w-9 sm:h-5">
+                    <defs>
+                      <linearGradient id="goldTicketGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#ffe259" />
+                        <stop offset="100%" stopColor="#ffa751" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M 4,0 L 50,0 Q 54,0 54,4 L 54,11 Q 50,16 54,21 L 54,28 Q 54,32 50,32 L 4,32 Q 0,32 0,28 L 0,21 Q 4,16 0,11 L 0,4 Q 0,0 4,0 Z" fill="url(#goldTicketGrad1)" />
+                    <text x="27" y="21" fontSize="16" fontWeight="900" fontStyle="italic" fill="#5c3800" textAnchor="middle" fontFamily="sans-serif">%</text>
+                  </svg>
+                </div>
+
+                {/* Ticket 2: Middle Right with confetti */}
+                <div className="absolute top-[42%] -right-0.5 rotate-[-15deg] pointer-events-none drop-shadow-sm z-10">
+                  <svg viewBox="0 0 54 32" className="w-6 h-3.5 sm:w-8 sm:h-4.5">
+                    <defs>
+                      <linearGradient id="goldTicketGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#ffe259" />
+                        <stop offset="100%" stopColor="#ffa751" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M 4,0 L 50,0 Q 54,0 54,4 L 54,11 Q 50,16 54,21 L 54,28 Q 54,32 50,32 L 4,32 Q 0,32 0,28 L 0,21 Q 4,16 0,11 L 0,4 Q 0,0 4,0 Z" fill="url(#goldTicketGrad2)" />
+                    <text x="27" y="21" fontSize="16" fontWeight="900" fontStyle="italic" fill="#5c3800" textAnchor="middle" fontFamily="sans-serif">%</text>
+                  </svg>
+                </div>
+
+                {/* Ticket 3: Bottom Right (Adjusted position so it never overlaps the buttons) */}
+                <div className="absolute bottom-1 -right-1 rotate-[18deg] pointer-events-none drop-shadow-sm z-0 opacity-80 sm:opacity-100">
+                  <svg viewBox="0 0 54 32" className="w-5 h-3 sm:w-7 sm:h-4">
+                    <defs>
+                      <linearGradient id="goldTicketGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#ffe259" />
+                        <stop offset="100%" stopColor="#ffa751" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M 4,0 L 50,0 Q 54,0 54,4 L 54,11 Q 50,16 54,21 L 54,28 Q 54,32 50,32 L 4,32 Q 0,32 0,28 L 0,21 Q 4,16 0,11 L 0,4 Q 0,0 4,0 Z" fill="url(#goldTicketGrad3)" />
+                    <text x="27" y="21" fontSize="16" fontWeight="900" fontStyle="italic" fill="#5c3800" textAnchor="middle" fontFamily="sans-serif">%</text>
+                  </svg>
+                </div>
+
+              </div>
             </div>
 
             {/* -------------------- CARD 2: Teal World Football Tournament -------------------- */}
@@ -297,61 +365,6 @@ export default function AdBanner({ onSelectDestination }: AdBannerProps) {
                 </span>
                 <span className="font-extrabold uppercase flex items-center gap-0.5">
                   <span>Park Specials</span>
-                </span>
-              </div>
-
-            </div>
-
-            {/* -------------------- CARD 4: Pink/Rose City Destinations -------------------- */}
-            <div 
-              onClick={() => handleCardClick('destinations')}
-              className="w-[280px] sm:w-[325px] md:w-full shrink-0 md:shrink aspect-[16/7.8] bg-gradient-to-br from-pink-600 via-rose-500 to-amber-500 rounded-[1.25rem] relative overflow-hidden flex flex-col justify-between p-3.5 sm:p-4 cursor-pointer shadow-sm select-none snap-start group/card hover:shadow-md transition-all hover:-translate-y-0.5 duration-200"
-            >
-              {/* Particle overlay and radial gradient lights */}
-              <div 
-                className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay"
-                style={{
-                  backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1.5px)',
-                  backgroundSize: '12px 12px'
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-bl from-white/10 via-transparent to-black/20 pointer-events-none" />
-
-              {/* Stamp on Top Left */}
-              <div className="absolute top-0 left-0 bg-[#ffe0b2] text-[#e65100] font-black px-2 py-1 rounded-br-lg shadow-sm flex items-center gap-0.5 z-10 text-[8px] sm:text-[8.5px] uppercase tracking-wider">
-                <Landmark className="w-2.5 h-2.5 text-orange-600" />
-                <span>CITY GUIDE</span>
-              </div>
-
-              {/* Featured destination badge/indicator */}
-              <div className="mt-1.5 self-end z-10">
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/30 border border-white/10 text-white text-[9px] font-bold shadow-sm backdrop-blur-md">
-                  <Sparkles className="w-2.5 h-2.5 text-yellow-300" />
-                  <span>Featured City</span>
-                </div>
-              </div>
-
-              {/* Central typography */}
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-1 z-10 my-0.5">
-                <span className="block text-rose-100 font-extrabold text-[10px] sm:text-[11px] uppercase tracking-widest drop-shadow-sm">
-                  Discover top picks in
-                </span>
-                <h3 className="text-sm sm:text-base md:text-base lg:text-[17px] text-white font-[1000] tracking-tighter leading-none text-center transform group-hover/card:scale-[1.03] transition-transform duration-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)] uppercase my-1">
-                  Kuala Lumpur
-                </h3>
-                <span className="block text-[8px] sm:text-[9px] text-amber-150 font-bold tracking-wide italic">
-                  Explore iconic towers & cultural hubs
-                </span>
-              </div>
-
-              {/* Card Footer */}
-              <div className="z-10 flex items-center justify-between border-t border-white/10 pt-1.5 text-[8.5px] text-rose-100">
-                <span className="font-semibold uppercase tracking-wider opacity-90">
-                  Best price guaranteed
-                </span>
-                <span className="font-extrabold uppercase flex items-center gap-0.5 text-yellow-300 group-hover/card:underline">
-                  <span>Explore Now</span>
-                  <ArrowRight className="w-2.5 h-2.5 text-yellow-300 transition-transform group-hover/card:translate-x-0.5" />
                 </span>
               </div>
 

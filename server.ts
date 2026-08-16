@@ -68,7 +68,10 @@ function mapRowToBooking(row: any) {
     passengers,
     timeslot: row.timeslot || "",
     createdAt: row.created_at || "",
-    rating: row.rating
+    rating: row.rating,
+    paymentCurrency: row.payment_currency || "",
+    paymentPrice: row.payment_price !== null && row.payment_price !== undefined ? row.payment_price : undefined,
+    paymentSymbol: row.payment_symbol || ""
   };
 }
 
@@ -125,7 +128,11 @@ async function saveToSupabase(booking: any) {
     guest_phone: booking.guestInfo?.phone || booking.customerPhone || "",
     passengers_json: JSON.stringify(booking.passengers || booking.guestInfo?.passengers || []),
     created_at: booking.createdAt || "",
-    rating: booking.rating !== undefined && booking.rating !== null ? Number(booking.rating) : null
+    rating: booking.rating !== undefined && booking.rating !== null ? Number(booking.rating) : null,
+    timeslot: booking.timeslot || "",
+    payment_currency: booking.paymentCurrency || "",
+    payment_price: booking.paymentPrice !== undefined && booking.paymentPrice !== null ? Number(booking.paymentPrice) : null,
+    payment_symbol: booking.paymentSymbol || ""
   };
 
   try {
@@ -172,6 +179,39 @@ try {
       console.error("Failed to alter table bookings:", err);
     }
   }
+
+  // Check and add payment_currency column if missing
+  const hasPaymentCurrency = tableInfo.some(col => col.name === 'payment_currency');
+  if (tableInfo.length > 0 && !hasPaymentCurrency) {
+    console.log("[Database] Adding payment_currency column to bookings table...");
+    try {
+      db.exec("ALTER TABLE bookings ADD COLUMN payment_currency TEXT;");
+    } catch (err) {
+      console.error("Failed to alter table bookings:", err);
+    }
+  }
+
+  // Check and add payment_price column if missing
+  const hasPaymentPrice = tableInfo.some(col => col.name === 'payment_price');
+  if (tableInfo.length > 0 && !hasPaymentPrice) {
+    console.log("[Database] Adding payment_price column to bookings table...");
+    try {
+      db.exec("ALTER TABLE bookings ADD COLUMN payment_price REAL;");
+    } catch (err) {
+      console.error("Failed to alter table bookings:", err);
+    }
+  }
+
+  // Check and add payment_symbol column if missing
+  const hasPaymentSymbol = tableInfo.some(col => col.name === 'payment_symbol');
+  if (tableInfo.length > 0 && !hasPaymentSymbol) {
+    console.log("[Database] Adding payment_symbol column to bookings table...");
+    try {
+      db.exec("ALTER TABLE bookings ADD COLUMN payment_symbol TEXT;");
+    } catch (err) {
+      console.error("Failed to alter table bookings:", err);
+    }
+  }
 } catch (e) {
   console.warn("[Database] Check table failed or table does not exist yet.", e);
 }
@@ -196,7 +236,10 @@ db.exec(`
     passengers_json TEXT,
     created_at TEXT,
     rating INTEGER,
-    timeslot TEXT
+    timeslot TEXT,
+    payment_currency TEXT,
+    payment_price REAL,
+    payment_symbol TEXT
   );
   CREATE UNIQUE INDEX IF NOT EXISTS idx_order_number ON bookings(order_number);
   CREATE UNIQUE INDEX IF NOT EXISTS idx_pnr_number ON bookings(pnr_number);
@@ -406,15 +449,19 @@ async function startServer() {
                     id, order_number, pnr_number, attraction_id, attraction_name, 
                     attraction_image_url, city, booking_date, tickets_count, total_price, 
                     status, child_count, guest_name, guest_email, guest_phone, 
-                    passengers_json, created_at, rating, timeslot
-                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    passengers_json, created_at, rating, timeslot,
+                    payment_currency, payment_price, payment_symbol
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `);
                 stmt.run(
                   b.id, b.order_number, b.pnr_number, b.attractionId, b.attractionName,
                   b.attractionImageUrl, b.city, b.bookingDate, b.ticketsCount, b.totalPrice,
                   b.status, b.childCount, b.guestInfo.name, b.guestInfo.email, b.guestInfo.phone,
                   JSON.stringify(b.passengers), b.createdAt, b.rating !== undefined && b.rating !== null ? b.rating : null,
-                  b.timeslot || ""
+                  b.timeslot || "",
+                  b.paymentCurrency || "",
+                  b.paymentPrice !== undefined ? b.paymentPrice : null,
+                  b.paymentSymbol || ""
                 );
                 console.log(`[Sync] Cached remote booking ${b.id} to SQLite database.`);
               } catch (e) {
@@ -467,6 +514,9 @@ async function startServer() {
       const created_at = booking.createdAt || "";
       const rating = booking.rating !== undefined ? booking.rating : null;
       const timeslot = booking.timeslot || "";
+      const payment_currency = booking.paymentCurrency || "";
+      const payment_price = booking.paymentPrice !== undefined ? booking.paymentPrice : null;
+      const payment_symbol = booking.paymentSymbol || "";
 
       // Check if there is an existing row for this order_number or id
       const existing = db.prepare('SELECT id FROM bookings WHERE id = ? OR order_number = ?').get(id, order_number);
@@ -491,7 +541,10 @@ async function startServer() {
             passengers_json = ?,
             created_at = ?,
             rating = ?,
-            timeslot = ?
+            timeslot = ?,
+            payment_currency = ?,
+            payment_price = ?,
+            payment_symbol = ?
           WHERE id = ? OR order_number = ?
         `);
         stmt.run(
@@ -513,6 +566,9 @@ async function startServer() {
           created_at,
           rating,
           timeslot,
+          payment_currency,
+          payment_price,
+          payment_symbol,
           id,
           order_number
         );
@@ -522,8 +578,9 @@ async function startServer() {
             id, order_number, pnr_number, attraction_id, attraction_name, 
             attraction_image_url, city, booking_date, tickets_count, total_price, 
             status, child_count, guest_name, guest_email, guest_phone, 
-            passengers_json, created_at, rating, timeslot
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            passengers_json, created_at, rating, timeslot,
+            payment_currency, payment_price, payment_symbol
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         stmt.run(
           id,
@@ -544,7 +601,10 @@ async function startServer() {
           passengers_json,
           created_at,
           rating,
-          timeslot
+          timeslot,
+          payment_currency,
+          payment_price,
+          payment_symbol
         );
       }
 

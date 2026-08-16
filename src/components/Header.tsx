@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
-  Globe,
   User,
   X,
   ChevronDown,
-  Sun,
-  Moon,
-  Smartphone,
   Home,
   Flame,
   Ticket,
@@ -147,9 +143,26 @@ const POPULAR_DESTINATIONS = [
   {
     name: "Florence",
     image:
-      "https://images.unsplash.com/photo-1528114039593-4366cc08227d?auto=format&fit=crop&w=120&h=120&q=80",
+      "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?auto=format&fit=crop&w=120&h=120&q=80",
   },
 ];
+
+const SafeFlag = ({ src, alt, fallbackEmoji, className }: { src: string; alt: string; fallbackEmoji: string; className?: string }) => {
+  const [error, setError] = useState(false);
+  if (error) {
+    return <span className="text-[13px] select-none leading-none shrink-0" role="img" aria-label={alt}>{fallbackEmoji}</span>;
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onError={() => setError(true)}
+      referrerPolicy="no-referrer"
+      loading="lazy"
+    />
+  );
+};
 
 export default function Header({
   onExplore,
@@ -162,22 +175,22 @@ export default function Header({
 }: {
   onExplore?: () => void;
   onSearch?: (q: string) => void;
-  onNavigate?: (page: "home" | "attractions-and-museums" | "hot-deals" | "blog" | "sign-in" | "register" | "wishlist" | "my-bookings" | "profile") => void;
+  onNavigate?: (page: "home" | "attractions-and-museums" | "hot-deals" | "blog" | "sign-in" | "register" | "wishlist" | "my-bookings" | "profile" | "about" | "privacy-policy" | "cookie-policy" | "terms-and-conditions") => void;
   onWishlistOpen?: () => void;
   onViewAttraction?: (id: string) => void;
-  activePage?: "home" | "attractions-and-museums" | "hot-deals" | "blog" | "sign-in" | "register" | "wishlist" | "my-bookings" | "profile";
+  activePage?: "home" | "attractions-and-museums" | "hot-deals" | "blog" | "sign-in" | "register" | "wishlist" | "my-bookings" | "profile" | "about" | "privacy-policy" | "cookie-policy" | "terms-and-conditions";
   activeDestination?: string | null;
 }) {
-  const { user, setAuthModalOpen, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { wishlist } = useWishlist();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileDestinationsOpen, setMobileDestinationsOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  const [settingsDefaultTab, setSettingsDefaultTab] = useState<'language' | 'currency'>('language');
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  const { currency, theme, setTheme, t } = useSettings();
+  const { currency, t, language } = useSettings();
 
   const [scrolled, setScrolled] = useState(false);
   const pageName = activePage as
@@ -231,41 +244,50 @@ export default function Header({
                   window.scrollTo(0, 0);
                 }}
               >
-                <span className="font-black tracking-tight text-[22px] sm:text-[25px] text-brand dark:text-brand transition-colors leading-none">
-                  Tiqsey
+                <span className="font-black tracking-tight text-[22px] sm:text-[26px] text-brand dark:text-brand transition-colors leading-none">
+                  Tiqsey<span className="text-brand">.</span>
                 </span>
               </div>
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center flex-1 h-full min-w-0 ml-4 xl:ml-8">
+            <div className="hidden lg:flex items-center flex-1 h-full min-w-0 ml-4 xl:ml-6">
               <nav
-                className="flex items-center h-full relative select-none gap-2 lg:gap-4 xl:gap-[20px]"
+                className="flex items-center h-full relative select-none gap-2 lg:gap-3 xl:gap-[18px]"
                 onMouseLeave={() => setHoveredIdx(null)}
               >
                 {[
                   {
                     name: "Home",
-                    label: t("navHome"),
+                    label: t("navHome") || "Explore",
                     active: pageName === "home" && !activeDestination,
                     type: undefined as string | undefined,
                   },
                   {
                     name: "Hot Deals",
-                    label: "Hot Deals 🔥",
+                    label: `${t("navHotDeals", "Hot Deals")} 🔥`,
                     active: (pageName as string) === "hot-deals",
                     type: undefined as string | undefined,
+                    hasIcon: false,
                   },
                   {
                     name: "Attractions & Museums",
-                    label: "Attractions & Museums",
+                    label: t("navThingsToDo", "Things to do"),
                     active: (pageName as string) === "attractions-and-museums",
                     type: undefined as string | undefined,
+                    hasIcon: false,
+                  },
+                  {
+                    name: "About Us",
+                    label: t("navAboutUs", "About Us"),
+                    active: (pageName as string) === "about",
+                    type: undefined as string | undefined,
+                    hasIcon: false,
                   },
                 ].map((item, idx) => (
                   <div
                     key={idx}
-                    className="group relative h-full flex items-center px-2.5 transition-colors cursor-pointer"
+                    className="group relative h-full flex items-center px-2 transition-colors cursor-pointer"
                     onMouseEnter={() => setHoveredIdx(idx)}
                   >
                     {hoveredIdx === idx && (
@@ -285,7 +307,7 @@ export default function Header({
                     {item.active && (
                       <motion.div
                         layoutId="nav-active-underline"
-                        className="absolute bottom-0 left-2.5 right-2.5 h-0.5 bg-brand dark:bg-brand rounded-full z-10"
+                        className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-brand dark:bg-brand rounded-full z-10"
                         transition={{
                           type: "spring",
                           stiffness: 380,
@@ -306,12 +328,14 @@ export default function Header({
                           if (onNavigate) onNavigate("hot-deals");
                         } else if (item.name === "Blog") {
                           if (onNavigate) onNavigate("blog");
+                        } else if (item.name === "About Us") {
+                          if (onNavigate) onNavigate("about");
                         }
                       }}
-                      className={`text-[14px] xl:text-[15px] font-semibold tracking-tight whitespace-nowrap transition-colors flex items-center gap-1.5 h-full ${
+                      className={`text-[14px] xl:text-[15px] font-bold tracking-tight whitespace-nowrap transition-colors flex items-center gap-1.5 h-full ${
                         item.active
-                          ? "text-brand"
-                          : "text-slate-600 dark:text-slate-300 group-hover:text-brand dark:group-hover:text-brand"
+                          ? "text-slate-900 dark:text-white"
+                          : "text-slate-700 dark:text-slate-300 group-hover:text-brand dark:group-hover:text-brand"
                       }`}
                     >
                       <span>{item.label}</span>
@@ -392,68 +416,106 @@ export default function Header({
             </div>
 
             {/* Desktop Actions */}
-            <div className="hidden lg:flex items-center justify-end gap-1.5 lg:gap-2.5 shrink-0">
+            <div className="hidden lg:flex items-center justify-end gap-2 lg:gap-2.5 shrink-0">
               {/* Desktop Search Bar */}
-              <div className="w-[140px] lg:w-[160px] xl:w-[220px] 2xl:w-[280px] relative hidden lg:block transition-all duration-300">
+              <div className="w-[180px] lg:w-[220px] xl:w-[280px] 2xl:w-[320px] relative hidden lg:block transition-all duration-300">
                 <SearchBar
                   isCompact={true}
                   onSearch={(query) => {
                     if (onSearch) onSearch(query);
                   }}
-                  placeholder="Search..."
+                  onSelectAttraction={onViewAttraction}
+                  placeholder="Search attractions, cities or activities."
                   className="w-full"
                 />
               </div>
 
-              {/* Desktop Wishlist Button */}
+              {/* Desktop Wishlist / Favourite Button */}
               <motion.button
                 onClick={onWishlistOpen}
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.93 }}
-                className="relative flex items-center justify-center p-1.5 rounded-full text-slate-700 dark:text-slate-300 hover:text-brand dark:hover:text-brand hover:bg-brand/[0.06] dark:hover:bg-brand/[0.08] transition-all select-none cursor-pointer shrink-0"
-                title="Wishlist"
-                aria-label="Wishlist"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200/60 dark:border-slate-800 transition-all select-none cursor-pointer shrink-0"
+                title="My Favourite"
+                aria-label="My Favourite"
               >
-                <Heart
-                  className={`w-4.5 h-4.5 transition-all duration-300 ${wishlist.length > 0 ? "text-brand fill-brand scale-110" : "text-current group-hover:text-brand"}`}
-                  strokeWidth={wishlist.length > 0 ? 2 : 2.25}
-                />
-                <AnimatePresence>
-                  {wishlist.length > 0 && (
-                    <motion.span
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      key="wishlist-badge"
-                      className="absolute -top-0.5 -right-0.5 bg-brand text-white text-[9.5px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-slate-900 select-none shadow-sm"
-                    >
-                      {wishlist.length}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+                <div className="relative flex items-center justify-center">
+                  <Heart
+                    className={`w-4 h-4 transition-all duration-300 ${wishlist.length > 0 ? "text-brand fill-brand scale-110" : "text-slate-700 dark:text-slate-200"}`}
+                    strokeWidth={2}
+                  />
+                  <AnimatePresence>
+                    {wishlist.length > 0 && (
+                      <motion.span
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        key="wishlist-badge"
+                        className="absolute -top-1.5 -right-2 bg-brand text-white text-[9px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center border border-white dark:border-slate-900 select-none shadow-xs"
+                      >
+                        {wishlist.length}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <span className="font-semibold text-slate-700 dark:text-slate-200 text-xs whitespace-nowrap">My Favourite</span>
               </motion.button>
 
-              {/* Combined Settings Trigger */}
+              {/* Language Trigger */}
               <button
-                onClick={() => setSettingsModalOpen(true)}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-all active:scale-95 select-none cursor-pointer shrink-0 border border-transparent font-sans"
-                title={`${currency.code.toUpperCase()}`}
+                onClick={() => {
+                  setSettingsDefaultTab('language');
+                  setSettingsModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 select-none cursor-pointer shrink-0 font-sans"
+                title={`${language.nativeName} (${language.code.toUpperCase()})`}
+                id="header-language-button"
               >
-                <div className="w-5 h-3.5 select-none shrink-0 border border-slate-200 dark:border-slate-800 rounded overflow-hidden bg-slate-100 dark:bg-slate-900 shadow-sm flex items-center justify-center">
-                  <img
-                    src={`https://flagcdn.com/w40/${getCurrencyCountryCode(currency.code)}.png`}
-                    alt={`${currency.code} flag`}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                    loading="lazy"
-                  />
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-3.5 select-none shrink-0 border border-slate-150 dark:border-slate-850 rounded-[2px] overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+                    <SafeFlag
+                      src={`https://flagcdn.com/w40/${language.countryCode}.png`}
+                      alt={language.name}
+                      fallbackEmoji={language.flag}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-tight">
+                    {language.code}
+                  </span>
                 </div>
-                <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 tracking-wide flex items-center gap-1 font-sans">
-                  {currency.code} {currency.symbol}
-                </span>
                 <ChevronDown
-                  className="w-3 h-3 text-slate-500 dark:text-slate-400"
-                  strokeWidth={2.5}
+                  className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400"
+                  strokeWidth={2}
+                />
+              </button>
+
+              {/* Currency Trigger */}
+              <button
+                onClick={() => {
+                  setSettingsDefaultTab('currency');
+                  setSettingsModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 select-none cursor-pointer shrink-0 font-sans"
+                title={`${currency.code.toUpperCase()} (${currency.symbol})`}
+                id="header-currency-button"
+              >
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-3.5 select-none shrink-0 border border-slate-150 dark:border-slate-850 rounded-[2px] overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+                    <SafeFlag
+                      src={`https://flagcdn.com/w40/${getCurrencyCountryCode(currency.code)}.png`}
+                      alt={`${currency.code} flag`}
+                      fallbackEmoji={getCurrencyFlag(currency.code)}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 tracking-tight pr-0.5">
+                    {currency.code}
+                  </span>
+                </div>
+                <ChevronDown
+                  className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400"
+                  strokeWidth={2}
                 />
               </button>
 
@@ -461,7 +523,7 @@ export default function Header({
                 <div className="relative">
                   <button
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   >
                     <div className="w-8 h-8 rounded-full border-2 border-brand p-[1px] bg-white dark:bg-slate-900 flex items-center justify-center overflow-hidden shrink-0">
                       <img 
@@ -523,16 +585,14 @@ export default function Header({
                   </AnimatePresence>
                 </div>
               ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      if (onNavigate) onNavigate("sign-in");
-                    }}
-                    className="px-4 py-2 text-sm font-bold text-white bg-brand hover:bg-brand-dark rounded-xl transition-colors shadow-sm"
-                  >
-                    Sign in
-                  </button>
-                </>
+                <button
+                  onClick={() => {
+                    if (onNavigate) onNavigate("sign-in");
+                  }}
+                  className="px-5 py-2 text-[14px] font-bold text-white bg-brand hover:bg-brand-dark rounded-full transition-all duration-200 shadow-xs active:scale-95 cursor-pointer shrink-0"
+                >
+                  Sign In
+                </button>
               )}
             </div>
 
@@ -541,18 +601,28 @@ export default function Header({
               {/* Compact Settings Trigger */}
               <button
                 onClick={() => setSettingsModalOpen(true)}
-                className="flex items-center gap-1.5 h-8 px-2 rounded-full text-slate-700 dark:text-slate-300 hover:bg-slate-100/60 dark:hover:bg-slate-850/60 border border-slate-200/60 dark:border-slate-800 transition-all active:scale-95 select-none cursor-pointer shrink-0 bg-white/80 dark:bg-slate-900/80 shadow-sm"
-                title={`${currency.code.toUpperCase()}`}
+                className="flex items-center gap-1.5 h-8 px-2.5 rounded-full text-slate-700 dark:text-slate-300 hover:bg-slate-100/60 dark:hover:bg-slate-850/60 border border-slate-200/60 dark:border-slate-800 transition-all active:scale-95 select-none cursor-pointer shrink-0 bg-white/80 dark:bg-slate-900/80 shadow-2xs"
+                title={`${language.code.toUpperCase()} / ${currency.code.toUpperCase()}`}
               >
-                <div className="w-5 h-3.5 select-none shrink-0 border border-slate-100 dark:border-slate-800 rounded-[2px] overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
-                  <img
-                    src={`https://flagcdn.com/w40/${getCurrencyCountryCode(currency.code)}.png`}
-                    alt={`${currency.code} flag`}
+                <div className="w-4.5 h-3 select-none shrink-0 border border-slate-100 dark:border-slate-800 rounded-[2px] overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+                  <SafeFlag
+                    src={`https://flagcdn.com/w40/${language.countryCode}.png`}
+                    alt={language.name}
+                    fallbackEmoji={language.flag}
                     className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                    loading="lazy"
                   />
                 </div>
+                <span className="text-[11px] font-bold uppercase">{language.code}</span>
+                <span className="text-slate-300 dark:text-slate-700 text-[10px]">•</span>
+                <div className="w-4.5 h-3 select-none shrink-0 border border-slate-100 dark:border-slate-800 rounded-[2px] overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+                  <SafeFlag
+                    src={`https://flagcdn.com/w40/${getCurrencyCountryCode(currency.code)}.png`}
+                    alt={`${currency.code} flag`}
+                    fallbackEmoji={getCurrencyFlag(currency.code)}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="text-[11px] font-bold uppercase">{currency.code}</span>
               </button>
 
               <motion.button
@@ -607,6 +677,7 @@ export default function Header({
             onSearch={(query) => {
               if (onSearch) onSearch(query);
             }}
+            onSelectAttraction={onViewAttraction}
             placeholder="Find places, tours, things to do..."
           />
         </div>
@@ -711,19 +782,19 @@ export default function Header({
                     {[
                       {
                         name: "Home",
-                        label: t("navHome"),
+                        label: t("navHome", "Home"),
                         active: pageName === "home" && !activeDestination,
                         icon: Home,
                       },
                       {
                         name: "Hot Deals",
-                        label: "Hot Deals 🔥",
+                        label: `${t("navHotDeals", "Hot Deals")} 🔥`,
                         active: (pageName as string) === "hot-deals",
                         icon: Flame,
                       },
                       {
                         name: "Attractions & Museums",
-                        label: "Attractions & Museums",
+                        label: t("navThingsToDo", "Things to do"),
                         active:
                           (pageName as string) === "attractions-and-museums",
                         icon: FerrisWheel,
@@ -743,6 +814,8 @@ export default function Header({
                             if (onNavigate) onNavigate("hot-deals");
                           } else if (item.name === "Blog") {
                             if (onNavigate) onNavigate("blog");
+                          } else if (item.name === "About Us") {
+                            if (onNavigate) onNavigate("about");
                           }
                         }}
                         className={`flex items-center justify-between text-left gap-3 text-lg font-bold py-3 px-4 rounded-xl transition-colors ${
@@ -857,29 +930,54 @@ export default function Header({
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#1A2B48] dark:text-slate-400 px-1 mb-2">
-                      Currency
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#1A2B48] dark:text-slate-400 px-1 mb-1">
+                      {t('language', 'Language')} & {t('currency', 'Currency')}
                     </span>
-                    <button
-                      onClick={() => {
-                        setSettingsModalOpen(true);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center gap-3 text-lg font-medium text-gray-900 hover:bg-gray-50 dark:hover:bg-slate-900 dark:text-slate-100 py-3 px-4 rounded-xl transition-colors"
-                    >
-                      <div className="w-7 h-5 select-none shrink-0 border border-slate-200 dark:border-slate-800 rounded overflow-hidden bg-slate-100 dark:bg-slate-900 shadow-sm flex items-center justify-center">
-                        <img
-                          src={`https://flagcdn.com/w40/${getCurrencyCountryCode(currency.code)}.png`}
-                          alt={`${currency.code} flag`}
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                          loading="lazy"
-                        />
-                      </div>
-                      <span className="uppercase font-semibold">
-                        {currency.code}
-                      </span>
-                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          setSettingsDefaultTab('language');
+                          setSettingsModalOpen(true);
+                          setMobileMenuOpen(false);
+                        }}
+                        className="flex items-center justify-between text-base font-semibold text-gray-900 hover:bg-gray-50 dark:hover:bg-slate-900 dark:text-slate-100 py-3 px-3 rounded-xl transition-colors border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-3.5 select-none shrink-0 border border-slate-200 dark:border-slate-800 rounded overflow-hidden bg-slate-100 dark:bg-slate-900 shadow-2xs flex items-center justify-center">
+                            <SafeFlag
+                              src={`https://flagcdn.com/w40/${language.countryCode}.png`}
+                              alt={language.name}
+                              fallbackEmoji={language.flag}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="text-sm font-bold uppercase">{language.code}</span>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-slate-400" strokeWidth={2.5} />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSettingsDefaultTab('currency');
+                          setSettingsModalOpen(true);
+                          setMobileMenuOpen(false);
+                        }}
+                        className="flex items-center justify-between text-base font-semibold text-gray-900 hover:bg-gray-50 dark:hover:bg-slate-900 dark:text-slate-100 py-3 px-3 rounded-xl transition-colors border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-3.5 select-none shrink-0 border border-slate-200 dark:border-slate-800 rounded overflow-hidden bg-slate-100 dark:bg-slate-900 shadow-2xs flex items-center justify-center">
+                            <SafeFlag
+                              src={`https://flagcdn.com/w40/${getCurrencyCountryCode(currency.code)}.png`}
+                              alt={`${currency.code} flag`}
+                              fallbackEmoji={getCurrencyFlag(currency.code)}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="text-sm font-bold">{currency.code}</span>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-slate-400" strokeWidth={2.5} />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-auto pt-6 border-t border-gray-100 dark:border-slate-800 flex flex-col gap-2">
@@ -900,6 +998,7 @@ export default function Header({
       <SettingsModal
         isOpen={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
+        defaultTab={settingsDefaultTab}
       />
     </>
   );

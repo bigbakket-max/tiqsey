@@ -396,7 +396,16 @@ export default function MyBookingsPage({
 
                             {/* Price */}
                             <div className="font-bold text-slate-800 dark:text-slate-200">
-                              {formatPrice(booking.totalPrice, "EUR")}
+                              {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+                                new Intl.NumberFormat('en-US', {
+                                  style: 'currency',
+                                  currency: booking.paymentCurrency,
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2
+                                }).format(booking.paymentPrice)
+                              ) : (
+                                formatPrice(booking.totalPrice, "EUR")
+                              )}
                             </div>
                           </div>
                         </div>
@@ -673,7 +682,14 @@ export default function MyBookingsPage({
                       bookingDate: selectedBookingForTicket.bookingDate,
                       passengerName: selectedBookingForTicket.guestInfo?.name || user?.name || "Valued Explorer",
                       ticketsCount: selectedBookingForTicket.ticketsCount,
-                      totalPrice: selectedBookingForTicket.totalPrice,
+                      totalPrice: selectedBookingForTicket.paymentCurrency && selectedBookingForTicket.paymentPrice !== undefined ? (
+                        new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: selectedBookingForTicket.paymentCurrency,
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        }).format(selectedBookingForTicket.paymentPrice)
+                      ) : selectedBookingForTicket.totalPrice,
                       additionalPassengers: selectedBookingForTicket.passengers || selectedBookingForTicket.guestInfo?.passengers,
                     });
                   }}

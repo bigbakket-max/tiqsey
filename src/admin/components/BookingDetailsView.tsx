@@ -48,6 +48,9 @@ interface AdminBooking {
   notes?: string;
   attractionImageUrl?: string;
   city?: string;
+  paymentCurrency?: string;
+  paymentPrice?: number;
+  paymentSymbol?: string;
 }
 
 interface BookingDetailsViewProps {
@@ -258,8 +261,21 @@ export default function BookingDetailsView({
               <span className="text-[11px] font-medium text-[#94a3b8]">Net Amount</span>
             </div>
             <span className="text-[13px] font-extrabold text-slate-900 dark:text-slate-100">
-              <EurToInrTooltip amount={booking.totalPrice || 40} bookingDate={booking.bookingDate} currency="USD">
-                USD {booking.totalPrice || 40}
+              <EurToInrTooltip 
+                amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 40)} 
+                bookingDate={booking.bookingDate} 
+                currency={booking.paymentCurrency || "USD"}
+              >
+                {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+                  new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: booking.paymentCurrency,
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  }).format(booking.paymentPrice)
+                ) : (
+                  `USD ${booking.totalPrice || 40}`
+                )}
               </EurToInrTooltip>
             </span>
           </div>
@@ -270,8 +286,21 @@ export default function BookingDetailsView({
               <span className="text-[11px] font-medium text-[#94a3b8]">Gross Amount</span>
             </div>
             <span className="text-[13px] font-extrabold text-slate-900 dark:text-slate-100">
-              <EurToInrTooltip amount={booking.totalPrice || 40} bookingDate={booking.bookingDate} currency="USD">
-                USD {booking.totalPrice || 40}
+              <EurToInrTooltip 
+                amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 40)} 
+                bookingDate={booking.bookingDate} 
+                currency={booking.paymentCurrency || "USD"}
+              >
+                {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+                  new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: booking.paymentCurrency,
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  }).format(booking.paymentPrice)
+                ) : (
+                  `USD ${booking.totalPrice || 40}`
+                )}
               </EurToInrTooltip>
             </span>
           </div>
@@ -295,8 +324,21 @@ export default function BookingDetailsView({
 
               <div className="mb-4">
                 <p className="text-[17px] font-extrabold text-slate-900 dark:text-slate-100 mb-2">
-                  <EurToInrTooltip amount={booking.totalPrice || 40} bookingDate={booking.bookingDate} currency="USD">
-                    USD {booking.totalPrice || 40}
+                  <EurToInrTooltip 
+                    amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 40)} 
+                    bookingDate={booking.bookingDate} 
+                    currency={booking.paymentCurrency || "USD"}
+                  >
+                    {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+                      new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: booking.paymentCurrency,
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      }).format(booking.paymentPrice)
+                    ) : (
+                      `USD ${booking.totalPrice || 40}`
+                    )}
                   </EurToInrTooltip>
                 </p>
                 <span className="px-2.5 py-0.5 text-[10px] font-medium text-emerald-500 border border-emerald-500 rounded-full">
@@ -787,8 +829,21 @@ export default function BookingDetailsView({
             <div>
               <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-1">TOTAL AMOUNT</p>
               <p className="font-extrabold text-[#e3000f] text-base">
-                <EurToInrTooltip amount={booking.totalPrice || 66} bookingDate={booking.bookingDate} currency="USD">
-                  USD {booking.totalPrice || 66}
+                <EurToInrTooltip 
+                  amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 66)} 
+                  bookingDate={booking.bookingDate} 
+                  currency={booking.paymentCurrency || "USD"}
+                >
+                  {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+                    new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: booking.paymentCurrency,
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    }).format(booking.paymentPrice)
+                  ) : (
+                    `USD ${booking.totalPrice || 66}`
+                  )}
                 </EurToInrTooltip>
               </p>
             </div>
@@ -802,8 +857,21 @@ export default function BookingDetailsView({
             <div>
               <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-1">COLLECTED</p>
               <p className="font-extrabold text-slate-800 dark:text-slate-200 text-base">
-                <EurToInrTooltip amount={booking.collectedAmount ?? booking.totalPrice ?? 66} bookingDate={booking.bookingDate} currency="USD">
-                  USD {booking.collectedAmount ?? booking.totalPrice ?? 66}
+                <EurToInrTooltip 
+                  amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.collectedAmount ?? booking.totalPrice ?? 66)} 
+                  bookingDate={booking.bookingDate} 
+                  currency={booking.paymentCurrency || "USD"}
+                >
+                  {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+                    new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: booking.paymentCurrency,
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    }).format(booking.paymentPrice)
+                  ) : (
+                    `USD ${booking.collectedAmount ?? booking.totalPrice ?? 66}`
+                  )}
                 </EurToInrTooltip>
               </p>
             </div>
@@ -816,7 +884,7 @@ export default function BookingDetailsView({
             </span>
             <div>
               <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-1">PENDING</p>
-              <p className="font-extrabold text-slate-800 dark:text-slate-200 text-base">USD 0</p>
+              <p className="font-extrabold text-slate-800 dark:text-slate-200 text-base">{booking.paymentCurrency || "USD"} 0</p>
             </div>
           </div>
 
@@ -824,7 +892,7 @@ export default function BookingDetailsView({
           <div className="bg-[#f8fafc] dark:bg-slate-950/40 p-4 rounded-xl border border-slate-150 dark:border-slate-800/80 min-h-[90px] flex flex-col justify-between">
             <div>
               <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-1">AUTHORIZED AMOUNT</p>
-              <p className="font-extrabold text-slate-800 dark:text-slate-200 text-base">USD 0</p>
+              <p className="font-extrabold text-slate-800 dark:text-slate-200 text-base">{booking.paymentCurrency || "USD"} 0</p>
             </div>
           </div>
 
@@ -863,8 +931,21 @@ export default function BookingDetailsView({
                 <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors">
                   <td className="py-4 pr-3 font-medium text-slate-600 dark:text-slate-400">1</td>
                   <td className="py-4 px-3 font-extrabold text-slate-900 dark:text-slate-100">
-                    <EurToInrTooltip amount={booking.totalPrice || 66} bookingDate={booking.bookingDate} currency="USD">
-                      USD {booking.totalPrice || 66}
+                    <EurToInrTooltip 
+                      amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 66)} 
+                      bookingDate={booking.bookingDate} 
+                      currency={booking.paymentCurrency || "USD"}
+                    >
+                      {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+                        new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: booking.paymentCurrency,
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        }).format(booking.paymentPrice)
+                      ) : (
+                        `USD ${booking.totalPrice || 66}`
+                      )}
                     </EurToInrTooltip>
                   </td>
                   <td className="py-4 px-3 font-medium text-slate-600 dark:text-slate-400">{booking.bookingDate || '30 Jun 2026'}</td>
@@ -917,7 +998,8 @@ export default function BookingDetailsView({
 
       {/* 9. BOOKING'S NET PROFIT STATS BOX */}
       {(() => {
-        const paid = booking.totalPrice || 66;
+        const currencyToUse = booking.paymentCurrency || "USD";
+        const paid = booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 66);
         const pg = parseFloat((paid * 0.04).toFixed(2));
         const isCancelled = booking.status === 'cancelled' || booking.status === 'rejected';
         const refunded = isCancelled ? paid : 0;
@@ -925,6 +1007,18 @@ export default function BookingDetailsView({
         const cancellation = 0;
         const net = isCancelled ? -pg : parseFloat((paid - pg).toFixed(2));
         const isProfit = net >= 0;
+
+        const formatValue = (val: number) => {
+          if (booking.paymentCurrency) {
+            return new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: booking.paymentCurrency,
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            }).format(val);
+          }
+          return `USD ${val.toFixed(2)}`;
+        };
 
         return (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-6 shadow-sm">
@@ -935,8 +1029,8 @@ export default function BookingDetailsView({
                   ? 'text-emerald-600 dark:text-emerald-400' 
                   : 'text-rose-600 dark:text-rose-400'
               }`}>
-                <EurToInrTooltip amount={net} bookingDate={booking.bookingDate} currency="USD">
-                  {isProfit ? `USD ${net.toFixed(2)}` : `-USD ${Math.abs(net).toFixed(2)}`}
+                <EurToInrTooltip amount={net} bookingDate={booking.bookingDate} currency={currencyToUse}>
+                  {isProfit ? formatValue(net) : `-${formatValue(Math.abs(net))}`}
                 </EurToInrTooltip>
               </p>
             </div>
@@ -946,63 +1040,63 @@ export default function BookingDetailsView({
             <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-5 gap-y-6 gap-x-4 pt-6">
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-medium text-[#94a3b8]">GST:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">USD 0</span>
+                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">{currencyToUse} 0</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-medium text-[#94a3b8]">TCS:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">USD 0</span>
+                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">{currencyToUse} 0</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-medium text-[#94a3b8]">Pg Charges:</span>
                 <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">
-                  <EurToInrTooltip amount={pg} bookingDate={booking.bookingDate} currency="USD">
-                    USD {pg.toFixed(2)}
+                  <EurToInrTooltip amount={pg} bookingDate={booking.bookingDate} currency={currencyToUse}>
+                    {formatValue(pg)}
                   </EurToInrTooltip>
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-medium text-[#94a3b8]">Refund Pg Charges:</span>
                 <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">
-                  <EurToInrTooltip amount={refundPg} bookingDate={booking.bookingDate} currency="USD">
-                    USD {refundPg.toFixed(2)}
+                  <EurToInrTooltip amount={refundPg} bookingDate={booking.bookingDate} currency={currencyToUse}>
+                    {formatValue(refundPg)}
                   </EurToInrTooltip>
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-medium text-[#94a3b8]">Vendor Payable:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">USD 0</span>
+                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">{currencyToUse} 0</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-medium text-[#94a3b8]">Paid Amount:</span>
                 <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">
-                  <EurToInrTooltip amount={paid} bookingDate={booking.bookingDate} currency="USD">
-                    USD {paid.toFixed(2)}
+                  <EurToInrTooltip amount={paid} bookingDate={booking.bookingDate} currency={currencyToUse}>
+                    {formatValue(paid)}
                   </EurToInrTooltip>
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-medium text-[#94a3b8]">Settled Amount:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">USD 0</span>
+                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">{currencyToUse} 0</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-medium text-[#94a3b8]">Refunded Amount:</span>
                 <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">
-                  <EurToInrTooltip amount={refunded} bookingDate={booking.bookingDate} currency="USD">
-                    USD {refunded.toFixed(2)}
+                  <EurToInrTooltip amount={refunded} bookingDate={booking.bookingDate} currency={currencyToUse}>
+                    {formatValue(refunded)}
                   </EurToInrTooltip>
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-medium text-[#94a3b8]">Cancellation Charges:</span>
                 <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">
-                  <EurToInrTooltip amount={cancellation} bookingDate={booking.bookingDate} currency="USD">
-                    USD {cancellation.toFixed(2)}
+                  <EurToInrTooltip amount={cancellation} bookingDate={booking.bookingDate} currency={currencyToUse}>
+                    {formatValue(cancellation)}
                   </EurToInrTooltip>
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-medium text-[#94a3b8]">Vendor Penalty:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">USD 0</span>
+                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">{currencyToUse} 0</span>
               </div>
             </div>
           </div>

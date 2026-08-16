@@ -665,6 +665,7 @@ export default function ActivitiesPage({
                   isPageFilter={true}
                   currentDestination={destination}
                   onSearch={(q) => setSearchQuery(q)}
+                  onSelectAttraction={onViewAttraction}
                   placeholder={`Search tickets, tours, cruises in ${destination}...`}
                 />
               </div>

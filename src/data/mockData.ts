@@ -2603,7 +2603,7 @@ export const DESTINATIONS: Destination[] = [
     name: "Thailand",
     attractionsCount: 234,
     imageUrl:
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJLvfUvBH88YN001vl-J9iZPKa4dhU-LtLKhap6akRBC9jPwdBOEvC1Ur-&s=10",
+      "https://images.unsplash.com/photo-1563492065599-3520f775eeed?auto=format&fit=crop&q=80&w=1200",
   },
   {
     id: "australia",

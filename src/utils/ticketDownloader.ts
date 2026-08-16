@@ -36,7 +36,8 @@ export function downloadTicketVoucher(data: TicketDownloadData) {
   
   // Format price
   let priceStr = typeof data.totalPrice === "number" ? `$${data.totalPrice.toFixed(2)}` : data.totalPrice;
-  if (!priceStr.toString().startsWith("$") && !priceStr.toString().startsWith("€") && !priceStr.toString().startsWith("£")) {
+  const hasCurrencyIndicator = /[\$€£₹¥₪₫₭₮₯₰₱﷼﹩＄￠￡￥￦A-Za-z]/.test(priceStr.toString());
+  if (!hasCurrencyIndicator) {
     priceStr = `$${priceStr}`;
   }
 

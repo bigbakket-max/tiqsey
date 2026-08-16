@@ -9,6 +9,10 @@ import {
   MapPin,
   Globe,
   X,
+  ChevronDown,
+  Zap,
+  ShieldCheck,
+  Tag,
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
 import { POPULAR_ATTRACTIONS } from "../data/mockData";
@@ -199,127 +203,180 @@ export default function AttractionsAndMuseumsPage({
         </div>
 
         {/* Hero Section */}
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-8 sm:p-12 md:p-16 mb-10 shadow-xl border border-slate-800">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=1600')] bg-cover bg-center mix-blend-overlay opacity-20" />
-          <div className="relative z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand/10 border border-brand/20 rounded-full text-brand text-xs font-bold uppercase tracking-wider mb-4">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Full Access Catalog</span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-4 leading-tight">
-              Attractions & Museums
+        <div id="hero-banner-container" className="relative rounded-3xl overflow-hidden bg-slate-950 text-white p-6 sm:p-10 md:p-14 mb-8 shadow-lg border border-slate-200/10">
+          <div id="hero-banner-background" className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1600')] bg-cover bg-center opacity-60 w-full h-full" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-transparent" />
+          <div className="relative z-10 max-w-4xl text-left">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight mb-3 leading-tight">
+              Explore the world's best attractions & experiences
             </h1>
-            <p className="text-slate-300 text-sm sm:text-base font-medium leading-relaxed mb-0">
-              Browse, filter, and lock in all premium entry passes, private
-              museum visits, skip-the-line bookings, and incredible city
-              adventures. All listed experiences are automatically compiled here
-              in real-time.
+            <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed mb-6 max-w-2xl">
+              Book tickets for top attractions, tours and activities across 180+ countries.
             </p>
+
+            {/* Centered / Left-aligned Search Pill */}
+            <div id="hero-search-pill" className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-full p-1.5 shadow-lg border border-slate-200/10 flex flex-col sm:flex-row items-stretch sm:items-center mb-6 gap-2 sm:gap-0 focus-within:ring-4 focus-within:ring-brand/10 transition-all">
+              <div className="flex items-center flex-1 min-w-0 pl-4">
+                <Search className="w-5 h-5 text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search attractions, cities or activities..."
+                  className="w-full pl-3 pr-4 py-2 bg-transparent text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none text-sm font-medium"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors mr-2 cursor-pointer select-none"
+                    title="Clear"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <button
+                className="bg-[#E51937] hover:bg-[#c4132b] text-white px-7 py-3 rounded-full font-bold text-sm tracking-wide transition-all shadow-md active:scale-95 shrink-0"
+              >
+                Search
+              </button>
+            </div>
+
+            {/* Trust Bar Row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t border-white/10 w-full max-w-4xl">
+              <div className="flex items-center gap-2.5 text-left text-white/90">
+                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
+                  <Zap className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold leading-tight">Instant Confirmation</h4>
+                  <p className="text-[10px] text-white/60">Get e-tickets instantly</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2.5 text-left text-white/90">
+                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
+                  <RotateCcw className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold leading-tight">Free Cancellation</h4>
+                  <p className="text-[10px] text-white/60">Up to 24 hours</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 text-left text-white/90">
+                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
+                  <Tag className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold leading-tight">Best Price Guarantee</h4>
+                  <p className="text-[10px] text-white/60">We match the price</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 text-left text-white/90">
+                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold leading-tight">Secure Booking</h4>
+                  <p className="text-[10px] text-white/60">Your data is protected</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Dynamic Interactive Controls Bar */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/50 dark:border-slate-800/60 p-5 mb-8 shadow-xs flex flex-col gap-5">
-          {/* Search Bar & Sort Dropdown */}
-          <div className="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center">
-            <div className="relative flex-1 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 group-focus-within:text-brand transition-colors" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by attraction name, description, city, or category..."
-                className="w-full pl-11 pr-11 py-2.5 bg-slate-50/50 dark:bg-slate-950/60 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl font-medium border border-slate-200 dark:border-slate-800/80 focus:border-brand/50 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition-all text-sm focus:ring-2 focus:ring-brand/10 shadow-xs"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer select-none"
-                  title="Clear search query"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+        {/* Clean Modern Inline Filters Bar */}
+        <div className="flex flex-wrap items-center gap-3 mb-8 pb-1">
+          <button
+            onClick={handleResetFilters}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer select-none active:scale-95 shrink-0"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-slate-400" />
+            <span>Filters</span>
+            {(selectedRegion !== "All" || selectedCity !== "All" || selectedCategory !== "All" || searchQuery) && (
+              <span className="w-2 h-2 rounded-full bg-[#E51937] animate-pulse" />
+            )}
+          </button>
 
-            <div className="flex flex-row gap-3 items-center">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider shrink-0 select-none">
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>SORT BY:</span>
-              </div>
+          {/* Region Filter */}
+          <div className="relative shrink-0">
+            <select
+              value={selectedRegion}
+              onChange={(e) => {
+                setSelectedRegion(e.target.value);
+                setSelectedCity("All");
+              }}
+              className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+            >
+              {regions.map((region) => (
+                <option key={region} value={region}>
+                  {region === "All" ? "Regions" : region}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* City Filter */}
+          <div className="relative shrink-0">
+            <select
+              value={selectedCity}
+              onChange={(e) => setSelectedCity(e.target.value)}
+              className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+            >
+              {cities.map((city) => (
+                <option key={city} value={city}>
+                  {city === "All" ? "Destinations" : city}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* Category Filter */}
+          <div className="relative shrink-0">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+            >
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category === "All" ? "Categories" : category}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* Active Reset helper badge */}
+          {(selectedRegion !== "All" || selectedCity !== "All" || selectedCategory !== "All" || searchQuery) && (
+            <button
+              onClick={handleResetFilters}
+              className="flex items-center gap-1.5 text-xs font-bold text-[#E51937] hover:underline cursor-pointer select-none ml-2 shrink-0"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
+
+          {/* Sort By Aligned Right */}
+          <div className="flex items-center gap-2 sm:ml-auto ml-0 mt-2 sm:mt-0 w-full sm:w-auto shrink-0 justify-between sm:justify-start">
+            <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Sort By:</span>
+            <div className="relative">
               <select
                 value={sortBy}
                 onChange={(e: any) => setSortBy(e.target.value)}
-                className="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-950/60 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-800 dark:text-slate-100 font-bold border border-slate-200 dark:border-slate-800/80 rounded-xl focus:border-brand/40 focus:outline-none transition-all text-sm cursor-pointer"
+                className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs w-full sm:w-auto"
               >
-                <option value="popularity">Popularity</option>
+                <option value="popularity">Recommended</option>
                 <option value="rating">Rating (Highest First)</option>
                 <option value="price-asc">Price: Low to High</option>
                 <option value="price-desc">Price: High to Low</option>
               </select>
-            </div>
-          </div>
-
-          {/* Filters Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Region Filter */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5 select-none">
-                <Globe className="w-3.5 h-3.5" />
-                <span>FILTER BY REGION:</span>
-              </span>
-              <select
-                value={selectedRegion}
-                onChange={(e) => {
-                  setSelectedRegion(e.target.value);
-                  setSelectedCity("All"); // Reset city when region changes
-                }}
-                className="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-950/60 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-800 dark:text-slate-100 font-semibold border border-slate-200 dark:border-slate-800/80 rounded-xl focus:border-brand/40 focus:outline-none transition-all text-sm cursor-pointer w-full"
-              >
-                {regions.map((region) => (
-                  <option key={region} value={region}>
-                    {region === "All" ? "All Regions" : region}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* City Filter */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5 select-none">
-                <MapPin className="w-3.5 h-3.5" />
-                <span>FILTER BY DESTINATION:</span>
-              </span>
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-950/60 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-800 dark:text-slate-100 font-semibold border border-slate-200 dark:border-slate-800/80 rounded-xl focus:border-brand/40 focus:outline-none transition-all text-sm cursor-pointer w-full"
-              >
-                {cities.map((city) => (
-                  <option key={city} value={city}>
-                    {city === "All" ? "All Destinations" : city}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Category Filter */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5 select-none">
-                <Compass className="w-3.5 h-3.5" />
-                <span>FILTER BY CATEGORY:</span>
-              </span>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-950/60 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-800 dark:text-slate-100 font-semibold border border-slate-200 dark:border-slate-800/80 rounded-xl focus:border-brand/40 focus:outline-none transition-all text-sm cursor-pointer w-full"
-              >
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category === "All" ? "All Categories" : category}
-                  </option>
-                ))}
-              </select>
+              <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { useSettings } from '../contexts/SettingsContext';
 
 import SearchBar from './SearchBar';
 
@@ -339,19 +340,16 @@ const UNUSED_STICKERS = [
 ];
 
 export default function Hero({ onSelectDestination, onSearch }: HeroProps) {
+  const { t } = useSettings();
+
   return (
     <div 
-      className="relative z-40 p-0 h-[300px] md:h-[400px] lg:h-[440px] flex flex-col items-center justify-center transition-colors duration-300 rounded-bl-[16px] md:rounded-bl-[24px] overflow-hidden shadow-sm"
-      style={{
-        backgroundImage: "linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.75)), url('https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=2000&q=80')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center'
-      }}
+      className="relative z-40 p-0 py-8 md:py-10 min-h-[360px] md:min-h-[440px] lg:min-h-[490px] flex flex-col items-center justify-center transition-colors duration-300 rounded-bl-[16px] md:rounded-bl-[24px] overflow-hidden shadow-xs bg-gradient-to-b from-[#e3f2fb] via-[#f4f9fd] to-[#d5eaf8] dark:from-slate-900 dark:via-slate-900 dark:to-slate-950"
     >
       
-      {/* Premium subtle atmospheric background glows */}
-      <div className="absolute top-[-20%] left-[20%] w-[400px] h-[400px] bg-blue-300/15 dark:bg-blue-900/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[20%] w-[450px] h-[450px] bg-indigo-200/15 dark:bg-indigo-900/10 rounded-full blur-[120px] pointer-events-none" />
+      {/* Subtle soft atmospheric background ambient glow */}
+      <div className="absolute top-[-20%] left-[20%] w-[400px] h-[400px] bg-sky-200/40 dark:bg-blue-900/15 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[20%] w-[450px] h-[450px] bg-blue-100/40 dark:bg-indigo-900/15 rounded-full blur-[120px] pointer-events-none" />
       
 
 
@@ -360,37 +358,71 @@ export default function Hero({ onSelectDestination, onSearch }: HeroProps) {
         
         {/* Left Column: Left Collage (strictly fits Columns 1-3) */}
         <div className="hidden lg:block lg:col-span-3 h-[340px] relative pointer-events-none">
-          {COLLAGE_LEFT.map((img, i) => (
-            <motion.div
-              key={`left-${i}`}
-              style={{ ...img.style, willChange: 'transform' }}
-              className={`absolute overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.08)] bg-white border-2 border-white dark:border-slate-800 dark:bg-slate-900 cursor-pointer pointer-events-auto transition-shadow duration-300 ${img.className}`}
-              initial={{ opacity: 0, y: 15, rotate: img.rotate }}
-              animate={{ 
-                opacity: 1, 
-                y: 0,
-                rotate: img.rotate
-              }}
-              transition={{
-                duration: 0.6
-              }}
-              whileHover={{ 
-                scale: 1.12, 
-                rotate: img.rotate * 0.3,
-                zIndex: 50, 
-                boxShadow: "0px 20px 40px rgba(0,0,0,0.15)",
-                transition: { duration: 0.2 }
-              }}
-              onClick={() => onSelectDestination(img.label)}
-            >
-              <img 
-                src={img.url} 
-                className="w-full h-full object-cover select-none" 
-                alt={img.label} 
-                referrerPolicy="no-referrer" 
-              />
-            </motion.div>
-          ))}
+          {COLLAGE_LEFT.map((img, i) => {
+            const leftValue = img.style.left;
+            const cardWidth = parseInt(img.style.width);
+            const cardTop = img.style.top;
+            return (
+              <React.Fragment key={`left-${i}`}>
+                {/* Hanging Cord */}
+                <motion.div
+                  initial={{ opacity: 0, scaleY: 0 }}
+                  animate={{ opacity: 0.65, scaleY: 1 }}
+                  transition={{ duration: 0.8, delay: img.delay }}
+                  style={{
+                    left: `calc(${leftValue} + ${cardWidth / 2}px)`,
+                    top: "-150px",
+                    height: `calc(150px + ${cardTop})`,
+                    transformOrigin: "top",
+                  }}
+                  className="absolute w-[1.5px] bg-gradient-to-b from-[#8b5a2b]/30 via-[#a0522d]/70 to-[#5c3a21] z-0 pointer-events-none"
+                />
+                
+                {/* Knot connector */}
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: img.delay }}
+                  style={{
+                    left: `calc(${leftValue} + ${cardWidth / 2 - 4}px)`,
+                    top: `calc(${cardTop} - 4px)`,
+                  }}
+                  className="absolute w-2 h-2 rounded-full bg-[#5c3a21] border border-[#3d2514] z-30 pointer-events-none shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                />
+
+                {/* Card */}
+                <motion.div
+                  style={{ ...img.style, willChange: 'transform' }}
+                  className={`absolute overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.08)] bg-white border-2 border-white dark:border-slate-800 dark:bg-slate-900 cursor-pointer pointer-events-auto transition-shadow duration-300 ${img.className}`}
+                  initial={{ opacity: 0, y: 15, rotate: img.rotate }}
+                  animate={{ 
+                    opacity: 1, 
+                    y: 0, 
+                    rotate: img.rotate 
+                  }}
+                  transition={{ 
+                    duration: 0.6,
+                    delay: img.delay
+                  }}
+                  whileHover={{ 
+                    scale: 1.12, 
+                    rotate: img.rotate * 0.3,
+                    zIndex: 50, 
+                    boxShadow: "0px 20px 40px rgba(0,0,0,0.15)",
+                    transition: { duration: 0.2 }
+                  }}
+                  onClick={() => onSelectDestination(img.label)}
+                >
+                  <img 
+                    src={img.url} 
+                    className="w-full h-full object-cover select-none" 
+                    alt={img.label} 
+                    referrerPolicy="no-referrer" 
+                  />
+                </motion.div>
+              </React.Fragment>
+            );
+          })}
         </div>
 
         {/* Center Column: Title & Search Bar (Guaranteed cols 4-9) */}
@@ -399,55 +431,117 @@ export default function Hero({ onSelectDestination, onSearch }: HeroProps) {
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="w-full flex flex-col items-center"
+            className="w-full flex flex-col items-center text-center"
           >
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-[38px] xl:text-[42px] font-black text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)] tracking-tight leading-[1.4] max-w-[700px] mx-auto mb-0">
-              <span className="inline-block align-middle">
-                Explore
-              </span>{" "}
-              <span className="inline-block align-middle">
-                <span className="text-white font-extrabold">unforgettable experiences</span>
-              </span>{" "}
-              <span className="inline-block align-middle">
-                around the <span className="text-brand">world</span>
+            {/* Eyebrow Accent */}
+            <span className="text-[11px] sm:text-xs md:text-sm font-extrabold uppercase tracking-[0.22em] text-teal-600 dark:text-teal-400 mb-2 select-none">
+              {t('heroEyebrow', 'DISCOVER. DREAM. EXPLORE.')}
+            </span>
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[52px] xl:text-[56px] font-black text-slate-900 dark:text-white tracking-tight leading-[1.08] max-w-[700px] mx-auto mb-2">
+              <span className="block font-black text-slate-900 dark:text-white">
+                {t('heroTitle1', 'Explore')}
+              </span>
+              <span className="block font-black text-slate-900 dark:text-white">
+                {t('heroTitle2', 'unforgettable')}
+              </span>
+              <span className="block font-black bg-gradient-to-r from-[#E51937] via-red-500 to-rose-600 bg-clip-text text-transparent">
+                {t('heroTitle3', 'experiences')}
+              </span>
+              <span className="inline-flex items-center justify-center flex-wrap gap-x-2 font-['Caveat',cursive] font-bold text-3xl sm:text-4xl md:text-5xl lg:text-[56px] xl:text-[62px] tracking-normal leading-tight mt-0.5">
+                <span className="relative inline-block text-amber-500 dark:text-amber-400">
+                  {t('heroTitle4', 'around the world')}
+                  <svg
+                    className="absolute -bottom-2.5 sm:-bottom-3 left-0 w-full h-3 text-amber-500 dark:text-amber-400 pointer-events-none overflow-visible"
+                    viewBox="0 0 100 12"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M2 8.5C28 2.5 75 1.5 98 6.5C70 4.5 35 6 10 9"
+                      stroke="currentColor"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
               </span>
             </h1>
+
+            {/* Subtitle Caption */}
+            <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-300 font-medium max-w-md mx-auto mt-2 leading-relaxed">
+              {t('heroSubtitle', 'Handpicked destinations, unique activities and memories that last a lifetime.')}
+            </p>
           </motion.div>
         </div>
 
         {/* Right Column: Right Collage (strictly fits Columns 10-12) */}
         <div className="hidden lg:block lg:col-span-3 h-[340px] relative pointer-events-none">
-          {COLLAGE_RIGHT.map((img, i) => (
-            <motion.div
-              key={`right-${i}`}
-              style={{ ...img.style, willChange: 'transform' }}
-              className={`absolute overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.08)] bg-white border-2 border-white dark:border-slate-800 dark:bg-slate-900 cursor-pointer pointer-events-auto transition-shadow duration-300 ${img.className}`}
-              initial={{ opacity: 0, y: 15, rotate: img.rotate }}
-              animate={{ 
-                opacity: 1, 
-                y: 0,
-                rotate: img.rotate
-              }}
-              transition={{
-                duration: 0.6
-              }}
-              whileHover={{ 
-                scale: 1.12, 
-                rotate: img.rotate * 0.3,
-                zIndex: 50, 
-                boxShadow: "0px 20px 40px rgba(0,0,0,0.15)",
-                transition: { duration: 0.2 }
-              }}
-              onClick={() => onSelectDestination(img.label)}
-            >
-              <img 
-                src={img.url} 
-                className="w-full h-full object-cover select-none" 
-                alt={img.label} 
-                referrerPolicy="no-referrer" 
-              />
-            </motion.div>
-          ))}
+          {COLLAGE_RIGHT.map((img, i) => {
+            const rightValue = img.style.right;
+            const cardWidth = parseInt(img.style.width);
+            const cardTop = img.style.top;
+            return (
+              <React.Fragment key={`right-${i}`}>
+                {/* Hanging Cord */}
+                <motion.div
+                  initial={{ opacity: 0, scaleY: 0 }}
+                  animate={{ opacity: 0.65, scaleY: 1 }}
+                  transition={{ duration: 0.8, delay: img.delay }}
+                  style={{
+                    right: `calc(${rightValue} + ${cardWidth / 2}px)`,
+                    top: "-150px",
+                    height: `calc(150px + ${cardTop})`,
+                    transformOrigin: "top",
+                  }}
+                  className="absolute w-[1.5px] bg-gradient-to-b from-[#8b5a2b]/30 via-[#a0522d]/70 to-[#5c3a21] z-0 pointer-events-none"
+                />
+                
+                {/* Knot connector */}
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: img.delay }}
+                  style={{
+                    right: `calc(${rightValue} + ${cardWidth / 2 - 4}px)`,
+                    top: `calc(${cardTop} - 4px)`,
+                  }}
+                  className="absolute w-2 h-2 rounded-full bg-[#5c3a21] border border-[#3d2514] z-30 pointer-events-none shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                />
+
+                {/* Card */}
+                <motion.div
+                  style={{ ...img.style, willChange: 'transform' }}
+                  className={`absolute overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.08)] bg-white border-2 border-white dark:border-slate-800 dark:bg-slate-900 cursor-pointer pointer-events-auto transition-shadow duration-300 ${img.className}`}
+                  initial={{ opacity: 0, y: 15, rotate: img.rotate }}
+                  animate={{ 
+                    opacity: 1, 
+                    y: 0,
+                    rotate: img.rotate
+                  }}
+                  transition={{
+                    duration: 0.6,
+                    delay: img.delay
+                  }}
+                  whileHover={{ 
+                    scale: 1.12, 
+                    rotate: img.rotate * 0.3,
+                    zIndex: 50, 
+                    boxShadow: "0px 20px 40px rgba(0,0,0,0.15)",
+                    transition: { duration: 0.2 }
+                  }}
+                  onClick={() => onSelectDestination(img.label)}
+                >
+                  <img 
+                    src={img.url} 
+                    className="w-full h-full object-cover select-none" 
+                    alt={img.label} 
+                    referrerPolicy="no-referrer" 
+                  />
+                </motion.div>
+              </React.Fragment>
+            );
+          })}
         </div>
 
       </div>

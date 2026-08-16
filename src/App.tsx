@@ -1,12 +1,4 @@
 import React, { useState, useEffect } from "react";
-import {
-  Smartphone,
-  BadgeCheck,
-  Sparkles,
-  Star,
-  Clock,
-  Ticket,
-} from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
@@ -24,6 +16,7 @@ import { ScrollReveal } from "./components/ScrollReveal";
 import { useSettings } from "./contexts/SettingsContext";
 import { useAuth } from "./contexts/AuthContext";
 import { POPULAR_ATTRACTIONS } from "./data/mockData";
+import { getDisplayProductId } from "./utils/productIdGenerator";
 import { Attraction } from "./types";
 import AttractionsAndMuseumsPage from "./components/AttractionsAndMuseumsPage";
 import HotDealsPage from "./components/HotDealsPage";
@@ -33,6 +26,10 @@ import RegisterPage from "./components/RegisterPage";
 import WishlistPage from "./components/WishlistPage";
 import MyBookingsPage from "./components/MyBookingsPage";
 import ProfilePage from "./components/ProfilePage";
+import AboutPage from "./components/AboutPage";
+import PrivacyPolicyPage from "./components/PrivacyPolicyPage";
+import CookiePolicyPage from "./components/CookiePolicyPage";
+import TermsAndConditionsPage from "./components/TermsAndConditionsPage";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -40,7 +37,7 @@ export default function App() {
   const { t } = useSettings();
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState<
-    "home" | "attractions-and-museums" | "hot-deals" | "blog" | "sign-in" | "register" | "wishlist" | "my-bookings" | "profile"
+    "home" | "attractions-and-museums" | "hot-deals" | "blog" | "sign-in" | "register" | "wishlist" | "my-bookings" | "profile" | "about" | "privacy-policy" | "cookie-policy" | "terms-and-conditions"
   >("home");
   const [selectedDestination, setSelectedDestination] = useState<string | null>(
     null,
@@ -117,6 +114,14 @@ export default function App() {
         }
       } else if (path === "/blog" || path.startsWith("/blog/") || params.has("post")) {
         setCurrentPage("blog");
+      } else if (path === "/about") {
+        setCurrentPage("about");
+      } else if (path === "/privacy" || path === "/privacy-policy") {
+        setCurrentPage("privacy-policy");
+      } else if (path === "/cookies" || path === "/cookie-policy") {
+        setCurrentPage("cookie-policy");
+      } else if (path === "/terms" || path === "/terms-and-conditions") {
+        setCurrentPage("terms-and-conditions");
       } else if (path === "/wishlist" || params.has("items")) {
         setCurrentPage("wishlist");
       } else if (path === "/my-bookings") {
@@ -178,18 +183,9 @@ export default function App() {
 
   const handleViewAttraction = (id: string) => {
     addToRecentlyViewed(id);
-
-    // Always open the activity booking page in a new window/tab using SEO-friendly URL
-    try {
-      const url = `${window.location.origin}/activities/${encodeURIComponent(id)}`;
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      console.error("Failed to open booking page in a new tab", e);
-      // Fallback to state-based detail box if window.open fails
-      setSelectedAttractionId(id);
-      window.history.pushState({}, "", `/activities/${encodeURIComponent(id)}`);
-      window.scrollTo(0, 0);
-    }
+    setSelectedAttractionId(id);
+    window.history.pushState({}, "", `/activities/${encodeURIComponent(id)}`);
+    window.scrollTo(0, 0);
   };
 
   const mainContent = () => {
@@ -359,6 +355,62 @@ export default function App() {
       );
     }
 
+    if (currentPage === "about") {
+      return (
+        <AboutPage
+          onBackToHome={() => {
+            setCurrentPage("home");
+            window.history.pushState({}, "", "/");
+            window.scrollTo(0, 0);
+          }}
+          onExploreActivities={() => {
+            setCurrentPage("attractions-and-museums");
+            window.history.pushState({}, "", "/attractions-and-museums");
+            window.scrollTo(0, 0);
+          }}
+          onSelectAttraction={(id) => {
+            setSelectedAttractionId(id);
+          }}
+        />
+      );
+    }
+
+    if (currentPage === "privacy-policy") {
+      return (
+        <PrivacyPolicyPage
+          onBackToHome={() => {
+            setCurrentPage("home");
+            window.history.pushState({}, "", "/");
+            window.scrollTo(0, 0);
+          }}
+        />
+      );
+    }
+
+    if (currentPage === "cookie-policy") {
+      return (
+        <CookiePolicyPage
+          onBackToHome={() => {
+            setCurrentPage("home");
+            window.history.pushState({}, "", "/");
+            window.scrollTo(0, 0);
+          }}
+        />
+      );
+    }
+
+    if (currentPage === "terms-and-conditions") {
+      return (
+        <TermsAndConditionsPage
+          onBackToHome={() => {
+            setCurrentPage("home");
+            window.history.pushState({}, "", "/");
+            window.scrollTo(0, 0);
+          }}
+        />
+      );
+    }
+
     return (
       <main>
         <Hero
@@ -444,6 +496,11 @@ export default function App() {
             setSelectedDestination(null);
             setSelectedAttractionId(null);
             setCurrentPage(page);
+            if (page === "home") {
+              window.history.pushState({}, "", "/");
+            } else {
+              window.history.pushState({}, "", `/${page}`);
+            }
             window.scrollTo(0, 0);
           }}
           onSearch={(q) => {
@@ -451,15 +508,12 @@ export default function App() {
             const matchingAttraction = POPULAR_ATTRACTIONS.find(
               (a) =>
                 a.name.toLowerCase() === queryLower ||
-                a.id.toLowerCase() === queryLower,
+                a.id.toLowerCase() === queryLower ||
+                getDisplayProductId(a).toLowerCase() === queryLower ||
+                a.name.toLowerCase().includes(queryLower)
             );
             if (matchingAttraction) {
-              setSelectedDestination(matchingAttraction.city);
-              window.history.pushState(
-                {},
-                "",
-                `/destinations/${encodeURIComponent(matchingAttraction.city.toLowerCase().replace(/\s+/g, "-"))}`,
-              );
+              handleViewAttraction(matchingAttraction.id);
             } else {
               setSelectedDestination(q);
               window.history.pushState(
@@ -467,10 +521,10 @@ export default function App() {
                 "",
                 `/destinations/${encodeURIComponent(q.toLowerCase().replace(/\s+/g, "-"))}`,
               );
+              setSelectedAttractionId(null);
+              setCurrentPage("home");
+              window.scrollTo(0, 0);
             }
-            setSelectedAttractionId(null);
-            setCurrentPage("home");
-            window.scrollTo(0, 0);
           }}
         />
         {mainContent()}
@@ -484,6 +538,11 @@ export default function App() {
             setSelectedDestination(null);
             setSelectedAttractionId(null);
             setCurrentPage(page);
+            if (page === "home") {
+              window.history.pushState({}, "", "/");
+            } else {
+              window.history.pushState({}, "", `/${page}`);
+            }
             window.scrollTo(0, 0);
           }}
         />

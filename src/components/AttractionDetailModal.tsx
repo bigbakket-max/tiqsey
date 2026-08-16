@@ -1017,7 +1017,10 @@ export default function AttractionDetailModal({
         childPricePerItem,
         additionalPassengers,
         totalPriceFloat,
-        selectedTimeSlot
+        selectedTimeSlot,
+        currency.code,
+        totalPriceFloat * currency.rate,
+        currencySymbol
       );
       setBookingSuccess(response);
     } catch (err: any) {
@@ -2995,7 +2998,14 @@ export default function AttractionDetailModal({
                     timeSlot: selectedTimeSlot,
                     passengerName: bookingSuccess.guestInfo?.name || guestName || 'Valued Explorer',
                     ticketsCount: guestCount + childCount,
-                    totalPrice: bookingSuccess.totalPrice ?? totalPriceFloat,
+                    totalPrice: bookingSuccess.paymentCurrency && bookingSuccess.paymentPrice !== undefined ? (
+                      new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: bookingSuccess.paymentCurrency,
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      }).format(bookingSuccess.paymentPrice)
+                    ) : (bookingSuccess.totalPrice ?? totalPriceFloat),
                     additionalPassengers: additionalPassengers || bookingSuccess.guestInfo?.passengers,
                   });
                 }}
