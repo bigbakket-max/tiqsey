@@ -58,6 +58,7 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
                 <li><a href="#" className="hover:text-brand transition-colors font-bold text-amber-400" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('hot-deals'); }}>Hot Deals 🔥</a></li>
                 <li><a href="#" className="hover:text-brand transition-colors" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('blog'); }}>Travel Blog 📖</a></li>
                 <li><a href="#" className="hover:text-brand transition-colors" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('attractions-and-museums'); }}>Things to do 🏛️</a></li>
+                <li><a href="/admin" className="hover:text-brand transition-colors">Admin Panel ⚙️</a></li>
               </ul>
             </div>
           
@@ -102,6 +103,10 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
           <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
             {/* Copyright */}
             <p>© {currentYear} Tiqsey. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <span className="hidden md:inline text-gray-700">•</span>
+              <a href="/admin" className="hover:text-brand transition-colors">Admin Panel</a>
+            </div>
           </div>
 
           <div className="flex items-center justify-end w-full sm:w-auto">
