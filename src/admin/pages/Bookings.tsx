@@ -152,6 +152,13 @@ export default function Bookings() {
   };
 
   useEffect(() => {
+    const searchParam = searchParams.get('search');
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     const orderIdParam = searchParams.get('orderId');
     if (orderIdParam && bookings.length > 0) {
       const b = bookings.find(x => x.orderId === orderIdParam);

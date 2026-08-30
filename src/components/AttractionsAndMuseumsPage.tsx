@@ -211,7 +211,7 @@ export default function AttractionsAndMuseumsPage({
               Explore the world's best attractions & experiences
             </h1>
             <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed mb-6 max-w-2xl">
-              Book tickets for top attractions, tours and activities across 180+ countries.
+              Book tickets for top attractions, tours and activities across 30+ countries.
             </p>
 
             {/* Centered / Left-aligned Search Pill */}

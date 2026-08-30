@@ -423,7 +423,22 @@ export default function Inventory() {
     return [...POPULAR_ATTRACTIONS];
   });
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+  const locationObj = useLocation();
+  const { id } = useParams<{ id: string }>();
+
+  const [searchQuery, setSearchQuery] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('search') || "";
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(locationObj.search);
+    const s = params.get('search');
+    if (s !== null && s !== searchQuery) {
+      setSearchQuery(s);
+    }
+  }, [locationObj.search]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedRegion, setSelectedRegion] = useState("All");
   const [selectedLocation, setSelectedLocation] = useState("All");
@@ -433,10 +448,6 @@ export default function Inventory() {
   // Pagination logic
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  
-  const navigate = useNavigate();
-  const locationObj = useLocation();
-  const { id } = useParams<{ id: string }>();
   
   const isEditRoute = locationObj.pathname.includes("/edit/");
   const isNewRoute = locationObj.pathname.includes("/new");

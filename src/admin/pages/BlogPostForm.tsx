@@ -44,7 +44,17 @@ import {
   Type,
   Indent,
   Outdent,
-  ArrowUpDown
+  ArrowUpDown,
+  Bookmark,
+  Send,
+  Search,
+  Sliders,
+  Lightbulb,
+  FileText,
+  PenTool,
+  UploadCloud,
+  Tag,
+  Calendar
 } from 'lucide-react';
 import { useBlog } from '../../contexts/BlogContext';
 import { motion, AnimatePresence } from 'motion/react';
@@ -176,6 +186,19 @@ export default function BlogPostForm() {
   const [publishedAt, setPublishedAt] = useState(getLocalDatetime());
   const [status, setStatus] = useState<'Published' | 'Draft' | 'Scheduled'>('Draft');
   const [city, setCity] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [metaTitle, setMetaTitle] = useState('');
+  const [metaDescription, setMetaDescription] = useState('');
+  const [keywords, setKeywords] = useState('');
+  const [allowComments, setAllowComments] = useState(true);
+  const [showInBlogList, setShowInBlogList] = useState(true);
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [sendNewsletter, setSendNewsletter] = useState(false);
+  const [showInfoBanner, setShowInfoBanner] = useState(true);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isPublishDropdownOpen, setIsPublishDropdownOpen] = useState(false);
+  const publishDropdownRef = useRef<HTMLDivElement>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
@@ -464,6 +487,9 @@ export default function BlogPostForm() {
       if (spacingDropdownRef.current && !spacingDropdownRef.current.contains(event.target as Node)) {
         setIsSpacingDropdownOpen(false);
       }
+      if (publishDropdownRef.current && !publishDropdownRef.current.contains(event.target as Node)) {
+        setIsPublishDropdownOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
@@ -485,6 +511,9 @@ export default function BlogPostForm() {
       setPublishedAt(getLocalDatetime(post.publishedAt));
       setStatus(post.status || 'Published');
       setCity(post.city || '');
+      if (post.tags && Array.isArray(post.tags)) {
+        setTags(post.tags);
+      }
       
       // Load converted content into the visual editor on startup
       if (editor && !editor.isDestroyed) {
@@ -861,7 +890,7 @@ export default function BlogPostForm() {
       publishedAt: finalPublishedAt || getLocalDatetime(),
       readTime: Math.max(1, Math.ceil(htmlToMarkdown(content).length / 1000)) + " min read",
       city,
-      tags: [],
+      tags: tags.length > 0 ? tags : (tagInput ? tagInput.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean) : []),
       slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       status: finalStatus
     };
@@ -996,89 +1025,153 @@ export default function BlogPostForm() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
-        <div className="flex items-center gap-4">
-          <button 
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <button
+            type="button"
             onClick={() => navigate('/blog')}
-            className="p-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500"
+            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer"
+            title="Back to Blog"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-white">
-            {isEditing ? 'Edit Post' : 'New Post'}
-          </h1>
+          <div className="w-11 h-11 rounded-xl bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center shadow-xs shrink-0">
+            <PenTool className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              {isEditing ? 'Edit Blog Post' : 'Create New Blog Post'}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Share travel stories, guides, and tips with your audience.
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-2.5">
           <button 
             type="button"
             onClick={() => handleSave('Draft')}
-            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-lg font-semibold transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
           >
-            <Save className="w-4 h-4" />
+            <Bookmark className="w-4 h-4 text-slate-400" />
             Save Draft
           </button>
+
           <button 
             type="button"
-            onClick={() => handleSave('Published')}
-            className="flex items-center gap-2 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white px-4 py-2 rounded-lg font-semibold transition-colors shadow-sm"
+            onClick={() => setIsPreviewModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
           >
-            <Globe className="w-4 h-4" />
-            Publish Post
+            <Eye className="w-4 h-4 text-slate-400" />
+            Preview
           </button>
-          <button 
-            type="button"
-            onClick={() => handleSave('Scheduled')}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors shadow-sm"
-          >
-            <CalendarClock className="w-4 h-4" />
-            Schedule Post
-          </button>
+
+          <div ref={publishDropdownRef} className="relative">
+            <button 
+              type="button"
+              onClick={() => setIsPublishDropdownOpen(!isPublishDropdownOpen)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer active:scale-95"
+            >
+              <Send className="w-4 h-4" />
+              <span>Publish Post</span>
+              <ChevronDown className="w-4 h-4 opacity-80" />
+            </button>
+
+            {isPublishDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPublishDropdownOpen(false);
+                    handleSave('Published');
+                  }}
+                  className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-violet-50 dark:hover:bg-violet-950/40 hover:text-violet-600 dark:hover:text-violet-400 transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <Globe className="w-4 h-4 text-indigo-500" />
+                  Publish Now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPublishDropdownOpen(false);
+                    handleSave('Scheduled');
+                  }}
+                  className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-violet-50 dark:hover:bg-violet-950/40 hover:text-violet-600 dark:hover:text-violet-400 transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <CalendarClock className="w-4 h-4 text-indigo-500" />
+                  Schedule for Later
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="space-y-6">
-        {/* Top Section: Publishing & Featured Image */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Publishing Card */}
-          <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-6 shadow-sm space-y-4">
-            <h3 className="font-bold text-slate-800 dark:text-white mb-2">Publishing</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Top 2 Cards Grid: Post Details & Featured Image */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Post Details Card */}
+          <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-5">
+            <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
+              <FileText className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+              <span>Post Details</span>
+            </div>
+
+            {/* Row 1: Status, Publish Date & Time, Author */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Status</label>
-                <div className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm text-slate-600 dark:text-slate-400 font-medium">
-                  {status}
-                </div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Status
+                </label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as any)}
+                  className="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer shadow-2xs"
+                >
+                  <option value="Draft">Draft</option>
+                  <option value="Published">Published</option>
+                  <option value="Scheduled">Scheduled</option>
+                </select>
               </div>
-              
+
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Publish Date & Time</label>
-                <input 
-                  type="datetime-local" 
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Publish Date & Time
+                </label>
+                <input
+                  type="datetime-local"
                   value={publishedAt}
-                  onChange={e => setPublishedAt(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#5fa6d9] focus:ring-1 focus:ring-[#5fa6d9] transition-colors text-slate-900 dark:text-white"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Author</label>
-                <input 
-                  type="text" 
-                  value={authorName}
-                  onChange={e => setAuthorName(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#5fa6d9] focus:ring-1 focus:ring-[#5fa6d9] transition-colors text-slate-900 dark:text-white"
-                  placeholder="Admin"
+                  onChange={(e) => setPublishedAt(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 shadow-2xs"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Category</label>
-                <select 
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Author
+                </label>
+                <input
+                  type="text"
+                  value={authorName}
+                  onChange={(e) => setAuthorName(e.target.value)}
+                  placeholder="Admin"
+                  className="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 shadow-2xs"
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Category, Related City (Optional) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Category
+                </label>
+                <select
                   value={category}
-                  onChange={e => setCategory(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#5fa6d9] focus:ring-1 focus:ring-[#5fa6d9] transition-colors text-slate-900 dark:text-white cursor-pointer"
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer shadow-2xs"
                 >
                   <option value="Travel Tips">Travel Tips</option>
                   <option value="Destination Guides">Destination Guides</option>
@@ -1088,34 +1181,82 @@ export default function BlogPostForm() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Related City</label>
-                <input 
-                  type="text" 
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Related City (Optional)
+                </label>
+                <input
+                  type="text"
                   value={city}
-                  onChange={e => setCity(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#5fa6d9] focus:ring-1 focus:ring-[#5fa6d9] transition-colors text-slate-900 dark:text-white"
+                  onChange={(e) => setCity(e.target.value)}
                   placeholder="e.g. Paris"
+                  className="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 shadow-2xs"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Start typing to search for a city</p>
+              </div>
+            </div>
+
+            {/* Row 3: Tags (Optional) */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Tags (Optional)
+              </label>
+              <div className="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 focus-within:border-violet-500 focus-within:ring-1 focus-within:ring-violet-500 flex flex-wrap items-center gap-1.5 min-h-[42px] shadow-2xs">
+                {tags.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1 bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border border-violet-200/60 dark:border-violet-800/50 text-xs px-2.5 py-0.5 rounded-lg font-medium"
+                  >
+                    #{tag}
+                    <button
+                      type="button"
+                      onClick={() => setTags(tags.filter((_, i) => i !== idx))}
+                      className="hover:text-violet-900 dark:hover:text-white cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      const val = tagInput.trim().replace(/^#/, '');
+                      if (val && !tags.includes(val)) {
+                        setTags([...tags, val]);
+                        setTagInput('');
+                      }
+                    }
+                  }}
+                  placeholder={tags.length === 0 ? "Add tags and press Enter..." : "Add more tags..."}
+                  className="flex-1 min-w-[140px] bg-transparent border-0 focus:outline-none text-xs sm:text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 py-1"
                 />
               </div>
+              <p className="text-[11px] text-slate-400 mt-1">Examples: adventure, europe, food, culture</p>
             </div>
           </div>
 
           {/* Featured Image Card */}
-          <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-6 shadow-sm space-y-4">
-            <h3 className="font-bold text-slate-800 dark:text-white mb-2">Featured Image</h3>
-            
-            <div 
+          <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
+            <h3 className="font-bold text-slate-900 dark:text-white text-base">
+              Featured Image
+            </h3>
+
+            {/* Drag & Drop Area */}
+            <div
               onDragOver={handleCoverDragOver}
               onDragLeave={handleCoverDragLeave}
               onDrop={handleCoverDrop}
-              className={`border-2 border-dashed rounded-lg overflow-hidden aspect-video flex flex-col items-center justify-center relative transition-all duration-200 group ${
-                isCoverDragging 
-                  ? 'border-[#5fa6d9] bg-[#5fa6d9]/10 scale-[1.02]' 
-                  : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:border-slate-300 dark:hover:border-slate-700'
+              className={`border-2 border-dashed rounded-2xl overflow-hidden min-h-[170px] flex flex-col items-center justify-center relative transition-all duration-200 ${
+                isCoverDragging
+                  ? 'border-violet-500 bg-violet-50/50 dark:bg-violet-950/20'
+                  : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
-              <input 
-                type="file" 
+              <input
+                type="file"
                 ref={coverFileInputRef}
                 onChange={handleCoverFileChange}
                 accept="image/*"
@@ -1123,55 +1264,28 @@ export default function BlogPostForm() {
               />
 
               {imageUrl && !imageError ? (
-                <>
-                  <img 
-                    src={imageUrl} 
-                    alt="Featured preview" 
+                <div className="relative w-full h-[170px] group">
+                  <img
+                    src={imageUrl}
+                    alt="Featured preview"
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
                     onError={() => setImageError(true)}
                   />
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-slate-900/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                  <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <button
                       type="button"
                       onClick={() => coverFileInputRef.current?.click()}
-                      className="px-3 py-1.5 bg-white text-slate-900 rounded-md text-xs font-semibold hover:bg-slate-100 transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+                      className="px-3 py-1.5 bg-white text-slate-900 rounded-xl text-xs font-semibold hover:bg-slate-100 transition-colors shadow-sm cursor-pointer"
                     >
-                      <Upload className="w-3.5 h-3.5 text-slate-500" />
-                      Change Image
+                      Change
                     </button>
                     <button
                       type="button"
                       onClick={() => setImageUrl('')}
-                      className="px-3 py-1.5 bg-[#5fa6d9] text-white rounded-md text-xs font-semibold hover:bg-[#4b95cc] transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+                      className="px-3 py-1.5 bg-rose-600 text-white rounded-xl text-xs font-semibold hover:bg-rose-700 transition-colors shadow-sm cursor-pointer"
                     >
                       Remove
-                    </button>
-                  </div>
-                </>
-              ) : imageUrl ? (
-                <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-slate-50 dark:bg-slate-950">
-                  <div className="text-red-500 dark:text-[#5fa6d9] mb-1 font-bold text-[11px] flex items-center gap-1 bg-red-50 dark:bg-[#5fa6d9]/10 px-2 py-0.5 rounded-full border border-red-100 dark:border-[#5fa6d9]/20">
-                    ⚠️ Broken Image link
-                  </div>
-                  <p className="text-[9px] text-slate-400 max-w-[180px] mb-2 leading-tight">
-                    The image at this URL cannot be loaded. Referrer restriction may apply.
-                  </p>
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => coverFileInputRef.current?.click()}
-                      className="px-2 py-1 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded text-[9px] font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                    >
-                      Upload File
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImageUrl('')}
-                      className="px-2 py-1 bg-red-500 text-white rounded text-[9px] font-bold hover:bg-red-600 transition-colors cursor-pointer"
-                    >
-                      Clear
                     </button>
                   </div>
                 </div>
@@ -1179,104 +1293,162 @@ export default function BlogPostForm() {
                 <button
                   type="button"
                   onClick={() => coverFileInputRef.current?.click()}
-                  className="w-full h-full flex flex-col items-center justify-center p-4 text-center focus:outline-none cursor-pointer"
+                  className="w-full h-full p-5 flex flex-col items-center justify-center text-center cursor-pointer group"
                 >
-                  <Upload className="w-8 h-8 mx-auto mb-2 opacity-60 text-slate-400 animate-pulse" />
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Click to upload or drag & drop</span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Supports JPG, PNG, GIF, WebP</span>
+                  <div className="w-11 h-11 rounded-full bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center group-hover:scale-105 transition-transform mb-2">
+                    <UploadCloud className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Upload featured image
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Drag & drop or click to browse
+                  </span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-2">
+                    Supports: JPG, PNG, GIF, WebP
+                  </span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                    Recommended size: 1200x675px (16:9)
+                  </span>
                 </button>
               )}
             </div>
-            
+
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Image URL</label>
-              <input 
-                type="text" 
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Image URL (Optional)
+              </label>
+              <input
+                type="text"
                 value={imageUrl}
-                onChange={e => setImageUrl(e.target.value)}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#5fa6d9] focus:ring-1 focus:ring-[#5fa6d9] transition-colors text-slate-900 dark:text-white"
+                onChange={(e) => setImageUrl(e.target.value)}
                 placeholder="Enter image URL..."
+                className="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 shadow-2xs"
               />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Add an external image URL if you don't want to upload
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Main Content Area */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-6 shadow-sm space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Title</label>
-              <input 
-                type="text" 
-                value={title}
-                onChange={e => {
-                  handleTitleChange(e.target.value);
-                  if (errors.title) setErrors(prev => ({ ...prev, title: false }));
-                }}
-                className={`w-full bg-white dark:bg-slate-900 border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-1 transition-colors text-slate-900 dark:text-white ${
-                  errors.title 
-                    ? 'border-[#5fa6d9] ring-1 ring-[#5fa6d9]' 
-                    : 'border-slate-200 dark:border-slate-800 focus:border-[#5fa6d9] focus:ring-[#5fa6d9]'
-                }`}
-                placeholder="Top 10 Destinations for Adventure Seekers in 2026"
-              />
-              {errors.title && (
-                <p className="text-xs text-[#5fa6d9] font-semibold mt-1">Title is required.</p>
-              )}
+        {/* Middle Card: Title, Slug, Excerpt, Content */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-5">
+          {/* Title */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Title
+              </label>
+              <span className="text-xs text-slate-400 font-mono font-medium">
+                {title.length} / 120
+              </span>
             </div>
+            <input
+              type="text"
+              value={title}
+              maxLength={120}
+              onChange={(e) => {
+                handleTitleChange(e.target.value);
+                if (errors.title) setErrors((prev) => ({ ...prev, title: false }));
+              }}
+              placeholder="Enter an engaging title for your post..."
+              className={`w-full bg-white dark:bg-slate-800/80 border rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none transition-colors shadow-2xs ${
+                errors.title
+                  ? 'border-rose-500 ring-1 ring-rose-500'
+                  : 'border-slate-200 dark:border-slate-700 focus:border-violet-500 focus:ring-1 focus:ring-violet-500'
+              }`}
+            />
+            {errors.title && (
+              <p className="text-xs text-rose-500 font-medium mt-1">Title is required.</p>
+            )}
+          </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Slug</label>
-              <input 
-                type="text" 
-                value={slug}
-                onChange={e => {
-                  setSlug(e.target.value);
-                  setIsSlugManuallyEdited(true);
-                }}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#5fa6d9] focus:ring-1 focus:ring-[#5fa6d9] transition-colors text-slate-900 dark:text-white"
-                placeholder="top-10-destinations-for-adventure-seekers-in-2026"
-              />
+          {/* Slug */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Slug
+              </label>
+              <span className="text-xs text-slate-400 font-mono font-medium">
+                {slug.length} / 160
+              </span>
             </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Excerpt</label>
-              <textarea 
-                value={excerpt}
-                onChange={e => {
-                  setExcerpt(e.target.value);
-                  if (errors.excerpt) setErrors(prev => ({ ...prev, excerpt: false }));
-                }}
-                className={`w-full bg-white dark:bg-slate-900 border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-1 transition-colors text-slate-900 dark:text-white h-24 resize-y ${
-                  errors.excerpt 
-                    ? 'border-[#5fa6d9] ring-1 ring-[#5fa6d9]' 
-                    : 'border-slate-200 dark:border-slate-800 focus:border-[#5fa6d9] focus:ring-[#5fa6d9]'
-                }`}
-                placeholder="Discover the most thrilling and breathtaking locations you need to add to your bucket list this year."
-              ></textarea>
-              {errors.excerpt && (
-                <p className="text-xs text-[#5fa6d9] font-semibold mt-1">Excerpt is required.</p>
-              )}
-            </div>
+            <input
+              type="text"
+              value={slug}
+              maxLength={160}
+              onChange={(e) => {
+                setSlug(e.target.value);
+                setIsSlugManuallyEdited(true);
+              }}
+              placeholder="post-url-slug"
+              className="w-full bg-slate-50/70 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs sm:text-sm font-mono text-slate-700 dark:text-slate-300 placeholder:text-slate-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 shadow-2xs"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">The slug is the URL-friendly version of the title.</p>
+          </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Content</label>
-                {isFullscreen && (
-                  <div className="text-xs text-[#5fa6d9] dark:text-[#5fa6d9] font-bold bg-[#f0f7fc] dark:bg-[#102738]/30 px-2 py-0.5 rounded border border-[#e0f0fa] dark:border-[#1e4663]/40 animate-pulse">
-                    Zen Writing Active
-                  </div>
-                )}
+          {/* Excerpt */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Excerpt
+              </label>
+              <span className="text-xs text-slate-400 font-mono font-medium">
+                {excerpt.length} / 300
+              </span>
+            </div>
+            <textarea
+              value={excerpt}
+              maxLength={300}
+              rows={3}
+              onChange={(e) => {
+                setExcerpt(e.target.value);
+                if (errors.excerpt) setErrors((prev) => ({ ...prev, excerpt: false }));
+              }}
+              placeholder="Write a short summary of your post. This will appear in blog lists and previews..."
+              className={`w-full bg-white dark:bg-slate-800/80 border rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none transition-colors shadow-2xs resize-y ${
+                errors.excerpt
+                  ? 'border-rose-500 ring-1 ring-rose-500'
+                  : 'border-slate-200 dark:border-slate-700 focus:border-violet-500 focus:ring-1 focus:ring-violet-500'
+              }`}
+            />
+            {errors.excerpt && (
+              <p className="text-xs text-rose-500 font-medium mt-1">Excerpt is required.</p>
+            )}
+          </div>
+
+          {/* Content */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Content
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAiModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-full text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>AI Co-Writer</span>
+                </button>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-full text-xs font-semibold border border-amber-200/60 dark:border-amber-900/40">
+                  <span className="text-[11px]">⚡</span>
+                  <span>WYSIWYG Live Editor</span>
+                </div>
               </div>
-              
-              <div className={`transition-all duration-300 ${
-                isFullscreen 
-                  ? 'fixed inset-0 z-50 bg-white dark:bg-slate-950 flex flex-col p-4 md:p-6 overflow-hidden' 
-                  : `border rounded-md overflow-hidden bg-white dark:bg-slate-900 transition-colors ${
-                      errors.content 
-                        ? 'border-[#5fa6d9] ring-1 ring-[#5fa6d9]' 
-                        : 'border-slate-200 dark:border-slate-800 focus-within:border-[#5fa6d9] focus-within:ring-1 focus-within:ring-[#5fa6d9]'
-                    }`
-              }`}>
+            </div>
+
+            <div className={`transition-all duration-300 ${
+              isFullscreen 
+                ? 'fixed inset-0 z-50 bg-white dark:bg-slate-950 flex flex-col p-4 md:p-6 overflow-hidden' 
+                : `border rounded-xl overflow-hidden bg-white dark:bg-slate-900 transition-colors shadow-2xs ${
+                    errors.content 
+                      ? 'border-rose-500 ring-1 ring-rose-500' 
+                      : 'border-slate-200 dark:border-slate-700 focus-within:border-violet-500 focus-within:ring-1 focus-within:ring-violet-500'
+                  }`
+            }`}>
                 {/* Editor Toolbar with Format Actions and Mode controls */}
                 <div className="flex flex-wrap items-center justify-between gap-3 p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                   {/* Left: formatting tools organized into segmented groups */}
@@ -1733,10 +1905,236 @@ export default function BlogPostForm() {
                 </div>
               </div>
               {errors.content && (
-                <p className="text-xs text-[#5fa6d9] font-semibold mt-1">Content is required.</p>
+                <p className="text-xs text-rose-500 font-medium mt-1">Content is required.</p>
               )}
             </div>
           </div>
+
+          {/* Bottom 2 Cards Grid: SEO Settings & Post Settings */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* SEO Settings Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
+                <Search className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                <span>SEO Settings (Optional)</span>
+              </div>
+
+              {/* Meta Title */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Meta Title
+                  </label>
+                  <span className="text-xs text-slate-400 font-mono font-medium">
+                    {metaTitle.length} / 60
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={metaTitle}
+                  maxLength={60}
+                  onChange={(e) => setMetaTitle(e.target.value)}
+                  placeholder="Defaults to post title if left blank"
+                  className="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 shadow-2xs"
+                />
+              </div>
+
+              {/* Meta Description */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Meta Description
+                  </label>
+                  <span className="text-xs text-slate-400 font-mono font-medium">
+                    {metaDescription.length} / 160
+                  </span>
+                </div>
+                <textarea
+                  value={metaDescription}
+                  maxLength={160}
+                  rows={2}
+                  onChange={(e) => setMetaDescription(e.target.value)}
+                  placeholder="Defaults to post excerpt if left blank"
+                  className="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 shadow-2xs resize-y"
+                />
+              </div>
+
+              {/* Keywords */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Keywords
+                </label>
+                <input
+                  type="text"
+                  value={keywords}
+                  onChange={(e) => setKeywords(e.target.value)}
+                  placeholder="travel, europe, budget, guide"
+                  className="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 shadow-2xs"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Separate keywords with commas</p>
+              </div>
+            </div>
+
+            {/* Post Settings Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
+                <Sliders className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                <span>Post Settings</span>
+              </div>
+
+              <div className="space-y-3.5">
+                {/* Allow Comments */}
+                <label className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group">
+                  <div>
+                    <span className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      Allow Comments
+                    </span>
+                    <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                      Enable readers to leave comments on this post
+                    </span>
+                  </div>
+                  <div className="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={allowComments}
+                      onChange={(e) => setAllowComments(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div 
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
+                        allowComments ? 'bg-violet-600' : 'bg-slate-200 dark:bg-slate-700'
+                      }`}
+                    >
+                      <div 
+                        className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform duration-200 ease-in-out ${
+                          allowComments ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </label>
+
+                {/* Show in Blog List */}
+                <label className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group">
+                  <div>
+                    <span className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      Show in Blog List
+                    </span>
+                    <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                      Display this post on the main blog directory
+                    </span>
+                  </div>
+                  <div className="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={showInBlogList}
+                      onChange={(e) => setShowInBlogList(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div 
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
+                        showInBlogList ? 'bg-violet-600' : 'bg-slate-200 dark:bg-slate-700'
+                      }`}
+                    >
+                      <div 
+                        className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform duration-200 ease-in-out ${
+                          showInBlogList ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </label>
+
+                {/* Featured Post */}
+                <label className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group">
+                  <div>
+                    <span className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      Featured Post
+                    </span>
+                    <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                      Highlight this post at the top of the blog page
+                    </span>
+                  </div>
+                  <div className="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={isFeatured}
+                      onChange={(e) => setIsFeatured(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div 
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
+                        isFeatured ? 'bg-violet-600' : 'bg-slate-200 dark:bg-slate-700'
+                      }`}
+                    >
+                      <div 
+                        className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform duration-200 ease-in-out ${
+                          isFeatured ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </label>
+
+                {/* Send Newsletter */}
+                <label className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group">
+                  <div>
+                    <span className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      Send Newsletter
+                    </span>
+                    <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                      Notify subscribers via email when published
+                    </span>
+                  </div>
+                  <div className="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={sendNewsletter}
+                      onChange={(e) => setSendNewsletter(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div 
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
+                        sendNewsletter ? 'bg-violet-600' : 'bg-slate-200 dark:bg-slate-700'
+                      }`}
+                    >
+                      <div 
+                        className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform duration-200 ease-in-out ${
+                          sendNewsletter ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Info Banner */}
+          {showInfoBanner && (
+            <div className="bg-gradient-to-r from-violet-50 via-indigo-50 to-purple-50 dark:from-violet-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 border border-violet-200/70 dark:border-violet-800/40 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/60 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+                  <Lightbulb className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                    Save your progress
+                  </h4>
+                  <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                    Drafts are auto-saved locally every 30 seconds. Click "Save Draft" to persist your changes to the database.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowInfoBanner(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-white/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
 
       <AnimatePresence>
@@ -2577,6 +2975,105 @@ export default function BlogPostForm() {
                     )}
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+        {/* Preview Modal */}
+        {isPreviewModalOpen && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-900/60">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 flex items-center justify-center font-bold">
+                    <Eye className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">Post Preview</h3>
+                    <p className="text-[11px] text-slate-400">Live preview of how readers will see this post</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPreviewModalOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
+                {/* Category & City */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-3 py-1 bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 rounded-full text-xs font-bold border border-violet-200/60 dark:border-violet-800/40">
+                    {category}
+                  </span>
+                  {city && (
+                    <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-xs font-semibold">
+                      📍 {city}
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-400">
+                    By {authorName || 'Admin'} • {publishedAt ? new Date(publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Draft'}
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+                  {title || 'Untitled Post'}
+                </h1>
+
+                {/* Excerpt */}
+                {excerpt && (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-sm text-slate-600 dark:text-slate-300 italic">
+                    {excerpt}
+                  </div>
+                )}
+
+                {/* Cover Image */}
+                {imageUrl && (
+                  <div className="rounded-2xl overflow-hidden aspect-video border border-slate-200 dark:border-slate-800">
+                    <img
+                      src={imageUrl}
+                      alt={title || 'Featured'}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                )}
+
+                {/* Content Body */}
+                <div 
+                  className="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-200"
+                  dangerouslySetInnerHTML={{ __html: editor ? editor.getHTML() : '' }}
+                />
+
+                {/* Tags */}
+                {tags.length > 0 && (
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs text-slate-400 font-semibold mr-1">Tags:</span>
+                    {tags.map((t, i) => (
+                      <span key={i} className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg">
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsPreviewModalOpen(false)}
+                  className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                >
+                  Close Preview
+                </button>
               </div>
             </motion.div>
           </div>

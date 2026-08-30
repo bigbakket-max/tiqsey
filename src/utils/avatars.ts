@@ -1,925 +1,857 @@
-// 24 Beautiful, high-quality, professional Travel Character Avatars
-// Written as self-contained data URIs representing modern flat-color vectors with rich gradients.
+// 24 Richly detailed, 3D-shaded, stylized character avatars matching the platform's avatar system
+// Written as standalone, optimized high-fidelity SVG data URIs with rich gradients, ambient lighting, and depth.
 
 export interface AvatarItem {
   id: string;
   name: string;
+  role?: string;
   url: string;
 }
 
 const svgToDataUrl = (svgContent: string): string => {
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svgContent.trim())}`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svgContent.trim().replace(/\s+/g, ' '))}`;
 };
 
 export const TRAVEL_AVATARS: AvatarItem[] = [
+  // ROW 1
   {
-    id: "hiker-mountains",
-    name: "Alex R. (Backpacker)",
+    id: "hoodie-boy-glasses",
+    name: "Leo (Student & Tech)",
+    role: "Tech Enthusiast",
     url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="bg1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#E0F2FE" />
-            <stop offset="100%" stop-color="#BAE6FD" />
+          <radialGradient id="bg1" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFF1F2"/>
+            <stop offset="100%" stop-color="#FFE4E6"/>
+          </radialGradient>
+          <linearGradient id="hoodieRed" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#EF4444"/>
+            <stop offset="100%" stop-color="#B91C1C"/>
           </linearGradient>
-          <linearGradient id="mountains" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#38BDF8" />
-            <stop offset="100%" stop-color="#0284C7" />
+          <linearGradient id="faceLeo" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#FED7AA"/>
+            <stop offset="100%" stop-color="#FDBA74"/>
+          </linearGradient>
+          <linearGradient id="hairLeo" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#331A15"/>
+            <stop offset="100%" stop-color="#1A0D0A"/>
           </linearGradient>
         </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg1)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Mountains Backdrop -->
-        <path d="M10 75 L35 40 L60 75 Z" fill="url(#mountains)" opacity="0.4" />
-        <path d="M30 75 L55 30 L85 75 Z" fill="url(#mountains)" opacity="0.6" />
-        <polygon points="55,30 50,38 60,38" fill="#FFFFFF" />
-        <polygon points="35,40 31,47 39,47" fill="#FFFFFF" />
-        
-        <!-- Character Body & Backpack straps -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#155E75" />
-        <rect x="35" y="62" width="30" height="20" rx="3" fill="#EF4444" /> <!-- Red Sleeping bag on backpack -->
-        <rect x="32" y="70" width="6" height="15" fill="#D97706" /> <!-- Straps -->
-        <rect x="62" y="70" width="6" height="15" fill="#D97706" />
-        
-        <!-- Head & Neck -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="44" r="14" fill="#FDBA74" />
-        
-        <!-- Hair & Beard -->
-        <path d="M36 44 C36 30 64 30 64 44 C64 48 60 56 50 56 C40 56 36 48 36 44 Z" fill="#78350F" />
-        <path d="M38 42 C38 32 62 32 62 42 Z" fill="#451A03" /> <!-- Hair top -->
-        
-        <!-- Face Inner Cutout -->
-        <path d="M40 44 C40 38 60 38 60 44 C60 48 57 52 50 52 C43 52 40 48 40 44 Z" fill="#FDBA74" />
-        
-        <!-- Eyes with sparkles -->
-        <circle cx="45" cy="42" r="2" fill="#1E293B" />
-        <circle cx="44.5" cy="41.5" r="0.6" fill="#FFFFFF" />
-        <circle cx="55" cy="42" r="2" fill="#1E293B" />
-        <circle cx="54.5" cy="41.5" r="0.6" fill="#FFFFFF" />
-        
-        <!-- Cute Smile -->
-        <path d="M47 47 Q50 50 53 47" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-        
+        <circle cx="60" cy="60" r="58" fill="url(#bg1)"/>
+        <!-- Shoulders & Red Hoodie -->
+        <path d="M20 115 C20 88 100 88 100 115 Z" fill="url(#hoodieRed)"/>
+        <!-- Hoodie Strings & Zipper -->
+        <path d="M48 85 L48 105" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M72 85 L72 105" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+        <polygon points="60,88 52,115 68,115" fill="#475569"/>
+        <!-- Inner Hoodie Collar / Neck -->
+        <path d="M44 86 C44 76 76 76 76 86 Z" fill="#DC2626"/>
+        <rect x="54" y="65" width="12" height="15" fill="#FDBA74" rx="3"/>
+        <!-- Head -->
+        <ellipse cx="60" cy="54" rx="19" ry="21" fill="url(#faceLeo)"/>
+        <!-- Ears -->
+        <circle cx="40" cy="54" r="5" fill="#FDBA74"/>
+        <circle cx="80" cy="54" r="5" fill="#FDBA74"/>
+        <!-- Hair -->
+        <path d="M38 48 C36 28 84 28 82 48 C76 34 68 36 60 34 C50 36 44 34 38 48 Z" fill="url(#hairLeo)"/>
+        <path d="M40 38 C48 30 72 30 80 38 C75 32 64 34 60 32 C54 34 45 32 40 38 Z" fill="#451A03"/>
+        <!-- Glasses -->
+        <rect x="43" y="46" width="13" height="10" rx="3" fill="none" stroke="#1E293B" stroke-width="2.5"/>
+        <rect x="64" y="46" width="13" height="10" rx="3" fill="none" stroke="#1E293B" stroke-width="2.5"/>
+        <line x1="56" y1="50" x2="64" y2="50" stroke="#1E293B" stroke-width="2.5"/>
+        <!-- Eyes -->
+        <circle cx="49.5" cy="51" r="2.2" fill="#0F172A"/>
+        <circle cx="48.5" cy="50" r="0.8" fill="#FFFFFF"/>
+        <circle cx="70.5" cy="51" r="2.2" fill="#0F172A"/>
+        <circle cx="69.5" cy="50" r="0.8" fill="#FFFFFF"/>
         <!-- Cheeks -->
-        <circle cx="42" cy="45" r="1.5" fill="#EF4444" opacity="0.3" />
-        <circle cx="58" cy="45" r="1.5" fill="#EF4444" opacity="0.3" />
-        
-        <!-- Cap/Hat -->
-        <path d="M34 32 C38 28 62 28 66 32 Z" fill="#1E293B" />
-        <ellipse cx="50" cy="32" rx="18" ry="2" fill="#0F172A" />
-      </svg>
-    `)
-  },
-  {
-    id: "photographer-city",
-    name: "Emma S. (Photographer)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#FCE7F3" />
-            <stop offset="100%" stop-color="#FBCFE8" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg2)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- City skyline backdrop -->
-        <rect x="20" y="45" width="12" height="30" fill="#DB2777" opacity="0.1" />
-        <rect x="36" y="35" width="16" height="40" fill="#DB2777" opacity="0.15" />
-        <rect x="60" y="40" width="14" height="35" fill="#DB2777" opacity="0.1" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#EC4899" />
-        
-        <!-- Camera Strap -->
-        <path d="M38 78 C38 64 62 64 62 78" stroke="#1E293B" stroke-width="2" fill="none" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FDBA74" />
-        <circle cx="50" cy="42" r="14" fill="#FDBA74" />
-        
-        <!-- Hair -->
-        <path d="M34 40 C34 26 66 26 66 40 C66 54 62 60 62 64 L58 64 C58 56 62 52 62 44 C62 34 38 34 38 44 C38 52 42 56 42 64 L38 64 C38 60 34 54 34 40 Z" fill="#B45309" />
-        
-        <!-- Face Details -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="44.5" cy="40.5" r="0.6" fill="#FFFFFF" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <circle cx="54.5" cy="40.5" r="0.6" fill="#FFFFFF" />
-        <path d="M48 46 Q50 49 52 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-        
-        <!-- Camera hanging in front -->
-        <rect x="40" y="62" width="20" height="13" rx="2" fill="#334155" />
-        <circle cx="50" cy="68.5" r="4.5" fill="#0EA5E9" stroke="#FFFFFF" stroke-width="1.5" />
-        <rect x="42" y="59" width="4" height="3" fill="#1E293B" rx="0.5" />
-        <circle cx="56" cy="64" r="1" fill="#EF4444" />
-      </svg>
-    `)
-  },
-  {
-    id: "pilot-uniform",
-    name: "Capt. Liam (Pilot)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#EFF6FF" />
-            <stop offset="100%" stop-color="#DBEAFE" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg3)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Pilot Suit -->
-        <path d="M18 82 C18 64 82 64 82 82 Z" fill="#1E3A8A" />
-        <!-- White shirt triangle cutout -->
-        <polygon points="50,82 40,64 60,64" fill="#FFFFFF" />
-        <!-- Gold tie -->
-        <polygon points="50,66 48,82 52,82" fill="#EAB308" />
-        <!-- Gold wings pin on chest -->
-        <path d="M28 72 L36 72 L32 74 Z" fill="#EAB308" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="43" r="13" fill="#FED7AA" />
-        
-        <!-- Hair & Pilot Cap -->
-        <path d="M37 40 C37 32 63 32 63 40 Z" fill="#1E293B" />
-        <rect x="36" y="24" width="28" height="9" fill="#1E3A8A" rx="1.5" />
-        <ellipse cx="50" cy="30" rx="15" ry="2" fill="#0F172A" /> <!-- Visor -->
-        <!-- Gold badge on cap -->
-        <polygon points="50,23 46,27 54,27" fill="#EAB308" />
-        <circle cx="50" cy="27" r="1.5" fill="#EAB308" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <path d="M47 46 Q50 49 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "traveler-passport",
-    name: "Oliver W. (Jetsetter)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg4" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#F0FDF4" />
-            <stop offset="100%" stop-color="#DCFCE7" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg4)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Cloud backdrop -->
-        <circle cx="25" cy="45" r="12" fill="#FFFFFF" opacity="0.6" />
-        <circle cx="35" cy="48" r="10" fill="#FFFFFF" opacity="0.6" />
-        
-        <!-- Suitcase behind -->
-        <rect x="68" y="48" width="16" height="30" rx="3" fill="#F97316" />
-        <rect x="73" y="38" width="6" height="10" fill="none" stroke="#F97316" stroke-width="2" />
-        
-        <!-- Character Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#2563EB" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FDBA74" />
-        <circle cx="50" cy="43" r="13" fill="#FDBA74" />
-        
-        <!-- Hair -->
-        <path d="M37 40 C37 28 63 28 63 40 Z" fill="#78350F" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <path d="M47 46 Q50 49 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-        
-        <!-- Passport in hand -->
-        <rect x="18" y="58" width="14" height="20" rx="1.5" fill="#991B1B" transform="rotate(-15 18 58)" />
-        <rect x="21" y="61" width="8" height="12" fill="none" stroke="#EAB308" stroke-width="1" transform="rotate(-15 18 58)" />
-        <circle cx="25" cy="67" r="1.5" fill="#EAB308" />
-      </svg>
-    `)
-  },
-  {
-    id: "sombrero-beach",
-    name: "Mateo L. (Suntanner)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg5" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#38BDF8" />
-            <stop offset="70%" stop-color="#7DD3FC" />
-            <stop offset="100%" stop-color="#FEF08A" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg5)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Beach sand & waves -->
-        <path d="M5 75 Q25 70 50 75 Q75 80 95 75 L95 98 L5 98 Z" fill="#FEF08A" />
-        
-        <!-- Character Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#F1F5F9" />
-        <path d="M30 68 L50 58 L70 68 Z" fill="#EF4444" opacity="0.8" /> <!-- Poncho detail -->
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="43" r="13" fill="#FED7AA" />
-        
-        <!-- Mustache & Beard -->
-        <path d="M38 43 C38 52 42 55 50 55 C58 55 62 52 62 43 Z" fill="#1E293B" opacity="0.95" />
-        <path d="M42 45 Q50 49 58 45" stroke="#0F172A" stroke-width="3" stroke-linecap="round" fill="none" />
-        
-        <!-- Sunglasses -->
-        <rect x="38" y="38" width="11" height="5" rx="1.5" fill="#0F172A" />
-        <rect x="51" y="38" width="11" height="5" rx="1.5" fill="#0F172A" />
-        <line x1="49" y1="40" x2="51" y2="40" stroke="#0F172A" stroke-width="1.5" />
-        
-        <!-- Sombrero hat -->
-        <path d="M32 30 C32 15 68 15 68 30 Z" fill="#EAB308" />
-        <!-- Red band -->
-        <path d="M33 27 C40 25 60 25 67 27 L67 30 C60 28 40 28 33 30 Z" fill="#EF4444" />
-        <!-- Hat brim -->
-        <ellipse cx="50" cy="30" rx="26" ry="4" fill="#CA8A04" />
-      </svg>
-    `)
-  },
-  {
-    id: "explorer-binoculars",
-    name: "Arthur K. (Explorer)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg6" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ECFDF5" />
-            <stop offset="100%" stop-color="#A7F3D0" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg6)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Forest backdrop -->
-        <path d="M12 78 L28 48 L44 78 Z" fill="#047857" opacity="0.3" />
-        <path d="M55 78 L72 40 L88 78 Z" fill="#065F46" opacity="0.4" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#B45309" />
-        <rect x="42" y="68" width="16" height="15" fill="#D97706" />
-        
-        <!-- Binoculars around neck -->
-        <rect x="41" y="60" width="7" height="11" rx="1" fill="#1E293B" />
-        <rect x="52" y="60" width="7" height="11" rx="1" fill="#1E293B" />
-        <line x1="43" y1="62" x2="57" y2="62" stroke="#475569" stroke-width="2" />
-        <path d="M38 65 C38 52 62 52 62 65" stroke="#0F172A" stroke-width="1.5" fill="none" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FDBA74" />
-        <circle cx="50" cy="43" r="13" fill="#FDBA74" />
-        
-        <!-- Explorer Pith Hat -->
-        <path d="M36 33 C36 20 64 20 64 33 Z" fill="#D97706" />
-        <ellipse cx="50" cy="33" rx="18" ry="3" fill="#B45309" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <path d="M47 46 Q50 49 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "paris-lover",
-    name: "Chloe M. (Romanticist)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg7" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#FCD34D" />
-            <stop offset="50%" stop-color="#F472B6" />
-            <stop offset="100%" stop-color="#E11D48" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg7)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Eiffel Tower Silhouette -->
-        <path d="M38 78 L47 38 L53 38 L62 78 Z" fill="#FFFFFF" opacity="0.25" />
-        <line x1="40" y1="70" x2="60" y2="70" stroke="#FFFFFF" stroke-width="2" opacity="0.3" />
-        <line x1="44" y1="55" x2="56" y2="55" stroke="#FFFFFF" stroke-width="2" opacity="0.3" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#F472B6" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="43" r="13" fill="#FED7AA" />
-        
-        <!-- Hair & Red Beret -->
-        <path d="M35 44 C35 28 65 28 65 44 C65 58 35 58 35 44 Z" fill="#451A03" />
-        <ellipse cx="50" cy="30" rx="14" ry="4" fill="#BE123C" transform="rotate(-10 50 30)" />
-        <rect x="47" y="24" width="3" height="4" fill="#BE123C" transform="rotate(-10 50 30)" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="42" r="2" fill="#1E293B" />
-        <circle cx="55" cy="42" r="2" fill="#1E293B" />
-        <path d="M47 47 Q50 50 53 47" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "hiker-compass",
-    name: "Lucas T. (Navigator)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg8" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#FEF9C3" />
-            <stop offset="100%" stop-color="#FEF08A" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg8)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#047857" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="43" r="13" fill="#FED7AA" />
-        
-        <!-- Hair -->
-        <path d="M36 38 C36 26 64 26 64 38 Z" fill="#78350F" />
-        
-        <!-- Compass in hand -->
-        <circle cx="74" cy="64" r="11" fill="#475569" stroke="#FFFFFF" stroke-width="1.5" />
-        <circle cx="74" cy="64" r="9" fill="#FFFFFF" />
-        <polygon points="74,58 77,64 74,66 71,64" fill="#EF4444" />
-        <polygon points="74,70 77,64 74,66 71,64" fill="#3B82F6" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="42" r="2" fill="#1E293B" />
-        <circle cx="55" cy="42" r="2" fill="#1E293B" />
-        <path d="M47 47 Q50 50 53 47" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "bearded-traveler",
-    name: "Ben D. (Backpacker)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg9" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#FFEDD5" />
-            <stop offset="100%" stop-color="#FFD8A8" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg9)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#9A3412" />
-        <rect x="34" y="65" width="32" height="20" rx="2" fill="#4F46E5" /> <!-- Backpack strap block -->
-        
-        <!-- Head & Neck -->
-        <rect x="46" y="52" width="8" height="10" fill="#FDBA74" />
-        <circle cx="50" cy="43" r="14" fill="#FDBA74" />
-        
-        <!-- Hair & Full Beard -->
-        <path d="M35 42 C35 28 65 28 65 42 C65 58 35 58 35 42 Z" fill="#451A03" />
-        <path d="M40 43 C40 38 60 38 60 43 C60 48 57 52 50 52 C43 52 40 48 40 43 Z" fill="#FDBA74" />
-        
-        <!-- Explorer Hat -->
-        <path d="M37 32 C37 20 63 20 63 32 Z" fill="#CA8A04" />
-        <ellipse cx="50" cy="32" rx="17" ry="2.5" fill="#A16207" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <path d="M47 46 Q50 48 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "boat-surfer",
-    name: "Isabella G. (Sailor)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg10" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#E0F2FE" />
-            <stop offset="100%" stop-color="#38BDF8" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg10)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Sea and Sail -->
-        <polygon points="50,68 75,25 50,25" fill="#FFFFFF" opacity="0.8" />
-        <path d="M5 70 Q25 65 50 70 Q75 75 95 70 L95 98 L5 98 Z" fill="#0284C7" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#EC4899" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="44" r="13" fill="#FED7AA" />
-        
-        <!-- Long Wavy Hair -->
-        <path d="M35 44 C35 28 65 28 65 44 C65 58 62 65 62 65 L58 65 C58 52 61 46 61 42 C61 32 39 32 39 42 C39 46 42 52 42 65 L38 65 C38 65 35 58 35 44 Z" fill="#B45309" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="42" r="2" fill="#1E293B" />
-        <circle cx="55" cy="42" r="2" fill="#1E293B" />
-        <path d="M47 47 Q50 50 53 47" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "globe-notebook",
-    name: "Noah H. (Researcher)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg11" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#EDE9FE" />
-            <stop offset="100%" stop-color="#DDD6FE" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg11)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Globe Backdrop -->
-        <circle cx="75" cy="45" r="14" fill="#3B82F6" opacity="0.3" />
-        <path d="M68 45 A7 7 0 0 1 82 45" stroke="#FFFFFF" stroke-width="1" fill="none" opacity="0.5" />
-        <line x1="75" y1="31" x2="75" y2="59" stroke="#FFFFFF" stroke-width="1" opacity="0.5" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#6366F1" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FDBA74" />
-        <circle cx="50" cy="43" r="13" fill="#FDBA74" />
-        
-        <!-- Hair & Glasses -->
-        <path d="M37 38 C37 26 63 26 63 38 Z" fill="#1E293B" />
-        <!-- Cute glasses -->
-        <circle cx="44" cy="41" r="4" fill="none" stroke="#1E293B" stroke-width="1.5" />
-        <circle cx="56" cy="41" r="4" fill="none" stroke="#1E293B" stroke-width="1.5" />
-        <line x1="48" y1="41" x2="52" y2="41" stroke="#1E293B" stroke-width="1.5" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="44" cy="41" r="1.5" fill="#1E293B" />
-        <circle cx="56" cy="41" r="1.5" fill="#1E293B" />
-        <path d="M47 47 Q50 50 53 47" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "temple-explorer",
-    name: "Siriwat P. (Historian)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg12" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#FEF3C7" />
-            <stop offset="100%" stop-color="#FDE68A" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg12)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Pagoda Silhouette -->
-        <polygon points="12,78 22,50 32,78" fill="#D97706" opacity="0.25" />
-        <polygon points="26,78 40,40 54,78" fill="#B45309" opacity="0.3" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#EAB308" />
-        
-        <!-- Camera on neck -->
-        <rect x="42" y="66" width="16" height="11" rx="1.5" fill="#334155" />
-        <circle cx="50" cy="71.5" r="3.5" fill="#0F172A" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="43" r="13" fill="#FED7AA" />
-        
-        <!-- Hair -->
-        <path d="M37 38 C37 26 63 26 63 38 Z" fill="#1E293B" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <path d="M47 46 Q50 49 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "camper-van",
-    name: "Mia J. (Roadtripper)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg13" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ECFCCB" />
-            <stop offset="100%" stop-color="#D9F99D" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg13)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- RV window silhouette -->
-        <rect x="25" y="55" width="50" height="30" rx="4" fill="#F59E0B" />
-        <rect x="58" y="60" width="12" height="12" rx="1.5" fill="#38BDF8" />
-        
-        <!-- Character Body -->
-        <path d="M15 82 C15 65 45 65 45 82 Z" fill="#4ADE80" />
-        
-        <!-- Neck & Head -->
-        <rect x="28" y="55" width="6" height="10" fill="#FED7AA" />
-        <circle cx="31" cy="46" r="11" fill="#FED7AA" />
-        
-        <!-- Cap and Hair -->
-        <path d="M22 43 Q31 33 40 43 Z" fill="#E11D48" />
-        <path d="M22 44 C22 36 40 36 40 44 Z" fill="#78350F" />
-        
-        <!-- Eyes & Smile -->
-        <circle cx="28" cy="44" r="1.5" fill="#1E293B" />
-        <circle cx="34" cy="44" r="1.5" fill="#1E293B" />
-        <path d="M29 48 Q31 50 33 48" stroke="#1E293B" stroke-width="1.2" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "waterfall-hiker",
-    name: "Finn O. (Nature-Lover)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg14" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#CCFBF1" />
-            <stop offset="100%" stop-color="#2DD4BF" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg14)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Waterfall streams -->
-        <rect x="42" y="20" width="16" height="58" fill="#38BDF8" opacity="0.6" />
-        <path d="M42 70 Q45 74 50 70 Q55 66 58 70 L58 78 L42 78 Z" fill="#0284C7" opacity="0.8" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#16A34A" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="43" r="13" fill="#FED7AA" />
-        
-        <!-- Explorer Hat -->
-        <path d="M37 32 C37 20 63 20 63 32 Z" fill="#CA8A04" />
-        <ellipse cx="50" cy="32" rx="16" ry="2.5" fill="#A16207" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <path d="M47 46 Q50 49 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "airport-bags",
-    name: "Lily P. (Voyager)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg15" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#F3E8FF" />
-            <stop offset="100%" stop-color="#E9D5FF" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg15)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Suitcases -->
-        <rect x="16" y="56" width="16" height="26" rx="3" fill="#EA580C" />
-        <rect x="21" y="48" width="6" height="8" fill="none" stroke="#EA580C" stroke-width="2" />
-        
-        <rect x="68" y="52" width="18" height="30" rx="3" fill="#EC4899" />
-        <rect x="74" y="44" width="6" height="8" fill="none" stroke="#EC4899" stroke-width="2" />
-        
-        <!-- Body -->
-        <path d="M24 82 C24 68 76 68 76 82 Z" fill="#8B5CF6" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FDBA74" />
-        <circle cx="50" cy="43" r="13" fill="#FDBA74" />
-        
-        <!-- Hair -->
-        <path d="M36 38 C36 24 64 24 64 38 Z" fill="#451A03" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <path d="M47 46 Q50 49 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "train-passenger",
-    name: "Leo V. (Rail-Pass)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg16" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#F1F5F9" />
-            <stop offset="100%" stop-color="#E2E8F0" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg16)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Train structure background -->
-        <rect x="10" y="35" width="80" height="40" rx="6" fill="#334155" />
-        <rect x="15" y="40" width="30" height="25" rx="2" fill="#38BDF8" opacity="0.8" />
-        <rect x="55" y="40" width="30" height="25" rx="2" fill="#38BDF8" opacity="0.8" />
-        <line x1="10" y1="68" x2="90" y2="68" stroke="#EF4444" stroke-width="3" />
-        
-        <!-- Character Body -->
-        <path d="M22 82 C22 68 48 68 48 82 Z" fill="#F97316" />
-        
-        <!-- Neck & Head -->
-        <rect x="31" y="55" width="6" height="10" fill="#FED7AA" />
-        <circle cx="34" cy="46" r="11" fill="#FED7AA" />
-        
-        <!-- Hair -->
-        <path d="M25 44 C25 34 43 34 43 44 Z" fill="#78350F" />
-        
-        <!-- Eyes & Smile -->
-        <circle cx="31" cy="44" r="1.5" fill="#1E293B" />
-        <circle cx="37" cy="44" r="1.5" fill="#1E293B" />
-        <path d="M32 48 Q34 50 36 48" stroke="#1E293B" stroke-width="1.2" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "ocean-surfer",
-    name: "Kai N. (Surfer)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg17" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#60A5FA" />
-            <stop offset="100%" stop-color="#1D4ED8" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg17)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Large Wave -->
-        <path d="M5 80 Q25 65 50 80 Q75 95 95 80 L95 98 L5 98 Z" fill="#0284C7" />
-        <!-- Surfboard next to guy -->
-        <rect x="68" y="25" width="12" height="55" rx="6" fill="#F59E0B" transform="rotate(15 68 25)" />
-        <line x1="72" y1="28" x2="82" y2="72" stroke="#10B981" stroke-width="3" />
-        
-        <!-- Body -->
-        <path d="M15 82 C15 68 70 68 70 82 Z" fill="#EA580C" />
-        
-        <!-- Neck & Head -->
-        <rect x="42" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="46" cy="43" r="13" fill="#FED7AA" />
-        
-        <!-- Blonde Beach Hair -->
-        <path d="M34 38 C34 26 58 26 58 38 Z" fill="#D97706" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="42" cy="41" r="2" fill="#1E293B" />
-        <circle cx="50" cy="41" r="2" fill="#1E293B" />
-        <path d="M43 46 Q46 48 49 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "map-reader",
-    name: "Zoe B. (Sightseer)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg18" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#FFE4E6" />
-            <stop offset="100%" stop-color="#FECDD3" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg18)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#0D9488" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="43" r="13" fill="#FED7AA" />
-        
-        <!-- Hair & Headband -->
-        <path d="M36 38 C36 24 64 24 64 38 Z" fill="#78350F" />
-        <path d="M36 32 C40 30 60 30 64 32" stroke="#EF4444" stroke-width="3.5" fill="none" />
-        
-        <!-- Map held in hands -->
-        <rect x="30" y="58" width="40" height="22" rx="2" fill="#A7F3D0" stroke="#047857" stroke-width="1.5" transform="rotate(-5 50 69)" />
-        <path d="M36 60 L44 70 L54 62" stroke="#EF4444" stroke-width="2" fill="none" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <path d="M47 46 Q50 48 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "globe-suitcases",
-    name: "Mason G. (Globetrotter)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg19" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#E0F2FE" />
-            <stop offset="100%" stop-color="#BAE6FD" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg19)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- World Globe -->
-        <circle cx="50" cy="74" r="24" fill="#0284C7" opacity="0.9" />
-        <path d="M26 74 A24 24 0 0 1 74 74" stroke="#E0F2FE" stroke-width="1.5" fill="none" opacity="0.6" />
-        <path d="M50 50 A24 24 0 0 1 50 98" stroke="#E0F2FE" stroke-width="1.5" fill="none" opacity="0.6" />
-        
-        <!-- Rolling suitcase next to globe -->
-        <rect x="16" y="62" width="20" height="28" rx="4" fill="#EA580C" />
-        <rect x="22" y="54" width="8" height="8" stroke="#EA580C" stroke-width="2.5" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "tropical-beach",
-    name: "Sofia K. (Resorter)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg20" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#FFEDD5" />
-            <stop offset="70%" stop-color="#FED7AA" />
-            <stop offset="100%" stop-color="#38BDF8" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg20)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Palm leaf vector -->
-        <path d="M12 25 Q35 15 50 35 M12 25 Q20 38 32 38" stroke="#15803D" stroke-width="3" stroke-linecap="round" fill="none" />
-        
-        <!-- Body -->
-        <path d="M24 82 C24 68 76 68 76 82 Z" fill="#EC4899" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="43" r="13" fill="#FED7AA" />
-        
-        <!-- Sunglasses resting on head -->
-        <path d="M36 38 C36 24 64 24 64 38 Z" fill="#451A03" />
-        <rect x="41" y="30" width="8" height="4" rx="1" fill="#1E293B" />
-        <rect x="51" y="30" width="8" height="4" rx="1" fill="#1E293B" />
-        <line x1="49" y1="32" x2="51" y2="32" stroke="#1E293B" stroke-width="1" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <path d="M47 46 Q50 48 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "mountain-trekker",
-    name: "Aaron J. (Alpinist)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg21" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#D1FAE5" />
-            <stop offset="100%" stop-color="#A7F3D0" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg21)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Mountain Peak -->
-        <polygon points="15,75 50,25 85,75" fill="#059669" />
-        <polygon points="40,39 50,25 60,39" fill="#FFFFFF" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#EF4444" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="43" r="13" fill="#FED7AA" />
-        
-        <!-- Hair -->
-        <path d="M37 38 C37 26 63 26 63 38 Z" fill="#78350F" />
-        
-        <!-- Eyes & Smile -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <path d="M47 46 Q50 49 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
-      </svg>
-    `)
-  },
-  {
-    id: "giza-pyramids",
-    name: "Youssef M. (Egyptologist)",
-    url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg22" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#FEF3C7" />
-            <stop offset="100%" stop-color="#F59E0B" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg22)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Great Pyramids Backdrop -->
-        <polygon points="10,78 36,44 62,78" fill="#D97706" />
-        <polygon points="46,78 68,48 90,78" fill="#B45309" />
-        <circle cx="78" cy="28" r="8" fill="#EF4444" opacity="0.8" /> <!-- Hot Sun -->
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#1E293B" />
-        
-        <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FDBA74" />
-        <circle cx="50" cy="44" r="13" fill="#FDBA74" />
-        
-        <!-- Sunglasses & Hair -->
-        <path d="M38 38 C38 27 62 27 62 38 Z" fill="#78350F" />
-        <rect x="40" y="38" width="8" height="4" rx="1.5" fill="#0F172A" />
-        <rect x="52" y="38" width="8" height="4" rx="1.5" fill="#0F172A" />
-        <line x1="48" y1="40" x2="52" y2="40" stroke="#0F172A" stroke-width="1" />
-        
+        <circle cx="46" cy="58" r="2.5" fill="#F43F5E" opacity="0.3"/>
+        <circle cx="74" cy="58" r="2.5" fill="#F43F5E" opacity="0.3"/>
         <!-- Smile -->
-        <path d="M47 46 Q50 48 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
+        <path d="M55 60 Q60 65 65 60" stroke="#1E293B" stroke-width="2" stroke-linecap="round" fill="none"/>
       </svg>
     `)
   },
   {
-    id: "historic-columns",
-    name: "Elena G. (Sightseer)",
+    id: "ginger-girl-pink",
+    name: "Clara (Traveler)",
+    role: "Community Guide",
     url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="bg23" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#F8FAFC" />
-            <stop offset="100%" stop-color="#E2E8F0" />
+          <radialGradient id="bg2" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FDF2F8"/>
+            <stop offset="100%" stop-color="#FCE7F3"/>
+          </radialGradient>
+          <linearGradient id="pinkTop" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#F472B6"/>
+            <stop offset="100%" stop-color="#DB2777"/>
+          </linearGradient>
+          <linearGradient id="gingerHair" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#EA580C"/>
+            <stop offset="100%" stop-color="#C2410C"/>
           </linearGradient>
         </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg23)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Columns Silhouette Backdrop -->
-        <rect x="22" y="30" width="8" height="48" fill="#94A3B8" opacity="0.4" />
-        <rect x="18" y="26" width="16" height="5" fill="#64748B" opacity="0.4" />
-        <rect x="70" y="30" width="8" height="48" fill="#94A3B8" opacity="0.4" />
-        <rect x="66" y="26" width="16" height="5" fill="#64748B" opacity="0.4" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#4F46E5" />
-        
+        <circle cx="60" cy="60" r="58" fill="url(#bg2)"/>
+        <!-- Long Hair Behind -->
+        <path d="M35 50 C25 80 40 105 45 110 C50 110 70 110 75 110 C80 105 95 80 85 50 Z" fill="url(#gingerHair)"/>
+        <!-- Body / Pink Blouse -->
+        <path d="M25 115 C25 90 95 90 95 115 Z" fill="url(#pinkTop)"/>
+        <polygon points="60,92 50,115 70,115" fill="#FBCFE8"/>
+        <!-- Neck -->
+        <rect x="55" y="66" width="10" height="15" fill="#FED7AA" rx="3"/>
+        <!-- Head -->
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Front Hair Locks -->
+        <path d="M38 48 C36 28 84 28 82 48 C76 34 68 34 60 36 C52 34 44 34 38 48 Z" fill="url(#gingerHair)"/>
+        <path d="M36 50 C32 65 38 80 42 85 C44 78 40 65 42 52 Z" fill="url(#gingerHair)"/>
+        <path d="M84 50 C88 65 82 80 78 85 C76 78 80 65 78 52 Z" fill="url(#gingerHair)"/>
+        <!-- Eyes with Lashes -->
+        <circle cx="50" cy="52" r="2.2" fill="#0F172A"/>
+        <circle cx="49" cy="51" r="0.8" fill="#FFFFFF"/>
+        <path d="M47 48 Q50 46 53 48" stroke="#0F172A" stroke-width="1.2" fill="none"/>
+        <circle cx="70" cy="52" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="51" r="0.8" fill="#FFFFFF"/>
+        <path d="M67 48 Q70 46 73 48" stroke="#0F172A" stroke-width="1.2" fill="none"/>
+        <!-- Blush -->
+        <circle cx="46" cy="58" r="3" fill="#F43F5E" opacity="0.35"/>
+        <circle cx="74" cy="58" r="3" fill="#F43F5E" opacity="0.35"/>
+        <!-- Sweet Smile -->
+        <path d="M55 60 Q60 65 65 60" stroke="#9F1239" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "pilot-captain",
+    name: "Capt. Liam (Flight Pilot)",
+    role: "Aviation Captain",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg3" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#EFF6FF"/>
+            <stop offset="100%" stop-color="#DBEAFE"/>
+          </radialGradient>
+          <linearGradient id="navyUniform" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1E3A8A"/>
+            <stop offset="100%" stop-color="#0F172A"/>
+          </linearGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg3)"/>
+        <!-- Pilot Uniform & Shoulders -->
+        <path d="M20 115 C20 85 100 85 100 115 Z" fill="url(#navyUniform)"/>
+        <!-- Epaulets with Gold Stripes -->
+        <rect x="22" y="94" width="16" height="6" rx="2" fill="#0F172A"/>
+        <line x1="24" y1="96" x2="36" y2="96" stroke="#FBBF24" stroke-width="1.5"/>
+        <line x1="24" y1="98" x2="36" y2="98" stroke="#FBBF24" stroke-width="1.5"/>
+        <rect x="82" y="94" width="16" height="6" rx="2" fill="#0F172A"/>
+        <line x1="84" y1="96" x2="96" y2="96" stroke="#FBBF24" stroke-width="1.5"/>
+        <line x1="84" y1="98" x2="96" y2="98" stroke="#FBBF24" stroke-width="1.5"/>
+        <!-- Shirt & Tie -->
+        <polygon points="60,82 48,115 72,115" fill="#FFFFFF"/>
+        <polygon points="60,85 57,115 63,115" fill="#0F172A"/>
+        <!-- Neck -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <!-- Head -->
+        <ellipse cx="60" cy="55" rx="17" ry="19" fill="#FED7AA"/>
+        <!-- Pilot Cap -->
+        <path d="M42 42 C40 28 80 28 78 42 Z" fill="#1E3A8A"/>
+        <rect x="40" y="38" width="40" height="7" fill="#0F172A" rx="1"/>
+        <ellipse cx="60" cy="44" rx="24" ry="4" fill="#0F172A"/>
+        <!-- Gold Pilot Wings Emblem -->
+        <circle cx="60" cy="35" r="3.5" fill="#F59E0B"/>
+        <path d="M53 35 L67 35" stroke="#F59E0B" stroke-width="1.5"/>
+        <!-- Eyes & Smile -->
+        <circle cx="52" cy="54" r="2" fill="#0F172A"/>
+        <circle cx="68" cy="54" r="2" fill="#0F172A"/>
+        <path d="M56 61 Q60 64 64 61" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "hiker-safari-pole",
+    name: "Arthur (Backpacker)",
+    role: "Trail Explorer",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg4" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FEF3C7"/>
+            <stop offset="100%" stop-color="#FDE68A"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg4)"/>
+        <!-- Orange/Yellow Expedition Shirt -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#F59E0B"/>
+        <!-- Backpack Straps -->
+        <rect x="36" y="88" width="7" height="27" fill="#B45309" rx="1"/>
+        <rect x="77" y="88" width="7" height="27" fill="#B45309" rx="1"/>
+        <!-- Trekking Pole in Hand -->
+        <rect x="88" y="55" width="4" height="60" fill="#475569" rx="1"/>
+        <circle cx="90" cy="55" r="3.5" fill="#0F172A"/>
         <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="43" r="13" fill="#FED7AA" />
-        
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
         <!-- Hair -->
-        <path d="M36 38 C36 24 64 24 64 38 Z" fill="#78350F" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <path d="M47 46 Q50 49 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
+        <path d="M40 45 C38 28 82 28 80 45 Z" fill="#78350F"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="53" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="53" r="2.2" fill="#0F172A"/>
+        <path d="M55 60 Q60 65 65 60" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <circle cx="47" cy="58" r="2.5" fill="#F97316" opacity="0.3"/>
+        <circle cx="73" cy="58" r="2.5" fill="#F97316" opacity="0.3"/>
       </svg>
     `)
   },
   {
-    id: "lagoon-tanktop",
-    name: "Isla B. (Islander)",
+    id: "beach-vacation-girl",
+    name: "Elena (Sunseeker)",
+    role: "Beach Lover",
     url: svgToDataUrl(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="bg24" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#CCFBF1" />
-            <stop offset="100%" stop-color="#14B8A6" />
-          </linearGradient>
+          <radialGradient id="bg5" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#E0F2FE"/>
+            <stop offset="100%" stop-color="#BAE6FD"/>
+          </radialGradient>
         </defs>
-        <circle cx="50" cy="50" r="48" fill="url(#bg24)" stroke="#FFFFFF" stroke-width="2" />
-        
-        <!-- Lagoon Waves -->
-        <path d="M5 75 Q25 70 50 75 Q75 80 95 75 L95 98 L5 98 Z" fill="#0F766E" />
-        
-        <!-- Body -->
-        <path d="M22 82 C22 68 78 68 78 82 Z" fill="#0EA5E9" />
-        
+        <circle cx="60" cy="60" r="58" fill="url(#bg5)"/>
+        <!-- Island & Sea horizon behind -->
+        <path d="M10 80 L35 60 L60 80 Z" fill="#0284C7" opacity="0.4"/>
+        <path d="M5 85 Q60 75 115 85 L115 115 L5 115 Z" fill="#38BDF8" opacity="0.3"/>
+        <!-- Coral Tank Top -->
+        <path d="M25 115 C25 90 95 90 95 115 Z" fill="#F43F5E"/>
+        <!-- Neck -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Hair -->
+        <path d="M38 52 C35 75 42 95 44 100 C50 85 45 65 44 55 Z" fill="#331A15"/>
+        <path d="M82 52 C85 75 78 95 76 100 C70 85 75 65 76 55 Z" fill="#331A15"/>
+        <path d="M40 45 C38 30 82 30 80 45 Z" fill="#331A15"/>
+        <!-- Sunglasses -->
+        <rect x="42" y="47" width="14" height="10" rx="3" fill="#0F172A"/>
+        <rect x="64" y="47" width="14" height="10" rx="3" fill="#0F172A"/>
+        <line x1="56" y1="51" x2="64" y2="51" stroke="#0F172A" stroke-width="2"/>
+        <!-- Straw Sunhat -->
+        <ellipse cx="60" cy="38" rx="36" ry="7" fill="#FDE047"/>
+        <path d="M44 38 C44 24 76 24 76 38 Z" fill="#EAB308"/>
+        <path d="M44 36 C52 34 68 34 76 36" stroke="#EF4444" stroke-width="2.5"/>
+        <!-- Smile -->
+        <path d="M55 62 Q60 66 65 62" stroke="#9F1239" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "safari-ranger",
+    name: "Marcus (Safari Guide)",
+    role: "Nature Ranger",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg6" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ECFDF5"/>
+            <stop offset="100%" stop-color="#D1FAE5"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg6)"/>
+        <!-- Green Ranger Jacket -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#15803D"/>
+        <polygon points="60,88 52,115 68,115" fill="#CA8A04"/>
         <!-- Neck & Head -->
-        <rect x="46" y="52" width="8" height="10" fill="#FED7AA" />
-        <circle cx="50" cy="43" r="13" fill="#FED7AA" />
-        
-        <!-- Long Wavy Hair with Flower -->
-        <path d="M35 40 C35 24 65 24 65 40 C65 54 62 64 62 64 L58 64 C58 52 61 46 61 42 C61 32 39 32 39 42 C39 46 42 52 42 64 L38 64 L35 40 Z" fill="#78350F" />
-        <circle cx="62" cy="34" r="3.5" fill="#EF4444" /> <!-- Hibiscus Flower -->
-        <circle cx="64" cy="36" r="1.5" fill="#FEF08A" />
-        
-        <!-- Eyes & Face -->
-        <circle cx="45" cy="41" r="2" fill="#1E293B" />
-        <circle cx="55" cy="41" r="2" fill="#1E293B" />
-        <path d="M47 46 Q50 49 53 46" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round" fill="none" />
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Mustache -->
+        <path d="M50 60 Q60 64 70 60 Q65 65 50 60" fill="#451A03"/>
+        <!-- Safari Fedora Hat -->
+        <path d="M42 36 C42 22 78 22 78 36 Z" fill="#CA8A04"/>
+        <ellipse cx="60" cy="36" rx="30" ry="6" fill="#A16207"/>
+        <path d="M44 34 C52 32 68 32 76 34" stroke="#1E293B" stroke-width="2.5"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="52" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="52" r="2.2" fill="#0F172A"/>
+        <path d="M56 64 Q60 67 64 64" stroke="#0F172A" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+
+  // ROW 2
+  {
+    id: "afro-bun-girl",
+    name: "Maya (Cultural Guide)",
+    role: "Culture Creator",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg7" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FCE7F3"/>
+            <stop offset="100%" stop-color="#FBCFE8"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg7)"/>
+        <!-- High Afro Bun -->
+        <circle cx="60" cy="26" r="16" fill="#171717"/>
+        <!-- Pink Sleeveless Top -->
+        <path d="M25 115 C25 90 95 90 95 115 Z" fill="#EC4899"/>
+        <!-- Neck -->
+        <rect x="54" y="66" width="12" height="15" fill="#9A3412" rx="2"/>
+        <!-- Head -->
+        <ellipse cx="60" cy="55" rx="18" ry="20" fill="#9A3412"/>
+        <!-- Front Hairline -->
+        <path d="M42 48 C40 36 80 36 78 48 C72 40 68 40 60 40 C52 40 48 40 42 48 Z" fill="#171717"/>
+        <!-- Gold Earrings -->
+        <circle cx="40" cy="56" r="3.5" fill="none" stroke="#FBBF24" stroke-width="2"/>
+        <circle cx="80" cy="56" r="3.5" fill="none" stroke="#FBBF24" stroke-width="2"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="53" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="53" r="2.2" fill="#0F172A"/>
+        <path d="M55 62 Q60 67 65 62" stroke="#451A03" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "french-artist-beret",
+    name: "Pierre (Art Historian)",
+    role: "Gallery Specialist",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg8" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FEF9C3"/>
+            <stop offset="100%" stop-color="#FEF08A"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg8)"/>
+        <!-- Breton Striped Shirt -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#FFFFFF"/>
+        <path d="M23 96 L97 96" stroke="#1E293B" stroke-width="4"/>
+        <path d="M21 106 L99 106" stroke="#1E293B" stroke-width="4"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- French Mustache -->
+        <path d="M48 60 Q60 65 72 60 Q66 64 60 62 Q54 64 48 60" fill="#1E293B"/>
+        <!-- Black Beret -->
+        <ellipse cx="60" cy="35" rx="24" ry="8" fill="#1E293B" transform="rotate(-8 60 35)"/>
+        <rect x="58" y="24" width="4" height="6" fill="#1E293B" transform="rotate(-8 60 35)"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="52" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="52" r="2.2" fill="#0F172A"/>
+      </svg>
+    `)
+  },
+  {
+    id: "bearded-glasses-guy",
+    name: "Oliver (City Explorer)",
+    role: "Urban Nomad",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg9" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#EFF6FF"/>
+            <stop offset="100%" stop-color="#DBEAFE"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg9)"/>
+        <!-- Royal Blue T-shirt -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#3B82F6"/>
+        <!-- Neck -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <!-- Head & Full Beard -->
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <path d="M42 55 C42 75 78 75 78 55 C78 70 70 76 60 76 C50 76 42 70 42 55 Z" fill="#78350F"/>
+        <!-- Hair -->
+        <path d="M40 45 C38 28 82 28 80 45 Z" fill="#78350F"/>
+        <!-- Round Glasses -->
+        <circle cx="49" cy="50" r="6" fill="none" stroke="#1E293B" stroke-width="2"/>
+        <circle cx="71" cy="50" r="6" fill="none" stroke="#1E293B" stroke-width="2"/>
+        <line x1="55" y1="50" x2="65" y2="50" stroke="#1E293B" stroke-width="2"/>
+        <!-- Eyes & Smile -->
+        <circle cx="49" cy="50" r="2" fill="#0F172A"/>
+        <circle cx="71" cy="50" r="2" fill="#0F172A"/>
+        <path d="M56 62 Q60 65 64 62" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "cheerful-orange-hair",
+    name: "Sophie (Food Tour Lead)",
+    role: "Culinary Guide",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg10" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FDF2F8"/>
+            <stop offset="100%" stop-color="#FCE7F3"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg10)"/>
+        <!-- Long Orange Hair -->
+        <path d="M35 48 C25 78 38 105 44 110 C50 110 70 110 76 110 C82 105 95 78 85 48 Z" fill="#EA580C"/>
+        <!-- Magenta Blouse -->
+        <path d="M25 115 C25 90 95 90 95 115 Z" fill="#DB2777"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Front Bangs -->
+        <path d="M38 46 C36 28 84 28 82 46 C76 34 68 34 60 36 C52 34 44 34 38 46 Z" fill="#EA580C"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="53" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="53" r="2.2" fill="#0F172A"/>
+        <path d="M55 61 Q60 66 65 61" stroke="#9F1239" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <circle cx="46" cy="58" r="3" fill="#F43F5E" opacity="0.35"/>
+        <circle cx="74" cy="58" r="3" fill="#F43F5E" opacity="0.35"/>
+      </svg>
+    `)
+  },
+  {
+    id: "blue-hoodie-boy",
+    name: "Lucas (Active Explorer)",
+    role: "Adventure Seeker",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg11" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#EDE9FE"/>
+            <stop offset="100%" stop-color="#DDD6FE"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg11)"/>
+        <!-- Royal Blue Hoodie -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#2563EB"/>
+        <path d="M44 86 C44 76 76 76 76 86 Z" fill="#1D4ED8"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Curly Dark Hair -->
+        <circle cx="44" cy="38" r="7" fill="#1E293B"/>
+        <circle cx="54" cy="34" r="8" fill="#1E293B"/>
+        <circle cx="66" cy="34" r="8" fill="#1E293B"/>
+        <circle cx="76" cy="38" r="7" fill="#1E293B"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="53" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="53" r="2.2" fill="#0F172A"/>
+        <path d="M55 61 Q60 66 65 61" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "baseball-cap-guy",
+    name: "Kai (Streetwear)",
+    role: "Urban Nomad",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg12" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FEF3C7"/>
+            <stop offset="100%" stop-color="#FDE68A"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg12)"/>
+        <!-- Navy Jacket -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#0F172A"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Baseball Cap -->
+        <path d="M40 42 C40 28 80 28 80 42 Z" fill="#1E293B"/>
+        <ellipse cx="60" cy="42" rx="24" ry="4" fill="#0F172A"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="53" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="53" r="2.2" fill="#0F172A"/>
+        <path d="M55 61 Q60 65 65 61" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+
+  // ROW 3
+  {
+    id: "delivery-courier",
+    name: "Sam (Ticket Logistics)",
+    role: "Operations Express",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg13" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ECFDF5"/>
+            <stop offset="100%" stop-color="#D1FAE5"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg13)"/>
+        <!-- Green Courier Polo -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#16A34A"/>
+        <!-- Cardboard Box in hands -->
+        <rect x="42" y="90" width="36" height="25" rx="3" fill="#D97706"/>
+        <line x1="60" y1="90" x2="60" y2="115" stroke="#B45309" stroke-width="2"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Green Cap -->
+        <path d="M42 42 C42 30 78 30 78 42 Z" fill="#15803D"/>
+        <ellipse cx="60" cy="42" rx="22" ry="3.5" fill="#166534"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="53" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="53" r="2.2" fill="#0F172A"/>
+        <path d="M55 61 Q60 66 65 61" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "healthcare-surgeon",
+    name: "Dr. Ethan (Safety Officer)",
+    role: "Travel Safety",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg14" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#CCFBF1"/>
+            <stop offset="100%" stop-color="#99F6E4"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg14)"/>
+        <!-- Teal Scrubs -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#0D9488"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Surgical Cap -->
+        <path d="M40 45 C40 28 80 28 80 45 Z" fill="#0D9488"/>
+        <!-- Medical Mask -->
+        <rect x="44" y="56" width="32" height="18" rx="4" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1.5"/>
+        <line x1="40" y1="60" x2="44" y2="60" stroke="#5EEAD4" stroke-width="1.5"/>
+        <line x1="76" y1="60" x2="80" y2="60" stroke="#5EEAD4" stroke-width="1.5"/>
+        <!-- Eyes -->
+        <circle cx="51" cy="50" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="50" r="2.2" fill="#0F172A"/>
+      </svg>
+    `)
+  },
+  {
+    id: "bakery-barista",
+    name: "Chloe (Barista & Cafe)",
+    role: "Local Eats Expert",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg15" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#F3E8FF"/>
+            <stop offset="100%" stop-color="#E9D5FF"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg15)"/>
+        <!-- Pink Apron over Shirt -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#FFFFFF"/>
+        <rect x="44" y="88" width="32" height="27" fill="#F43F5E" rx="2"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Twin Buns / Hair -->
+        <circle cx="36" cy="46" r="8" fill="#451A03"/>
+        <circle cx="84" cy="46" r="8" fill="#451A03"/>
+        <path d="M38 46 C36 28 84 28 82 46 Z" fill="#451A03"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="53" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="53" r="2.2" fill="#0F172A"/>
+        <path d="M55 61 Q60 66 65 61" stroke="#9F1239" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "coder-developer",
+    name: "Devon (Tech Lead)",
+    role: "System Engineer",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg16" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#E0F2FE"/>
+            <stop offset="100%" stop-color="#BAE6FD"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg16)"/>
+        <!-- Desktop Monitor in background -->
+        <rect x="75" y="65" width="32" height="24" rx="2" fill="#0F172A"/>
+        <rect x="78" y="68" width="26" height="18" rx="1" fill="#1E293B"/>
+        <line x1="80" y1="72" x2="92" y2="72" stroke="#22C55E" stroke-width="1.5"/>
+        <line x1="80" y1="76" x2="98" y2="76" stroke="#38BDF8" stroke-width="1.5"/>
+        <!-- Teal Shirt -->
+        <path d="M18 115 C18 88 80 88 80 115 Z" fill="#0D9488"/>
+        <!-- Neck & Head -->
+        <rect x="46" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="52" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Glasses -->
+        <rect x="40" y="47" width="11" height="9" rx="2" fill="none" stroke="#1E293B" stroke-width="2"/>
+        <rect x="55" y="47" width="11" height="9" rx="2" fill="none" stroke="#1E293B" stroke-width="2"/>
+        <line x1="51" y1="51" x2="55" y2="51" stroke="#1E293B" stroke-width="2"/>
+        <!-- Hair -->
+        <path d="M34 45 C32 28 72 28 70 45 Z" fill="#451A03"/>
+        <!-- Eyes & Smile -->
+        <circle cx="45" cy="51" r="1.8" fill="#0F172A"/>
+        <circle cx="60" cy="51" r="1.8" fill="#0F172A"/>
+        <path d="M48 60 Q52 64 56 60" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "artist-painter-palette",
+    name: "Amelie (Art Curator)",
+    role: "Museum Artist",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg17" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#EDE9FE"/>
+            <stop offset="100%" stop-color="#DDD6FE"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg17)"/>
+        <!-- Blue Smock -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#2563EB"/>
+        <!-- Palette in hand -->
+        <ellipse cx="86" cy="94" rx="16" ry="12" fill="#FDE68A" transform="rotate(-15 86 94)"/>
+        <circle cx="78" cy="90" r="2.5" fill="#EF4444"/>
+        <circle cx="86" cy="88" r="2.5" fill="#3B82F6"/>
+        <circle cx="94" cy="92" r="2.5" fill="#10B981"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Blue Beret -->
+        <ellipse cx="60" cy="35" rx="24" ry="8" fill="#1D4ED8" transform="rotate(-10 60 35)"/>
+        <!-- Hair -->
+        <path d="M38 48 C36 34 84 34 82 48 Z" fill="#B45309"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="53" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="53" r="2.2" fill="#0F172A"/>
+        <path d="M55 61 Q60 66 65 61" stroke="#9F1239" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "student-reading-book",
+    name: "Noah (Historian)",
+    role: "Heritage Scholar",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg18" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFE4E6"/>
+            <stop offset="100%" stop-color="#FECDD3"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg18)"/>
+        <!-- Pink Shirt -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#FB7185"/>
+        <!-- Open Green Book in hands -->
+        <path d="M40 92 L60 96 L80 92 L80 115 L60 118 L40 115 Z" fill="#10B981"/>
+        <line x1="60" y1="96" x2="60" y2="118" stroke="#047857" stroke-width="2"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Round Glasses -->
+        <circle cx="49" cy="50" r="5.5" fill="none" stroke="#991B1B" stroke-width="2"/>
+        <circle cx="71" cy="50" r="5.5" fill="none" stroke="#991B1B" stroke-width="2"/>
+        <line x1="54.5" y1="50" x2="65.5" y2="50" stroke="#991B1B" stroke-width="2"/>
+        <!-- Hair -->
+        <path d="M40 45 C38 28 82 28 80 45 Z" fill="#991B1B"/>
+        <!-- Eyes & Smile -->
+        <circle cx="49" cy="50" r="1.8" fill="#0F172A"/>
+        <circle cx="71" cy="50" r="1.8" fill="#0F172A"/>
+        <path d="M55 60 Q60 64 65 60" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+
+  // ROW 4
+  {
+    id: "traveler-commuter-bag",
+    name: "David (Flight Booking)",
+    role: "Transit Specialist",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg19" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#E0F2FE"/>
+            <stop offset="100%" stop-color="#BAE6FD"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg19)"/>
+        <!-- Blue Puffer Jacket -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#0284C7"/>
+        <!-- Briefcase in Hand -->
+        <rect x="74" y="90" width="24" height="22" rx="3" fill="#B45309"/>
+        <path d="M82 90 L82 86 C82 84 90 84 90 86 L90 90" stroke="#78350F" stroke-width="2" fill="none"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Yellow Cap with Blue Visor -->
+        <path d="M42 42 C42 28 78 28 78 42 Z" fill="#FACC15"/>
+        <ellipse cx="60" cy="42" rx="22" ry="3.5" fill="#0284C7"/>
+        <!-- Glasses -->
+        <rect x="44" y="48" width="12" height="9" rx="2" fill="none" stroke="#1E293B" stroke-width="2"/>
+        <rect x="64" y="48" width="12" height="9" rx="2" fill="none" stroke="#1E293B" stroke-width="2"/>
+        <line x1="56" y1="52" x2="64" y2="52" stroke="#1E293B" stroke-width="2"/>
+        <!-- Eyes & Smile -->
+        <circle cx="50" cy="52" r="1.8" fill="#0F172A"/>
+        <circle cx="70" cy="52" r="1.8" fill="#0F172A"/>
+        <path d="M55 61 Q60 65 65 61" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "swimmer-goggles",
+    name: "Kyle (Water Sports)",
+    role: "Scuba & Watersport",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg20" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFEDD5"/>
+            <stop offset="100%" stop-color="#FED7AA"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg20)"/>
+        <!-- Blue Athletic Tank Top -->
+        <path d="M25 115 C25 90 95 90 95 115 Z" fill="#0284C7"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Blue Swim Cap & Goggles -->
+        <path d="M40 46 C40 28 80 28 80 46 Z" fill="#0284C7"/>
+        <rect x="43" y="44" width="14" height="10" rx="3" fill="#38BDF8" stroke="#0F172A" stroke-width="2"/>
+        <rect x="63" y="44" width="14" height="10" rx="3" fill="#38BDF8" stroke="#0F172A" stroke-width="2"/>
+        <line x1="57" y1="49" x2="63" y2="49" stroke="#0F172A" stroke-width="2"/>
+        <!-- Smile -->
+        <path d="M55 62 Q60 67 65 62" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "green-hoodie-beard",
+    name: "Liam (Nordic Explorer)",
+    role: "Mountain Guide",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg21" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#D1FAE5"/>
+            <stop offset="100%" stop-color="#A7F3D0"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg21)"/>
+        <!-- Forest Green Hoodie -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#059669"/>
+        <path d="M44 86 C44 76 76 76 76 86 Z" fill="#047857"/>
+        <!-- Neck & Head with Full Beard -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <path d="M42 55 C42 76 78 76 78 55 C78 72 70 78 60 78 C50 78 42 72 42 55 Z" fill="#1E293B"/>
+        <!-- Hair -->
+        <path d="M40 45 C38 28 82 28 80 45 Z" fill="#1E293B"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="51" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="51" r="2.2" fill="#0F172A"/>
+        <path d="M56 63 Q60 66 64 63" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "winter-beanie-hiker",
+    name: "Jack (Alpine Climber)",
+    role: "Expedition Pro",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg22" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFEDD5"/>
+            <stop offset="100%" stop-color="#FED7AA"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg22)"/>
+        <!-- Orange Winter Puffer Parka -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#EA580C"/>
+        <!-- Neck & Head with Beard -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <path d="M42 56 C42 76 78 76 78 56 C78 72 70 78 60 78 C50 78 42 72 42 56 Z" fill="#78350F"/>
+        <!-- Red Beanie Hat -->
+        <path d="M40 44 C40 24 80 24 80 44 Z" fill="#DC2626"/>
+        <rect x="38" y="40" width="44" height="7" rx="2" fill="#B91C1C"/>
+        <circle cx="60" cy="22" r="4" fill="#B91C1C"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="52" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="52" r="2.2" fill="#0F172A"/>
+        <path d="M56 64 Q60 67 64 64" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "gourmet-chef",
+    name: "Chef Antoine (Gastronomy)",
+    role: "Michelin Guide",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg23" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#F1F5F9"/>
+            <stop offset="100%" stop-color="#E2E8F0"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg23)"/>
+        <!-- White Double-Breasted Chef Uniform -->
+        <path d="M22 115 C22 88 98 88 98 115 Z" fill="#FFFFFF"/>
+        <!-- Black Chef Buttons -->
+        <circle cx="54" cy="96" r="1.8" fill="#1E293B"/>
+        <circle cx="66" cy="96" r="1.8" fill="#1E293B"/>
+        <circle cx="54" cy="106" r="1.8" fill="#1E293B"/>
+        <circle cx="66" cy="106" r="1.8" fill="#1E293B"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Tall White Chef Toque Hat -->
+        <path d="M44 36 L76 36 L78 22 C78 12 42 12 42 22 Z" fill="#FFFFFF"/>
+        <circle cx="48" cy="18" r="7" fill="#FFFFFF"/>
+        <circle cx="60" cy="14" r="8" fill="#FFFFFF"/>
+        <circle cx="72" cy="18" r="7" fill="#FFFFFF"/>
+        <rect x="42" y="32" width="36" height="6" rx="1" fill="#E2E8F0"/>
+        <!-- Eyes & Smile -->
+        <circle cx="51" cy="52" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="52" r="2.2" fill="#0F172A"/>
+        <path d="M55 60 Q60 65 65 60" stroke="#0F172A" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>
+    `)
+  },
+  {
+    id: "elegant-headband-woman",
+    name: "Grace (VIP Concierge)",
+    role: "VIP Specialist",
+    url: svgToDataUrl(`
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bg24" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#CCFBF1"/>
+            <stop offset="100%" stop-color="#99F6E4"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="58" fill="url(#bg24)"/>
+        <!-- Long Dark Hair Behind -->
+        <path d="M35 50 C25 80 40 105 45 110 C50 110 70 110 75 110 C80 105 95 80 85 50 Z" fill="#1E293B"/>
+        <!-- Emerald Green Blouse -->
+        <path d="M25 115 C25 90 95 90 95 115 Z" fill="#047857"/>
+        <!-- Neck & Head -->
+        <rect x="54" y="66" width="12" height="15" fill="#FED7AA" rx="2"/>
+        <ellipse cx="60" cy="54" rx="18" ry="20" fill="#FED7AA"/>
+        <!-- Orange Headband & Hair -->
+        <path d="M38 46 C36 28 84 28 82 46 Z" fill="#1E293B"/>
+        <path d="M38 40 C44 32 76 32 82 40" stroke="#EA580C" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <!-- Eyes with Lashes -->
+        <circle cx="50" cy="52" r="2.2" fill="#0F172A"/>
+        <circle cx="49" cy="51" r="0.8" fill="#FFFFFF"/>
+        <circle cx="70" cy="52" r="2.2" fill="#0F172A"/>
+        <circle cx="69" cy="51" r="0.8" fill="#FFFFFF"/>
+        <!-- Blush & Smile -->
+        <circle cx="46" cy="58" r="3" fill="#F43F5E" opacity="0.3"/>
+        <circle cx="74" cy="58" r="3" fill="#F43F5E" opacity="0.3"/>
+        <path d="M55 61 Q60 66 65 61" stroke="#9F1239" stroke-width="2" stroke-linecap="round" fill="none"/>
       </svg>
     `)
   }

@@ -339,7 +339,7 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
               </div>
               <h3 className="font-bold text-slate-900 dark:text-white text-base mb-2">Wide Selection</h3>
               <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm leading-relaxed">
-                Thousands of activities in 180+ countries and growing every day.
+                Thousands of activities in 30+ countries and growing every day.
               </p>
             </div>
 
@@ -368,7 +368,7 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
           {/* Stats Bar */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-8 grid grid-cols-2 lg:grid-cols-4 gap-8 text-center divide-y lg:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
             <div className="pt-4 lg:pt-0">
-              <span className="block text-3xl sm:text-4xl font-extrabold text-[#FF385C]">180+</span>
+              <span className="block text-3xl sm:text-4xl font-extrabold text-[#FF385C]">30+</span>
               <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2 uppercase tracking-wide">Countries</span>
             </div>
             <div className="pt-4 lg:pt-0">

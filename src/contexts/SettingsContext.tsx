@@ -161,7 +161,7 @@ const translations: Record<string, Record<string, string>> = {
     specialOffers: 'Special Offers',
     limitedStock: 'Limited Stock remaining',
     exploreWorldAttractions: "Explore the world's best attractions & experiences",
-    exploreWorldAttractionsSub: 'Book tickets for top attractions, tours and activities across 180+ countries.',
+    exploreWorldAttractionsSub: 'Book tickets for top attractions, tours and activities across 30+ countries.',
     adBannerHighlight: 'Book now and get up to 30% off on your next trip to top curated landmarks!',
     getBestDeals: 'Get Best Deals',
     newsletterTitle: 'Stay in the loop',

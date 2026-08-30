@@ -10,6 +10,8 @@ import Bookings from './pages/Bookings';
 import Analytics from './pages/Analytics';
 import Blog from './pages/Blog';
 import BlogPostForm from './pages/BlogPostForm';
+import PromotionalBanners from './pages/PromotionalBanners';
+import PromotionalBannerForm from './pages/PromotionalBannerForm';
 import GeminiLogoShowcase from './pages/GeminiLogoShowcase';
 
 function RequireAdmin({ children }: { children: React.ReactNode }) {
@@ -68,6 +70,9 @@ export default function AdminApp() {
             <Route path="blog" element={<Blog />} />
             <Route path="blog/new" element={<BlogPostForm />} />
             <Route path="blog/:id" element={<BlogPostForm />} />
+            <Route path="promotional-banners" element={<PromotionalBanners />} />
+            <Route path="promotional-banners/new" element={<PromotionalBannerForm />} />
+            <Route path="promotional-banners/edit/:id" element={<PromotionalBannerForm />} />
             <Route path="gemini-logo" element={<GeminiLogoShowcase />} />
             {/* Catch-all redirect to dashboard */}
             <Route path="*" element={<Navigate to="/" replace />} />

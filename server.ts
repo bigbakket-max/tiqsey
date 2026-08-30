@@ -12,16 +12,30 @@ dotenv.config();
 // Initialize SQLite database
 const db = new Database('bookings.db');
 
-// Initialize Supabase client lazily
+// Initialize Supabase client lazily with offline fallback and cooldown
 let supabaseClient: any = null;
+let isSupabaseOffline = false;
+let lastSupabaseCheckTime = 0;
+const SUPABASE_COOLDOWN_MS = 300000; // 5 minutes cooldown before trying to re-connect
 
 function getSupabaseClient() {
+  if (isSupabaseOffline) {
+    const now = Date.now();
+    if (now - lastSupabaseCheckTime < SUPABASE_COOLDOWN_MS) {
+      return null;
+    }
+    // Cooldown passed, let's allow trying to re-connect
+    isSupabaseOffline = false;
+  }
+
   if (!supabaseClient) {
     const supabaseUrl = process.env.SUPABASE_URL || 'https://lzjjwsvalvfkgwtzuime.supabase.co';
     const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_KxzN2RLPv5Q7nVqDRqPw-w_mi317li6';
     
     if (!supabaseUrl || !supabaseKey) {
       console.warn("[Supabase] SUPABASE_URL or SUPABASE_KEY is missing. Supabase integration is disabled.");
+      isSupabaseOffline = true;
+      lastSupabaseCheckTime = Date.now();
       return null;
     }
     
@@ -30,6 +44,8 @@ function getSupabaseClient() {
       console.log("[Supabase] Client initialized successfully.");
     } catch (err) {
       console.error("[Supabase] Failed to initialize client:", err);
+      isSupabaseOffline = true;
+      lastSupabaseCheckTime = Date.now();
     }
   }
   return supabaseClient;
@@ -90,14 +106,28 @@ async function fetchFromSupabase() {
       if (error.code === 'PGRST205') {
         console.log("[Supabase Status] Bookings table does not exist in Supabase yet. Run the SQL schema to create it.");
       } else {
-        console.log("[Supabase Status] Sync skipped due to code:", error.code, "-", error.message);
+        const errMsg = error.message || "";
+        if (errMsg.includes("fetch failed") || error.code === "FETCH_ERROR" || !error.code) {
+          console.warn("[Supabase] Service is unreachable (fetch failed). Switching to offline SQLite mode.");
+          isSupabaseOffline = true;
+          lastSupabaseCheckTime = Date.now();
+        } else {
+          console.log("[Supabase Status] Sync skipped due to code:", error.code, "-", error.message);
+        }
       }
       return null;
     }
 
     return data;
   } catch (err: any) {
-    console.log("[Supabase Status] Unexpected issue during fetch:", err.message || err);
+    const errMsg = err.message || "";
+    if (errMsg.includes("fetch failed") || errMsg.includes("ENOTFOUND") || errMsg.includes("unreachable")) {
+      console.warn("[Supabase] Service is unreachable (fetch failed). Switching to offline SQLite mode.");
+    } else {
+      console.log("[Supabase Status] Unexpected issue during fetch:", errMsg);
+    }
+    isSupabaseOffline = true;
+    lastSupabaseCheckTime = Date.now();
     return null;
   }
 }
@@ -106,7 +136,7 @@ async function fetchFromSupabase() {
 async function saveToSupabase(booking: any) {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    console.log("[Supabase Status] Client not available. Skipping sync.");
+    console.log("[Supabase Status] Client not available or offline. Skipping sync.");
     return false;
   }
 
@@ -146,7 +176,14 @@ async function saveToSupabase(booking: any) {
       if (actualResult.error.code === 'PGRST205') {
         console.log("[Supabase Status] Bookings table does not exist in Supabase yet.");
       } else {
-        console.log("[Supabase Status] Upsert skipped. Code:", actualResult.error.code, "-", actualResult.error.message);
+        const errMsg = actualResult.error.message || "";
+        if (errMsg.includes("fetch failed") || actualResult.error.code === "FETCH_ERROR" || !actualResult.error.code) {
+          console.warn("[Supabase] Service is unreachable (fetch failed). Switching to offline SQLite mode.");
+          isSupabaseOffline = true;
+          lastSupabaseCheckTime = Date.now();
+        } else {
+          console.log("[Supabase Status] Upsert skipped. Code:", actualResult.error.code, "-", errMsg);
+        }
       }
       return false;
     }
@@ -154,7 +191,14 @@ async function saveToSupabase(booking: any) {
     console.log(`[Supabase] Successfully synced booking ${payload.id} to Supabase bookings table.`);
     return true;
   } catch (err: any) {
-    console.log("[Supabase Status] Unexpected issue during upsert:", err.message || err);
+    const errMsg = err.message || "";
+    if (errMsg.includes("fetch failed") || errMsg.includes("ENOTFOUND") || errMsg.includes("unreachable")) {
+      console.warn("[Supabase] Service is unreachable (fetch failed). Switching to offline SQLite mode.");
+    } else {
+      console.log("[Supabase Status] Unexpected issue during upsert:", errMsg);
+    }
+    isSupabaseOffline = true;
+    lastSupabaseCheckTime = Date.now();
     return false;
   }
 }

@@ -16,7 +16,25 @@ export function BlogProvider({ children }: { children: ReactNode }) {
     const savedPosts = localStorage.getItem('tiqsey_blog_posts');
     if (savedPosts) {
       try {
-        return JSON.parse(savedPosts);
+        const parsed = JSON.parse(savedPosts);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Fix any broken or outdated unsplash URLs
+          return parsed.map((p: BlogPost) => {
+            if (p.id === 'tokyo-districts' && (!p.imageUrl || p.imageUrl.includes('photo-1540959733332'))) {
+              return {
+                ...p,
+                imageUrl: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80'
+              };
+            }
+            if (p.id === 'amsterdam-gezelligheid' && (!p.imageUrl || p.imageUrl.includes('photo-1513694203232'))) {
+              return {
+                ...p,
+                imageUrl: 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&w=1200&q=80'
+              };
+            }
+            return p;
+          });
+        }
       } catch (e) {
         console.error("Failed to parse saved blog posts", e);
       }
@@ -24,8 +42,8 @@ export function BlogProvider({ children }: { children: ReactNode }) {
     return [
       {
         id: "paris-secrets",
-      title: "A Guide to Paris’s Best Kept Secret Courtyards and Passageways",
-      excerpt: "Step away from the crowds of the Louvre and escape the bustling Boulevard Haussmann. Let’s wander through the forgotten glass-roofed passages of the 19th century.",
+      title: "A Guide to Paris's Best Kept Secret Courtyards and Passageways",
+      excerpt: "Step away from the crowds of the Louvre and escape the bustling Boulevard Haussmann. Let's wander through the forgotten glass-roofed passages of the 19th century.",
       content: [
         "Paris is a city designed to be seen, but its true magic is often found in the places that try to remain unseen. Behind massive heavy wooden doors and down quiet side streets lie the covered passages (passages couverts) and secret green courtyards that offer a portal into the 19th-century Golden Age.",
         "In the early 1800s, Paris had dozens of these glass-roofed arcades. They were the world's first shopping malls, built to keep wealthy patrons dry from the muddy, unpaved streets and safe from carriage traffic. Today, only a handful remain, beautifully preserved with mosaic tiling, antique clocks, and boutique bookstore facades.",
@@ -49,7 +67,7 @@ export function BlogProvider({ children }: { children: ReactNode }) {
     {
       id: "tokyo-districts",
       title: "Navigating Tokyo: Traditional Shrines vs. Futuristic Cyberpunk Districts",
-      excerpt: "How to experience the ultimate urban juxtaposition of Tokyo: transitioning from the serene, mossy gardens of Meiji Jingu to the glowing neon skyscrapers of Shinjuku in under 10 minutes.",
+      excerpt: "How to experience the ultimate urban juxtaposition of Tokyo: transitioning from the serene, mossy gardens of Meiji Jingu to the glowing neon...",
       content: [
         "No city on Earth balances the weight of history and the acceleration of the future quite like Tokyo. Within a single train station stop, you can step out of a tranquil 17th-century wooden temple surrounded by whispering cypress trees and straight into a multi-story neon-drenched arcade playing high-velocity synth beats.",
         "This dual identity is not a contradiction to Tokyoites; it is a harmonious coexistence. To fully appreciate Tokyo, you must design your itinerary to highlight this jarring yet satisfying juxtaposition.",
@@ -58,12 +76,12 @@ export function BlogProvider({ children }: { children: ReactNode }) {
         "Evening: Cyberpunk Shinjuku. As night falls, make your way to Shinjuku. Walk through Omoide Yokocho (Memory Lane), a tiny network of alleys filled with smoke from yakitori grills and red paper lanterns. Then, look up: just meters away stand the monolithic skyscrapers of Nishi-Shinjuku and the colossal 3D outdoor billboards. It is a cinematic experience like no other.",
         "Tips for travelers: Always carry a coin pouch, as cash is still preferred in traditional shrines, and make sure your IC transit card (Suica or Pasmo) is fully charged to easily jump between Tokyo's past and future."
       ],
-      imageUrl: "https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?auto=format&fit=crop&w=1200&q=80",
+      imageUrl: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80",
       category: "Destination Guides",
       author: {
         name: "Kenji Sato",
         avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
-        role: "Tokyo Photographer & Writer"
+        role: "Tokyo Photographer"
       },
       publishedAt: "June 28, 2026",
       readTime: "7 min read",
@@ -73,7 +91,7 @@ export function BlogProvider({ children }: { children: ReactNode }) {
     {
       id: "amalfi-roadtrip",
       title: "7 Days Along the Amalfi Coast: The Ultimate Road Trip Itinerary",
-      excerpt: "Slowing down in southern Italy. How to navigate the high-cliff hairpin turns, find the sweetest lemon granita, and explore Positano without breaking your budget.",
+      excerpt: "Slowing down in southern Italy. How to navigate the high-cliff hairpin turns, find the sweetest lemon granita, and explore Positano without breaking yo...",
       content: [
         "The Amalfi Coast is legendary for its dramatically steep cliffs, pastel-colored houses tumbling into the sparkling Tyrrhenian Sea, and sprawling terrace orchards heavy with massive Sfusato lemons. But it's also notorious for traffic gridlocks, expensive parking, and overwhelming crowds.",
         "The secret to a flawless Amalfi getaway? Strategic timing and slow-travel philosophy. Instead of trying to tick off every single town in 48 hours, dedicate seven days to soak up the Mediterranean sun, the scent of wild jasmine, and the local rhythm.",
@@ -97,7 +115,7 @@ export function BlogProvider({ children }: { children: ReactNode }) {
     {
       id: "amsterdam-gezelligheid",
       title: "The Art of Dutch 'Gezelligheid': An Amsterdam Canal Guide",
-      excerpt: "More than just a word, 'gezelligheid' is the driving force of Dutch culture. Here is how to find it in warm candlelit brown cafés, quiet canals, and secret gardens.",
+      excerpt: "More than just a word, 'gezelligheid' is the driving force of Dutch culture. Here is how to find it in warm candlelit brown cafés, quiet canals, and secret...",
       content: [
         "There is no direct English translation for the Dutch word 'gezelligheid'. It encompasses cozy, social, warm, relaxed, and homey. It’s the feeling of sharing a laugh with an old friend in a warm room, the soft glow of a candle against dark wooden walls, or a slow bike ride along a quiet, misty canal at dusk.",
         "In Amsterdam, gezelligheid is woven into the very fabric of the city. To experience it, you must look past the neon red lights and tourist-heavy shopping districts and seek out the spots where time slows down.",
@@ -106,12 +124,12 @@ export function BlogProvider({ children }: { children: ReactNode }) {
         "The Begijnhof. Step through a modest wooden door near the busy Spui square, and you will suddenly find yourself in a silent medieval courtyard. Built in the 14th century for a lay Catholic sisterhood, it features gorgeous historic brick houses, a manicured green lawn, and absolute silence.",
         "Sunset on the Canals. The ultimate gezellig experience is watching Amsterdam's bridges light up as dusk falls. Find a wooden bench on the corner of Reguliersgracht and Herengracht, where you can peer through the arches of seven illuminated stone bridges lined up in perfect symmetry."
       ],
-      imageUrl: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80",
+      imageUrl: "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&w=1200&q=80",
       category: "Food & Culture",
       author: {
         name: "Sven de Jong",
         avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
-        role: "Amsterdam Resident & Historian"
+        role: "Amsterdam Resident"
       },
       publishedAt: "May 10, 2026",
       readTime: "4 min read",
