@@ -26,11 +26,12 @@ export default function AdBanner({ onSelectDestination, onNavigate }: AdBannerPr
       });
 
       if (activeBanners.length > 0) {
-        setBanners(activeBanners);
+        setBanners(activeBanners.slice(0, 6));
       } else {
         // If all are inactive, show default set or active ones
         const anyActive = all.filter(b => b.isActive);
-        setBanners(anyActive.length > 0 ? anyActive : DEFAULT_PROMOTIONAL_BANNERS);
+        const toShow = anyActive.length > 0 ? anyActive : DEFAULT_PROMOTIONAL_BANNERS;
+        setBanners(toShow.slice(0, 6));
       }
     };
 
@@ -70,8 +71,8 @@ export default function AdBanner({ onSelectDestination, onNavigate }: AdBannerPr
           </div>
         </div>
 
-        {/* Promotions Grid (4 banners in a single row on desktop) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4.5">
+        {/* Promotions Grid (3 banners in a single row on desktop/tablet) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {banners.map((banner) => (
             <BannerCard 
               key={banner.id} 

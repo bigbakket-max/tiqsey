@@ -109,6 +109,26 @@ const TEMPLATE_PRESETS: {
   }
 ];
 
+const getValidHexColor = (colorStr: string, fallback: string = '#000000') => {
+  if (!colorStr) return fallback;
+  let clean = colorStr.trim();
+  if (!clean.startsWith('#')) {
+    clean = '#' + clean;
+  }
+  // If it's a valid 7-character hex code
+  if (/^#[0-9A-Fa-f]{6}$/.test(clean)) {
+    return clean;
+  }
+  // If it's a valid 4-character shorthand hex code, expand it
+  if (/^#[0-9A-Fa-f]{3}$/.test(clean)) {
+    const r = clean[1];
+    const g = clean[2];
+    const b = clean[3];
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+  return fallback;
+};
+
 export default function PromotionalBannerForm() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -141,7 +161,7 @@ export default function PromotionalBannerForm() {
   const [customGradientFrom, setCustomGradientFrom] = useState('#db2777');
   const [customGradientTo, setCustomGradientTo] = useState('#f59e0b');
   const [customImageUrl, setCustomImageUrl] = useState('');
-  const [imageFit, setImageFit] = useState<'contain' | 'cover' | 'fill' | 'scale-down' | 'natural'>('contain');
+  const [imageFit, setImageFit] = useState<'contain' | 'cover' | 'fill' | 'scale-down' | 'natural'>('cover');
   const [aspectRatio, setAspectRatio] = useState<'auto' | '16/9' | '16/10' | '4/3' | '21/9' | '3/2' | '1/1'>('16/10');
   const [imageBgColor, setImageBgColor] = useState('#0d0f14');
   const [previewWidthPercent, setPreviewWidthPercent] = useState<number>(100);
@@ -303,9 +323,65 @@ export default function PromotionalBannerForm() {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        setCustomImageUrl(reader.result);
-        setNotification({ message: 'Banner graphic uploaded successfully!', type: 'success' });
-        setTimeout(() => setNotification(null), 3000);
+        const rawBase64 = reader.result;
+
+        // Skip compression for SVGs
+        if (file.type === 'image/svg+xml') {
+          setCustomImageUrl(rawBase64);
+          setNotification({ message: 'Banner graphic uploaded successfully!', type: 'success' });
+          setTimeout(() => setNotification(null), 3000);
+          return;
+        }
+
+        // Compress raster images using Canvas
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1000;
+          const MAX_HEIGHT = 625;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+            if (width / height > MAX_WIDTH / MAX_HEIGHT) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            } else {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            // Try high-efficiency WebP with alpha first, otherwise JPEG
+            let compressed = '';
+            try {
+              compressed = canvas.toDataURL('image/webp', 0.82);
+              if (!compressed.startsWith('data:image/webp')) {
+                compressed = canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.75);
+              }
+            } catch {
+              compressed = canvas.toDataURL('image/jpeg', 0.75);
+            }
+            setCustomImageUrl(compressed);
+            setNotification({ message: 'Banner graphic uploaded & optimized successfully!', type: 'success' });
+          } else {
+            setCustomImageUrl(rawBase64);
+            setNotification({ message: 'Banner graphic uploaded successfully!', type: 'success' });
+          }
+          setTimeout(() => setNotification(null), 3000);
+        };
+        img.onerror = () => {
+          setCustomImageUrl(rawBase64);
+          setNotification({ message: 'Banner graphic uploaded successfully!', type: 'success' });
+          setTimeout(() => setNotification(null), 3000);
+        };
+        img.src = rawBase64;
       }
     };
     reader.readAsDataURL(file);
@@ -380,6 +456,12 @@ export default function PromotionalBannerForm() {
         updatedAt: new Date().toISOString()
       });
     } else {
+      const existingBanners = getStoredBanners();
+      if (existingBanners.length >= 6) {
+        setNotification({ message: 'Maximum limit of 6 banners reached. Please delete an existing banner first.', type: 'error' });
+        setTimeout(() => setNotification(null), 5000);
+        return;
+      }
       addBanner(payload);
     }
 
@@ -712,14 +794,14 @@ export default function PromotionalBannerForm() {
                       onChange={(e) => setImageFit(e.target.value as any)}
                       className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
                     >
-                      <option value="contain">Contain (Show full image inside frame)</option>
-                      <option value="cover">Cover (Fill entire card area)</option>
+                      <option value="cover">Cover (Fill entire card area - Recommended)</option>
+                      <option value="contain">Contain (Fit inside frame with background)</option>
                       <option value="scale-down">Scale Down (Fit if larger, maintain quality)</option>
                       <option value="fill">Stretch Fill (Fill entire width and height)</option>
                       <option value="natural">Natural Flow (Keep original image proportions)</option>
                     </select>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                      Shows 100% of your graphic without cropping.
+                      Cover automatically fills the entire card container with smooth rounded corners and zero blank borders.
                     </p>
                   </div>
 
@@ -755,13 +837,25 @@ export default function PromotionalBannerForm() {
                       <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1.5 pr-3 shadow-2xs">
                         <input
                           type="color"
-                          value={imageBgColor}
+                          value={getValidHexColor(imageBgColor, '#0d0f14')}
                           onChange={(e) => setImageBgColor(e.target.value)}
                           className="w-7 h-7 rounded-lg cursor-pointer border-0 p-0 overflow-hidden"
+                          title="Choose from color picker"
                         />
-                        <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200">
-                          {imageBgColor}
-                        </span>
+                        <input
+                          type="text"
+                          value={imageBgColor}
+                          placeholder="#0d0f14"
+                          onChange={(e) => {
+                            let val = e.target.value;
+                            if (val && !val.startsWith('#')) {
+                              val = '#' + val;
+                            }
+                            setImageBgColor(val);
+                          }}
+                          className="w-24 bg-transparent text-xs font-mono font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-1"
+                          maxLength={9}
+                        />
                       </div>
 
                       {/* Quick Color Presets */}
@@ -1004,15 +1098,23 @@ export default function PromotionalBannerForm() {
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={customBgColor}
+                        value={getValidHexColor(customBgColor, '#7700e6')}
                         onChange={(e) => setCustomBgColor(e.target.value)}
                         className="w-9 h-9 rounded-lg cursor-pointer border border-slate-200 dark:border-slate-700 p-0.5"
                       />
                       <input
                         type="text"
                         value={customBgColor}
-                        onChange={(e) => setCustomBgColor(e.target.value)}
+                        onChange={(e) => {
+                          let val = e.target.value;
+                          if (val && !val.startsWith('#')) {
+                            val = '#' + val;
+                          }
+                          setCustomBgColor(val);
+                        }}
                         className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 dark:text-slate-100"
+                        placeholder="#7700e6"
+                        maxLength={9}
                       />
                     </div>
                   </div>
@@ -1026,15 +1128,23 @@ export default function PromotionalBannerForm() {
                         <div className="flex items-center gap-2">
                           <input
                             type="color"
-                            value={customGradientFrom}
+                            value={getValidHexColor(customGradientFrom, '#db2777')}
                             onChange={(e) => setCustomGradientFrom(e.target.value)}
                             className="w-9 h-9 rounded-lg cursor-pointer border border-slate-200 dark:border-slate-700 p-0.5"
                           />
                           <input
                             type="text"
                             value={customGradientFrom}
-                            onChange={(e) => setCustomGradientFrom(e.target.value)}
+                            onChange={(e) => {
+                              let val = e.target.value;
+                              if (val && !val.startsWith('#')) {
+                                val = '#' + val;
+                              }
+                              setCustomGradientFrom(val);
+                            }}
                             className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 dark:text-slate-100"
+                            placeholder="#db2777"
+                            maxLength={9}
                           />
                         </div>
                       </div>
@@ -1046,15 +1156,23 @@ export default function PromotionalBannerForm() {
                         <div className="flex items-center gap-2">
                           <input
                             type="color"
-                            value={customGradientTo}
+                            value={getValidHexColor(customGradientTo, '#f59e0b')}
                             onChange={(e) => setCustomGradientTo(e.target.value)}
                             className="w-9 h-9 rounded-lg cursor-pointer border border-slate-200 dark:border-slate-700 p-0.5"
                           />
                           <input
                             type="text"
                             value={customGradientTo}
-                            onChange={(e) => setCustomGradientTo(e.target.value)}
+                            onChange={(e) => {
+                              let val = e.target.value;
+                              if (val && !val.startsWith('#')) {
+                                val = '#' + val;
+                              }
+                              setCustomGradientTo(val);
+                            }}
                             className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 dark:text-slate-100"
+                            placeholder="#f59e0b"
+                            maxLength={9}
                           />
                         </div>
                       </div>

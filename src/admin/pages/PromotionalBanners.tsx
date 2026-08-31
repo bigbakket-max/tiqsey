@@ -92,6 +92,10 @@ export default function PromotionalBanners() {
 
   const handleDuplicate = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (banners.length >= 6) {
+      showToast('Maximum limit of 6 banners reached.', 'info');
+      return;
+    }
     const dup = duplicateBanner(id);
     if (dup) {
       showToast('Banner duplicated');
@@ -203,43 +207,43 @@ export default function PromotionalBanners() {
     switch (template) {
       case 'readymade-image':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/40">
-            <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-            Ready-Made Artwork
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/40">
+            <Sparkles className="w-3 h-3 text-sky-600" />
+            Ready-Made
           </span>
         );
       case 'play-passes':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40">
-            <Flame className="w-3.5 h-3.5 text-purple-600" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40">
+            <Flame className="w-3 h-3 text-purple-600" />
             Play Passes
           </span>
         );
       case 'stadium-pass':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/40">
-            <Ticket className="w-3.5 h-3.5 text-teal-600" />
-            Stadium Pass
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/40">
+            <Ticket className="w-3 h-3 text-teal-600" />
+            Stadium
           </span>
         );
       case 'water-parks':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40">
-            <Compass className="w-3.5 h-3.5 text-emerald-600" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40">
+            <Compass className="w-3 h-3 text-emerald-600" />
             Water Parks
           </span>
         );
       case 'city-guide':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40">
-            <Landmark className="w-3.5 h-3.5 text-rose-600" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40">
+            <Landmark className="w-3 h-3 text-rose-600" />
             City Guide
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700">
+            <Sparkles className="w-3 h-3 text-amber-500" />
             Custom
           </span>
         );
@@ -290,7 +294,7 @@ export default function PromotionalBanners() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-1">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -305,11 +309,11 @@ export default function PromotionalBanners() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-nowrap overflow-x-auto pb-2 -mb-2 scrollbar-none max-w-full shrink-0">
           <button
             type="button"
             onClick={() => setShowLivePreview(!showLivePreview)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-2xs cursor-pointer"
+            className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-2xs cursor-pointer"
           >
             {showLivePreview ? <EyeOff className="w-3.5 h-3.5 text-slate-500" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
             <span>{showLivePreview ? 'Hide Preview' : 'Show Preview'}</span>
@@ -318,7 +322,7 @@ export default function PromotionalBanners() {
           <button
             type="button"
             onClick={handleResetDefaults}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-2xs cursor-pointer"
+            className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-2xs cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
             <span>Reset Defaults</span>
@@ -326,8 +330,18 @@ export default function PromotionalBanners() {
 
           <button
             type="button"
-            onClick={() => navigate('/promotional-banners/new?type=readymade')}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#0f172a] hover:bg-slate-800 text-white transition-colors shadow-2xs cursor-pointer"
+            onClick={() => {
+              if (banners.length >= 6) {
+                showToast('Maximum limit of 6 banners reached. Please delete a banner first.', 'info');
+              } else {
+                navigate('/promotional-banners/new?type=readymade');
+              }
+            }}
+            className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer ${
+              banners.length >= 6 
+                ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed' 
+                : 'bg-[#0f172a] hover:bg-slate-800 text-white'
+            }`}
           >
             <Upload className="w-3.5 h-3.5" />
             <span>Upload Ready-Made</span>
@@ -335,8 +349,18 @@ export default function PromotionalBanners() {
 
           <button
             type="button"
-            onClick={() => navigate('/promotional-banners/new')}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#4f46e5] hover:bg-indigo-700 text-white transition-colors shadow-2xs cursor-pointer"
+            onClick={() => {
+              if (banners.length >= 6) {
+                showToast('Maximum limit of 6 banners reached. Please delete a banner first.', 'info');
+              } else {
+                navigate('/promotional-banners/new');
+              }
+            }}
+            className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer ${
+              banners.length >= 6 
+                ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed' 
+                : 'bg-[#4f46e5] hover:bg-indigo-700 text-white'
+            }`}
           >
             <Plus className="w-4 h-4" />
             <span>Create Custom Banner</span>
@@ -469,7 +493,7 @@ export default function PromotionalBanners() {
           <div className="transition-all duration-300">
             <div className={`grid gap-4 ${
               previewViewport === 'desktop' 
-                ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-full' 
+                ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-full' 
                 : previewViewport === 'tablet'
                 ? 'grid-cols-1 sm:grid-cols-2 max-w-4xl mx-auto'
                 : 'grid-cols-1 max-w-sm mx-auto'
@@ -569,15 +593,15 @@ export default function PromotionalBanners() {
         {/* Table Content */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm min-w-[950px]">
-            <thead className="bg-white dark:bg-slate-900 text-slate-400 font-bold text-[11px] tracking-wider uppercase border-b border-slate-100 dark:border-slate-800">
+            <thead className="bg-white dark:bg-slate-900 text-slate-400 font-bold text-[10px] tracking-wider uppercase border-b border-slate-100 dark:border-slate-800">
               <tr>
-                <th className="px-5 py-4 w-20">ORDER</th>
-                <th className="px-5 py-4">BANNER PREVIEW & CONTENT</th>
-                <th className="px-5 py-4 text-center">TEMPLATE</th>
-                <th className="px-5 py-4 text-center">PROMO CODE</th>
-                <th className="px-5 py-4 text-center">TARGET ACTION</th>
-                <th className="px-5 py-4 text-center">STATUS</th>
-                <th className="px-6 py-4 text-right">ACTIONS</th>
+                <th className="px-4 py-2.5 w-16 text-center">ORDER</th>
+                <th className="px-4 py-2.5">BANNER PREVIEW & CONTENT</th>
+                <th className="px-4 py-2.5 text-center">TEMPLATE</th>
+                <th className="px-4 py-2.5 text-center">PROMO CODE</th>
+                <th className="px-4 py-2.5 text-center">TARGET ACTION</th>
+                <th className="px-4 py-2.5 text-center">STATUS</th>
+                <th className="px-5 py-2.5 text-right">ACTIONS</th>
               </tr>
             </thead>
 
@@ -609,13 +633,13 @@ export default function PromotionalBanners() {
                       }`}
                     >
                       {/* Order Column */}
-                      <td className="px-5 py-4.5 align-middle">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center font-bold text-slate-800 dark:text-slate-200 text-xs shadow-2xs shrink-0">
+                      <td className="px-4 py-3 align-middle">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6.5 h-6.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center font-bold text-slate-800 dark:text-slate-200 text-[11px] shadow-2xs shrink-0">
                             {banner.order}
                           </div>
-                          <GripVertical className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0 cursor-grab group-hover:text-slate-400 dark:group-hover:text-slate-400 active:cursor-grabbing transition-colors" />
-                          <div className="flex flex-col gap-0.5">
+                          <GripVertical className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 shrink-0 cursor-grab group-hover:text-slate-400 dark:group-hover:text-slate-400 active:cursor-grabbing transition-colors" />
+                          <div className="flex flex-col gap-0">
                             <button
                               type="button"
                               onClick={(e) => handleMove(globalIndex, 'up', e)}
@@ -623,11 +647,11 @@ export default function PromotionalBanners() {
                               title="Move Up"
                               className={`p-0.5 rounded transition-all ${
                                 isFirst 
-                                  ? 'text-slate-200 dark:text-slate-700 cursor-not-allowed' 
+                                  ? 'text-slate-100 dark:text-slate-850 cursor-not-allowed' 
                                   : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer'
                               }`}
                             >
-                              <ArrowUp className="w-3 h-3" />
+                              <ArrowUp className="w-2.5 h-2.5" />
                             </button>
                             <button
                               type="button"
@@ -636,38 +660,38 @@ export default function PromotionalBanners() {
                               title="Move Down"
                               className={`p-0.5 rounded transition-all ${
                                 isLast 
-                                  ? 'text-slate-200 dark:text-slate-700 cursor-not-allowed' 
+                                  ? 'text-slate-100 dark:text-slate-850 cursor-not-allowed' 
                                   : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer'
                               }`}
                             >
-                              <ArrowDown className="w-3 h-3" />
+                              <ArrowDown className="w-2.5 h-2.5" />
                             </button>
                           </div>
                         </div>
                       </td>
 
                     {/* Banner Preview & Content */}
-                    <td className="px-5 py-4.5 align-middle">
-                      <div className="flex items-center gap-4">
-                        <div className="w-28 aspect-[16/10] shrink-0 rounded-xl overflow-hidden shadow-xs border border-slate-200/80 dark:border-slate-800 relative bg-slate-950">
+                    <td className="px-4 py-3 align-middle">
+                      <div className="flex items-center gap-3">
+                        <div className="w-20 aspect-[16/10] shrink-0 rounded-lg overflow-hidden shadow-xs border border-slate-200/80 dark:border-slate-800 relative bg-slate-950">
                           {/* Scaled BannerCard */}
-                          <div className="absolute top-0 left-0 w-[280px] origin-top-left transform scale-[0.4]">
+                          <div className="absolute top-0 left-0 w-[240px] origin-top-left transform scale-[0.3333]">
                             <BannerCard banner={banner} mode="preview" />
                           </div>
                         </div>
-                        <div className="space-y-0.5 min-w-0 max-w-xs">
+                        <div className="space-y-0 min-w-0 max-w-xs">
                           {banner.subtitle && (
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">
                               {banner.subtitle}
                             </p>
                           )}
-                          <p className="font-extrabold text-slate-900 dark:text-white text-sm truncate">
-                            {banner.title || <span className="text-slate-400 font-normal italic">Untitled Banner</span>}
+                          <p className="font-extrabold text-slate-900 dark:text-white text-xs truncate">
+                            {banner.title || <span className="text-slate-400 font-normal italic text-xs">Untitled Banner</span>}
                           </p>
                           {banner.highlightText && (
-                            <p className="text-xs font-bold text-blue-600 dark:text-sky-400 truncate inline-flex items-center gap-1">
+                            <p className="text-[11px] font-bold text-blue-600 dark:text-sky-400 truncate inline-flex items-center gap-1">
                               <span>{banner.highlightText}</span>
-                              <ExternalLink className="w-3 h-3 inline" />
+                              <ExternalLink className="w-2.5 h-2.5 inline" />
                             </p>
                           )}
                         </div>
@@ -675,53 +699,53 @@ export default function PromotionalBanners() {
                     </td>
 
                     {/* Template Badge */}
-                    <td className="px-5 py-4.5 align-middle text-center">
+                    <td className="px-4 py-3 align-middle text-center">
                       {getTemplateBadge(banner.template)}
                     </td>
 
                     {/* Promo Code */}
-                    <td className="px-5 py-4.5 align-middle text-center">
+                    <td className="px-4 py-3 align-middle text-center">
                       {banner.promoCode ? (
-                        <div className="inline-block px-3 py-1 rounded-lg bg-[#fef3c7]/60 dark:bg-amber-950/30 border border-[#fde68a] dark:border-amber-900/40 text-[#92400e] dark:text-amber-300 font-mono text-xs font-bold">
+                        <div className="inline-block px-2 py-0.5 rounded-lg bg-[#fef3c7]/60 dark:bg-amber-950/30 border border-[#fde68a] dark:border-amber-900/40 text-[#92400e] dark:text-amber-300 font-mono text-[10px] font-bold">
                           {banner.promoCode}
                         </div>
                       ) : (
-                        <span className="text-slate-400 dark:text-slate-500 text-sm font-medium">—</span>
+                        <span className="text-slate-400 dark:text-slate-500 text-xs font-medium">—</span>
                       )}
                     </td>
 
                     {/* Target Action */}
-                    <td className="px-5 py-4.5 align-middle text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                    <td className="px-4 py-3 align-middle text-center">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
                           banner.destinationType === 'destination'
                             ? 'bg-sky-50 text-sky-600 dark:bg-sky-950/60 dark:text-sky-300'
                             : banner.destinationType === 'activity'
                             ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-300'
                             : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
                         }`}>
-                          {banner.destinationType === 'destination' ? 'DESTINATION' : banner.destinationType === 'activity' ? 'ACTIVITY' : 'SECTION'}
+                          {banner.destinationType === 'destination' ? 'DEST' : banner.destinationType === 'activity' ? 'ACT' : 'SECT'}
                         </span>
-                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[140px]" title={banner.destinationUrl || '#'}>
+                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate max-w-[130px]" title={banner.destinationUrl || '#'}>
                           {banner.destinationUrl || 'deals'}
                         </span>
                       </div>
                     </td>
 
                     {/* Status & Custom Toggle */}
-                    <td className="px-5 py-4.5 align-middle text-center">
-                      <div className="flex flex-col items-center gap-1.5">
+                    <td className="px-4 py-3 align-middle text-center">
+                      <div className="flex flex-col items-center gap-1">
                         <button
                           type="button"
                           onClick={(e) => handleToggleActive(banner.id, e)}
                           title={banner.isActive ? 'Click to disable' : 'Click to activate'}
-                          className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
+                          className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
                             banner.isActive ? 'bg-[#10b981]' : 'bg-slate-200 dark:bg-slate-700'
                           }`}
                         >
                           <div 
-                            className={`w-4 h-4 rounded-full bg-white shadow-xs absolute top-1 left-1 transform transition-transform duration-200 ease-in-out ${
-                              banner.isActive ? 'translate-x-5' : 'translate-x-0'
+                            className={`w-3.5 h-3.5 rounded-full bg-white shadow-xs absolute top-0.75 left-0.75 transform transition-transform duration-200 ease-in-out ${
+                              banner.isActive ? 'translate-x-4' : 'translate-x-0'
                             }`} 
                           />
                         </button>
@@ -730,40 +754,40 @@ export default function PromotionalBanners() {
                     </td>
 
                     {/* Actions */}
-                    <td className="px-6 py-4.5 align-middle text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-5 py-3 align-middle text-right">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"
                           onClick={() => navigate(`/promotional-banners/edit/${banner.id}`)}
                           title="Edit Banner"
-                          className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                          className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          <Edit2 className="w-3.5 h-3.5" />
                         </button>
 
                         <button
                           type="button"
                           onClick={(e) => handleDuplicate(banner.id, e)}
                           title="Duplicate Banner"
-                          className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                          className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
                         >
-                          <Copy className="w-4 h-4" />
+                          <Copy className="w-3.5 h-3.5" />
                         </button>
 
                         {deleteConfirmId === banner.id ? (
-                          <div className="flex items-center gap-1 ml-1 bg-red-50 dark:bg-red-950/40 p-1 rounded-lg border border-red-200 dark:border-red-800">
-                            <span className="text-[11px] text-red-600 dark:text-red-400 font-bold px-1">Delete?</span>
+                          <div className="flex items-center gap-1 ml-1 bg-red-50 dark:bg-red-950/40 p-0.5 rounded-md border border-red-200 dark:border-red-800">
+                            <span className="text-[10px] text-red-600 dark:text-red-400 font-bold px-0.5">Del?</span>
                             <button
                               type="button"
                               onClick={() => handleDelete(banner.id)}
-                              className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-bold transition-colors cursor-pointer"
+                              className="px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
                             >
                               Yes
                             </button>
                             <button
                               type="button"
                               onClick={() => setDeleteConfirmId(null)}
-                              className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-xs font-bold transition-colors cursor-pointer"
+                              className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-[10px] font-bold transition-colors cursor-pointer"
                             >
                               No
                             </button>
@@ -773,9 +797,9 @@ export default function PromotionalBanners() {
                             type="button"
                             onClick={() => setDeleteConfirmId(banner.id)}
                             title="Delete Banner"
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                            className="p-1 text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>

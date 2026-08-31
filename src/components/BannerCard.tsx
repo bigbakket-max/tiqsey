@@ -117,7 +117,7 @@ export default function BannerCard({
   // 0. Template: Ready-Made Image Graphic Banner (Direct Upload Artwork)
   if (banner.template === 'readymade-image' || banner.bannerType === 'readymade') {
     const hasImage = Boolean(banner.customImageUrl);
-    const fitMode = banner.imageFit || 'contain';
+    const fitMode = banner.imageFit || 'cover';
     const aspectClass = 
       banner.aspectRatio === '16/9' ? 'aspect-[16/9]' :
       banner.aspectRatio === '4/3' ? 'aspect-[4/3]' :
@@ -128,11 +128,11 @@ export default function BannerCard({
       'aspect-[16/10]';
 
     const fitClass = 
-      fitMode === 'cover' ? 'object-cover' :
+      fitMode === 'contain' ? 'object-contain' :
       fitMode === 'fill' ? 'object-fill' :
       fitMode === 'scale-down' ? 'object-scale-down' :
       fitMode === 'natural' ? 'object-contain h-auto max-h-full' :
-      'object-contain'; // default 'contain' to never crop user graphics or text
+      'object-cover'; // default 'cover' to fill card smoothly without borders
 
     return (
       <div 
@@ -140,7 +140,7 @@ export default function BannerCard({
         style={{
           backgroundColor: banner.imageBgColor || banner.customBgColor || '#0a0d14'
         }}
-        className={`w-full ${aspectClass} rounded-2xl relative overflow-hidden flex items-center justify-center cursor-pointer shadow-md select-none group/card hover:shadow-2xl transition-all hover:-translate-y-1 duration-200 border border-slate-200/60 dark:border-slate-800/80 text-left`}
+        className={`w-full ${aspectClass} rounded-2xl relative overflow-hidden flex items-center justify-center cursor-pointer shadow-md group/card hover:shadow-2xl transition-all hover:-translate-y-1 duration-200 border border-slate-200/60 dark:border-slate-800/80 text-left`}
       >
         {hasImage ? (
           <>
@@ -174,7 +174,7 @@ export default function BannerCard({
         style={{
           backgroundColor: banner.customBgColor || '#7700e6'
         }}
-        className="w-full aspect-[16/10] rounded-2xl relative overflow-hidden flex flex-col justify-between p-4 cursor-pointer shadow-md select-none group/card hover:shadow-xl transition-all hover:-translate-y-1 duration-200 border border-purple-500/30 text-left"
+        className="w-full aspect-[16/10] rounded-2xl relative overflow-hidden flex flex-col justify-between p-4 cursor-pointer shadow-md group/card hover:shadow-xl transition-all hover:-translate-y-1 duration-200 border border-purple-500/30 text-left"
       >
         {/* Halftone Dot pattern */}
         <div 
@@ -245,7 +245,7 @@ export default function BannerCard({
             </span>
           )}
           {banner.title && (
-            <h4 className="text-2xl font-[1000] tracking-tighter text-white italic leading-none select-none uppercase drop-shadow-[0_2.5px_0px_#1e004a] filter drop-shadow-[0_0_10px_rgba(255,255,255,0.15)] my-1 transform group-hover/card:scale-105 transition-transform duration-300">
+            <h4 className="text-2xl font-[1000] tracking-tighter text-white italic leading-none uppercase drop-shadow-[0_2.5px_0px_#1e004a] filter drop-shadow-[0_0_10px_rgba(255,255,255,0.15)] my-1 transform group-hover/card:scale-105 transition-transform duration-300">
               {banner.title}
             </h4>
           )}
@@ -301,7 +301,7 @@ export default function BannerCard({
         style={{
           backgroundColor: banner.customBgColor || '#055c63'
         }}
-        className="w-full aspect-[16/10] rounded-2xl relative overflow-hidden flex flex-col justify-between p-4 cursor-pointer shadow-md select-none group/card hover:shadow-xl transition-all hover:-translate-y-1 duration-200 border border-teal-500/20 text-left"
+        className="w-full aspect-[16/10] rounded-2xl relative overflow-hidden flex flex-col justify-between p-4 cursor-pointer shadow-md group/card hover:shadow-xl transition-all hover:-translate-y-1 duration-200 border border-teal-500/20 text-left"
       >
         {/* Left Top ribbon stamp banner */}
         <div className="absolute top-0 left-0 bg-[#ffcdd2] text-[#c2185b] font-black px-2.5 py-1 rounded-br-lg shadow-sm flex items-center gap-1 z-10 text-[9px] uppercase tracking-wider">
@@ -367,7 +367,7 @@ export default function BannerCard({
         style={{
           backgroundColor: banner.customBgColor || '#049408'
         }}
-        className="w-full aspect-[16/10] rounded-2xl relative overflow-hidden flex flex-col justify-between p-4 cursor-pointer shadow-md select-none group/card hover:shadow-xl transition-all hover:-translate-y-1 duration-200 border border-green-500/20 text-left"
+        className="w-full aspect-[16/10] rounded-2xl relative overflow-hidden flex flex-col justify-between p-4 cursor-pointer shadow-md group/card hover:shadow-xl transition-all hover:-translate-y-1 duration-200 border border-green-500/20 text-left"
       >
         {/* Left Top Resort Ribbon Stamp */}
         <div className="absolute top-0 left-0 bg-[#ffe0b2] text-[#e65100] font-black px-2.5 py-1 rounded-br-lg shadow-sm flex items-center gap-1 z-10 text-[9px] uppercase tracking-wider">
@@ -445,7 +445,7 @@ export default function BannerCard({
             ? `linear-gradient(135deg, ${banner.customGradientFrom}, ${banner.customBgColor || '#e11d48'}, ${banner.customGradientTo})`
             : 'linear-gradient(135deg, #db2777, #e11d48, #f59e0b)'
         }}
-        className="w-full aspect-[16/10] rounded-2xl relative overflow-hidden flex flex-col justify-between p-4 cursor-pointer shadow-md select-none group/card hover:shadow-xl transition-all hover:-translate-y-1 duration-200 border border-rose-400/20 text-left"
+        className="w-full aspect-[16/10] rounded-2xl relative overflow-hidden flex flex-col justify-between p-4 cursor-pointer shadow-md group/card hover:shadow-xl transition-all hover:-translate-y-1 duration-200 border border-rose-400/20 text-left"
       >
         {/* Particle overlay */}
         <div 
@@ -518,7 +518,7 @@ export default function BannerCard({
             ? `linear-gradient(135deg, ${banner.customGradientFrom}, ${banner.customGradientTo})`
             : banner.customBgColor || '#1e293b'
       }}
-      className="w-full aspect-[16/10] rounded-2xl relative overflow-hidden flex flex-col justify-between p-4 cursor-pointer shadow-md select-none group/card hover:shadow-xl transition-all hover:-translate-y-1 duration-200 border border-white/15 text-left"
+      className="w-full aspect-[16/10] rounded-2xl relative overflow-hidden flex flex-col justify-between p-4 cursor-pointer shadow-md group/card hover:shadow-xl transition-all hover:-translate-y-1 duration-200 border border-white/15 text-left"
     >
       {/* Top row */}
       <div className="z-10 flex items-center justify-between gap-2">

@@ -12,40 +12,46 @@ dotenv.config();
 // Initialize SQLite database
 const db = new Database('bookings.db');
 
-// Initialize Supabase client lazily with offline fallback and cooldown
+// Initialize Supabase client lazily if SUPABASE_URL & SUPABASE_KEY are provided
 let supabaseClient: any = null;
 let isSupabaseOffline = false;
 let lastSupabaseCheckTime = 0;
 const SUPABASE_COOLDOWN_MS = 300000; // 5 minutes cooldown before trying to re-connect
 
 function getSupabaseClient() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_KEY;
+
+  // If Supabase environment variables are not configured or invalid, run cleanly in SQLite mode
+  if (!supabaseUrl || !supabaseKey) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(supabaseUrl);
+    if (!parsed.protocol.startsWith('http')) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+
   if (isSupabaseOffline) {
     const now = Date.now();
     if (now - lastSupabaseCheckTime < SUPABASE_COOLDOWN_MS) {
       return null;
     }
-    // Cooldown passed, let's allow trying to re-connect
+    // Cooldown passed, allow trying to re-connect
     isSupabaseOffline = false;
   }
 
   if (!supabaseClient) {
-    const supabaseUrl = process.env.SUPABASE_URL || 'https://lzjjwsvalvfkgwtzuime.supabase.co';
-    const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_KxzN2RLPv5Q7nVqDRqPw-w_mi317li6';
-    
-    if (!supabaseUrl || !supabaseKey) {
-      console.warn("[Supabase] SUPABASE_URL or SUPABASE_KEY is missing. Supabase integration is disabled.");
+    try {
+      supabaseClient = createClient(supabaseUrl, supabaseKey);
+    } catch {
       isSupabaseOffline = true;
       lastSupabaseCheckTime = Date.now();
       return null;
-    }
-    
-    try {
-      supabaseClient = createClient(supabaseUrl, supabaseKey);
-      console.log("[Supabase] Client initialized successfully.");
-    } catch (err) {
-      console.error("[Supabase] Failed to initialize client:", err);
-      isSupabaseOffline = true;
-      lastSupabaseCheckTime = Date.now();
     }
   }
   return supabaseClient;
@@ -97,35 +103,18 @@ async function fetchFromSupabase() {
   if (!supabase) return null;
 
   try {
-    console.log("[Supabase] Fetching bookings from Supabase...");
     const { data, error } = await supabase
       .from('bookings')
       .select('*');
 
     if (error) {
-      if (error.code === 'PGRST205') {
-        console.log("[Supabase Status] Bookings table does not exist in Supabase yet. Run the SQL schema to create it.");
-      } else {
-        const errMsg = error.message || "";
-        if (errMsg.includes("fetch failed") || error.code === "FETCH_ERROR" || !error.code) {
-          console.warn("[Supabase] Service is unreachable (fetch failed). Switching to offline SQLite mode.");
-          isSupabaseOffline = true;
-          lastSupabaseCheckTime = Date.now();
-        } else {
-          console.log("[Supabase Status] Sync skipped due to code:", error.code, "-", error.message);
-        }
-      }
+      isSupabaseOffline = true;
+      lastSupabaseCheckTime = Date.now();
       return null;
     }
 
     return data;
-  } catch (err: any) {
-    const errMsg = err.message || "";
-    if (errMsg.includes("fetch failed") || errMsg.includes("ENOTFOUND") || errMsg.includes("unreachable")) {
-      console.warn("[Supabase] Service is unreachable (fetch failed). Switching to offline SQLite mode.");
-    } else {
-      console.log("[Supabase Status] Unexpected issue during fetch:", errMsg);
-    }
+  } catch {
     isSupabaseOffline = true;
     lastSupabaseCheckTime = Date.now();
     return null;
@@ -136,7 +125,6 @@ async function fetchFromSupabase() {
 async function saveToSupabase(booking: any) {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    console.log("[Supabase Status] Client not available or offline. Skipping sync.");
     return false;
   }
 
@@ -166,37 +154,19 @@ async function saveToSupabase(booking: any) {
   };
 
   try {
-    console.log(`[Supabase] Syncing booking ${payload.id} to Supabase...`);
     // Try to upsert so it works for both insert and update
     const actualResult = await supabase
       .from('bookings')
       .upsert(payload, { onConflict: 'id' });
 
     if (actualResult.error) {
-      if (actualResult.error.code === 'PGRST205') {
-        console.log("[Supabase Status] Bookings table does not exist in Supabase yet.");
-      } else {
-        const errMsg = actualResult.error.message || "";
-        if (errMsg.includes("fetch failed") || actualResult.error.code === "FETCH_ERROR" || !actualResult.error.code) {
-          console.warn("[Supabase] Service is unreachable (fetch failed). Switching to offline SQLite mode.");
-          isSupabaseOffline = true;
-          lastSupabaseCheckTime = Date.now();
-        } else {
-          console.log("[Supabase Status] Upsert skipped. Code:", actualResult.error.code, "-", errMsg);
-        }
-      }
+      isSupabaseOffline = true;
+      lastSupabaseCheckTime = Date.now();
       return false;
     }
 
-    console.log(`[Supabase] Successfully synced booking ${payload.id} to Supabase bookings table.`);
     return true;
-  } catch (err: any) {
-    const errMsg = err.message || "";
-    if (errMsg.includes("fetch failed") || errMsg.includes("ENOTFOUND") || errMsg.includes("unreachable")) {
-      console.warn("[Supabase] Service is unreachable (fetch failed). Switching to offline SQLite mode.");
-    } else {
-      console.log("[Supabase Status] Unexpected issue during upsert:", errMsg);
-    }
+  } catch {
     isSupabaseOffline = true;
     lastSupabaseCheckTime = Date.now();
     return false;
@@ -654,12 +624,10 @@ async function startServer() {
 
       console.log(`[Database] Booking saved/updated locally: ${id}`);
 
-      // Gracefully attempt to sync to Supabase (non-blocking but awaited for reliable logging)
+      // Gracefully attempt to sync to Supabase if configured
       const supabaseSuccess = await saveToSupabase(booking);
       if (supabaseSuccess) {
         console.log(`[Database] Booking synced successfully to Supabase for ID: ${id}`);
-      } else {
-        console.warn(`[Database] Supabase sync failed or skipped for ID: ${id}. Kept safely in SQLite.`);
       }
 
       res.json({ success: true, supabaseSynced: supabaseSuccess });
