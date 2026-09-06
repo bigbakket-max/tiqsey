@@ -14,7 +14,8 @@ import { useWishlist } from '../contexts/WishlistContext';
 import { downloadTicketVoucher } from '../utils/ticketDownloader';
 import { POPULAR_ATTRACTIONS } from '../data/mockData';
 import { getDisplayProductId } from '../utils/productIdGenerator';
-import { Attraction } from '../types';
+import { Attraction, Variant, BookingMode, AffiliateConfig } from '../types';
+import { buildAffiliateUrl, recordAffiliateClick } from '../utils/affiliate';
 import AttractionCard from './AttractionCard';
 import { Breadcrumb, BreadcrumbItem } from './Breadcrumb';
 import { Helmet } from 'react-helmet-async';
@@ -421,7 +422,11 @@ export default function AttractionDetailModal({
           agePolicy: v.agePolicy,
           priceIncludes: v.priceIncludes,
           notes: v.notes,
-          otherDetails: v.otherDetails
+          otherDetails: v.otherDetails,
+          bookingMode: v.bookingMode,
+          affiliateUrl: v.affiliateUrl,
+          affiliateConfig: v.affiliateConfig,
+          rawVariant: v
         };
       });
     }
@@ -436,7 +441,11 @@ export default function AttractionDetailModal({
         couponDiscount: 3.80,
         description: `Admission to ${cleanName} permanent collection. Timed entry slots guarantee immediate access without waiting.`,
         duration: '2 Hours',
-        inventory: undefined
+        inventory: undefined,
+        bookingMode: (attraction.bookingMode || 'manual') as BookingMode,
+        affiliateUrl: attraction.affiliateConfig?.affiliateUrl,
+        affiliateConfig: attraction.affiliateConfig,
+        rawVariant: undefined
       },
       { 
         id: 'non-stop-2day', 
@@ -447,7 +456,11 @@ export default function AttractionDetailModal({
         couponDiscount: 4.36,
         description: `Experience two days of unrestricted exploration with fast-track admission past standard queues.`,
         duration: 'Flexible 48 Hours',
-        inventory: undefined
+        inventory: undefined,
+        bookingMode: (attraction.bookingMode || 'manual') as BookingMode,
+        affiliateUrl: attraction.affiliateConfig?.affiliateUrl,
+        affiliateConfig: attraction.affiliateConfig,
+        rawVariant: undefined
       },
       { 
         id: '2day-7days', 
@@ -458,7 +471,11 @@ export default function AttractionDetailModal({
         couponDiscount: 5.52,
         description: `Visit twice at any time within a 7-day period. Perfect for paced discovery of temporary galleries.`,
         duration: '7 Days Validity',
-        inventory: undefined
+        inventory: undefined,
+        bookingMode: (attraction.bookingMode || 'manual') as BookingMode,
+        affiliateUrl: attraction.affiliateConfig?.affiliateUrl,
+        affiliateConfig: attraction.affiliateConfig,
+        rawVariant: undefined
       }
     ];
   }, [attraction, bookingDate, selectedTimeSlot]);
@@ -469,8 +486,20 @@ export default function AttractionDetailModal({
   const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null);
 
   const selectedPackage = useMemo(() => {
-    return dynamicPackages.find(p => p.id === selectedPackageId) || dynamicPackages[0] || { id: 'general', name: 'General Admission Entrance Ticket', priceOffset: 0 };
-  }, [dynamicPackages, selectedPackageId]);
+    return (
+      dynamicPackages.find(p => p.id === selectedPackageId) || 
+      dynamicPackages[0] || 
+      { 
+        id: 'general', 
+        name: 'General Admission Entrance Ticket', 
+        priceOffset: 0,
+        bookingMode: (attraction.bookingMode || 'manual') as BookingMode,
+        affiliateConfig: attraction.affiliateConfig,
+        affiliateUrl: attraction.affiliateConfig?.affiliateUrl,
+        rawVariant: undefined
+      }
+    );
+  }, [dynamicPackages, selectedPackageId, attraction]);
 
   const [showPackageDropdown, setShowPackageDropdown] = useState(false);
   const [showGuestsDropdown, setShowGuestsDropdown] = useState(false);
@@ -701,6 +730,60 @@ export default function AttractionDetailModal({
       setSelectedPackageId(dynamicPackages[0].id);
     }
   }, [attraction?.id]);
+
+  // Affiliate Outbound Redirect & Dynamic Booking Handler
+  const [affiliateNotice, setAffiliateNotice] = useState<{ vendor: string; url: string } | null>(null);
+
+  const handleBookNow = (pkgToBook?: any) => {
+    if (!attraction) return;
+    const targetPkg = pkgToBook || selectedPackage;
+
+    // Detect if this specific variant or activity operates in Affiliate Mode
+    const isAffiliate = 
+      (targetPkg?.bookingMode === 'affiliate') ||
+      (attraction.bookingMode === 'affiliate' && targetPkg?.bookingMode !== 'manual');
+
+    if (isAffiliate) {
+      const resolvedUrl = buildAffiliateUrl(attraction, targetPkg, {
+        currency: currency.code,
+        date: bookingDate || new Date().toISOString().split('T')[0]
+      });
+
+      if (!resolvedUrl) {
+        alert("Affiliate booking URL is not configured yet for this activity. Please try again later.");
+        return;
+      }
+
+      // 1. Log outbound click & increment click metrics
+      recordAffiliateClick(attraction, targetPkg, resolvedUrl, currency.code);
+
+      // 2. Show brief confirmation notice
+      const vendor = targetPkg?.affiliateConfig?.vendorName || attraction.affiliateConfig?.vendorName || 'Official Partner';
+      setAffiliateNotice({ vendor, url: resolvedUrl });
+
+      // 3. Perform secure redirect based on configured behavior
+      const redirectBehavior = targetPkg?.affiliateConfig?.redirectBehavior || attraction.affiliateConfig?.redirectBehavior || 'new_tab';
+      if (redirectBehavior === 'current_tab') {
+        setTimeout(() => {
+          window.location.href = resolvedUrl;
+        }, 300);
+      } else {
+        window.open(resolvedUrl, '_blank', 'noopener,noreferrer');
+        setTimeout(() => {
+          setAffiliateNotice(null);
+        }, 4500);
+      }
+      return;
+    }
+
+    // Manual Mode: Proceed through Tiqsey internal date/time/traveller checkout
+    if (targetPkg) {
+      setSelectedPackageId(targetPkg.id);
+      setExpandedPackageId(targetPkg.id);
+    }
+    setBookingFormStep(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Share Activity Link States & Helpers
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -2205,14 +2288,14 @@ export default function AttractionDetailModal({
                                           type="button"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            setSelectedPackageId(pkg.id);
-                                            setExpandedPackageId(pkg.id);
-                                            setBookingFormStep(true);
-                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                            handleBookNow(pkg);
                                           }}
-                                          className="px-6 py-2.5 bg-[#e3000f] hover:bg-[#be000b] text-white rounded-[8px] text-[13px] font-bold uppercase transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer flex items-center justify-center whitespace-nowrap"
+                                          className="px-6 py-2.5 bg-[#e3000f] hover:bg-[#be000b] text-white rounded-[8px] text-[13px] font-bold uppercase transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
                                         >
-                                          Book Now
+                                          <span>Book Now</span>
+                                          {(pkg.bookingMode === 'affiliate' || (attraction.bookingMode === 'affiliate' && pkg.bookingMode !== 'manual')) && (
+                                            <ExternalLink className="w-3.5 h-3.5 opacity-90" />
+                                          )}
                                         </button>
                                       </div>
                                     </div>
@@ -2383,18 +2466,18 @@ export default function AttractionDetailModal({
                                     disabled={attraction?.isAvailable === false}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setSelectedPackageId(pkg.id);
-                                      setExpandedPackageId(pkg.id);
-                                      setBookingFormStep(true);
-                                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                                      handleBookNow(pkg);
                                     }}
-                                    className={`px-6 py-2 rounded-[8px] text-[13px] font-bold uppercase transition-all shadow-sm flex items-center justify-center whitespace-nowrap ${
+                                    className={`px-6 py-2 rounded-[8px] text-[13px] font-bold uppercase transition-all shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap ${
                                       attraction?.isAvailable === false
                                         ? "bg-slate-200 dark:bg-slate-850 text-slate-400 dark:text-slate-500 cursor-not-allowed select-none"
                                         : "bg-[#e3000f] hover:bg-[#be000b] text-white hover:shadow active:scale-95 cursor-pointer"
                                     }`}
                                   >
-                                    {attraction?.isAvailable === false ? "Unavailable" : "Book Now"}
+                                    <span>{attraction?.isAvailable === false ? "Unavailable" : "Book Now"}</span>
+                                    {attraction?.isAvailable !== false && (pkg.bookingMode === 'affiliate' || (attraction.bookingMode === 'affiliate' && pkg.bookingMode !== 'manual')) && (
+                                      <ExternalLink className="w-3.5 h-3.5 opacity-90" />
+                                    )}
                                   </button>
                                 </div>
                               </div>
@@ -2490,14 +2573,38 @@ export default function AttractionDetailModal({
                       )}
 
                       {/* Action Submit Button */}
-                      <button
-                        id="finalize-booking-cta-btn"
-                        type="button"
-                        onClick={handleScrollToPackages}
-                        className="w-full bg-brand hover:bg-[#be000b] text-white text-[15px] sm:text-[16px] font-bold rounded-[8px] py-3.5 border border-brand transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md"
-                      >
-                        <span>Check availability</span>
-                      </button>
+                      {(() => {
+                        const pkg = selectedPackage as any;
+                        const isAffiliate = 
+                          (pkg?.bookingMode === 'affiliate') ||
+                          (attraction.bookingMode === 'affiliate' && pkg?.bookingMode !== 'manual');
+                        const vendor = pkg?.affiliateConfig?.vendorName || attraction.affiliateConfig?.vendorName;
+
+                        return (
+                          <>
+                            <button
+                              id="finalize-booking-cta-btn"
+                              type="button"
+                              onClick={isAffiliate ? () => handleBookNow(selectedPackage) : handleScrollToPackages}
+                              className="w-full bg-brand hover:bg-[#be000b] text-white text-[15px] sm:text-[16px] font-bold rounded-[8px] py-3.5 border border-brand transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md"
+                            >
+                              {isAffiliate ? (
+                                <>
+                                  <span>BOOK NOW</span>
+                                  <ExternalLink className="w-4 h-4 opacity-90" />
+                                </>
+                              ) : (
+                                <span>Check availability</span>
+                              )}
+                            </button>
+                            {isAffiliate && vendor && (
+                              <p className="text-[11px] text-center text-slate-400 dark:text-slate-500 font-medium pt-1">
+                                Redirects securely to partner: <span className="font-bold text-slate-700 dark:text-slate-300">{vendor}</span>
+                              </p>
+                            )}
+                          </>
+                        );
+                      })()}
                     </form>
                   )}
 
@@ -3217,6 +3324,45 @@ export default function AttractionDetailModal({
               </div>
             </motion.div>
           </div>
+        )}
+
+        {/* Affiliate Outbound Redirect Notification Toast */}
+        {affiliateNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-50 max-w-sm bg-slate-900/95 dark:bg-slate-950/95 text-white p-4 rounded-2xl shadow-2xl border border-slate-700/80 backdrop-blur-md flex items-start gap-3"
+          >
+            <div className="w-9 h-9 rounded-xl bg-brand/20 text-brand flex items-center justify-center shrink-0 mt-0.5 border border-brand/30">
+              <ExternalLink className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0 pr-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-white">Redirecting to {affiliateNotice.vendor}</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              </div>
+              <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                Opening verified partner booking page. Complete your reservation on the partner site.
+              </p>
+              <a
+                href={affiliateNotice.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] text-brand hover:underline font-bold mt-2 inline-flex items-center gap-1"
+              >
+                <span>Click here if window did not open</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAffiliateNotice(null)}
+              className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

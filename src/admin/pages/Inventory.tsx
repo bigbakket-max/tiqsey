@@ -41,11 +41,17 @@ import {
   Baby,
   Coins,
   Info,
-  RotateCcw
+  RotateCcw,
+  ExternalLink,
+  Link,
+  Activity,
+  RefreshCw,
+  ArrowUpRight
 } from "lucide-react";
 import { POPULAR_ATTRACTIONS, syncCustomAttractions } from "../../data/mockData";
 import { generateUniqueProductId, getDisplayProductId, registerUsedProductId } from "../../utils/productIdGenerator";
-import { Attraction, Variant, VariantRule } from "../../types";
+import { Attraction, Variant, VariantRule, BookingMode, AffiliateConfig } from "../../types";
+import { AFFILIATE_VENDORS, isValidAffiliateUrl, buildAffiliateUrl, resolveAffiliateUrlTokens } from "../../utils/affiliate";
 import AttractionCard from "../../components/AttractionCard";
 import { GEOGRAPHY_DATA } from "../../data/geographyData";
 import { CURRENCIES } from "../../contexts/SettingsContext";
@@ -706,6 +712,17 @@ export default function Inventory() {
   const [leadTimeUnit, setLeadTimeUnit] = useState<'minutes' | 'hours' | 'days'>('hours');
   const [allowLastMinuteBooking, setAllowLastMinuteBooking] = useState(false);
 
+  // Booking Mode states (Manual vs Affiliate Mode)
+  const [bookingMode, setBookingMode] = useState<BookingMode>("manual");
+  const [affiliateVendor, setAffiliateVendor] = useState<string>("");
+  const [affiliateUrl, setAffiliateUrl] = useState<string>("");
+  const [affiliateProductId, setAffiliateProductId] = useState<string>("");
+  const [affiliateTrackingParams, setAffiliateTrackingParams] = useState<string>("");
+  const [affiliateRedirectBehavior, setAffiliateRedirectBehavior] = useState<'new_tab' | 'current_tab'>("new_tab");
+  const [affiliateClickCount, setAffiliateClickCount] = useState<number>(0);
+  const [affiliateLastClickedAt, setAffiliateLastClickedAt] = useState<string>("");
+  const [bookingModeFilter, setBookingModeFilter] = useState<'all' | 'manual' | 'affiliate'>('all');
+
   useEffect(() => {
     if (isEditRoute && id) {
       const attr = attractions.find(a => a.id === id);
@@ -803,6 +820,17 @@ export default function Inventory() {
         setLeadTimeValue(attr.leadTimeValue ?? 24);
         setLeadTimeUnit(attr.leadTimeUnit ?? 'hours');
         setAllowLastMinuteBooking(attr.allowLastMinuteBooking ?? false);
+
+        // Booking Mode & Affiliate Details
+        setBookingMode(attr.bookingMode || "manual");
+        setAffiliateVendor(attr.affiliateConfig?.vendorName || "");
+        setAffiliateUrl(attr.affiliateConfig?.affiliateUrl || "");
+        setAffiliateProductId(attr.affiliateConfig?.affiliateProductId || "");
+        setAffiliateTrackingParams(attr.affiliateConfig?.trackingParams || "");
+        setAffiliateRedirectBehavior(attr.affiliateConfig?.redirectBehavior || "new_tab");
+        setAffiliateClickCount(attr.affiliateConfig?.clickCount || 0);
+        setAffiliateLastClickedAt(attr.affiliateConfig?.lastClickedAt || "");
+
         const urls = attr.galleryUrls && attr.galleryUrls.length > 0 
           ? attr.galleryUrls 
           : (attr.imageUrl ? [attr.imageUrl] : []);
@@ -810,7 +838,21 @@ export default function Inventory() {
         setIsReordering(false);
 
         if (attr.variants && attr.variants.length > 0) {
-          setVariants(attr.variants);
+          const loadedVariants: Variant[] = attr.variants.map((v) => ({
+            ...v,
+            bookingMode: v.bookingMode || attr.bookingMode || "manual",
+            affiliateUrl: v.affiliateUrl || v.affiliateConfig?.affiliateUrl || attr.affiliateConfig?.affiliateUrl || "",
+            affiliateConfig: v.affiliateConfig || (v.bookingMode === 'affiliate' || attr.bookingMode === 'affiliate' ? {
+              vendorName: attr.affiliateConfig?.vendorName || "GetYourGuide",
+              affiliateUrl: v.affiliateUrl || attr.affiliateConfig?.affiliateUrl || "",
+              affiliateProductId: attr.affiliateConfig?.affiliateProductId || "",
+              trackingParams: attr.affiliateConfig?.trackingParams || "",
+              redirectBehavior: attr.affiliateConfig?.redirectBehavior || "new_tab",
+              clickCount: attr.affiliateConfig?.clickCount || 0,
+              lastClickedAt: attr.affiliateConfig?.lastClickedAt
+            } : undefined)
+          }));
+          setVariants(loadedVariants);
         } else {
           const cleanName = (attr.name || "").includes(':') 
             ? (attr.name || "").split(':')[0] 
@@ -926,6 +968,14 @@ export default function Inventory() {
       setLeadTimeValue(24);
       setLeadTimeUnit('hours');
       setAllowLastMinuteBooking(false);
+      setBookingMode("manual");
+      setAffiliateVendor("");
+      setAffiliateUrl("");
+      setAffiliateProductId("");
+      setAffiliateTrackingParams("");
+      setAffiliateRedirectBehavior("new_tab");
+      setAffiliateClickCount(0);
+      setAffiliateLastClickedAt("");
       setGalleryUrls([]);
       setIsReordering(false);
       setVariants([]);
@@ -1064,12 +1114,32 @@ export default function Inventory() {
     const avgPrice = total > 0 ? attractions.reduce((acc, curr) => acc + curr.price, 0) / total : 0;
     const promotions = attractions.filter(a => a.discountPrice !== undefined && a.discountPrice > 0).length;
     const lowCapacity = attractions.filter(a => !a.noCapacityLimit && (a.maxGroupSize || 500) < 150).length;
+    const manualCount = attractions.filter(a => {
+      if (a.variants && a.variants.length > 0) {
+        return a.variants.some(v => v.bookingMode !== 'affiliate');
+      }
+      return a.bookingMode !== 'affiliate';
+    }).length;
+    const affiliateCount = attractions.filter(a => {
+      if (a.variants && a.variants.length > 0) {
+        return a.variants.some(v => v.bookingMode === 'affiliate');
+      }
+      return a.bookingMode === 'affiliate';
+    }).length;
+    const totalAffiliateClicks = attractions.reduce((sum, a) => {
+      const topClicks = a.affiliateConfig?.clickCount || 0;
+      const variantClicks = (a.variants || []).reduce((vSum, v) => vSum + (v.affiliateConfig?.clickCount || 0), 0);
+      return sum + topClicks + variantClicks;
+    }, 0);
 
     return {
       total,
       avgPrice,
       promotions,
-      lowCapacity
+      lowCapacity,
+      manualCount,
+      affiliateCount,
+      totalAffiliateClicks
     };
   }, [attractions]);
 
@@ -1160,8 +1230,39 @@ export default function Inventory() {
 
     if (!name.trim()) return alert("Activity Name is required");
     if (!city.trim()) return alert("City is required");
-    if (!price || Number(price) <= 0) return alert("Valid original price is required");
     if (!imageUrl.trim()) return alert("Image URL or Uploaded image is required");
+
+    // Variant-Level Booking Mode Validations
+    for (const v of variants) {
+      if (v.bookingMode === 'affiliate') {
+        const vUrl = (v.affiliateConfig?.affiliateUrl || v.affiliateUrl || '').trim();
+        if (!vUrl) {
+          setActiveTab("Variants");
+          setEditingVariantId(v.id);
+          return alert(`Validation Error: Variant "${v.name}" is configured in Affiliate Mode, but no affiliate booking URL was provided. Please enter the partner URL.`);
+        }
+        if (!isValidAffiliateUrl(vUrl)) {
+          setActiveTab("Variants");
+          setEditingVariantId(v.id);
+          return alert(`Validation Error: The affiliate booking URL for variant "${v.name}" is invalid. It must start with http:// or https:// (or contain dynamic placeholders like {activity_id}).`);
+        }
+      }
+    }
+
+    // Validation for Manual Mode (applicable if variants operate in manual mode)
+    const hasManualVariants = variants.length === 0 || variants.some(v => v.bookingMode !== 'affiliate');
+    if (hasManualVariants) {
+      if (!price || Number(price) <= 0) {
+        setActiveTab("Pricing");
+        return alert("Validation Error: Valid original price is required for Manual Booking activities/variants.");
+      }
+      const hasOperatingDays = selectedDays && selectedDays.length > 0;
+      const hasVariantRules = variants && variants.length > 0 && variants.some(v => v.rules && v.rules.length > 0);
+      if (!hasOperatingDays && !hasVariantRules) {
+        setActiveTab("Operating Schedule");
+        return alert("Validation Error: An activity with Manual variants cannot be published without a valid availability configuration. Please configure operating days or variant inventory rules.");
+      }
+    }
 
     setShowSaveConfirm(true);
   };
@@ -1185,6 +1286,37 @@ export default function Inventory() {
 
     registerUsedProductId(finalProductId);
 
+    // Normalize and persist variant-level configuration
+    const normalizedVariants: Variant[] = variants.map(v => {
+      const mode: BookingMode = v.bookingMode || 'manual';
+      if (mode === 'affiliate') {
+        const affUrl = (v.affiliateConfig?.affiliateUrl || v.affiliateUrl || '').trim();
+        return {
+          ...v,
+          bookingMode: 'affiliate' as BookingMode,
+          affiliateUrl: affUrl,
+          affiliateConfig: {
+            vendorName: v.affiliateConfig?.vendorName?.trim() || "GetYourGuide",
+            affiliateUrl: affUrl,
+            affiliateProductId: v.affiliateConfig?.affiliateProductId?.trim() || undefined,
+            trackingParams: v.affiliateConfig?.trackingParams?.trim() || undefined,
+            redirectBehavior: v.affiliateConfig?.redirectBehavior || "new_tab",
+            clickCount: v.affiliateConfig?.clickCount || 0,
+            lastClickedAt: v.affiliateConfig?.lastClickedAt
+          }
+        };
+      }
+      return {
+        ...v,
+        bookingMode: 'manual' as BookingMode,
+        affiliateUrl: undefined,
+        affiliateConfig: undefined
+      };
+    });
+
+    const isAllAffiliate = normalizedVariants.length > 0 && normalizedVariants.every(v => v.bookingMode === 'affiliate');
+    const firstAffiliate = normalizedVariants.find(v => v.bookingMode === 'affiliate');
+
     const attractionData: Attraction = {
       id: finalProductId,
       productId: finalProductId,
@@ -1198,7 +1330,7 @@ export default function Inventory() {
       category: category.trim() || "Activity",
       rating: editingAttraction ? editingAttraction.rating : 4.8,
       reviewsCount: editingAttraction ? editingAttraction.reviewsCount : 12,
-      price: Number(price),
+      price: price ? Number(price) : 0,
       discountPrice: discountPrice ? Number(discountPrice) : undefined,
       imageUrl: imageUrl.trim(),
       isPopular,
@@ -1213,15 +1345,17 @@ export default function Inventory() {
       operatingMonths: selectedMonths,
       maxGroupSize: capacityType === "no-limit" ? undefined : Number(capacity),
       noCapacityLimit: capacityType === "no-limit",
-      provider: supplier.trim() || "Local Operator",
+      provider: supplier.trim() || (isAllAffiliate ? (firstAffiliate?.affiliateConfig?.vendorName || "Partner Vendor") : "Local Operator"),
       timezone: timezone.trim() || "GMT Standard Time",
       currency: currencyCode.trim() || "EUR",
       leadTimeEnabled,
       leadTimeValue: Number(leadTimeValue),
       leadTimeUnit,
       allowLastMinuteBooking,
-      variants,
+      variants: normalizedVariants,
       galleryUrls,
+      bookingMode: isAllAffiliate ? 'affiliate' : 'manual',
+      affiliateConfig: firstAffiliate?.affiliateConfig ? { ...firstAffiliate.affiliateConfig } : undefined,
     };
 
     let updatedList: Attraction[];
@@ -1263,8 +1397,20 @@ export default function Inventory() {
       const matchesCategory = selectedCategory === "All" || attr.category === selectedCategory;
       const matchesRegion = selectedRegion === "All" || attr.region === selectedRegion;
       const matchesLocation = selectedLocation === "All" || attr.city === selectedLocation;
+      const matchesBookingMode =
+        bookingModeFilter === "all" ||
+        (bookingModeFilter === "manual" && (
+          (attr.variants && attr.variants.length > 0)
+            ? attr.variants.some(v => v.bookingMode !== "affiliate")
+            : (attr.bookingMode === "manual" || !attr.bookingMode)
+        )) ||
+        (bookingModeFilter === "affiliate" && (
+          (attr.variants && attr.variants.length > 0)
+            ? attr.variants.some(v => v.bookingMode === "affiliate")
+            : (attr.bookingMode === "affiliate")
+        ));
 
-      return matchesSearch && matchesCategory && matchesRegion && matchesLocation;
+      return matchesSearch && matchesCategory && matchesRegion && matchesLocation && matchesBookingMode;
     });
 
     // Sort result
@@ -1288,12 +1434,12 @@ export default function Inventory() {
     });
 
     return result;
-  }, [attractions, searchQuery, selectedCategory, selectedRegion, selectedLocation, sortBy, sortOrder]);
+  }, [attractions, searchQuery, selectedCategory, selectedRegion, selectedLocation, bookingModeFilter, sortBy, sortOrder]);
 
   // Reset page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedCategory, selectedRegion, selectedLocation, sortBy, sortOrder]);
+  }, [searchQuery, selectedCategory, selectedRegion, selectedLocation, bookingModeFilter, sortBy, sortOrder]);
 
   // Derived Pagination
   const totalPages = Math.ceil(filteredAndSortedAttractions.length / itemsPerPage);
@@ -1356,15 +1502,26 @@ export default function Inventory() {
               ))}
             </select>
 
-            {(selectedCategory !== "All" || selectedRegion !== "All" || selectedLocation !== "All" || searchQuery) && (
+            <select
+              value={bookingModeFilter}
+              onChange={(e) => setBookingModeFilter(e.target.value as any)}
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-2 rounded-lg focus:outline-none focus:border-[#5fa6d9] cursor-pointer"
+            >
+              <option value="all">All Modes</option>
+              <option value="manual">Manual Booking</option>
+              <option value="affiliate">Affiliate Booking</option>
+            </select>
+
+            {(selectedCategory !== "All" || selectedRegion !== "All" || selectedLocation !== "All" || bookingModeFilter !== "all" || searchQuery) && (
               <button
                 onClick={() => {
                   setSelectedCategory("All");
                   setSelectedRegion("All");
                   setSelectedLocation("All");
+                  setBookingModeFilter("all");
                   setSearchQuery("");
                 }}
-                className="text-sm font-semibold text-[#5fa6d9] hover:text-[#4b95cc] transition-colors px-2"
+                className="text-sm font-semibold text-[#5fa6d9] hover:text-[#4b95cc] transition-colors px-2 cursor-pointer"
               >
                 Clear Filters
               </button>
@@ -1469,11 +1626,69 @@ export default function Inventory() {
                       </div>
                     </td>
 
-                    {/* Category Label */}
+                    {/* Category & Booking Mode */}
                     <td className="px-6 py-4">
-                      <span className="inline-block whitespace-nowrap bg-[#f0f7fc] dark:bg-[#102738]/30 text-[#5fa6d9] dark:text-[#5fa6d9] text-[11px] font-bold px-3 py-1 rounded-md border border-[#e0f0fa]/50 dark:border-[#1e4663]/30">
-                        {attr.category}
-                      </span>
+                      <div className="space-y-1.5">
+                        <span className="inline-block whitespace-nowrap bg-[#f0f7fc] dark:bg-[#102738]/30 text-[#5fa6d9] dark:text-[#5fa6d9] text-[11px] font-bold px-2.5 py-0.5 rounded-md border border-[#e0f0fa]/50 dark:border-[#1e4663]/30">
+                          {attr.category}
+                        </span>
+                        <div>
+                          {(() => {
+                            const vars = attr.variants || [];
+                            const affiliateVars = vars.filter(v => v.bookingMode === 'affiliate');
+                            const manualVars = vars.filter(v => v.bookingMode !== 'affiliate');
+                            const totalClicks = (attr.affiliateConfig?.clickCount || 0) + vars.reduce((s, v) => s + (v.affiliateConfig?.clickCount || 0), 0);
+
+                            if (vars.length > 0) {
+                              if (affiliateVars.length > 0 && manualVars.length > 0) {
+                                return (
+                                  <span className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-indigo-200/60 dark:border-indigo-800/40" title={`${manualVars.length} Manual variants, ${affiliateVars.length} Affiliate variants`}>
+                                    <Activity className="w-2.5 h-2.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                                    <span>Mixed ({manualVars.length}M / {affiliateVars.length}A)</span>
+                                    {totalClicks > 0 && (
+                                      <span className="ml-0.5 px-1 py-0.2 bg-indigo-200/70 dark:bg-indigo-900/70 text-indigo-800 dark:text-indigo-200 rounded font-mono text-[9px]">
+                                        {totalClicks}c
+                                      </span>
+                                    )}
+                                  </span>
+                                );
+                              }
+                              if (affiliateVars.length > 0) {
+                                const vendor = affiliateVars[0].affiliateConfig?.vendorName || attr.affiliateConfig?.vendorName || "Affiliate";
+                                return (
+                                  <span className="inline-flex items-center gap-1 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-purple-200/60 dark:border-purple-800/40" title={`All variants Affiliate (${vendor})`}>
+                                    <ExternalLink className="w-2.5 h-2.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                                    <span className="truncate max-w-[90px]">{vendor}</span>
+                                    {totalClicks > 0 && (
+                                      <span className="ml-0.5 px-1 py-0.2 bg-purple-200/70 dark:bg-purple-900/70 text-purple-800 dark:text-purple-200 rounded font-mono text-[9px]">
+                                        {totalClicks}c
+                                      </span>
+                                    )}
+                                  </span>
+                                );
+                              }
+                              return (
+                                <span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-blue-200/60 dark:border-blue-800/40" title="All variants Manual checkout">
+                                  <Calendar className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                                  <span>Manual ({manualVars.length})</span>
+                                </span>
+                              );
+                            }
+
+                            return attr.bookingMode === 'affiliate' ? (
+                              <span className="inline-flex items-center gap-1 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-purple-200/60 dark:border-purple-800/40">
+                                <ExternalLink className="w-2.5 h-2.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                                <span className="truncate max-w-[90px]">{attr.affiliateConfig?.vendorName || "Affiliate"}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-blue-200/60 dark:border-blue-800/40">
+                                <Calendar className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                                Manual
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </div>
                     </td>
 
                     {/* Price configurations with smart badges */}
@@ -1663,7 +1878,8 @@ export default function Inventory() {
     filteredAndSortedAttractions.length,
     categories,
     regions,
-    locations
+    locations,
+    bookingModeFilter
   ]);
 
   const selectedCurrencyObj = CURRENCIES.find(c => c.code === currencyCode) || { symbol: "€", code: "EUR" };
@@ -1823,6 +2039,440 @@ export default function Inventory() {
                   </select>
                 </div>
 
+                {/* Variant Booking Mode & Affiliate Configuration */}
+                <div className="col-span-1 md:col-span-2 p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800/60">
+                    <div className="flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-[#5fa6d9]" />
+                      <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                        Variant Booking Mode & Checkout Flow
+                      </h4>
+                    </div>
+                    <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1 ${
+                      activeVariant.bookingMode === 'affiliate' 
+                        ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800' 
+                        : 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                    }`}>
+                      {activeVariant.bookingMode === 'affiliate' ? (
+                        <>
+                          <ExternalLink className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                          <span>Affiliate Mode ({activeVariant.affiliateConfig?.vendorName || "Partner"})</span>
+                        </>
+                      ) : (
+                        <>
+                          <Calendar className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                          <span>Manual Mode (Internal Checkout)</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Select the checkout experience specifically for this ticket variant. Different variants within the same activity can have different booking modes.
+                  </p>
+
+                  {/* Mode Selectors */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* Option 1: Manual Mode */}
+                    <div
+                      onClick={() => {
+                        const updated = variants.map(item => item.id === activeVariant.id ? { ...item, bookingMode: 'manual' as BookingMode } : item);
+                        setVariants(updated);
+                      }}
+                      className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-2.5 relative ${
+                        activeVariant.bookingMode !== 'affiliate'
+                          ? 'border-blue-500 bg-blue-50/40 dark:bg-blue-950/20 shadow-xs'
+                          : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`p-2 rounded-lg ${activeVariant.bookingMode !== 'affiliate' ? 'bg-blue-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                            <Calendar className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h5 className="text-xs font-black text-slate-900 dark:text-white">1. Manual Mode</h5>
+                            <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Internal Tiqsey Checkout</p>
+                          </div>
+                        </div>
+                        <input
+                          type="radio"
+                          name={`variantMode-${activeVariant.id}`}
+                          checked={activeVariant.bookingMode !== 'affiliate'}
+                          onChange={() => {
+                            const updated = variants.map(item => item.id === activeVariant.id ? { ...item, bookingMode: 'manual' as BookingMode } : item);
+                            setVariants(updated);
+                          }}
+                          className="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 cursor-pointer mt-0.5"
+                        />
+                      </div>
+                      <ul className="text-[11px] text-slate-600 dark:text-slate-300 space-y-1 pl-1">
+                        <li className="flex items-center gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></span>
+                          Tiqsey native calendar & headcount booking
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></span>
+                          Manages inventory rules, timeslots & orders
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Option 2: Affiliate Mode */}
+                    <div
+                      onClick={() => {
+                        const currentConfig = activeVariant.affiliateConfig || {};
+                        const updated = variants.map(item => item.id === activeVariant.id ? { 
+                          ...item, 
+                          bookingMode: 'affiliate' as BookingMode,
+                          affiliateConfig: {
+                            vendorName: currentConfig.vendorName || "GetYourGuide",
+                            affiliateUrl: currentConfig.affiliateUrl || item.affiliateUrl || "",
+                            affiliateProductId: currentConfig.affiliateProductId || "",
+                            trackingParams: currentConfig.trackingParams || "",
+                            redirectBehavior: currentConfig.redirectBehavior || "new_tab",
+                            clickCount: currentConfig.clickCount || 0
+                          }
+                        } : item);
+                        setVariants(updated);
+                      }}
+                      className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-2.5 relative ${
+                        activeVariant.bookingMode === 'affiliate'
+                          ? 'border-purple-500 bg-purple-50/40 dark:bg-purple-950/20 shadow-xs'
+                          : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`p-2 rounded-lg ${activeVariant.bookingMode === 'affiliate' ? 'bg-purple-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                            <ExternalLink className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h5 className="text-xs font-black text-slate-900 dark:text-white">2. Affiliate Mode</h5>
+                            <p className="text-[10px] font-bold text-purple-600 dark:text-purple-400">Partner / Vendor Redirect</p>
+                          </div>
+                        </div>
+                        <input
+                          type="radio"
+                          name={`variantMode-${activeVariant.id}`}
+                          checked={activeVariant.bookingMode === 'affiliate'}
+                          onChange={() => {
+                            const currentConfig = activeVariant.affiliateConfig || {};
+                            const updated = variants.map(item => item.id === activeVariant.id ? { 
+                              ...item, 
+                              bookingMode: 'affiliate' as BookingMode,
+                              affiliateConfig: {
+                                vendorName: currentConfig.vendorName || "GetYourGuide",
+                                affiliateUrl: currentConfig.affiliateUrl || item.affiliateUrl || "",
+                                affiliateProductId: currentConfig.affiliateProductId || "",
+                                trackingParams: currentConfig.trackingParams || "",
+                                redirectBehavior: currentConfig.redirectBehavior || "new_tab",
+                                clickCount: currentConfig.clickCount || 0
+                              }
+                            } : item);
+                            setVariants(updated);
+                          }}
+                          className="w-3.5 h-3.5 text-purple-600 focus:ring-purple-500 cursor-pointer mt-0.5"
+                        />
+                      </div>
+                      <ul className="text-[11px] text-slate-600 dark:text-slate-300 space-y-1 pl-1">
+                        <li className="flex items-center gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-purple-500 shrink-0"></span>
+                          Directs customer to third-party vendor link
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-purple-500 shrink-0"></span>
+                          Supports dynamic tokens & UTM parameters
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Mode-Specific Configuration Section */}
+                  {activeVariant.bookingMode === 'affiliate' ? (
+                    <div className="p-4 bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/80 rounded-xl space-y-4 animate-in fade-in duration-200">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-purple-200/60 dark:border-purple-800/60">
+                        <div className="flex items-center gap-2">
+                          <Link className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                          <h5 className="text-xs font-black text-purple-900 dark:text-purple-200 uppercase tracking-wider">
+                            Variant Affiliate Partner Configuration
+                          </h5>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {(activeVariant.affiliateConfig?.clickCount || 0) > 0 && (
+                            <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/60 px-2.5 py-0.5 rounded-full">
+                              {activeVariant.affiliateConfig?.clickCount} Outbound Clicks
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Vendor Quick Selection */}
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                          Affiliate Vendor / Partner Name
+                        </label>
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {["Main Website", "Official Website", "GetYourGuide", "Viator", "Tiqets", "Klook", "Headout", "Expedia", "Civitatis", "Direct Partner"].map((v) => (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => {
+                                const currentConfig = activeVariant.affiliateConfig || {};
+                                const updated = variants.map(item => item.id === activeVariant.id ? {
+                                  ...item,
+                                  affiliateConfig: { 
+                                    ...currentConfig, 
+                                    vendorName: v,
+                                    ...(v === "Main Website" && !currentConfig.affiliateUrl ? { affiliateUrl: "https://tiqsey.com" } : {})
+                                  }
+                                } : item);
+                                setVariants(updated);
+                              }}
+                              className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                                (activeVariant.affiliateConfig?.vendorName || "Main Website") === v
+                                  ? 'bg-purple-600 text-white shadow-xs'
+                                  : 'bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800/80 text-slate-700 dark:text-slate-300 hover:border-purple-400'
+                              }`}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                        <input
+                          type="text"
+                          value={activeVariant.affiliateConfig?.vendorName || ""}
+                          onChange={(e) => {
+                            const currentConfig = activeVariant.affiliateConfig || {};
+                            const updated = variants.map(item => item.id === activeVariant.id ? {
+                              ...item,
+                              affiliateConfig: { ...currentConfig, vendorName: e.target.value }
+                            } : item);
+                            setVariants(updated);
+                          }}
+                          placeholder="e.g. GetYourGuide, Viator, Klook, or Official Venue Partner"
+                          className="w-full bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded-md px-3.5 py-2 text-xs font-medium text-slate-800 dark:text-white focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+
+                      {/* Affiliate Destination URL */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[10px] font-bold text-purple-900 dark:text-purple-300 uppercase tracking-wider">
+                            Variant Affiliate Booking URL * (Required for Affiliate Mode)
+                          </label>
+                          {(() => {
+                            const url = activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl || "";
+                            if (!url) return null;
+                            const isValid = url.startsWith('http://') || url.startsWith('https://');
+                            return (
+                              <span className={`text-[10px] font-bold flex items-center gap-1 ${
+                                isValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                              }`}>
+                                {isValid ? '✓ Valid URL' : '⚠ Include http:// or https://'}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="url"
+                            value={activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl || ""}
+                            onChange={(e) => {
+                              const newUrl = e.target.value;
+                              const currentConfig = activeVariant.affiliateConfig || {};
+                              const updated = variants.map(item => item.id === activeVariant.id ? {
+                                ...item,
+                                affiliateUrl: newUrl,
+                                affiliateConfig: { ...currentConfig, affiliateUrl: newUrl }
+                              } : item);
+                              setVariants(updated);
+                            }}
+                            placeholder="https://www.getyourguide.com/activity/?partner_id=TIQSEY&variant={variant_id}"
+                            className="flex-1 bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded-md px-3.5 py-2.5 text-xs font-mono text-slate-800 dark:text-white focus:outline-none focus:border-purple-500"
+                          />
+                          {(activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const rawUrl = activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl || "";
+                                const testUrl = resolveAffiliateUrlTokens(rawUrl, {
+                                  activityId: editingAttraction?.id || "eiffel-tower-sample",
+                                  variantId: activeVariant.id,
+                                  currency: currencyCode || "EUR",
+                                  city: city || "Paris",
+                                  trackingParams: activeVariant.affiliateConfig?.trackingParams
+                                });
+                                window.open(testUrl, '_blank', 'noopener,noreferrer');
+                              }}
+                              className="px-3 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-xs font-bold flex items-center gap-1.5 shrink-0 transition-colors shadow-xs cursor-pointer"
+                              title="Open and test resolved URL in new tab"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              Test Link
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Dynamic URL Tokens Helper */}
+                        <div className="mt-2 p-2.5 bg-white dark:bg-slate-900/80 rounded border border-purple-100 dark:border-purple-900/60 space-y-1.5">
+                          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                            Click to append dynamic token to this variant's URL:
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              { token: "{activity_id}", desc: "Attraction ID" },
+                              { token: "{variant_id}", desc: "This Variant's ID" },
+                              { token: "{currency}", desc: "Active Currency (EUR, USD)" },
+                              { token: "{date}", desc: "Customer Selected Date" },
+                              { token: "{timestamp}", desc: "Click Timestamp" },
+                              { token: "{city}", desc: "City Name" }
+                            ].map(({ token, desc }) => (
+                              <button
+                                key={token}
+                                type="button"
+                                onClick={() => {
+                                  const currentUrl = activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl || "";
+                                  const appended = currentUrl + (currentUrl.includes('?') ? `&ref_token=${token}` : `?ref_token=${token}`);
+                                  const currentConfig = activeVariant.affiliateConfig || {};
+                                  const updated = variants.map(item => item.id === activeVariant.id ? {
+                                    ...item,
+                                    affiliateUrl: appended,
+                                    affiliateConfig: { ...currentConfig, affiliateUrl: appended }
+                                  } : item);
+                                  setVariants(updated);
+                                }}
+                                className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 rounded font-mono text-[10px] border border-purple-200 dark:border-purple-800 transition-colors cursor-pointer"
+                                title={desc}
+                              >
+                                {token}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Additional Partner Identifiers */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                            Partner Product / Variant ID (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={activeVariant.affiliateConfig?.affiliateProductId || ""}
+                            onChange={(e) => {
+                              const currentConfig = activeVariant.affiliateConfig || {};
+                              const updated = variants.map(item => item.id === activeVariant.id ? {
+                                ...item,
+                                affiliateConfig: { ...currentConfig, affiliateProductId: e.target.value }
+                              } : item);
+                              setVariants(updated);
+                            }}
+                            placeholder="e.g. GYG-VAR-101, VIATOR-3810P1"
+                            className="w-full bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded-md px-3.5 py-2 text-xs font-mono text-slate-800 dark:text-white focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                            Default Tracking / UTM Parameters (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={activeVariant.affiliateConfig?.trackingParams || ""}
+                            onChange={(e) => {
+                              const currentConfig = activeVariant.affiliateConfig || {};
+                              const updated = variants.map(item => item.id === activeVariant.id ? {
+                                ...item,
+                                affiliateConfig: { ...currentConfig, trackingParams: e.target.value }
+                              } : item);
+                              setVariants(updated);
+                            }}
+                            placeholder="e.g. utm_source=tiqsey&utm_medium=affiliate"
+                            className="w-full bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded-md px-3.5 py-2 text-xs font-mono text-slate-800 dark:text-white focus:outline-none focus:border-purple-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Redirect Behavior & Analytics Reset */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-purple-200/50 dark:border-purple-800/50">
+                        <div className="flex items-center gap-4">
+                          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                            Window Behavior:
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
+                              <input
+                                type="radio"
+                                name={`redirectBehavior-${activeVariant.id}`}
+                                value="new_tab"
+                                checked={(activeVariant.affiliateConfig?.redirectBehavior || 'new_tab') === 'new_tab'}
+                                onChange={() => {
+                                  const currentConfig = activeVariant.affiliateConfig || {};
+                                  const updated = variants.map(item => item.id === activeVariant.id ? {
+                                    ...item,
+                                    affiliateConfig: { ...currentConfig, redirectBehavior: 'new_tab' as const }
+                                  } : item);
+                                  setVariants(updated);
+                                }}
+                                className="text-purple-600 focus:ring-purple-500 cursor-pointer"
+                              />
+                              New Tab (Recommended)
+                            </label>
+                            <label className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
+                              <input
+                                type="radio"
+                                name={`redirectBehavior-${activeVariant.id}`}
+                                value="current_tab"
+                                checked={activeVariant.affiliateConfig?.redirectBehavior === 'current_tab'}
+                                onChange={() => {
+                                  const currentConfig = activeVariant.affiliateConfig || {};
+                                  const updated = variants.map(item => item.id === activeVariant.id ? {
+                                    ...item,
+                                    affiliateConfig: { ...currentConfig, redirectBehavior: 'current_tab' as const }
+                                  } : item);
+                                  setVariants(updated);
+                                }}
+                                className="text-purple-600 focus:ring-purple-500 cursor-pointer"
+                              />
+                              Same Window
+                            </label>
+                          </div>
+                        </div>
+
+                        {(activeVariant.affiliateConfig?.clickCount || 0) > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentConfig = activeVariant.affiliateConfig || {};
+                              const updated = variants.map(item => item.id === activeVariant.id ? {
+                                ...item,
+                                affiliateConfig: { ...currentConfig, clickCount: 0, lastClickedAt: undefined }
+                              } : item);
+                              setVariants(updated);
+                            }}
+                            className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:text-purple-800 transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            Reset Click Counter (Currently {activeVariant.affiliateConfig?.clickCount})
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/50 rounded-xl text-xs space-y-1 text-slate-700 dark:text-slate-300">
+                      <p className="font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                        <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        Manual Mode Active for this Variant
+                      </p>
+                      <p className="text-slate-600 dark:text-slate-400 text-[11px]">
+                        When customers select this variant and click "BOOK NOW", Tiqsey launches its internal date, time slot, and guest checkout flow. Pricing and inventory rules are configured in the Rules section below.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Single Rich Content Box for Variant Details & Policies */}
                 <div className="col-span-1 md:col-span-2">
                   <WysiwygEditor
@@ -1850,8 +2500,85 @@ export default function Inventory() {
 
             {/* Rules Section: Date and Timeslot Rules */}
             <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-              {/* Calendar Container */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-md">
+              {activeVariant.bookingMode === 'affiliate' ? (
+                /* Affiliate Mode Notice - Inventory Calendar is NOT required */
+                <div className="bg-gradient-to-br from-purple-50/70 via-white to-purple-50/40 dark:from-purple-950/30 dark:via-slate-900 dark:to-purple-950/20 border-2 border-dashed border-purple-300/80 dark:border-purple-800/80 rounded-2xl p-6 sm:p-8 text-center space-y-4 shadow-sm">
+                  <div className="w-14 h-14 mx-auto rounded-2xl bg-purple-100 dark:bg-purple-900/60 text-purple-600 dark:text-purple-300 flex items-center justify-center shadow-inner">
+                    <ExternalLink className="w-7 h-7" />
+                  </div>
+                  
+                  <div className="max-w-xl mx-auto space-y-2">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700">
+                      <Check className="w-3.5 h-3.5" /> Affiliate Mode Active • No Calendar Needed
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                      Inventory Calendar Not Required for Affiliate Mode
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      An inventory calendar is not required for Affiliate Mode. When a guest clicks the <strong className="text-slate-900 dark:text-white font-bold">"Book Now"</strong> button, they will be redirected to our main website where they can purchase the product directly.
+                    </p>
+                  </div>
+
+                  {/* Destination & Routing Summary */}
+                  <div className="max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-xl border border-purple-200/80 dark:border-purple-800/60 p-4 text-left space-y-2.5 shadow-xs">
+                    <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-100 dark:border-slate-800">
+                      <span className="font-bold text-slate-500 dark:text-slate-400">Destination Partner / Platform:</span>
+                      <span className="font-extrabold text-purple-700 dark:text-purple-300">
+                        {activeVariant.affiliateConfig?.vendorName || "Main Website"}
+                      </span>
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <span className="font-bold text-slate-500 dark:text-slate-400 block">Redirect URL:</span>
+                      <div className="font-mono text-[11px] text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-950 p-2.5 rounded border border-slate-200/60 dark:border-slate-800 break-all font-semibold">
+                        {activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl || (
+                          <span className="text-amber-650 dark:text-amber-400 font-normal italic">
+                            No custom URL entered yet. Will default to main website (https://tiqsey.com).
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">Redirect Behavior:</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">
+                        {(activeVariant.affiliateConfig?.redirectBehavior || 'new_tab') === 'new_tab' ? 'Opens in New Tab (Target _blank)' : 'Opens in Same Tab'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">Guest Outbound Clicks:</span>
+                      <span className="font-bold font-mono text-purple-700 dark:text-purple-300">
+                        {activeVariant.affiliateConfig?.clickCount || 0} Total Outbound Clicks
+                      </span>
+                    </div>
+                  </div>
+
+                  {(activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl) && (
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const testUrl = resolveAffiliateUrlTokens(
+                            activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl || "",
+                            {
+                              activityId: editingAttraction?.id || "activity-sample",
+                              variantId: activeVariant.id,
+                              currency: currencyCode || "EUR",
+                              city: city || ""
+                            }
+                          );
+                          window.open(testUrl, '_blank', 'noopener,noreferrer');
+                        }}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Test Guest Redirect to Main Website</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Calendar Container */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-md">
                 {/* Header Row */}
                 <div className="bg-slate-50 dark:bg-slate-950/40 p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div className="flex items-center gap-2">
@@ -3024,6 +3751,8 @@ export default function Inventory() {
                   </div>
                 </div>
               )}
+                </>
+              )}
             </div>
             
             {/* Card Footer */}
@@ -3143,6 +3872,72 @@ export default function Inventory() {
         </div>
       </div>
 
+      {/* Booking Mode Status Breakdown Filter Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <button
+          type="button"
+          onClick={() => setBookingModeFilter('all')}
+          className={`p-4 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between shadow-sm ${
+            bookingModeFilter === 'all'
+              ? 'bg-[#5fa6d9]/10 border-[#5fa6d9] ring-2 ring-[#5fa6d9]/20'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-lg ${bookingModeFilter === 'all' ? 'bg-[#5fa6d9] text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">All Activities</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Entire Tiqsey Catalog</p>
+            </div>
+          </div>
+          <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">{stats.total}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setBookingModeFilter(bookingModeFilter === 'manual' ? 'all' : 'manual')}
+          className={`p-4 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between shadow-sm ${
+            bookingModeFilter === 'manual'
+              ? 'bg-blue-500/10 border-blue-500 ring-2 ring-blue-500/20'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-lg ${bookingModeFilter === 'manual' ? 'bg-blue-500 text-white' : 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'}`}>
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Manual Mode</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Internal Tiqsey Checkout</p>
+            </div>
+          </div>
+          <span className="text-2xl font-black font-mono text-blue-600 dark:text-blue-400">{stats.manualCount}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setBookingModeFilter(bookingModeFilter === 'affiliate' ? 'all' : 'affiliate')}
+          className={`p-4 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between shadow-sm ${
+            bookingModeFilter === 'affiliate'
+              ? 'bg-purple-500/10 border-purple-500 ring-2 ring-purple-500/20'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-lg ${bookingModeFilter === 'affiliate' ? 'bg-purple-600 text-white' : 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'}`}>
+              <ExternalLink className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Affiliate Mode</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">{stats.totalAffiliateClicks} Partner Outbound Clicks</p>
+            </div>
+          </div>
+          <span className="text-2xl font-black font-mono text-purple-600 dark:text-purple-400">{stats.affiliateCount}</span>
+        </button>
+      </div>
+
       {/* Search, Filter Tabs and Table Container */}
       {inventoryTable}
         </>
@@ -3211,6 +4006,67 @@ export default function Inventory() {
                   {/* TAB 1: Primary */}
                   {activeTab === "Primary" && (
                     <div className="space-y-6 animate-in fade-in duration-300">
+                      {/* Section 0: Variant-Level Booking Mode Architecture Banner */}
+                      <div className="p-5 bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-purple-50/70 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/30 border border-indigo-200/60 dark:border-indigo-800/50 rounded-xl shadow-sm space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-indigo-600 text-white shadow-sm shrink-0">
+                              <Activity className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                                Variant-Level Booking Modes (Manual & Affiliate)
+                              </h3>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                                Booking modes (Manual vs. Affiliate) are configured exclusively for each Ticket Variant in the Variants tab.
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab("Variants")}
+                            className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition-all shadow-sm cursor-pointer whitespace-nowrap self-start sm:self-auto"
+                          >
+                            <span>Configure in Variants Tab</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Variants breakdown chip list */}
+                        <div className="pt-2 border-t border-indigo-100 dark:border-indigo-900/40 flex flex-wrap items-center gap-2 text-xs">
+                          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Configured Variants ({variants.length}):</span>
+                          {variants.length === 0 ? (
+                            <span className="text-[11px] text-slate-400 italic">No variants yet. Open the Variants tab to add one.</span>
+                          ) : (
+                            variants.map((v) => (
+                              <button
+                                key={v.id}
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab("Variants");
+                                  setEditingVariantId(v.id);
+                                }}
+                                className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-md cursor-pointer transition-all border ${
+                                  v.bookingMode === 'affiliate'
+                                    ? 'bg-purple-100/80 hover:bg-purple-200 dark:bg-purple-950/60 dark:hover:bg-purple-900 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                                    : 'bg-blue-100/80 hover:bg-blue-200 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                                }`}
+                                title="Click to edit this variant's booking mode"
+                              >
+                                {v.bookingMode === 'affiliate' ? (
+                                  <ExternalLink className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />
+                                ) : (
+                                  <Calendar className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                                )}
+                                <span className="max-w-[120px] truncate">{v.name}:</span>
+                                <span className="uppercase text-[9px] font-black">{v.bookingMode === 'affiliate' ? (v.affiliateConfig?.vendorName || 'Affiliate') : 'Manual'}</span>
+                                <ArrowUpRight className="w-2.5 h-2.5 opacity-60" />
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
                       {/* Section 1: Basic Information */}
                       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
@@ -4161,8 +5017,24 @@ export default function Inventory() {
                               return (
                                 <div key={v.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm transition-shadow hover:shadow-md">
                                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800/60">
-                                      <div className="flex items-center gap-3.5">
+                                      <div className="flex items-center gap-3.5 flex-wrap">
                                          <h4 className="font-bold text-[15px] text-slate-800 dark:text-white">{v.name}</h4>
+                                         {v.bookingMode === 'affiliate' ? (
+                                           <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/80 px-2.5 py-0.5 rounded-full" title={`Partner URL: ${v.affiliateConfig?.affiliateUrl || v.affiliateUrl || "Not set"}`}>
+                                             <ExternalLink className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />
+                                             AFFILIATE ({v.affiliateConfig?.vendorName || "Partner"})
+                                             {(v.affiliateConfig?.clickCount || 0) > 0 && (
+                                               <span className="ml-1 text-[9px] bg-purple-200/80 dark:bg-purple-900 px-1.5 py-0.2 rounded font-mono text-purple-900 dark:text-purple-100">
+                                                 {v.affiliateConfig?.clickCount} clicks
+                                               </span>
+                                             )}
+                                           </span>
+                                         ) : (
+                                           <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 px-2.5 py-0.5 rounded-full">
+                                             <Calendar className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                                             MANUAL
+                                           </span>
+                                         )}
                                          {v.isActive !== false ? (
                                            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full">
                                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ACTIVE
@@ -4467,9 +5339,50 @@ export default function Inventory() {
                             included: includedInput.split('\n').filter(Boolean),
                             duration: duration || "Flexible",
                             provider: supplier || "Provider",
-                            openingHours: openingHours || ""
+                            openingHours: openingHours || "",
+                            bookingMode: bookingMode,
+                            affiliateConfig: bookingMode === 'affiliate' ? {
+                              vendorName: affiliateVendor || undefined,
+                              affiliateUrl: affiliateUrl || "",
+                              affiliateProductId: affiliateProductId || undefined,
+                              trackingParams: affiliateTrackingParams || undefined,
+                              redirectBehavior: affiliateRedirectBehavior,
+                              clickCount: affiliateClickCount
+                            } : undefined
                           }} 
                         />
+                      </div>
+
+                      {/* Booking Mode Simulation Status */}
+                      <div className="w-full max-w-sm p-3.5 rounded-xl border text-left flex items-start gap-3 text-xs shadow-sm transition-all" style={{
+                        backgroundColor: bookingMode === 'affiliate' ? 'rgba(168, 85, 247, 0.08)' : 'rgba(59, 130, 246, 0.08)',
+                        borderColor: bookingMode === 'affiliate' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(59, 130, 246, 0.3)'
+                      }}>
+                        {bookingMode === 'affiliate' ? (
+                          <>
+                            <ExternalLink className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                              <p className="font-extrabold text-purple-900 dark:text-purple-200">
+                                Affiliate Mode Active ({affiliateVendor || "Third-Party Vendor"})
+                              </p>
+                              <p className="text-[11px] text-purple-700/80 dark:text-purple-300/80">
+                                Clicking "BOOK NOW" on this card will redirect travelers directly to your affiliate URL ({affiliateUrl || "Not yet specified"}).
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                              <p className="font-extrabold text-blue-900 dark:text-blue-200">
+                                Manual Mode Active (Tiqsey Internal)
+                              </p>
+                              <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80">
+                                Clicking "BOOK NOW" launches the internal booking modal with travel date, time slots, headcount selection, and native checkout.
+                              </p>
+                            </div>
+                          </>
+                        )}
                       </div>
 
                       {/* Info Tip block */}

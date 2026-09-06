@@ -44,6 +44,32 @@ export interface Attraction {
   notes?: string;
   priceIncludes?: string;
   otherDetails?: string;
+  bookingMode?: BookingMode;
+  affiliateConfig?: AffiliateConfig;
+}
+
+export type BookingMode = 'manual' | 'affiliate';
+
+export interface AffiliateConfig {
+  vendorName?: string;
+  affiliateUrl?: string;
+  affiliateProductId?: string;
+  trackingParams?: string;
+  redirectBehavior?: 'new_tab' | 'current_tab';
+  clickCount?: number;
+  lastClickedAt?: string;
+}
+
+export interface AffiliateClickLog {
+  id: string;
+  attractionId: string;
+  attractionName: string;
+  variantId?: string;
+  variantName?: string;
+  vendorName?: string;
+  destinationUrl: string;
+  clickedAt: string;
+  currency?: string;
 }
 
 export type BannerTemplateType = 'readymade-image' | 'play-passes' | 'stadium-pass' | 'water-parks' | 'city-guide' | 'custom';
@@ -100,6 +126,9 @@ export interface Variant {
   language?: string;
   isTicketed?: boolean;
   transfer?: string;
+  bookingMode?: BookingMode;
+  affiliateUrl?: string;
+  affiliateConfig?: AffiliateConfig;
 }
 
 export interface Destination {
