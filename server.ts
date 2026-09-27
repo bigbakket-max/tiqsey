@@ -984,23 +984,20 @@ async function startServer() {
   });
 
   app.post("/api/auth/login", (req, res) => {
-    const email = (req.body?.email || "").trim();
-    const password = (req.body?.password || "").trim();
+    const { email, password } = req.body;
     if (email && password) {
       res.json({ success: true, token: "dummy-jwt-token" });
     } else {
-      res.status(400).json({ error: "Invalid credentials. Please provide both email and password." });
+      res.status(400).json({ error: "Invalid credentials" });
     }
   });
 
   app.post("/api/auth/register", (req, res) => {
-    const name = (req.body?.name || "").trim();
-    const email = (req.body?.email || "").trim();
-    const password = (req.body?.password || "").trim();
+    const { name, email, password } = req.body;
     if (name && email && password) {
       res.json({ success: true, token: "dummy-jwt-token" });
     } else {
-      res.status(400).json({ error: "All fields are required. Please provide name, email, and password." });
+      res.status(400).json({ error: "All fields are required" });
     }
   });
 
