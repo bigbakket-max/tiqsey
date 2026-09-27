@@ -280,10 +280,12 @@ export default function App() {
         <SignInPage
           onBackToHome={() => {
             setCurrentPage("home");
+            window.history.pushState({}, "", "/");
             window.scrollTo(0, 0);
           }}
           onNavigateToRegister={() => {
             setCurrentPage("register");
+            window.history.pushState({}, "", "/register");
             window.scrollTo(0, 0);
           }}
         />
@@ -295,10 +297,12 @@ export default function App() {
         <RegisterPage
           onBackToHome={() => {
             setCurrentPage("home");
+            window.history.pushState({}, "", "/");
             window.scrollTo(0, 0);
           }}
           onNavigateToSignIn={() => {
             setCurrentPage("sign-in");
+            window.history.pushState({}, "", "/login");
             window.scrollTo(0, 0);
           }}
         />

@@ -1,17 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
-// Load environment variables if present
-dotenv.config();
-
-// Initialize Supabase client with project credentials
 const supabaseUrl = process.env.SUPABASE_URL || 'https://lzjjwsvalvfkgwtzuime.supabase.co';
 const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || 'your-anon-key';
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Replaced 'your_table' with 'bookings' from the Tiqsey project
-export async function getTableData(tableName = 'bookings') {
+async function getTableData(tableName = 'bookings') {
   try {
     const { data, error } = await supabase
       .from(tableName)
@@ -28,4 +23,4 @@ export async function getTableData(tableName = 'bookings') {
   }
 }
 
-export default { supabase, getTableData };
+module.exports = { supabase, getTableData };
