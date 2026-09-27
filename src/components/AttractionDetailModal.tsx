@@ -1100,8 +1100,17 @@ export default function AttractionDetailModal({
 
     setIsSubmitting(true);
     try {
-      // Create guest info object if needed
-      const guestInfo = { name: guestName, email: guestEmail, passengers: additionalPassengers };
+      // Create guest info object with full customer contact details
+      const fullPhone = travelerCountryCode && travelerPhoneNumber 
+        ? `${travelerCountryCode} ${travelerPhoneNumber}`.trim() 
+        : (travelerPhoneNumber || '');
+      const guestInfo = { 
+        name: guestName, 
+        email: guestEmail, 
+        phone: fullPhone, 
+        country: travelerCountry, 
+        passengers: additionalPassengers 
+      };
       const response = await addBooking(
         attraction.id,
         `${attraction.name} - ${selectedPackage.name}`,

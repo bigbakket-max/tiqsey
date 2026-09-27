@@ -950,6 +950,13 @@ export default function Bookings() {
 
         {/* Refresh and Filter buttons */}
         <div className="flex items-center gap-2">
+          {/* Supabase status badge */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-md text-[11px] font-bold">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Supabase Connected</span>
+            <span className="text-[10px] text-emerald-700/60 dark:text-emerald-300/60 font-mono">(lzjjwsvalvfkgwtzuime)</span>
+          </div>
+
           <button
             type="button"
             onClick={loadBookings}

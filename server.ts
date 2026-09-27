@@ -13,17 +13,21 @@ dotenv.config();
 // Initialize SQLite database
 const db = new Database('bookings.db');
 
-// Initialize Supabase client lazily if SUPABASE_URL & SUPABASE_KEY are provided
+// Supabase Project Configuration
+const SUPABASE_PROJECT_ID = 'lzjjwsvalvfkgwtzuime';
+const DEFAULT_SUPABASE_URL = 'https://lzjjwsvalvfkgwtzuime.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'sb_publishable_KxzN2RLPv5Q7nVqDRqPw-w_mi317li6';
+
+// Initialize Supabase client
 let supabaseClient: any = null;
 let isSupabaseOffline = false;
 let lastSupabaseCheckTime = 0;
-const SUPABASE_COOLDOWN_MS = 300000; // 5 minutes cooldown before trying to re-connect
+const SUPABASE_COOLDOWN_MS = 15000; // 15 seconds cooldown
 
 function getSupabaseClient() {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_KEY || DEFAULT_SUPABASE_KEY;
 
-  // If Supabase environment variables are not configured or invalid, run cleanly in SQLite mode
   if (!supabaseUrl || !supabaseKey) {
     return null;
   }
@@ -49,7 +53,9 @@ function getSupabaseClient() {
   if (!supabaseClient) {
     try {
       supabaseClient = createClient(supabaseUrl, supabaseKey);
-    } catch {
+      console.log(`[Supabase] Client initialized for project ${SUPABASE_PROJECT_ID} (${supabaseUrl})`);
+    } catch (err: any) {
+      console.error(`[Supabase Init Error]`, err);
       isSupabaseOffline = true;
       lastSupabaseCheckTime = Date.now();
       return null;
@@ -105,7 +111,7 @@ async function fetchFromSupabase() {
 
   try {
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Supabase request timed out")), 2000)
+      setTimeout(() => reject(new Error("Supabase request timed out")), 8000)
     );
     const fetchPromise = supabase
       .from('bookings')
@@ -115,13 +121,15 @@ async function fetchFromSupabase() {
     const { data, error } = result;
 
     if (error) {
+      console.error(`[Supabase Fetch Error]:`, error.message);
       isSupabaseOffline = true;
       lastSupabaseCheckTime = Date.now();
       return null;
     }
 
     return data;
-  } catch {
+  } catch (err: any) {
+    console.error(`[Supabase Fetch Catch]:`, err.message || err);
     isSupabaseOffline = true;
     lastSupabaseCheckTime = Date.now();
     return null;
@@ -162,7 +170,7 @@ async function saveToSupabase(booking: any) {
 
   try {
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Supabase save timed out")), 2000)
+      setTimeout(() => reject(new Error("Supabase save timed out")), 8000)
     );
     // Try to upsert so it works for both insert and update
     const savePromise = supabase
@@ -172,15 +180,48 @@ async function saveToSupabase(booking: any) {
     const actualResult: any = await Promise.race([savePromise, timeoutPromise]);
 
     if (actualResult.error) {
+      console.error(`[Supabase Save Error]:`, actualResult.error.message);
       isSupabaseOffline = true;
       lastSupabaseCheckTime = Date.now();
       return false;
     }
 
+    console.log(`[Supabase] Stored customer booking ${payload.id} (${payload.order_number}) for "${payload.guest_name}" in Supabase table "bookings"`);
     return true;
-  } catch {
+  } catch (err: any) {
+    console.error(`[Supabase Save Catch]:`, err.message || err);
     isSupabaseOffline = true;
     lastSupabaseCheckTime = Date.now();
+    return false;
+  }
+}
+
+// Save/Update review in Supabase
+async function saveReviewToSupabase(review: any) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+
+  try {
+    const payload = {
+      id: review.id || `rev-${Date.now()}`,
+      booking_id: review.bookingId,
+      attraction_id: review.attractionId,
+      user_id: review.userId || 'anonymous',
+      user_name: review.userName || 'Guest',
+      user_email: review.userEmail || '',
+      rating: Number(review.rating),
+      comment: review.comment || '',
+      created_at: review.createdAt || new Date().toISOString()
+    };
+    const { error } = await supabase.from('reviews').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error(`[Supabase Review Error]:`, error.message);
+      return false;
+    }
+    console.log(`[Supabase] Stored customer review ${payload.id} in Supabase table "reviews"`);
+    return true;
+  } catch (err: any) {
+    console.error(`[Supabase Review Catch]:`, err.message || err);
     return false;
   }
 }
@@ -976,10 +1017,58 @@ async function startServer() {
       const bookingStmt = db.prepare('UPDATE bookings SET rating = ? WHERE id = ?');
       bookingStmt.run(rating, bookingId);
 
+      // Gracefully sync review to Supabase
+      saveReviewToSupabase({
+        id: id || `rev-${Date.now()}`,
+        bookingId,
+        attractionId,
+        userId: userId || 'anonymous',
+        userName: userName || 'Guest',
+        userEmail: userEmail || '',
+        rating,
+        comment,
+        createdAt
+      }).catch(e => console.error('[Supabase Review Background Error]:', e));
+
       res.json({ success: true });
     } catch (err: any) {
       console.error("[Database Error] Failed to save review:", err);
       res.status(500).json({ error: "Failed to save review", details: err.message });
+    }
+  });
+
+  // Supabase Live Status Endpoint
+  app.get("/api/supabase/status", async (req, res) => {
+    try {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return res.json({ 
+          connected: false, 
+          projectId: SUPABASE_PROJECT_ID, 
+          message: "Supabase client not initialized" 
+        });
+      }
+      const { data, error } = await supabase.from('bookings').select('id, guest_name, order_number, created_at').limit(5);
+      if (error) {
+        return res.status(500).json({ 
+          connected: false, 
+          projectId: SUPABASE_PROJECT_ID, 
+          error: error.message 
+        });
+      }
+      return res.json({
+        connected: true,
+        projectId: SUPABASE_PROJECT_ID,
+        table: 'bookings',
+        bookingsCount: data ? data.length : 0,
+        recentBookings: data || []
+      });
+    } catch (err: any) {
+      return res.status(500).json({ 
+        connected: false, 
+        projectId: SUPABASE_PROJECT_ID, 
+        error: err.message 
+      });
     }
   });
 

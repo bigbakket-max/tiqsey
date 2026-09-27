@@ -44,6 +44,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Default demo credentials
 const DEMO_EMAIL = 'demo@tiqsey.com';
 const DEMO_PASSWORD = 'password123';
+export const ADMIN_EMAILS = ['admin@tiqsey.com', 'bigbakket@gmail.com'];
 
 export const deriveNameFromEmail = (emailStr: string): string => {
   if (!emailStr) return '';
@@ -88,36 +89,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
           createdAt: new Date().toLocaleDateString(),
           role: 'admin',
+        },
+        {
+          id: 'admin-user-bigbakket',
+          name: 'Lead Admin',
+          email: 'bigbakket@gmail.com',
+          password: 'password123',
+          bio: 'Lead Administrator.',
+          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
+          createdAt: new Date().toLocaleDateString(),
+          role: 'admin',
         }
       ];
       localStorage.setItem('tiqsey_users', JSON.stringify(initialUsers));
     } else {
       try {
         const users = JSON.parse(registeredUsers);
-        const hasAdmin = users.some((u: any) => u.email.toLowerCase() === 'admin@tiqsey.com');
-        if (!hasAdmin) {
-          users.push({
-            id: 'admin-user-456',
-            name: 'System Admin',
-            email: 'admin@tiqsey.com',
-            password: 'password123',
-            bio: 'Super Administrator.',
-            avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
-            createdAt: new Date().toLocaleDateString(),
-            role: 'admin',
-          });
-          localStorage.setItem('tiqsey_users', JSON.stringify(users));
-        } else {
-          let modified = false;
-          users.forEach((u: any) => {
-            if (u.email.toLowerCase() === 'admin@tiqsey.com' && u.role !== 'admin') {
-              u.role = 'admin';
-              modified = true;
-            }
-          });
-          if (modified) {
-            localStorage.setItem('tiqsey_users', JSON.stringify(users));
+        let modified = false;
+
+        ADMIN_EMAILS.forEach((admEmail) => {
+          const found = users.find((u: any) => u.email.toLowerCase() === admEmail.toLowerCase());
+          if (!found) {
+            users.push({
+              id: admEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
+              name: admEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
+              email: admEmail,
+              password: 'password123',
+              bio: 'Administrator.',
+              avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
+              createdAt: new Date().toLocaleDateString(),
+              role: 'admin',
+            });
+            modified = true;
+          } else if (found.role !== 'admin') {
+            found.role = 'admin';
+            modified = true;
           }
+        });
+
+        if (modified) {
+          localStorage.setItem('tiqsey_users', JSON.stringify(users));
         }
       } catch (e) {
         console.error('Failed to parse registered users', e);
@@ -129,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentSession) {
       try {
         const loggedUser = JSON.parse(currentSession);
-        if (loggedUser && loggedUser.email.toLowerCase() === 'admin@tiqsey.com' && loggedUser.role !== 'admin') {
+        if (loggedUser && ADMIN_EMAILS.includes(loggedUser.email?.toLowerCase()) && loggedUser.role !== 'admin') {
           loggedUser.role = 'admin';
           localStorage.setItem('tiqsey_current_session', JSON.stringify(loggedUser));
         }
@@ -207,11 +218,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<User> => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      throw new Error('Please fill in both email and password.');
+    }
+
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: trimmedEmail, password }),
       });
       const data = await response.json();
       
@@ -219,20 +235,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(data.error || "Login failed");
       }
 
-      // Simulate getting full user from mock DB for now, since our backend just returns success
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
-          const users = JSON.parse(usersRaw);
+          let users: any[] = [];
+          try {
+            users = JSON.parse(usersRaw);
+          } catch (_) {
+            users = [];
+          }
           
-          let matched = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+          const normalizedEmail = trimmedEmail.toLowerCase();
+          const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
+          let matched = users.find((u: any) => u.email.toLowerCase() === normalizedEmail);
           
-          if (email.toLowerCase() === 'admin@tiqsey.com') {
+          if (isAdmin) {
             if (!matched) {
               matched = {
-                id: 'admin-user-456',
-                name: 'System Admin',
-                email: 'admin@tiqsey.com',
+                id: normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
+                name: normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
+                email: normalizedEmail,
                 password: 'password123',
                 bio: 'Super Administrator.',
                 avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
@@ -248,8 +270,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           
           if (matched) {
+            // Verify password if recorded
+            if (matched.password && matched.password !== password) {
+              reject(new Error('Incorrect password. Please verify your credentials or use the demo password.'));
+              return;
+            }
+
             // Clean password before setting state
             const { password: _, ...userSession } = matched;
+            if (isAdmin) {
+              userSession.role = 'admin';
+            }
             localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
             setUser(userSession);
             
@@ -263,19 +294,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             resolve(userSession);
           } else {
-            // If the user isn't in local mock DB, create a quick session so the backend success works
-            const tempUser = {
+            // Create user account seamlessly for new email
+            const tempUser: any = {
               id: `user-${Date.now()}`,
-              name: deriveNameFromEmail(email),
-              email,
+              name: deriveNameFromEmail(trimmedEmail),
+              email: trimmedEmail,
+              password: password,
               bio: 'New explorer on Tiqsey!',
-              avatarUrl: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 900000)}?auto=format&fit=crop&q=80&w=200`,
+              avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200`,
               createdAt: new Date().toLocaleDateString(),
+              role: isAdmin ? 'admin' : 'user',
             };
-            localStorage.setItem('tiqsey_current_session', JSON.stringify(tempUser));
-            setUser(tempUser);
+            users.push(tempUser);
+            localStorage.setItem('tiqsey_users', JSON.stringify(users));
+
+            const { password: _, ...userSession } = tempUser;
+            localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
+            setUser(userSession);
             setBookings([]);
-            resolve(tempUser);
+            resolve(userSession);
           }
         }, 300);
       });
@@ -340,31 +377,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Small network loading simulation
       setTimeout(() => {
         const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
-        const users = JSON.parse(usersRaw);
+        let users: any[] = [];
+        try {
+          users = JSON.parse(usersRaw);
+        } catch (_) {
+          users = [];
+        }
         
-        let matched = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
-        const derivedName = deriveNameFromEmail(email);
+        const normalizedEmail = email.toLowerCase().trim();
+        const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
+        let matched = users.find((u: any) => u.email.toLowerCase() === normalizedEmail);
+        const derivedName = name || deriveNameFromEmail(email);
         
         if (!matched) {
           matched = {
             id: `google-${Date.now()}`,
             name: derivedName,
-            email,
+            email: normalizedEmail,
             password: `google-auth-${Date.now()}`,
             bio: 'Explorer signed in via Google Secure Identity Gateway.',
             avatarUrl,
             createdAt: new Date().toLocaleDateString(),
+            role: isAdmin ? 'admin' : 'user',
           };
           users.push(matched);
         } else {
-          // Keep name derived from email and prevent changing
           matched.name = derivedName;
           matched.avatarUrl = avatarUrl;
+          if (isAdmin) matched.role = 'admin';
         }
         
         localStorage.setItem('tiqsey_users', JSON.stringify(users));
 
         const { password: _, ...userSession } = matched;
+        if (isAdmin) userSession.role = 'admin';
         localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
         setUser(userSession);
 
@@ -376,7 +422,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         resolve(userSession);
-      }, 700);
+      }, 500);
     });
   };
 
