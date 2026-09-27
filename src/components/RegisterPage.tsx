@@ -74,7 +74,7 @@ export default function RegisterPage({
   };
 
   return (
-    <div className="min-h-screen w-full relative bg-gradient-to-b from-[#eaf2f9] via-[#edf5fc] to-[#e4eef7] flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden font-sans selection:bg-[#e31b23]/10 selection:text-[#e31b23]">
+    <div className="min-h-[calc(100vh-140px)] w-full relative bg-gradient-to-b from-[#eaf2f9] via-[#edf5fc] to-[#e4eef7] flex items-center justify-center py-10 sm:py-14 px-4 sm:px-6 md:px-8 overflow-hidden font-sans selection:bg-[#e31b23]/10 selection:text-[#e31b23]">
       {/* Background Travel-Themed Illustrations */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden select-none">
         {/* Top-Left Airplane & Dashed Flight Contrail Arc */}
