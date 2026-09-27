@@ -1,12 +1,12 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import * as dotenv from 'dotenv';
 import { GoogleGenAI } from "@google/genai";
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import dns from 'node:dns';
 
 dotenv.config();
 
@@ -315,22 +315,38 @@ db.exec(`
     details TEXT
   );
 
-  CREATE TABLE IF NOT EXISTS custom_domain_settings (
-    id TEXT PRIMARY KEY,
-    domain TEXT NOT NULL,
-    subdomain TEXT,
-    target_host TEXT NOT NULL,
-    provider TEXT DEFAULT 'cloudflare',
-    verification_status TEXT DEFAULT 'pending',
-    ssl_status TEXT DEFAULT 'pending',
-    verified_at TEXT,
-    last_checked_at TEXT,
-    dns_records_json TEXT,
-    notes TEXT,
-    created_at TEXT NOT NULL,
+  CREATE TABLE IF NOT EXISTS site_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
 `);
+
+// Seed default favicon in site_settings if not set
+try {
+  const existingFavicon = db.prepare("SELECT value FROM site_settings WHERE key = 'favicon'").get() as any;
+  if (!existingFavicon) {
+    const defaultFavicon = {
+      url: "/favicon.png",
+      appleTouchIconUrl: "/favicon.png",
+      format: "png",
+      mimeType: "image/png",
+      fileName: "tiqsey-brand-favicon.png",
+      fileSize: 43581,
+      dimensions: { width: 512, height: 512 },
+      updatedAt: "2026-09-27T07:30:10.000Z",
+      updatedBy: "system",
+      isDefault: true
+    };
+    db.prepare("INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, ?)").run(
+      "favicon",
+      JSON.stringify(defaultFavicon),
+      new Date().toISOString()
+    );
+  }
+} catch (e) {
+  console.error("[Database] Error initializing site_settings for favicon:", e);
+}
 
 // Seed initial backend users if not present
 try {
@@ -421,341 +437,243 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Use JSON middleware
-  app.use(express.json());
+  // Use JSON middleware with 15MB limit for image uploads
+  app.use(express.json({ limit: '15mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
-  // Custom Domain Constants
-  const DEFAULT_TARGET_HOST = "ais-pre-3xmqqplj6iyf7445xaenj4-389000849295.asia-southeast1.run.app";
-  const VERIFICATION_TOKEN = "tiqsey-site-verification=8be44669-b47a-4636-9b11-7512a6d26a0e";
-  const APPLET_ID = "8be44669-b47a-4636-9b11-7512a6d26a0e";
-  const CLOUD_RUN_SERVICE = "ais-pre-3xmqqplj6iyf7445xaenj4-389000849295";
-  const CLOUD_REGION = "asia-southeast1";
+  // Admin Authorization check helper
+  const ADMIN_EMAILS = ['admin@tiqsey.com', 'bigbakket@gmail.com'];
+  const checkAdminAuth = (req: express.Request): boolean => {
+    const adminEmail = (req.headers['x-admin-email'] || req.query.adminEmail || req.body?.adminEmail || '') as string;
+    if (adminEmail && ADMIN_EMAILS.includes(adminEmail.toLowerCase().trim())) {
+      return true;
+    }
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const session = db.prepare("SELECT * FROM backend_sessions WHERE id = ?").get(token);
+      if (session) return true;
+    }
+    return false;
+  };
 
-  // Helper: Generate DNS records needed for a domain
-  function generateDnsRecords(rawDomain: string, targetHost: string = DEFAULT_TARGET_HOST) {
-    const clean = rawDomain.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0];
-    const parts = clean.split('.');
-    const isApex = parts.length === 2;
-    const subdomain = isApex ? 'www' : (parts.length > 2 ? parts[0] : '@');
-    const rootDomain = isApex ? clean : parts.slice(-2).join('.');
-
-    return {
-      domain: clean,
-      rootDomain,
-      subdomain,
-      isApex,
-      targetHost,
-      records: [
-        {
-          id: 'rec_cname',
-          type: 'CNAME',
-          name: isApex ? 'www' : subdomain,
-          value: targetHost,
-          ttl: 'Auto / 3600',
-          priority: null,
-          description: isApex 
-            ? `Points www.${clean} to your Tiqsey Cloud Run application` 
-            : `Points ${clean} directly to your Tiqsey Cloud Run application`,
-          recommended: true
-        },
-        {
-          id: 'rec_txt',
-          type: 'TXT',
-          name: isApex ? '@' : `_tiqsey-challenge`,
-          value: VERIFICATION_TOKEN,
-          ttl: 'Auto / 3600',
-          priority: null,
-          description: 'Validates domain ownership and SSL authorization for your Tiqsey storefront',
-          recommended: true
-        },
-        {
-          id: 'rec_apex',
-          type: 'CNAME / Flattening',
-          name: '@',
-          value: targetHost,
-          ttl: 'Auto',
-          priority: null,
-          description: 'For Cloudflare: Enable CNAME Flattening on apex root. For other registrars: Set URL redirect from @ to https://www.' + clean,
-          recommended: isApex
-        }
-      ]
-    };
-  }
-
-  // Helper: Live DNS check with Google DoH and Node.js fallback
-  async function checkDnsResolution(domain: string, targetHost: string = DEFAULT_TARGET_HOST) {
-    const cleanDomain = domain.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0];
-    let cnameFound: string[] = [];
-    let aRecords: string[] = [];
-    let txtRecords: string[] = [];
-
-    // Query Google Public DNS over HTTPS (DoH) for accurate worldwide view
+  // Public endpoint: Fetch current active favicon configuration
+  app.get("/api/site/favicon", (req, res) => {
     try {
-      const [cnameRes, aRes, txtRes] = await Promise.allSettled([
-        fetch(`https://dns.google/resolve?name=${encodeURIComponent(cleanDomain)}&type=CNAME`, { signal: AbortSignal.timeout(2500) }).then(r => r.json()),
-        fetch(`https://dns.google/resolve?name=${encodeURIComponent(cleanDomain)}&type=A`, { signal: AbortSignal.timeout(2500) }).then(r => r.json()),
-        fetch(`https://dns.google/resolve?name=${encodeURIComponent(cleanDomain)}&type=TXT`, { signal: AbortSignal.timeout(2500) }).then(r => r.json()),
-      ]);
-
-      if (cnameRes.status === 'fulfilled' && cnameRes.value?.Answer) {
-        cnameFound = cnameRes.value.Answer.map((ans: any) => (ans.data || '').replace(/\.$/, ''));
+      const row = db.prepare("SELECT value FROM site_settings WHERE key = 'favicon'").get() as any;
+      if (row && row.value) {
+        return res.json(JSON.parse(row.value));
       }
-      if (aRes.status === 'fulfilled' && aRes.value?.Answer) {
-        aRecords = aRes.value.Answer.filter((ans: any) => ans.type === 1).map((ans: any) => ans.data || '');
-      }
-      if (txtRes.status === 'fulfilled' && txtRes.value?.Answer) {
-        txtRecords = txtRes.value.Answer.map((ans: any) => (ans.data || '').replace(/^"|"$/g, ''));
-      }
-    } catch (dohErr) {
-      console.warn("[Custom Domain] Google DoH query failed, trying local node:dns resolver:", dohErr);
-      try {
-        const cnames = await dns.promises.resolveCname(cleanDomain).catch(() => []);
-        cnameFound = cnames.map(c => c.replace(/\.$/, ''));
-        const ips = await dns.promises.resolve4(cleanDomain).catch(() => []);
-        aRecords = ips;
-        const txt = await dns.promises.resolveTxt(cleanDomain).catch(() => []);
-        txtRecords = txt.flat();
-      } catch (localErr) {
-        console.warn("[Custom Domain] Local DNS resolution failed:", localErr);
-      }
+      return res.json({
+        url: "/favicon.png",
+        appleTouchIconUrl: "/favicon.png",
+        format: "png",
+        mimeType: "image/png",
+        fileName: "tiqsey-brand-favicon.png",
+        fileSize: 43581,
+        dimensions: { width: 512, height: 512 },
+        updatedAt: "2026-09-27T07:30:10.000Z",
+        updatedBy: "system",
+        isDefault: true
+      });
+    } catch (err: any) {
+      console.error("[Favicon API] Error getting favicon:", err);
+      return res.status(500).json({ error: "Failed to load favicon configuration" });
     }
-
-    const targetHostClean = targetHost.toLowerCase().trim();
-    const cnameMatches = cnameFound.some(c => c.toLowerCase().includes(targetHostClean) || targetHostClean.includes(c.toLowerCase()));
-    const txtMatches = txtRecords.some(t => t.includes(VERIFICATION_TOKEN) || t.includes(APPLET_ID));
-    // Detect Cloudflare proxy IPs
-    const isCloudflareProxied = aRecords.some(ip => ip.startsWith('104.') || ip.startsWith('172.67.') || ip.startsWith('188.114.'));
-
-    let status: 'verified' | 'propagating' | 'unresolved' = 'unresolved';
-    let verified = false;
-    let message = '';
-
-    if (cnameMatches) {
-      status = 'verified';
-      verified = true;
-      message = `CNAME record correctly points to ${targetHostClean}. Domain is connected and active!`;
-    } else if (isCloudflareProxied) {
-      status = 'verified';
-      verified = true;
-      message = `Cloudflare edge proxy detected. Traffic is securely routed through Cloudflare CDN & SSL.`;
-    } else if (cnameFound.length > 0 || aRecords.length > 0) {
-      status = 'propagating';
-      verified = false;
-      message = `DNS records detected, but target does not yet match ${targetHostClean}. Propagation may take 2-15 minutes.`;
-    } else {
-      status = 'unresolved';
-      verified = false;
-      message = `No DNS records detected for ${cleanDomain} yet. Please ensure your CNAME or A records have been saved at your registrar.`;
-    }
-
-    return {
-      verified,
-      status,
-      message,
-      cleanDomain,
-      cnameFound,
-      aRecords,
-      txtRecords,
-      isCloudflareProxied,
-      txtMatches,
-      checkedAt: new Date().toISOString()
-    };
-  }
-
-  // Verification endpoint for HTTP-01 or external site checkers
-  app.get("/.well-known/tiqsey-verification", (req, res) => {
-    res.json({
-      status: "ok",
-      appletId: APPLET_ID,
-      verificationToken: VERIFICATION_TOKEN,
-      targetHost: DEFAULT_TARGET_HOST,
-      cloudRunService: CLOUD_RUN_SERVICE,
-      cloudRegion: CLOUD_REGION,
-      timestamp: new Date().toISOString()
-    });
   });
 
-  // GET Custom Domain Settings
-  app.get("/api/custom-domain", (req, res) => {
+  // Admin endpoint: Fetch full favicon configuration
+  app.get("/api/admin/favicon", (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can access favicon management." });
+    }
     try {
-      const row = db.prepare("SELECT * FROM custom_domain_settings ORDER BY updated_at DESC LIMIT 1").get() as any;
-      
-      if (!row) {
-        return res.json({
-          configured: false,
-          settings: null,
-          targetHost: DEFAULT_TARGET_HOST,
-          verificationToken: VERIFICATION_TOKEN,
-          appletId: APPLET_ID,
-          cloudRunService: CLOUD_RUN_SERVICE,
-          cloudRegion: CLOUD_REGION,
-          suggestedRecords: generateDnsRecords("tiqsey.com", DEFAULT_TARGET_HOST)
-        });
+      const row = db.prepare("SELECT value FROM site_settings WHERE key = 'favicon'").get() as any;
+      const faviconData = row && row.value ? JSON.parse(row.value) : {
+        url: "/favicon.png",
+        appleTouchIconUrl: "/favicon.png",
+        format: "png",
+        mimeType: "image/png",
+        fileName: "tiqsey-brand-favicon.png",
+        fileSize: 43581,
+        dimensions: { width: 512, height: 512 },
+        updatedAt: "2026-09-27T07:30:10.000Z",
+        updatedBy: "system",
+        isDefault: true
+      };
+      return res.json({ success: true, favicon: faviconData });
+    } catch (err: any) {
+      console.error("[Favicon Admin API] Error:", err);
+      return res.status(500).json({ error: "Failed to retrieve favicon info" });
+    }
+  });
+
+  // Admin endpoint: Save / Replace Favicon
+  app.post("/api/admin/favicon", (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can upload and replace the favicon." });
+    }
+
+    try {
+      const { dataUrl, format, fileName, fileSize, dimensions, adminEmail } = req.body;
+      if (!dataUrl || typeof dataUrl !== 'string') {
+        return res.status(400).json({ error: "Missing or invalid dataUrl payload." });
       }
 
-      let parsedDnsRecords = null;
-      try {
-        if (row.dns_records_json) {
-          parsedDnsRecords = JSON.parse(row.dns_records_json);
+      const allowedFormats = ['png', 'ico', 'svg', 'jpg', 'jpeg', 'webp'];
+      const normalizedFormat = (format || 'png').toLowerCase().trim();
+      if (!allowedFormats.includes(normalizedFormat)) {
+        return res.status(400).json({ error: `Format "${format}" is not supported. Use PNG, ICO, SVG, JPG, or WebP.` });
+      }
+
+      // Extract binary buffer from base64
+      let buffer: Buffer;
+      let mimeType = `image/${normalizedFormat === 'ico' ? 'x-icon' : normalizedFormat === 'svg' ? 'svg+xml' : normalizedFormat}`;
+      if (dataUrl.includes(';base64,')) {
+        const parts = dataUrl.split(';base64,');
+        const headerMime = parts[0].replace('data:', '');
+        if (headerMime) mimeType = headerMime;
+        buffer = Buffer.from(parts[1], 'base64');
+      } else {
+        buffer = Buffer.from(dataUrl);
+      }
+
+      if (buffer.length > 5 * 1024 * 1024) {
+        return res.status(400).json({ error: "File exceeds maximum size limit of 5MB." });
+      }
+
+      // Ensure upload directories exist
+      const publicUploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      const distUploadsDir = path.join(process.cwd(), 'dist', 'uploads');
+      if (!fs.existsSync(publicUploadsDir)) fs.mkdirSync(publicUploadsDir, { recursive: true });
+      if (!fs.existsSync(distUploadsDir)) fs.mkdirSync(distUploadsDir, { recursive: true });
+
+      const timestamp = Date.now();
+      const ext = normalizedFormat === 'jpeg' ? 'jpg' : normalizedFormat;
+      const uploadedFilename = `favicon-${timestamp}.${ext}`;
+      const publicUploadPath = path.join(publicUploadsDir, uploadedFilename);
+      const distUploadPath = path.join(distUploadsDir, uploadedFilename);
+
+      // Write timestamped uploaded file
+      fs.writeFileSync(publicUploadPath, buffer);
+      if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
+        fs.writeFileSync(distUploadPath, buffer);
+      }
+
+      // Also update standard public/favicon.png and dist/favicon.png
+      const publicFaviconPng = path.join(process.cwd(), 'public', 'favicon.png');
+      const distFaviconPng = path.join(process.cwd(), 'dist', 'favicon.png');
+      const publicFaviconIco = path.join(process.cwd(), 'public', 'favicon.ico');
+      const distFaviconIco = path.join(process.cwd(), 'dist', 'favicon.ico');
+
+      fs.writeFileSync(publicFaviconPng, buffer);
+      if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
+        fs.writeFileSync(distFaviconPng, buffer);
+      }
+
+      if (normalizedFormat === 'svg') {
+        fs.writeFileSync(path.join(process.cwd(), 'public', 'favicon.svg'), buffer);
+        if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
+          fs.writeFileSync(path.join(process.cwd(), 'dist', 'favicon.svg'), buffer);
         }
+      }
+
+      if (normalizedFormat === 'ico') {
+        fs.writeFileSync(publicFaviconIco, buffer);
+        if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
+          fs.writeFileSync(distFaviconIco, buffer);
+        }
+      }
+
+      // Configuration object to persist
+      const faviconConfig = {
+        url: `/uploads/${uploadedFilename}`,
+        appleTouchIconUrl: `/uploads/${uploadedFilename}`,
+        format: normalizedFormat,
+        mimeType,
+        fileName: fileName || uploadedFilename,
+        fileSize: buffer.length,
+        dimensions: dimensions || { width: 512, height: 512 },
+        updatedAt: new Date().toISOString(),
+        updatedBy: adminEmail || 'admin@tiqsey.com',
+        isDefault: false
+      };
+
+      db.prepare("INSERT OR REPLACE INTO site_settings (key, value, updated_at) VALUES (?, ?, ?)").run(
+        "favicon",
+        JSON.stringify(faviconConfig),
+        faviconConfig.updatedAt
+      );
+
+      // Log action in backend_logs if table exists
+      try {
+        db.prepare("INSERT INTO backend_logs (id, timestamp, username, action, details) VALUES (?, ?, ?, ?, ?)").run(
+          `log-${Date.now()}`,
+          new Date().toISOString(),
+          adminEmail || 'admin@tiqsey.com',
+          'REPLACE_FAVICON',
+          JSON.stringify({ fileName, format: normalizedFormat, size: buffer.length })
+        );
       } catch (_) {}
 
-      res.json({
-        configured: true,
-        settings: {
-          id: row.id,
-          domain: row.domain,
-          subdomain: row.subdomain,
-          targetHost: row.target_host,
-          provider: row.provider || 'cloudflare',
-          verificationStatus: row.verification_status,
-          sslStatus: row.ssl_status,
-          verifiedAt: row.verified_at,
-          lastCheckedAt: row.last_checked_at,
-          notes: row.notes,
-          createdAt: row.created_at,
-          updatedAt: row.updated_at,
-          dnsRecords: parsedDnsRecords || generateDnsRecords(row.domain, row.target_host)
-        },
-        targetHost: DEFAULT_TARGET_HOST,
-        verificationToken: VERIFICATION_TOKEN,
-        appletId: APPLET_ID,
-        cloudRunService: CLOUD_RUN_SERVICE,
-        cloudRegion: CLOUD_REGION
-      });
+      return res.json({ success: true, favicon: faviconConfig });
     } catch (err: any) {
-      console.error("[Custom Domain] Error fetching domain settings:", err);
-      res.status(500).json({ error: "Failed to fetch domain settings" });
+      console.error("[Favicon Admin API] Error saving favicon:", err);
+      return res.status(500).json({ error: err.message || "Failed to save favicon" });
     }
   });
 
-  // POST Custom Domain Settings
-  app.post("/api/custom-domain", async (req, res) => {
-    try {
-      const { domain, provider, notes } = req.body;
-      if (!domain || typeof domain !== 'string') {
-        return res.status(400).json({ error: "Domain name is required" });
-      }
-
-      const cleanDomain = domain.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0];
-      if (!cleanDomain || !cleanDomain.includes('.')) {
-        return res.status(400).json({ error: "Please enter a valid domain name (e.g. tiqsey.com or tickets.yourbrand.com)" });
-      }
-
-      const generated = generateDnsRecords(cleanDomain, DEFAULT_TARGET_HOST);
-      const existing = db.prepare("SELECT * FROM custom_domain_settings ORDER BY updated_at DESC LIMIT 1").get() as any;
-      const now = new Date().toISOString();
-      const id = existing?.id || 'dom-' + crypto.randomUUID().slice(0, 8);
-
-      const chosenProvider = provider || existing?.provider || 'cloudflare';
-
-      if (existing) {
-        db.prepare(`
-          UPDATE custom_domain_settings 
-          SET domain = ?, subdomain = ?, target_host = ?, provider = ?, dns_records_json = ?, notes = ?, updated_at = ?
-          WHERE id = ?
-        `).run(cleanDomain, generated.subdomain, DEFAULT_TARGET_HOST, chosenProvider, JSON.stringify(generated), notes || null, now, existing.id);
-      } else {
-        db.prepare(`
-          INSERT INTO custom_domain_settings (
-            id, domain, subdomain, target_host, provider, verification_status, ssl_status, 
-            dns_records_json, notes, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(id, cleanDomain, generated.subdomain, DEFAULT_TARGET_HOST, chosenProvider, 'pending', 'pending', JSON.stringify(generated), notes || null, now, now);
-      }
-
-      // Perform non-blocking immediate DNS verification check
-      const checkResult = await checkDnsResolution(cleanDomain, DEFAULT_TARGET_HOST);
-      const newStatus = checkResult.verified ? 'verified' : (checkResult.status === 'propagating' ? 'propagating' : 'pending');
-      const verifiedAt = checkResult.verified ? now : (existing?.verified_at || null);
-      const sslStatus = checkResult.verified ? 'active' : 'pending';
-
-      db.prepare(`
-        UPDATE custom_domain_settings 
-        SET verification_status = ?, ssl_status = ?, verified_at = ?, last_checked_at = ?
-        WHERE id = ?
-      `).run(newStatus, sslStatus, verifiedAt, now, id);
-
-      res.json({
-        success: true,
-        message: checkResult.verified 
-          ? `Domain ${cleanDomain} connected and verified!` 
-          : `Domain ${cleanDomain} saved. Please update your DNS records to complete verification.`,
-        settings: {
-          id,
-          domain: cleanDomain,
-          subdomain: generated.subdomain,
-          targetHost: DEFAULT_TARGET_HOST,
-          provider: chosenProvider,
-          verificationStatus: newStatus,
-          sslStatus,
-          verifiedAt,
-          lastCheckedAt: now,
-          dnsRecords: generated
-        },
-        diagnostics: checkResult
-      });
-    } catch (err: any) {
-      console.error("[Custom Domain] Error saving domain:", err);
-      res.status(500).json({ error: "Failed to save domain configuration: " + (err.message || "") });
+  // Admin endpoint: Reset / Remove custom favicon back to default brand favicon
+  app.delete("/api/admin/favicon", (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can reset the favicon." });
     }
-  });
 
-  // POST Verify Custom Domain DNS Live
-  app.post("/api/custom-domain/verify", async (req, res) => {
     try {
-      let domainToCheck = req.body?.domain;
-      let existing = db.prepare("SELECT * FROM custom_domain_settings ORDER BY updated_at DESC LIMIT 1").get() as any;
+      const publicDefaultPng = path.join(process.cwd(), 'public', 'favicon-default.png');
+      const publicDefaultIco = path.join(process.cwd(), 'public', 'favicon-default.ico');
+      const publicFaviconPng = path.join(process.cwd(), 'public', 'favicon.png');
+      const distFaviconPng = path.join(process.cwd(), 'dist', 'favicon.png');
+      const publicFaviconIco = path.join(process.cwd(), 'public', 'favicon.ico');
+      const distFaviconIco = path.join(process.cwd(), 'dist', 'favicon.ico');
 
-      if (!domainToCheck && existing) {
-        domainToCheck = existing.domain;
+      if (fs.existsSync(publicDefaultPng)) {
+        fs.copyFileSync(publicDefaultPng, publicFaviconPng);
+        if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
+          fs.copyFileSync(publicDefaultPng, distFaviconPng);
+        }
       }
 
-      if (!domainToCheck) {
-        return res.status(400).json({ error: "No domain configured to verify" });
+      if (fs.existsSync(publicDefaultIco)) {
+        fs.copyFileSync(publicDefaultIco, publicFaviconIco);
+        if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
+          fs.copyFileSync(publicDefaultIco, distFaviconIco);
+        }
       }
 
-      const cleanDomain = domainToCheck.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0];
-      const targetHost = existing?.target_host || DEFAULT_TARGET_HOST;
-      const checkResult = await checkDnsResolution(cleanDomain, targetHost);
+      const defaultFavicon = {
+        url: "/favicon.png",
+        appleTouchIconUrl: "/favicon.png",
+        format: "png",
+        mimeType: "image/png",
+        fileName: "tiqsey-brand-favicon.png",
+        fileSize: 43581,
+        dimensions: { width: 512, height: 512 },
+        updatedAt: new Date().toISOString(),
+        updatedBy: "system",
+        isDefault: true
+      };
 
-      const now = new Date().toISOString();
-      const newStatus = checkResult.verified ? 'verified' : (checkResult.status === 'propagating' ? 'propagating' : 'unresolved');
-      const sslStatus = checkResult.verified ? 'active' : (existing?.ssl_status || 'pending');
-      const verifiedAt = checkResult.verified ? now : (existing?.verified_at || null);
+      db.prepare("INSERT OR REPLACE INTO site_settings (key, value, updated_at) VALUES (?, ?, ?)").run(
+        "favicon",
+        JSON.stringify(defaultFavicon),
+        defaultFavicon.updatedAt
+      );
 
-      if (existing) {
-        db.prepare(`
-          UPDATE custom_domain_settings 
-          SET verification_status = ?, ssl_status = ?, verified_at = ?, last_checked_at = ?
-          WHERE id = ?
-        `).run(newStatus, sslStatus, verifiedAt, now, existing.id);
-      }
-
-      res.json({
-        success: true,
-        verified: checkResult.verified,
-        status: newStatus,
-        sslStatus,
-        domain: cleanDomain,
-        targetHost,
-        diagnostics: checkResult,
-        lastCheckedAt: now
-      });
+      return res.json({ success: true, favicon: defaultFavicon });
     } catch (err: any) {
-      console.error("[Custom Domain] Error during DNS verification:", err);
-      res.status(500).json({ error: "Verification failed: " + (err.message || "") });
-    }
-  });
-
-  // DELETE Custom Domain
-  app.delete("/api/custom-domain", (req, res) => {
-    try {
-      db.prepare("DELETE FROM custom_domain_settings").run();
-      res.json({ success: true, message: "Custom domain configuration removed successfully." });
-    } catch (err: any) {
-      console.error("[Custom Domain] Error deleting domain:", err);
-      res.status(500).json({ error: "Failed to reset domain configuration" });
+      console.error("[Favicon Admin API] Error resetting favicon:", err);
+      return res.status(500).json({ error: err.message || "Failed to reset favicon" });
     }
   });
 
@@ -1774,6 +1692,9 @@ async function startServer() {
     }
   });
 
+
+  // Serve public/uploads directory statically
+  app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

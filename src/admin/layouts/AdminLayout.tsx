@@ -21,7 +21,8 @@ import {
   AlignLeft,
   Loader2,
   Sparkles,
-  Layers
+  Layers,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAdminLoader } from '../contexts/AdminLoaderContext';
@@ -54,10 +55,10 @@ export default function AdminLayout() {
       navigate(`/bookings?search=${encodeURIComponent(query)}`);
     } else if (query.toLowerCase().includes('banner') || query.toLowerCase().includes('promo')) {
       navigate(`/promotional-banners`);
+    } else if (query.toLowerCase().includes('favicon') || query.toLowerCase().includes('icon')) {
+      navigate(`/favicon`);
     } else if (query.toLowerCase().includes('blog') || query.toLowerCase().includes('post')) {
       navigate(`/blog`);
-    } else if (query.toLowerCase().includes('domain') || query.toLowerCase().includes('dns') || query.toLowerCase().includes('cname') || query.toLowerCase().includes('ssl')) {
-      navigate(`/domain`);
     } else {
       navigate(`/inventory?search=${encodeURIComponent(query)}`);
     }
@@ -90,7 +91,7 @@ export default function AdminLayout() {
       }
     } else if (path.includes('/analytics') || path.includes('/agents')) {
       crumbs.push({ name: 'Agents', icon: undefined, path: '/analytics' });
-    } else if (path.includes('/blog') || path.includes('/promotional-banners') || path.includes('/domain') || path.includes('/website')) {
+    } else if (path.includes('/blog') || path.includes('/promotional-banners') || path.includes('/favicon') || path.includes('/website')) {
       crumbs.push({ name: 'Website', icon: undefined, path: '/blog' });
       if (path.includes('/blog')) {
         crumbs.push({ name: 'Blog', icon: undefined, path: '/blog' });
@@ -106,8 +107,8 @@ export default function AdminLayout() {
         } else if (path.includes('/edit/')) {
           crumbs.push({ name: 'Edit Banner', icon: undefined, path: path });
         }
-      } else if (path.includes('/domain')) {
-        crumbs.push({ name: 'Custom Domain', icon: undefined, path: '/domain' });
+      } else if (path.includes('/favicon')) {
+        crumbs.push({ name: 'Favicon', icon: undefined, path: '/favicon' });
       }
     }
     return crumbs;
@@ -313,7 +314,7 @@ export default function AdminLayout() {
               </NavLink>
 
               <NavLink
-                to="/domain"
+                to="/favicon"
                 onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13.5px] transition-colors group ${
@@ -323,8 +324,8 @@ export default function AdminLayout() {
                   }`
                 }
               >
-                <Globe className="w-4 h-4 shrink-0 text-sky-400 group-hover:scale-105 transition-transform" />
-                Custom Domain
+                <ImageIcon className="w-4 h-4 shrink-0 text-sky-400 group-hover:scale-105 transition-transform" />
+                Favicon
               </NavLink>
             </div>
           )}
