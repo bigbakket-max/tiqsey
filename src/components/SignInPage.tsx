@@ -1,94 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Eye, 
-  EyeOff, 
-  Mail, 
-  Lock, 
-  ArrowLeft, 
-  Loader2, 
-  AlertCircle, 
-  CheckCircle2, 
-  UserCheck, 
-  ShieldCheck, 
-  Sparkles, 
-  KeyRound, 
-  X,
-  Send
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, Mail, Lock, ArrowLeft, ArrowRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-
-interface SignInPageProps {
-  onBackToHome: () => void;
-  onNavigateToRegister: () => void;
-}
 
 export default function SignInPage({
   onBackToHome,
   onNavigateToRegister
-}: SignInPageProps) {
-  const { user, login, loginWithGoogle, logout } = useAuth();
+}: {
+  onBackToHome: () => void;
+  onNavigateToRegister: () => void;
+}) {
+  const { login, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState('');
-  const [successNotice, setSuccessNotice] = useState('');
-
-  // Forgot password modal state
-  const [showForgotModal, setShowForgotModal] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotSuccess, setForgotSuccess] = useState(false);
-  const [forgotError, setForgotError] = useState('');
-
-  // Load remembered email on mount
-  useEffect(() => {
-    try {
-      const savedEmail = localStorage.getItem('tiqsey_remembered_email');
-      if (savedEmail) {
-        setEmail(savedEmail);
-        setRememberMe(true);
-      }
-    } catch (_) {}
-  }, []);
-
-  const validateEmail = (val: string): boolean => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
-  };
+  const [forgotSent, setForgotSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanEmail = email.trim();
-
-    if (!cleanEmail || !password) {
-      setError('Please fill in both email and password.');
-      return;
-    }
-
-    if (!validateEmail(cleanEmail)) {
-      setError('Please enter a valid email address (e.g. name@example.com).');
+    if (!email || !password) {
+      setError('Please enter your email and password.');
       return;
     }
 
     setIsLoading(true);
     setError('');
-    setSuccessNotice('');
 
     try {
-      await login(cleanEmail, password);
-
-      // Handle remember me
-      if (rememberMe) {
-        localStorage.setItem('tiqsey_remembered_email', cleanEmail);
-      } else {
-        localStorage.removeItem('tiqsey_remembered_email');
-      }
-
+      await login(email, password);
       onBackToHome();
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in. Please verify your credentials.');
+      setError(err.message || 'Invalid email or password. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -98,150 +43,231 @@ export default function SignInPage({
     setIsGoogleLoading(true);
     setError('');
     try {
-      // Use lead admin bigbakket@gmail.com by default, or demo traveler if user prefers
-      const targetEmail = email && validateEmail(email) ? email.trim() : 'bigbakket@gmail.com';
+      // Use existing Google login or prompt fallback
+      const userEmail = email.trim() || 'explorer@tiqsey.com';
+      const userName = userEmail.split('@')[0].replace(/[._]/g, ' ');
       await loginWithGoogle(
-        targetEmail,
-        targetEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'Explorer Voyager',
-        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'
+        userEmail,
+        userName.charAt(0).toUpperCase() + userName.slice(1),
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'
       );
       onBackToHome();
     } catch (err: any) {
-      setError(err.message || 'Google Sign In failed. Please try again.');
+      setError(err.message || 'Failed to sign in with Google.');
     } finally {
       setIsGoogleLoading(false);
     }
   };
 
-  const handleSendResetLink = (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = forgotEmail.trim();
-    if (!clean || !validateEmail(clean)) {
-      setForgotError('Please provide a valid email address.');
+  const handleForgotPassword = () => {
+    if (!email) {
+      setError('Please enter your email address first, then click Forgot password.');
       return;
     }
-
-    setForgotLoading(true);
-    setForgotError('');
-
-    setTimeout(() => {
-      setForgotLoading(false);
-      setForgotSuccess(true);
-      setTimeout(() => {
-        setShowForgotModal(false);
-        setForgotSuccess(false);
-        setForgotEmail('');
-        setSuccessNotice(`Password reset instructions sent to ${clean}`);
-      }, 2500);
-    }, 800);
+    setForgotSent(true);
+    setError('');
+    setTimeout(() => setForgotSent(false), 5000);
   };
 
-  // If already authenticated
-  if (user) {
-    return (
-      <div className="min-h-[75vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-6 bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-800 text-center animate-in fade-in duration-200">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center shadow-inner">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
+  return (
+    <div className="min-h-screen w-full relative bg-gradient-to-b from-[#eaf2f9] via-[#edf5fc] to-[#e4eef7] flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden font-sans selection:bg-[#e31b23]/10 selection:text-[#e31b23]">
+      {/* Background Travel-Themed Illustrations */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden select-none">
+        {/* Top-Left Airplane & Dashed Flight Contrail Arc */}
+        <div className="absolute -top-6 -left-6 sm:top-6 sm:left-10 w-72 sm:w-96 h-72 sm:h-96 opacity-40">
+          <svg viewBox="0 0 350 350" fill="none" className="w-full h-full">
+            {/* Curved dashed flight path */}
+            <path
+              d="M 20 280 Q 90 200, 180 150 T 260 80"
+              stroke="#9ec6e8"
+              strokeWidth="2.5"
+              strokeDasharray="6 8"
+              strokeLinecap="round"
+              fill="none"
+            />
+            {/* Airplane tilted along the flight path */}
+            <g transform="translate(255, 75) rotate(-35)">
+              <path
+                d="M12 2C11.5 2 11 2.5 11 3.5V9.5L3 14V16L11 13.5V19.5L8.5 21V22.5L12 21.5L15.5 22.5V21L13 19.5V13.5L21 16V14L13 9.5V3.5C13 2.5 12.5 2 12 2Z"
+                fill="#93bedf"
+                transform="scale(1.4)"
+              />
+            </g>
+          </svg>
+        </div>
 
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              You are Already Signed In
-            </h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-              Welcome back, <strong className="text-slate-900 dark:text-white">{user.name}</strong>!
-            </p>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mt-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-              <span>{user.email}</span>
-              {user.role === 'admin' && (
-                <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-black">
-                  Admin
-                </span>
-              )}
-            </div>
-          </div>
+        {/* Top-Right Floating Hot Air Balloon */}
+        <div className="absolute top-10 right-6 sm:top-14 sm:right-16 w-20 sm:w-28 opacity-45">
+          <svg viewBox="0 0 100 130" fill="none" className="w-full h-auto">
+            {/* Balloon Body */}
+            <path
+              d="M50 5 C22 5 15 32 20 56 C24 72 38 88 43 96 L57 96 C62 88 76 72 80 56 C85 32 78 5 50 5 Z"
+              fill="#adcfe9"
+              stroke="#98c0dc"
+              strokeWidth="1.5"
+            />
+            {/* Stripes */}
+            <path
+              d="M50 5 C40 5 35 32 37 56 C39 72 45 88 47 96 L53 96 C55 88 61 72 63 56 C65 32 60 5 50 5 Z"
+              fill="#9bc2df"
+              opacity="0.8"
+            />
+            {/* Ropes to basket */}
+            <line x1="43" y1="96" x2="43" y2="108" stroke="#8cb5d5" strokeWidth="1.2" />
+            <line x1="57" y1="96" x2="57" y2="108" stroke="#8cb5d5" strokeWidth="1.2" />
+            <line x1="48" y1="96" x2="46" y2="108" stroke="#8cb5d5" strokeWidth="1" />
+            <line x1="52" y1="96" x2="54" y2="108" stroke="#8cb5d5" strokeWidth="1" />
+            {/* Basket */}
+            <rect x="42" y="108" width="16" height="12" rx="2" fill="#8cb5d5" />
+          </svg>
+        </div>
 
-          <div className="space-y-2.5 pt-2">
-            <button
-              onClick={onBackToHome}
-              className="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-brand hover:bg-brand-dark transition-all cursor-pointer shadow-md active:scale-[0.99]"
-            >
-              Continue to Home
-            </button>
-            <button
-              onClick={() => {
-                logout();
-                setError('');
-              }}
-              className="w-full py-2.5 px-4 rounded-xl text-sm font-bold text-slate-600 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 bg-slate-50 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
-            >
-              Sign Out & Switch Account
-            </button>
-          </div>
+        {/* Bottom Silhouette: World Landmarks (Colosseum, Eiffel Tower, Spire, Town Skyline) */}
+        <div className="absolute bottom-0 left-0 right-0 w-full h-48 sm:h-72 opacity-35 sm:opacity-40">
+          <svg
+            viewBox="0 0 1440 260"
+            fill="none"
+            preserveAspectRatio="none"
+            className="w-full h-full"
+          >
+            {/* Faint distant hills/clouds */}
+            <path
+              d="M0 260 L0 180 Q 250 140, 500 170 T 1000 150 Q 1250 160, 1440 180 L1440 260 Z"
+              fill="#bed9ed"
+              opacity="0.5"
+            />
+
+            {/* Left Historic City Spires */}
+            <path
+              d="M40 260 L40 160 L50 130 L60 160 L60 260 Z"
+              fill="#a7cee9"
+            />
+            <path
+              d="M75 260 L75 140 L85 100 L95 140 L95 260 Z"
+              fill="#9ec8e6"
+            />
+            <path
+              d="M120 260 L120 180 L150 180 L150 260 Z"
+              fill="#a7cee9"
+            />
+
+            {/* Colosseum Silhouette (Right-Center) */}
+            <g transform="translate(1080, 75)" fill="#a0c9e7">
+              {/* Outer Colosseum Curve */}
+              <path d="M 0 185 L 0 50 Q 120 20, 240 50 L 240 185 Z" />
+              {/* Top Layer Arches */}
+              <path d="M 20 65 Q 30 55, 40 65 L 40 85 L 20 85 Z" fill="#edf5fc" />
+              <path d="M 55 60 Q 65 50, 75 60 L 75 85 L 55 85 Z" fill="#edf5fc" />
+              <path d="M 90 58 Q 100 48, 110 58 L 110 85 L 90 85 Z" fill="#edf5fc" />
+              <path d="M 125 58 Q 135 48, 145 58 L 145 85 L 125 85 Z" fill="#edf5fc" />
+              <path d="M 160 60 Q 170 50, 180 60 L 180 85 L 160 85 Z" fill="#edf5fc" />
+              <path d="M 195 65 Q 205 55, 215 65 L 215 85 L 195 85 Z" fill="#edf5fc" />
+              {/* Lower Layer Arches */}
+              <path d="M 20 105 Q 30 95, 40 105 L 40 135 L 20 135 Z" fill="#edf5fc" />
+              <path d="M 55 102 Q 65 92, 75 102 L 75 135 L 55 135 Z" fill="#edf5fc" />
+              <path d="M 90 100 Q 100 90, 110 100 L 110 135 L 90 135 Z" fill="#edf5fc" />
+              <path d="M 125 100 Q 135 90, 145 100 L 145 135 L 125 135 Z" fill="#edf5fc" />
+              <path d="M 160 102 Q 170 92, 180 102 L 180 135 L 160 135 Z" fill="#edf5fc" />
+              <path d="M 195 105 Q 205 95, 215 105 L 215 135 L 195 135 Z" fill="#edf5fc" />
+            </g>
+
+            {/* Eiffel Tower Silhouette (Far Right) */}
+            <g transform="translate(1330, 20)" fill="#93bedf">
+              {/* Spire tip */}
+              <rect x="38" y="0" width="4" height="25" />
+              {/* Upper Deck */}
+              <polygon points="35,25 45,25 43,80 37,80" />
+              <rect x="32" y="80" width="16" height="8" rx="1" />
+              {/* Middle Section */}
+              <polygon points="33,88 47,88 53,150 27,150" />
+              <rect x="22" y="150" width="36" height="10" rx="2" />
+              {/* Base Legs & Arch */}
+              <path d="M 24 160 L 5 240 L 22 240 L 30 185 Q 40 170, 50 185 L 58 240 L 75 240 L 56 160 Z" />
+            </g>
+
+            {/* Soft Fog Gradient Overlay at Very Bottom */}
+            <rect x="0" y="220" width="1440" height="40" fill="url(#bottomFog)" />
+            <defs>
+              <linearGradient id="bottomFog" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#eaf2f9" stopOpacity="0" />
+                <stop offset="100%" stopColor="#eaf2f9" stopOpacity="0.9" />
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-6 bg-white dark:bg-slate-900 p-8 sm:p-9 rounded-3xl shadow-xl border border-slate-200/80 dark:border-slate-800">
-        
-        {/* Header */}
-        <div>
-          <button
-            onClick={onBackToHome}
-            className="flex items-center text-xs font-bold text-slate-500 hover:text-brand transition-colors mb-5 cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Home
-          </button>
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Welcome back
-            </h2>
-            <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
+      {/* Main Authentication Card */}
+      <div className="relative z-10 w-full max-w-[480px] bg-white rounded-[26px] sm:rounded-[30px] shadow-[0_20px_60px_-15px_rgba(20,50,90,0.07),0_0_1px_1px_rgba(0,0,0,0.04)] border border-white/80 px-7 py-8 sm:px-10 sm:py-10 my-6 transition-all">
+        {/* Card Header with Centered Tiqsey Logo */}
+        <div className="flex items-center justify-center relative mb-5 sm:mb-6">
+          <div className="flex items-center justify-center gap-1 select-none">
+            <span className="text-[28px] sm:text-[31px] font-black text-[#e31b23] tracking-tight leading-none">
+              Tiqsey
+            </span>
+            <svg
+              className="w-6 h-6 inline-block fill-current text-[#e31b23] -rotate-12 translate-y-[-1px]"
+              viewBox="0 0 24 24"
+            >
+              <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+            </svg>
           </div>
-          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
+        </div>
+
+        {/* Back to Home Button */}
+        <div className="mb-5 sm:mb-6">
+          <button
+            type="button"
+            onClick={onBackToHome}
+            className="inline-flex items-center gap-1.5 text-xs sm:text-[13px] font-medium text-slate-500 hover:text-slate-900 transition-colors cursor-pointer group"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+            <span>Back to Home</span>
+          </button>
+        </div>
+
+        {/* Heading & Subtitle */}
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-[28px] font-black text-[#0f1d35] tracking-tight flex items-center gap-2">
+            <span>Welcome back</span>
+            <span className="inline-block select-none transform hover:rotate-12 transition-transform duration-200">
+              👋
+            </span>
+          </h1>
+          <p className="mt-1.5 text-xs sm:text-[13.5px] text-slate-500 leading-relaxed font-normal">
             Sign in to manage your bookings, wishlist, and ticket vouchers.
           </p>
         </div>
 
-        {/* Success Alert */}
-        {successNotice && (
-          <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 p-3.5 rounded-2xl text-xs font-bold flex items-start gap-2.5 border border-emerald-200 dark:border-emerald-800">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-            <p>{successNotice}</p>
-          </div>
-        )}
-
         {/* Error Alert */}
         {error && (
-          <div className="bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 p-3.5 rounded-2xl text-xs font-bold flex items-start justify-between gap-2.5 border border-rose-200 dark:border-rose-800 animate-in fade-in duration-150">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-              <p>{error}</p>
-            </div>
-            <button 
-              onClick={() => setError('')}
-              className="text-rose-400 hover:text-rose-700 dark:hover:text-rose-200 cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+          <div className="mb-5 bg-rose-50 border border-rose-200/80 text-rose-700 px-4 py-3 rounded-xl text-xs sm:text-[13px] font-medium flex items-start gap-2.5 shadow-xs">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <p className="leading-snug">{error}</p>
           </div>
         )}
 
-        {/* Google One-Click Sign In */}
+        {/* Forgot Password Confirmation */}
+        {forgotSent && (
+          <div className="mb-5 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs sm:text-[13px] font-medium flex items-start gap-2.5 shadow-xs">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <p className="leading-snug">
+              Password reset link has been sent to <strong>{email}</strong>.
+            </p>
+          </div>
+        )}
+
+        {/* Continue with Google Button */}
         <button
           type="button"
           onClick={handleGoogleSignIn}
           disabled={isGoogleLoading || isLoading}
-          className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-slate-200 dark:border-slate-700 rounded-2xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-white font-bold text-sm shadow-xs transition-all cursor-pointer active:scale-[0.99] disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-2.5 py-3 px-4 bg-white hover:bg-slate-50/90 active:bg-slate-100 border border-slate-200/90 rounded-xl text-xs sm:text-[13.5px] font-semibold text-slate-700 shadow-xs hover:shadow-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isGoogleLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
+            <Loader2 className="w-4.5 h-4.5 animate-spin text-slate-500" />
           ) : (
-            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+            <svg className="w-4.5 h-4.5 shrink-0" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -263,239 +289,137 @@ export default function SignInPage({
           <span>Continue with Google</span>
         </button>
 
-        <div className="relative flex items-center justify-center my-4">
-          <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
-          <span className="bg-white dark:bg-slate-900 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            or sign in with email
-          </span>
+        {/* OR Divider */}
+        <div className="relative my-6 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200/90"></div>
+          </div>
+          <div className="relative bg-white px-3 text-[11px] font-bold text-slate-400 tracking-wider uppercase select-none">
+            OR
+          </div>
         </div>
 
-        {/* Credentials Form */}
-        <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+        {/* Email & Password Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Email Address */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-              Email Address
+            <label className="block text-xs sm:text-[13px] font-semibold text-slate-800 mb-1.5">
+              Email address
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <Mail className="h-4.5 w-4.5" />
-              </div>
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="email"
                 required
-                autoComplete="email"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
                   if (error) setError('');
                 }}
-                className="block w-full pl-10 pr-3.5 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent text-sm font-medium transition-all"
                 placeholder="name@example.com"
+                className="w-full bg-[#f8fafc] border border-slate-200/90 rounded-xl pl-10 pr-4 py-2.5 sm:py-3 text-xs sm:text-[13.5px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#5fa6d9] focus:ring-3 focus:ring-[#5fa6d9]/15 transition-all outline-none font-normal"
               />
             </div>
           </div>
 
+          {/* Password */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+            <label className="block text-xs sm:text-[13px] font-semibold text-slate-800 mb-1.5">
               Password
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <Lock className="h-4.5 w-4.5" />
-              </div>
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                autoComplete="current-password"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   if (error) setError('');
                 }}
-                className="block w-full pl-10 pr-11 py-3 border border-slate-200 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent text-sm font-medium transition-all"
-                placeholder="••••••••"
+                placeholder="Enter your password"
+                className="w-full bg-[#f8fafc] border border-slate-200/90 rounded-xl pl-10 pr-10 py-2.5 sm:py-3 text-xs sm:text-[13.5px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#5fa6d9] focus:ring-3 focus:ring-[#5fa6d9]/15 transition-all outline-none font-normal"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1 cursor-pointer"
                 title={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs pt-1">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
+          {/* Remember Me & Forgot Password Row */}
+          <div className="flex items-center justify-between text-xs sm:text-[13px] pt-1">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 hover:text-slate-900 transition-colors">
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded text-brand focus:ring-brand border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer"
+                className="w-4 h-4 rounded border-slate-300 text-[#e31b23] focus:ring-[#e31b23] cursor-pointer"
               />
-              <span className="font-semibold text-slate-600 dark:text-slate-300">Remember me</span>
+              <span>Remember me</span>
             </label>
 
             <button
               type="button"
-              onClick={() => {
-                setForgotEmail(email);
-                setShowForgotModal(true);
-              }}
-              className="font-bold text-brand hover:text-brand-dark transition-colors cursor-pointer"
+              onClick={handleForgotPassword}
+              className="text-[#e31b23] font-semibold hover:underline cursor-pointer transition-colors"
             >
               Forgot password?
             </button>
           </div>
 
+          {/* Sign In Submit Button */}
           <button
             type="submit"
             disabled={isLoading || isGoogleLoading}
-            className="w-full mt-2 flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-2xl shadow-md text-sm font-bold text-white bg-brand hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99]"
+            className="w-full mt-2 py-3 sm:py-3.5 px-4 bg-[#e31b23] hover:bg-[#d0141c] active:scale-[0.99] text-white font-bold text-xs sm:text-[14px] rounded-xl shadow-[0_4px_14px_rgba(227,27,35,0.3)] hover:shadow-[0_6px_20px_rgba(227,27,35,0.38)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-4.5 h-4.5 animate-spin" />
-                <span>Signing in...</span>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Signing In...</span>
               </>
             ) : (
-              <span>Sign In</span>
+              <>
+                <span>Sign In</span>
+                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+              </>
             )}
           </button>
         </form>
 
-        {/* Register Prompt */}
-        <div className="text-center text-xs font-semibold text-slate-600 dark:text-slate-400 pt-1">
+        {/* Footer: Create Account Link */}
+        <p className="mt-6 text-center text-xs sm:text-[13px] text-slate-500 font-normal">
           Don't have an account yet?{' '}
           <button
+            type="button"
             onClick={onNavigateToRegister}
-            className="font-bold text-brand hover:text-brand-dark transition-colors cursor-pointer ml-1"
+            className="text-[#e31b23] font-semibold hover:underline cursor-pointer ml-1"
           >
             Create an account
           </button>
-        </div>
+        </p>
 
-        {/* One-Click Fast Demo Accounts */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
-          <p className="text-[11px] font-black uppercase tracking-wider text-slate-400 text-center">
-            Fast One-Click Demo Accounts
-          </p>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('demo@tiqsey.com');
-                setPassword('password123');
-                setError('');
-              }}
-              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 text-left transition-colors cursor-pointer group"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand">
-                <UserCheck className="w-3.5 h-3.5 text-blue-500" />
-                <span>Traveler</span>
-              </div>
-              <p className="text-[10px] text-slate-400 truncate mt-0.5">demo@tiqsey.com</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('bigbakket@gmail.com');
-                setPassword('password123');
-                setError('');
-              }}
-              className="p-2.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 hover:bg-rose-100/50 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-left transition-colors cursor-pointer group"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 dark:text-rose-200 group-hover:text-rose-600">
-                <ShieldCheck className="w-3.5 h-3.5 text-rose-500" />
-                <span>Admin</span>
-              </div>
-              <p className="text-[10px] text-rose-500/80 truncate mt-0.5">bigbakket@gmail.com</p>
-            </button>
-          </div>
+        {/* Demo Account Quick-Fill */}
+        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              setEmail('demo@tiqsey.com');
+              setPassword('password123');
+              if (error) setError('');
+            }}
+            className="text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+            <span>Click to fill Demo Account credentials</span>
+          </button>
         </div>
       </div>
-
-      {/* Forgot Password Modal */}
-      {showForgotModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                  <KeyRound className="w-4 h-4" />
-                </div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white">Reset Password</h3>
-              </div>
-              <button
-                onClick={() => {
-                  setShowForgotModal(false);
-                  setForgotError('');
-                  setForgotSuccess(false);
-                }}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Enter your registered email address to receive password reset instructions.
-            </p>
-
-            {forgotError && (
-              <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{forgotError}</span>
-              </div>
-            )}
-
-            {forgotSuccess ? (
-              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Reset email sent! Please check your inbox.</span>
-              </div>
-            ) : (
-              <form onSubmit={handleSendResetLink} className="space-y-3">
-                <input
-                  type="email"
-                  required
-                  placeholder="name@example.com"
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand"
-                />
-
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotModal(false)}
-                    className="flex-1 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={forgotLoading}
-                    className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-brand hover:bg-brand-dark transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
-                  >
-                    {forgotLoading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <>
-                        <Send className="w-3.5 h-3.5" />
-                        <span>Send Link</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

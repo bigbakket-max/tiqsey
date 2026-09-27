@@ -280,12 +280,10 @@ export default function App() {
         <SignInPage
           onBackToHome={() => {
             setCurrentPage("home");
-            window.history.pushState({}, "", "/");
             window.scrollTo(0, 0);
           }}
           onNavigateToRegister={() => {
             setCurrentPage("register");
-            window.history.pushState({}, "", "/register");
             window.scrollTo(0, 0);
           }}
         />
@@ -297,12 +295,10 @@ export default function App() {
         <RegisterPage
           onBackToHome={() => {
             setCurrentPage("home");
-            window.history.pushState({}, "", "/");
             window.scrollTo(0, 0);
           }}
           onNavigateToSignIn={() => {
             setCurrentPage("sign-in");
-            window.history.pushState({}, "", "/login");
             window.scrollTo(0, 0);
           }}
         />
@@ -482,6 +478,45 @@ export default function App() {
       </main>
     );
   };
+
+  // Dedicated full-screen authentication experience matching travel portal design
+  if (currentPage === "sign-in") {
+    return (
+      <ErrorBoundary>
+        <SignInPage
+          onBackToHome={() => {
+            setCurrentPage("home");
+            window.history.pushState({}, "", "/");
+            window.scrollTo(0, 0);
+          }}
+          onNavigateToRegister={() => {
+            setCurrentPage("register");
+            window.history.pushState({}, "", "/register");
+            window.scrollTo(0, 0);
+          }}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  if (currentPage === "register") {
+    return (
+      <ErrorBoundary>
+        <RegisterPage
+          onBackToHome={() => {
+            setCurrentPage("home");
+            window.history.pushState({}, "", "/");
+            window.scrollTo(0, 0);
+          }}
+          onNavigateToSignIn={() => {
+            setCurrentPage("sign-in");
+            window.history.pushState({}, "", "/sign-in");
+            window.scrollTo(0, 0);
+          }}
+        />
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary>
