@@ -170,6 +170,15 @@ export default function SearchBar({
               isMatch(d.name, searchQuery),
             ).map((d) => ({ ...d, type: "destination" }));
 
+        // Deduplicate destinations
+        const seenDestNames = new Set<string>();
+        const uniqueFilteredDestinations = filteredDestinations.filter((d) => {
+          const key = (d.name || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+          if (seenDestNames.has(key)) return false;
+          seenDestNames.add(key);
+          return true;
+        });
+
         const filteredAttractions = POPULAR_ATTRACTIONS.filter((a) => {
           const queryMatch =
             isMatch(a.name, searchQuery) ||
@@ -189,8 +198,27 @@ export default function SearchBar({
           return true;
         }).map((a) => ({ ...a, type: "attraction" }));
 
+        // Deduplicate attractions by id, productId, and normalized (name + city)
+        const seenAttractionKeys = new Set<string>();
+        const uniqueFilteredAttractions = filteredAttractions.filter((a) => {
+          const id = (a.id || "").trim();
+          const prodId = (a.productId || "").trim();
+          const normName = (a.name || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+          const normCity = (a.city || a.location || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+          const nameCityKey = `${normName}__${normCity}`;
+
+          if (id && seenAttractionKeys.has(`id:${id}`)) return false;
+          if (prodId && seenAttractionKeys.has(`prod:${prodId}`)) return false;
+          if (normName.length > 3 && seenAttractionKeys.has(`namecity:${nameCityKey}`)) return false;
+
+          if (id) seenAttractionKeys.add(`id:${id}`);
+          if (prodId) seenAttractionKeys.add(`prod:${prodId}`);
+          if (normName.length > 3) seenAttractionKeys.add(`namecity:${nameCityKey}`);
+          return true;
+        });
+
         setSuggestions(
-          [...filteredDestinations, ...filteredAttractions].slice(0, 8),
+          [...uniqueFilteredDestinations, ...uniqueFilteredAttractions].slice(0, 8),
         );
         setShowSuggestions(true);
         setIsSearching(false);
@@ -391,14 +419,46 @@ export default function SearchBar({
     const filtered = POPULAR_ATTRACTIONS.filter(
       (a) => a.city.toLowerCase() === city.toLowerCase()
     );
-    if (filtered.length > 0) {
-      return filtered.slice(0, 4);
+    const baseList = filtered.length > 0 ? filtered : POPULAR_ATTRACTIONS;
+    const seen = new Set<string>();
+    const uniqueList: any[] = [];
+    for (const a of baseList) {
+      const normName = (a.name || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+      const normCity = (a.city || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+      const key = `${normName}__${normCity}`;
+      if (seen.has(a.id) || (normName.length > 3 && seen.has(key))) continue;
+      seen.add(a.id);
+      if (normName.length > 3) seen.add(key);
+      uniqueList.push(a);
+      if (uniqueList.length >= 4) break;
     }
-    return POPULAR_ATTRACTIONS.slice(0, 4);
+    return uniqueList;
   }, [selectedDestForActivities]);
 
-  const destinationSuggestions = suggestions.filter((s) => s.type === "destination");
-  const attractionSuggestions = suggestions.filter((s) => s.type === "attraction");
+  const destinationSuggestions = React.useMemo(() => {
+    const list = suggestions.filter((s) => s.type === "destination");
+    const seen = new Set<string>();
+    return list.filter((s) => {
+      const k = (s.name || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [suggestions]);
+
+  const attractionSuggestions = React.useMemo(() => {
+    const list = suggestions.filter((s) => s.type === "attraction");
+    const seen = new Set<string>();
+    return list.filter((a) => {
+      const normName = (a.name || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+      const normCity = (a.city || a.location || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+      const key = `${normName}__${normCity}`;
+      if (seen.has(a.id) || (normName.length > 3 && seen.has(key))) return false;
+      seen.add(a.id);
+      if (normName.length > 3) seen.add(key);
+      return true;
+    });
+  }, [suggestions]);
 
   return (
     <div className={`relative w-full ${className}`} ref={dropdownRef}>

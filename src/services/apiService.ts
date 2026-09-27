@@ -1,4 +1,4 @@
-import { POPULAR_ATTRACTIONS, DESTINATIONS } from '../data/mockData';
+import { POPULAR_ATTRACTIONS, DESTINATIONS, deduplicateAttractions } from '../data/mockData';
 import { Attraction, Destination } from '../types';
 
 /**
@@ -15,7 +15,7 @@ export const ApiService = {
       setTimeout(() => {
         try {
           // Success case
-          resolve(POPULAR_ATTRACTIONS);
+          resolve(deduplicateAttractions(POPULAR_ATTRACTIONS));
         } catch (error) {
           console.error('Error in getPopularAttractions:', error);
           reject(new Error('Failed to fetch popular attractions. Please try again later.'));
@@ -68,7 +68,7 @@ export const ApiService = {
             return matchesDest;
           });
 
-          resolve(filtered);
+          resolve(deduplicateAttractions(filtered));
         } catch (error) {
           console.error(`Error in getAttractionsByDestination for "${destinationName}":`, error);
           reject(new Error(`Failed to fetch attractions for ${destinationName}.`));

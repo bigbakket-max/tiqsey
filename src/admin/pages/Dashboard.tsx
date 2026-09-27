@@ -29,15 +29,7 @@ export default function Dashboard() {
   const { posts } = useBlog();
 
   const metrics = useMemo(() => {
-    let localSaved: any[] = [];
-    try {
-      const savedStr = localStorage.getItem('custom_attractions');
-      if (savedStr) localSaved = JSON.parse(savedStr);
-    } catch {
-      localSaved = [];
-    }
-
-    const totalProducts = POPULAR_ATTRACTIONS.length + localSaved.length;
+    const totalProducts = POPULAR_ATTRACTIONS.length;
     const banners = getStoredBanners();
     const activeBanners = banners.filter(b => b.isActive).length;
 

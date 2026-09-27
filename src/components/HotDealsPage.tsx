@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
 import { useWishlist } from "../contexts/WishlistContext";
-import { POPULAR_ATTRACTIONS } from "../data/mockData";
+import { POPULAR_ATTRACTIONS, deduplicateAttractions } from "../data/mockData";
 import { getDisplayProductId } from "../utils/productIdGenerator";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -51,7 +51,8 @@ export default function HotDealsPage({
 
   // Filter only Hot Deals (discounted items)
   const hotDealsList = useMemo(() => {
-    return POPULAR_ATTRACTIONS.filter(
+    const list = deduplicateAttractions(POPULAR_ATTRACTIONS);
+    return list.filter(
       (attr) => attr.discountPrice && attr.discountPrice < attr.price,
     );
   }, [rev]);

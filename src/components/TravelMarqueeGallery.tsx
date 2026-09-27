@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Star, MapPin, Ticket, Flame } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
-import { POPULAR_ATTRACTIONS } from "../data/mockData";
+import { POPULAR_ATTRACTIONS, deduplicateAttractions } from "../data/mockData";
 import { Attraction } from "../types";
 
 interface TravelMarqueeGalleryProps {
@@ -101,7 +101,7 @@ const MarqueeCard = ({ attraction, onClick }: { attraction: Attraction; onClick?
 
 export function TravelMarqueeGallery({ onSelectAttraction }: TravelMarqueeGalleryProps) {
   // Extract real activity listing cards directly from website POPULAR_ATTRACTIONS data
-  const attractions = POPULAR_ATTRACTIONS && POPULAR_ATTRACTIONS.length > 0 ? POPULAR_ATTRACTIONS : [];
+  const attractions = POPULAR_ATTRACTIONS && POPULAR_ATTRACTIONS.length > 0 ? deduplicateAttractions(POPULAR_ATTRACTIONS) : [];
 
   // Distribute real listing activity cards across 3 rows using modulo for a varied mix
   const row1 = attractions.filter((_, idx) => idx % 3 === 0);

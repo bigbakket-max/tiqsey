@@ -493,9 +493,9 @@ export default function AttractionDetailModal({
         id: 'general', 
         name: 'General Admission Entrance Ticket', 
         priceOffset: 0,
-        bookingMode: (attraction.bookingMode || 'manual') as BookingMode,
-        affiliateConfig: attraction.affiliateConfig,
-        affiliateUrl: attraction.affiliateConfig?.affiliateUrl,
+        bookingMode: (attraction?.bookingMode || 'manual') as BookingMode,
+        affiliateConfig: attraction?.affiliateConfig,
+        affiliateUrl: attraction?.affiliateConfig?.affiliateUrl,
         rawVariant: undefined
       }
     );
@@ -741,7 +741,7 @@ export default function AttractionDetailModal({
     // Detect if this specific variant or activity operates in Affiliate Mode
     const isAffiliate = 
       (targetPkg?.bookingMode === 'affiliate') ||
-      (attraction.bookingMode === 'affiliate' && targetPkg?.bookingMode !== 'manual');
+      (attraction?.bookingMode === 'affiliate' && targetPkg?.bookingMode !== 'manual');
 
     if (isAffiliate) {
       const resolvedUrl = buildAffiliateUrl(attraction, targetPkg, {
@@ -824,9 +824,8 @@ export default function AttractionDetailModal({
   const [isAdditionalInfoOpen, setIsAdditionalInfoOpen] = useState(false);
   const [isCancellationOpen, setIsCancellationOpen] = useState(false);
 
-  if (!attraction) return null;
-
   const breadcrumbItems = useMemo<BreadcrumbItem[]>(() => {
+    if (!attraction) return [];
     const items: BreadcrumbItem[] = [
       {
         label: 'Home',
@@ -871,18 +870,18 @@ export default function AttractionDetailModal({
   }, [attraction, onClose, onNavigateToDestination, onNavigateToHome]);
 
   // Compute final price with package offset
-  const basePrice = attraction.discountPrice || attraction.price;
-  const pricePerItem = basePrice + selectedPackage.priceOffset;
+  const basePrice = (attraction?.discountPrice ?? attraction?.price) || 0;
+  const pricePerItem = basePrice + (selectedPackage?.priceOffset || 0);
   const childPricePerItem = pricePerItem * 0.6; // 40% discount for children
   const subtotalFloat = (pricePerItem * guestCount) + (childPricePerItem * childCount);
   const totalPriceFloat = Math.max(0, subtotalFloat - promoDiscount);
 
   // Multi-image bento layout: Left image tall, 4 right images in a 2x2 grid
-  const galleryUrls = attraction.galleryUrls && attraction.galleryUrls.length > 0 ? attraction.galleryUrls : [];
+  const galleryUrls = attraction?.galleryUrls && attraction.galleryUrls.length > 0 ? attraction.galleryUrls : [];
   
   const galleryImages = useMemo(() => {
     const urls: string[] = [];
-    if (attraction.imageUrl) {
+    if (attraction?.imageUrl) {
       urls.push(attraction.imageUrl);
     }
     for (const url of galleryUrls) {
@@ -906,10 +905,11 @@ export default function AttractionDetailModal({
     return urls.slice(0, 5);
   }, [attraction, galleryUrls]);
 
-  const mainImage = galleryImages[0] || attraction.imageUrl || 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=800';
+  const mainImage = galleryImages[0] || attraction?.imageUrl || 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=800';
 
   // Find 4 other attractions in the destination "Customers also bought"
   const customersAlsoBought = useMemo(() => {
+    if (!attraction) return [];
     // 1. Get other attractions in the exact same city
     const sameCity = POPULAR_ATTRACTIONS.filter(
       a => a.id !== attraction.id && a.city === attraction.city
@@ -1218,7 +1218,21 @@ export default function AttractionDetailModal({
   };
 
   if (!attraction) {
-    return null;
+    return (
+      <div id="booking-detail-modal-root" className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
+        <div className="max-w-md bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <p className="text-base font-bold text-slate-900 dark:text-white">Activity Not Found</p>
+          <p className="text-xs text-slate-500">The selected attraction could not be found or may have been removed.</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 bg-[#e3000f] text-white text-xs font-bold rounded-lg hover:bg-[#be000b] transition-colors cursor-pointer"
+          >
+            Back to Activities
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -2293,7 +2307,7 @@ export default function AttractionDetailModal({
                                           className="px-6 py-2.5 bg-[#e3000f] hover:bg-[#be000b] text-white rounded-[8px] text-[13px] font-bold uppercase transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
                                         >
                                           <span>Book Now</span>
-                                          {(pkg.bookingMode === 'affiliate' || (attraction.bookingMode === 'affiliate' && pkg.bookingMode !== 'manual')) && (
+                                          {(pkg?.bookingMode === 'affiliate' || (attraction?.bookingMode === 'affiliate' && pkg?.bookingMode !== 'manual')) && (
                                             <ExternalLink className="w-3.5 h-3.5 opacity-90" />
                                           )}
                                         </button>
@@ -2475,7 +2489,7 @@ export default function AttractionDetailModal({
                                     }`}
                                   >
                                     <span>{attraction?.isAvailable === false ? "Unavailable" : "Book Now"}</span>
-                                    {attraction?.isAvailable !== false && (pkg.bookingMode === 'affiliate' || (attraction.bookingMode === 'affiliate' && pkg.bookingMode !== 'manual')) && (
+                                    {attraction?.isAvailable !== false && (pkg?.bookingMode === 'affiliate' || (attraction?.bookingMode === 'affiliate' && pkg?.bookingMode !== 'manual')) && (
                                       <ExternalLink className="w-3.5 h-3.5 opacity-90" />
                                     )}
                                   </button>
@@ -2577,8 +2591,8 @@ export default function AttractionDetailModal({
                         const pkg = selectedPackage as any;
                         const isAffiliate = 
                           (pkg?.bookingMode === 'affiliate') ||
-                          (attraction.bookingMode === 'affiliate' && pkg?.bookingMode !== 'manual');
-                        const vendor = pkg?.affiliateConfig?.vendorName || attraction.affiliateConfig?.vendorName;
+                          (attraction?.bookingMode === 'affiliate' && pkg?.bookingMode !== 'manual');
+                        const vendor = pkg?.affiliateConfig?.vendorName || attraction?.affiliateConfig?.vendorName;
 
                         return (
                           <>

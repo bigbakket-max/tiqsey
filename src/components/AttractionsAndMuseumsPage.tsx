@@ -15,7 +15,7 @@ import {
   Tag,
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
-import { POPULAR_ATTRACTIONS } from "../data/mockData";
+import { POPULAR_ATTRACTIONS, deduplicateAttractions } from "../data/mockData";
 import { getDisplayProductId } from "../utils/productIdGenerator";
 import AttractionCard from "./AttractionCard";
 import AttractionCardSkeleton from "./AttractionCardSkeleton";
@@ -85,7 +85,7 @@ export default function AttractionsAndMuseumsPage({
 
   // Filter and sort attractions automatically
   const filteredAndSortedAttractions = useMemo(() => {
-    let result = [...POPULAR_ATTRACTIONS];
+    let result = deduplicateAttractions(POPULAR_ATTRACTIONS);
 
     // Search query filter
     if (searchQuery.trim()) {

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAdminLoader } from "../contexts/AdminLoaderContext";
 import { WysiwygEditor, TabbedWysiwygEditor } from "../components/WysiwygEditor";
+import { AdminPagination } from "../components/AdminPagination";
 import {
   Plus,
   Search,
@@ -48,7 +49,7 @@ import {
   RefreshCw,
   ArrowUpRight
 } from "lucide-react";
-import { POPULAR_ATTRACTIONS, syncCustomAttractions } from "../../data/mockData";
+import { POPULAR_ATTRACTIONS, syncCustomAttractions, deduplicateAttractions } from "../../data/mockData";
 import { generateUniqueProductId, getDisplayProductId, registerUsedProductId } from "../../utils/productIdGenerator";
 import { Attraction, Variant, VariantRule, BookingMode, AffiliateConfig } from "../../types";
 import { AFFILIATE_VENDORS, isValidAffiliateUrl, buildAffiliateUrl, resolveAffiliateUrlTokens } from "../../utils/affiliate";
@@ -1318,7 +1319,7 @@ export default function Inventory() {
     const firstAffiliate = normalizedVariants.find(v => v.bookingMode === 'affiliate');
 
     const attractionData: Attraction = {
-      id: finalProductId,
+      id: editingAttraction ? editingAttraction.id : finalProductId,
       productId: finalProductId,
       name: name.trim(),
       location: location.trim() || `${city.trim()}, ${region}`,
@@ -1365,8 +1366,9 @@ export default function Inventory() {
       updatedList = [attractionData, ...attractions];
     }
 
-    setAttractions(updatedList);
-    syncCustomAttractions(updatedList);
+    const cleanList = deduplicateAttractions(updatedList);
+    setAttractions(cleanList);
+    syncCustomAttractions(cleanList);
     setShowSaveConfirm(false);
     hideLoader();
     navigate("/inventory");
@@ -1776,92 +1778,15 @@ export default function Inventory() {
       </div>
 
       {/* Pagination Footer */}
-      {totalPages > 1 && (
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-500 font-medium">
-            Showing <span className="font-bold text-slate-900 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
-            <span className="font-bold text-slate-900 dark:text-white">
-              {Math.min(currentPage * itemsPerPage, filteredAndSortedAttractions.length)}
-            </span>{" "}
-            of <span className="font-bold text-slate-900 dark:text-white">{filteredAndSortedAttractions.length}</span> activities
-          </p>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
-            >
-              Previous
-            </button>
-            <div className="flex items-center gap-1">
-              {(() => {
-                const pages: (number | string)[] = [];
-                const maxButtons = 5;
-                if (totalPages <= maxButtons) {
-                  for (let i = 1; i <= totalPages; i++) {
-                    pages.push(i);
-                  }
-                } else {
-                  pages.push(1);
-                  let start = Math.max(2, currentPage - 1);
-                  let end = Math.min(totalPages - 1, currentPage + 1);
-                  
-                  if (currentPage <= 2) {
-                    end = 4;
-                  } else if (currentPage >= totalPages - 1) {
-                    start = totalPages - 3;
-                  }
-                  
-                  if (start > 2) {
-                    pages.push("...");
-                  }
-                  for (let i = start; i <= end; i++) {
-                    pages.push(i);
-                  }
-                  if (end < totalPages - 1) {
-                    pages.push("...");
-                  }
-                  pages.push(totalPages);
-                }
-                
-                return pages.map((page, idx) => {
-                  if (page === "...") {
-                    return (
-                      <span
-                        key={`ellipsis-${idx}`}
-                        className="px-2 text-xs font-bold text-slate-400 dark:text-slate-600 select-none"
-                      >
-                        ...
-                      </span>
-                    );
-                  }
-                  
-                  const isPageActive = page === currentPage;
-                  return (
-                    <button
-                      key={`page-${page}`}
-                      onClick={() => setCurrentPage(page as number)}
-                      className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center text-xs font-bold rounded-lg transition-all ${
-                        isPageActive
-                          ? "bg-[#5fa6d9] text-white shadow-sm shadow-[#5fa6d9]/15"
-                          : "text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                });
-              })()}
-            </div>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+      {filteredAndSortedAttractions.length > 0 && (
+        <AdminPagination
+          currentPage={currentPage}
+          totalItems={filteredAndSortedAttractions.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+          itemUnitName="items"
+        />
       )}
     </div>
   ), [

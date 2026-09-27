@@ -1,4 +1,5 @@
 import { Attraction, Destination } from "../types";
+import { getDisplayProductId } from "../utils/productIdGenerator";
 import lindtImage from "../assets/images/lindt_chocolate_fountain_1779240843252.png";
 
 export const POPULAR_ATTRACTIONS: Attraction[] = [
@@ -2691,6 +2692,119 @@ function getFallbackTz(city: string | undefined, location: string | undefined): 
   return "GMT Standard Time";
 }
 
+/**
+ * Normalizes a string for robust duplicate matching
+ */
+export function cleanKey(str?: string): string {
+  return (str || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Deduplicates attractions ensuring only a single canonical entry exists for any activity.
+ * Matches by:
+ * - exact id
+ * - exact productId
+ * - displayProductId hash
+ * - normalized (name + city)
+ *
+ * When duplicates are detected (e.g. customized user entry vs hardcoded default):
+ * The customized entry (e.g. updated price, custom variants, edited details) is prioritized,
+ * and canonical slug IDs (like "ams-van-gogh") are restored if replaced with numeric IDs.
+ */
+export function deduplicateAttractions(
+  items: Attraction[],
+  referenceDefaults: Attraction[] = []
+): Attraction[] {
+  if (!Array.isArray(items)) return [];
+
+  const defaultsById = new Map<string, Attraction>();
+  const defaultsByNameCity = new Map<string, Attraction>();
+
+  for (const def of referenceDefaults) {
+    if (def.id) defaultsById.set(def.id, def);
+    const key = `${cleanKey(def.name)}__${cleanKey(def.city || def.location)}`;
+    if (cleanKey(def.name).length > 3) defaultsByNameCity.set(key, def);
+  }
+
+  const seenIds = new Set<string>();
+  const seenProductIds = new Set<string>();
+  const seenNameCity = new Set<string>();
+  const result: Attraction[] = [];
+
+  for (const rawItem of items) {
+    if (!rawItem || !rawItem.name) continue;
+    const item: Attraction = { ...rawItem };
+
+    const id = (item.id || "").trim();
+    const productId = (item.productId || "").trim();
+    const normName = cleanKey(item.name);
+    const normCity = cleanKey(item.city || item.location);
+    const nameCityKey = `${normName}__${normCity}`;
+
+    // Look for matching default
+    const matchingDefault =
+      (id && defaultsById.get(id)) ||
+      (productId && defaultsById.get(productId)) ||
+      (normName.length > 3 ? defaultsByNameCity.get(nameCityKey) : undefined);
+
+    // If item has a purely numeric ID but matches a canonical default slug (e.g. 'ams-van-gogh'), restore canonical id
+    if (matchingDefault && (!item.id || /^\d{8}$/.test(item.id))) {
+      item.id = matchingDefault.id;
+      item.productId = item.productId || rawItem.id || getDisplayProductId(matchingDefault);
+    }
+
+    const currentId = item.id || "";
+    const currentProdId = item.productId || "";
+
+    const isDupById = currentId && seenIds.has(currentId);
+    const isDupByProdId = currentProdId && seenProductIds.has(currentProdId);
+    const isDupByNameCity = normName.length > 3 && seenNameCity.has(nameCityKey);
+
+    if (isDupById || isDupByProdId || isDupByNameCity) {
+      // Find the existing item in result
+      const existingIdx = result.findIndex(
+        (r) =>
+          (currentId && r.id === currentId) ||
+          (currentProdId && r.productId === currentProdId) ||
+          (normName.length > 3 &&
+            `${cleanKey(r.name)}__${cleanKey(r.city || r.location)}` === nameCityKey)
+      );
+
+      if (existingIdx !== -1) {
+        const existing = result[existingIdx];
+        if (matchingDefault) {
+          // Check if newly encountered item has user customization (e.g. customized price or variants)
+          const itemIsCustom =
+            item.price !== matchingDefault.price ||
+            (item.discountPrice && item.discountPrice !== matchingDefault.discountPrice) ||
+            (item.variants && item.variants.length > 0);
+          const existingIsCustom =
+            existing.price !== matchingDefault.price ||
+            (existing.discountPrice && existing.discountPrice !== matchingDefault.discountPrice) ||
+            (existing.variants && existing.variants.length > 0);
+
+          if (itemIsCustom && !existingIsCustom) {
+            result[existingIdx] = {
+              ...item,
+              id: existing.id && !/^\d{8}$/.test(existing.id) ? existing.id : (matchingDefault.id || item.id),
+              productId: item.productId || existing.productId || getDisplayProductId(matchingDefault),
+            };
+          }
+        }
+      }
+      continue;
+    }
+
+    if (currentId) seenIds.add(currentId);
+    if (currentProdId) seenProductIds.add(currentProdId);
+    if (normName.length > 3) seenNameCity.add(nameCityKey);
+
+    result.push(item);
+  }
+
+  return result;
+}
+
 // Initialize dynamic synchronization from localStorage on module load
 if (typeof window !== "undefined") {
   const saved = localStorage.getItem("tiqsey_custom_attractions");
@@ -2700,19 +2814,44 @@ if (typeof window !== "undefined") {
       if (Array.isArray(parsed) && parsed.length > 0) {
         let hasChanges = false;
 
-        // Preserve and merge any new hardcoded attractions that are not present in localStorage
         const hardcodedAttractions = [...POPULAR_ATTRACTIONS];
-        const merged = [...parsed];
-        const existingIds = new Set(parsed.map((item: any) => item.id));
 
+        // 1. Deduplicate the saved list from localStorage first against hardcoded defaults
+        const deduplicatedParsed = deduplicateAttractions(parsed, hardcodedAttractions);
+        if (deduplicatedParsed.length !== parsed.length) {
+          hasChanges = true;
+        }
+
+        // 2. Build index of existing items in deduplicatedParsed
+        const existingIds = new Set<string>();
+        const existingNameCity = new Set<string>();
+        for (const item of deduplicatedParsed) {
+          if (item.id) existingIds.add(item.id);
+          if (item.productId) existingIds.add(item.productId);
+          const nKey = `${cleanKey(item.name)}__${cleanKey(item.city || item.location)}`;
+          if (cleanKey(item.name).length > 3) existingNameCity.add(nKey);
+        }
+
+        const merged = [...deduplicatedParsed];
+
+        // 3. Only merge hardcoded attractions that are truly not present
         for (const item of hardcodedAttractions) {
-          if (!existingIds.has(item.id)) {
+          const nKey = `${cleanKey(item.name)}__${cleanKey(item.city || item.location)}`;
+          const matchesId = item.id && (existingIds.has(item.id) || existingIds.has(getDisplayProductId(item)));
+          const matchesNameCity = cleanKey(item.name).length > 3 && existingNameCity.has(nKey);
+
+          if (!matchesId && !matchesNameCity) {
             merged.push(item);
             hasChanges = true;
           }
         }
 
-        const migrated = merged.map((item: any) => {
+        const finalCleanList = deduplicateAttractions(merged, hardcodedAttractions);
+        if (finalCleanList.length !== merged.length) {
+          hasChanges = true;
+        }
+
+        const migrated = finalCleanList.map((item: any) => {
           if (!item.timezone) {
             item.timezone = getFallbackTz(item.city, item.location);
             hasChanges = true;
@@ -2723,7 +2862,7 @@ if (typeof window !== "undefined") {
         POPULAR_ATTRACTIONS.length = 0;
         POPULAR_ATTRACTIONS.push(...migrated);
 
-        if (hasChanges) {
+        if (hasChanges || finalCleanList.length !== parsed.length) {
           localStorage.setItem("tiqsey_custom_attractions", JSON.stringify(migrated));
         }
       }
@@ -2745,8 +2884,9 @@ if (typeof window !== "undefined") {
       try {
         const parsed = JSON.parse(e.newValue);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleanList = deduplicateAttractions(parsed);
           POPULAR_ATTRACTIONS.length = 0;
-          POPULAR_ATTRACTIONS.push(...parsed);
+          POPULAR_ATTRACTIONS.push(...cleanList);
           window.dispatchEvent(new Event("tiqsey_attractions_updated"));
         }
       } catch (err) {
@@ -2757,19 +2897,19 @@ if (typeof window !== "undefined") {
 }
 
 /**
-
  * Synchronizes the live POPULAR_ATTRACTIONS array and persists it to localStorage.
  * This triggers a reactive window event so components can optionally update.
  */
 export function syncCustomAttractions(newAttractions: Attraction[]) {
   if (typeof window !== "undefined") {
+    const cleanList = deduplicateAttractions(newAttractions);
     try {
-      localStorage.setItem("tiqsey_custom_attractions", JSON.stringify(newAttractions));
+      localStorage.setItem("tiqsey_custom_attractions", JSON.stringify(cleanList));
     } catch (e) {
       console.error("Failed to persist attractions to localStorage", e);
     }
     POPULAR_ATTRACTIONS.length = 0;
-    POPULAR_ATTRACTIONS.push(...newAttractions);
+    POPULAR_ATTRACTIONS.push(...cleanList);
     window.dispatchEvent(new Event("tiqsey_attractions_updated"));
   }
 }
