@@ -1117,19 +1117,19 @@ export default function Inventory() {
     const lowCapacity = attractions.filter(a => !a.noCapacityLimit && (a.maxGroupSize || 500) < 150).length;
     const manualCount = attractions.filter(a => {
       if (a.variants && a.variants.length > 0) {
-        return a.variants.some(v => v.bookingMode !== 'affiliate');
+        return a.variants.some(v => v?.bookingMode !== 'affiliate');
       }
       return a.bookingMode !== 'affiliate';
     }).length;
     const affiliateCount = attractions.filter(a => {
       if (a.variants && a.variants.length > 0) {
-        return a.variants.some(v => v.bookingMode === 'affiliate');
+        return a.variants.some(v => v?.bookingMode === 'affiliate');
       }
       return a.bookingMode === 'affiliate';
     }).length;
     const totalAffiliateClicks = attractions.reduce((sum, a) => {
       const topClicks = a.affiliateConfig?.clickCount || 0;
-      const variantClicks = (a.variants || []).reduce((vSum, v) => vSum + (v.affiliateConfig?.clickCount || 0), 0);
+      const variantClicks = (a.variants || []).reduce((vSum, v) => vSum + (v?.affiliateConfig?.clickCount || 0), 0);
       return sum + topClicks + variantClicks;
     }, 0);
 
@@ -1403,12 +1403,12 @@ export default function Inventory() {
         bookingModeFilter === "all" ||
         (bookingModeFilter === "manual" && (
           (attr.variants && attr.variants.length > 0)
-            ? attr.variants.some(v => v.bookingMode !== "affiliate")
+            ? attr.variants.some(v => v?.bookingMode !== "affiliate")
             : (attr.bookingMode === "manual" || !attr.bookingMode)
         )) ||
         (bookingModeFilter === "affiliate" && (
           (attr.variants && attr.variants.length > 0)
-            ? attr.variants.some(v => v.bookingMode === "affiliate")
+            ? attr.variants.some(v => v?.bookingMode === "affiliate")
             : (attr.bookingMode === "affiliate")
         ));
 
@@ -1636,10 +1636,10 @@ export default function Inventory() {
                         </span>
                         <div>
                           {(() => {
-                            const vars = attr.variants || [];
-                            const affiliateVars = vars.filter(v => v.bookingMode === 'affiliate');
-                            const manualVars = vars.filter(v => v.bookingMode !== 'affiliate');
-                            const totalClicks = (attr.affiliateConfig?.clickCount || 0) + vars.reduce((s, v) => s + (v.affiliateConfig?.clickCount || 0), 0);
+                            const vars = (attr.variants || []).filter(Boolean);
+                            const affiliateVars = vars.filter(v => v?.bookingMode === 'affiliate');
+                            const manualVars = vars.filter(v => v?.bookingMode !== 'affiliate');
+                            const totalClicks = (attr.affiliateConfig?.clickCount || 0) + vars.reduce((s, v) => s + (v?.affiliateConfig?.clickCount || 0), 0);
 
                             if (vars.length > 0) {
                               if (affiliateVars.length > 0 && manualVars.length > 0) {

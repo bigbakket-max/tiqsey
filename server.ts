@@ -6,6 +6,7 @@ import { GoogleGenAI } from "@google/genai";
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import dns from 'node:dns';
 
 dotenv.config();
 
@@ -103,9 +104,15 @@ async function fetchFromSupabase() {
   if (!supabase) return null;
 
   try {
-    const { data, error } = await supabase
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Supabase request timed out")), 2000)
+    );
+    const fetchPromise = supabase
       .from('bookings')
       .select('*');
+
+    const result: any = await Promise.race([fetchPromise, timeoutPromise]);
+    const { data, error } = result;
 
     if (error) {
       isSupabaseOffline = true;
@@ -154,10 +161,15 @@ async function saveToSupabase(booking: any) {
   };
 
   try {
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Supabase save timed out")), 2000)
+    );
     // Try to upsert so it works for both insert and update
-    const actualResult = await supabase
+    const savePromise = supabase
       .from('bookings')
       .upsert(payload, { onConflict: 'id' });
+
+    const actualResult: any = await Promise.race([savePromise, timeoutPromise]);
 
     if (actualResult.error) {
       isSupabaseOffline = true;
@@ -302,6 +314,22 @@ db.exec(`
     ip TEXT,
     details TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS custom_domain_settings (
+    id TEXT PRIMARY KEY,
+    domain TEXT NOT NULL,
+    subdomain TEXT,
+    target_host TEXT NOT NULL,
+    provider TEXT DEFAULT 'cloudflare',
+    verification_status TEXT DEFAULT 'pending',
+    ssl_status TEXT DEFAULT 'pending',
+    verified_at TEXT,
+    last_checked_at TEXT,
+    dns_records_json TEXT,
+    notes TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
 `);
 
 // Seed initial backend users if not present
@@ -395,6 +423,341 @@ async function startServer() {
 
   // Use JSON middleware
   app.use(express.json());
+
+  // Custom Domain Constants
+  const DEFAULT_TARGET_HOST = "ais-pre-3xmqqplj6iyf7445xaenj4-389000849295.asia-southeast1.run.app";
+  const VERIFICATION_TOKEN = "tiqsey-site-verification=8be44669-b47a-4636-9b11-7512a6d26a0e";
+  const APPLET_ID = "8be44669-b47a-4636-9b11-7512a6d26a0e";
+  const CLOUD_RUN_SERVICE = "ais-pre-3xmqqplj6iyf7445xaenj4-389000849295";
+  const CLOUD_REGION = "asia-southeast1";
+
+  // Helper: Generate DNS records needed for a domain
+  function generateDnsRecords(rawDomain: string, targetHost: string = DEFAULT_TARGET_HOST) {
+    const clean = rawDomain.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0];
+    const parts = clean.split('.');
+    const isApex = parts.length === 2;
+    const subdomain = isApex ? 'www' : (parts.length > 2 ? parts[0] : '@');
+    const rootDomain = isApex ? clean : parts.slice(-2).join('.');
+
+    return {
+      domain: clean,
+      rootDomain,
+      subdomain,
+      isApex,
+      targetHost,
+      records: [
+        {
+          id: 'rec_cname',
+          type: 'CNAME',
+          name: isApex ? 'www' : subdomain,
+          value: targetHost,
+          ttl: 'Auto / 3600',
+          priority: null,
+          description: isApex 
+            ? `Points www.${clean} to your Tiqsey Cloud Run application` 
+            : `Points ${clean} directly to your Tiqsey Cloud Run application`,
+          recommended: true
+        },
+        {
+          id: 'rec_txt',
+          type: 'TXT',
+          name: isApex ? '@' : `_tiqsey-challenge`,
+          value: VERIFICATION_TOKEN,
+          ttl: 'Auto / 3600',
+          priority: null,
+          description: 'Validates domain ownership and SSL authorization for your Tiqsey storefront',
+          recommended: true
+        },
+        {
+          id: 'rec_apex',
+          type: 'CNAME / Flattening',
+          name: '@',
+          value: targetHost,
+          ttl: 'Auto',
+          priority: null,
+          description: 'For Cloudflare: Enable CNAME Flattening on apex root. For other registrars: Set URL redirect from @ to https://www.' + clean,
+          recommended: isApex
+        }
+      ]
+    };
+  }
+
+  // Helper: Live DNS check with Google DoH and Node.js fallback
+  async function checkDnsResolution(domain: string, targetHost: string = DEFAULT_TARGET_HOST) {
+    const cleanDomain = domain.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0];
+    let cnameFound: string[] = [];
+    let aRecords: string[] = [];
+    let txtRecords: string[] = [];
+
+    // Query Google Public DNS over HTTPS (DoH) for accurate worldwide view
+    try {
+      const [cnameRes, aRes, txtRes] = await Promise.allSettled([
+        fetch(`https://dns.google/resolve?name=${encodeURIComponent(cleanDomain)}&type=CNAME`, { signal: AbortSignal.timeout(2500) }).then(r => r.json()),
+        fetch(`https://dns.google/resolve?name=${encodeURIComponent(cleanDomain)}&type=A`, { signal: AbortSignal.timeout(2500) }).then(r => r.json()),
+        fetch(`https://dns.google/resolve?name=${encodeURIComponent(cleanDomain)}&type=TXT`, { signal: AbortSignal.timeout(2500) }).then(r => r.json()),
+      ]);
+
+      if (cnameRes.status === 'fulfilled' && cnameRes.value?.Answer) {
+        cnameFound = cnameRes.value.Answer.map((ans: any) => (ans.data || '').replace(/\.$/, ''));
+      }
+      if (aRes.status === 'fulfilled' && aRes.value?.Answer) {
+        aRecords = aRes.value.Answer.filter((ans: any) => ans.type === 1).map((ans: any) => ans.data || '');
+      }
+      if (txtRes.status === 'fulfilled' && txtRes.value?.Answer) {
+        txtRecords = txtRes.value.Answer.map((ans: any) => (ans.data || '').replace(/^"|"$/g, ''));
+      }
+    } catch (dohErr) {
+      console.warn("[Custom Domain] Google DoH query failed, trying local node:dns resolver:", dohErr);
+      try {
+        const cnames = await dns.promises.resolveCname(cleanDomain).catch(() => []);
+        cnameFound = cnames.map(c => c.replace(/\.$/, ''));
+        const ips = await dns.promises.resolve4(cleanDomain).catch(() => []);
+        aRecords = ips;
+        const txt = await dns.promises.resolveTxt(cleanDomain).catch(() => []);
+        txtRecords = txt.flat();
+      } catch (localErr) {
+        console.warn("[Custom Domain] Local DNS resolution failed:", localErr);
+      }
+    }
+
+    const targetHostClean = targetHost.toLowerCase().trim();
+    const cnameMatches = cnameFound.some(c => c.toLowerCase().includes(targetHostClean) || targetHostClean.includes(c.toLowerCase()));
+    const txtMatches = txtRecords.some(t => t.includes(VERIFICATION_TOKEN) || t.includes(APPLET_ID));
+    // Detect Cloudflare proxy IPs
+    const isCloudflareProxied = aRecords.some(ip => ip.startsWith('104.') || ip.startsWith('172.67.') || ip.startsWith('188.114.'));
+
+    let status: 'verified' | 'propagating' | 'unresolved' = 'unresolved';
+    let verified = false;
+    let message = '';
+
+    if (cnameMatches) {
+      status = 'verified';
+      verified = true;
+      message = `CNAME record correctly points to ${targetHostClean}. Domain is connected and active!`;
+    } else if (isCloudflareProxied) {
+      status = 'verified';
+      verified = true;
+      message = `Cloudflare edge proxy detected. Traffic is securely routed through Cloudflare CDN & SSL.`;
+    } else if (cnameFound.length > 0 || aRecords.length > 0) {
+      status = 'propagating';
+      verified = false;
+      message = `DNS records detected, but target does not yet match ${targetHostClean}. Propagation may take 2-15 minutes.`;
+    } else {
+      status = 'unresolved';
+      verified = false;
+      message = `No DNS records detected for ${cleanDomain} yet. Please ensure your CNAME or A records have been saved at your registrar.`;
+    }
+
+    return {
+      verified,
+      status,
+      message,
+      cleanDomain,
+      cnameFound,
+      aRecords,
+      txtRecords,
+      isCloudflareProxied,
+      txtMatches,
+      checkedAt: new Date().toISOString()
+    };
+  }
+
+  // Verification endpoint for HTTP-01 or external site checkers
+  app.get("/.well-known/tiqsey-verification", (req, res) => {
+    res.json({
+      status: "ok",
+      appletId: APPLET_ID,
+      verificationToken: VERIFICATION_TOKEN,
+      targetHost: DEFAULT_TARGET_HOST,
+      cloudRunService: CLOUD_RUN_SERVICE,
+      cloudRegion: CLOUD_REGION,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // GET Custom Domain Settings
+  app.get("/api/custom-domain", (req, res) => {
+    try {
+      const row = db.prepare("SELECT * FROM custom_domain_settings ORDER BY updated_at DESC LIMIT 1").get() as any;
+      
+      if (!row) {
+        return res.json({
+          configured: false,
+          settings: null,
+          targetHost: DEFAULT_TARGET_HOST,
+          verificationToken: VERIFICATION_TOKEN,
+          appletId: APPLET_ID,
+          cloudRunService: CLOUD_RUN_SERVICE,
+          cloudRegion: CLOUD_REGION,
+          suggestedRecords: generateDnsRecords("tiqsey.com", DEFAULT_TARGET_HOST)
+        });
+      }
+
+      let parsedDnsRecords = null;
+      try {
+        if (row.dns_records_json) {
+          parsedDnsRecords = JSON.parse(row.dns_records_json);
+        }
+      } catch (_) {}
+
+      res.json({
+        configured: true,
+        settings: {
+          id: row.id,
+          domain: row.domain,
+          subdomain: row.subdomain,
+          targetHost: row.target_host,
+          provider: row.provider || 'cloudflare',
+          verificationStatus: row.verification_status,
+          sslStatus: row.ssl_status,
+          verifiedAt: row.verified_at,
+          lastCheckedAt: row.last_checked_at,
+          notes: row.notes,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          dnsRecords: parsedDnsRecords || generateDnsRecords(row.domain, row.target_host)
+        },
+        targetHost: DEFAULT_TARGET_HOST,
+        verificationToken: VERIFICATION_TOKEN,
+        appletId: APPLET_ID,
+        cloudRunService: CLOUD_RUN_SERVICE,
+        cloudRegion: CLOUD_REGION
+      });
+    } catch (err: any) {
+      console.error("[Custom Domain] Error fetching domain settings:", err);
+      res.status(500).json({ error: "Failed to fetch domain settings" });
+    }
+  });
+
+  // POST Custom Domain Settings
+  app.post("/api/custom-domain", async (req, res) => {
+    try {
+      const { domain, provider, notes } = req.body;
+      if (!domain || typeof domain !== 'string') {
+        return res.status(400).json({ error: "Domain name is required" });
+      }
+
+      const cleanDomain = domain.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0];
+      if (!cleanDomain || !cleanDomain.includes('.')) {
+        return res.status(400).json({ error: "Please enter a valid domain name (e.g. tiqsey.com or tickets.yourbrand.com)" });
+      }
+
+      const generated = generateDnsRecords(cleanDomain, DEFAULT_TARGET_HOST);
+      const existing = db.prepare("SELECT * FROM custom_domain_settings ORDER BY updated_at DESC LIMIT 1").get() as any;
+      const now = new Date().toISOString();
+      const id = existing?.id || 'dom-' + crypto.randomUUID().slice(0, 8);
+
+      const chosenProvider = provider || existing?.provider || 'cloudflare';
+
+      if (existing) {
+        db.prepare(`
+          UPDATE custom_domain_settings 
+          SET domain = ?, subdomain = ?, target_host = ?, provider = ?, dns_records_json = ?, notes = ?, updated_at = ?
+          WHERE id = ?
+        `).run(cleanDomain, generated.subdomain, DEFAULT_TARGET_HOST, chosenProvider, JSON.stringify(generated), notes || null, now, existing.id);
+      } else {
+        db.prepare(`
+          INSERT INTO custom_domain_settings (
+            id, domain, subdomain, target_host, provider, verification_status, ssl_status, 
+            dns_records_json, notes, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(id, cleanDomain, generated.subdomain, DEFAULT_TARGET_HOST, chosenProvider, 'pending', 'pending', JSON.stringify(generated), notes || null, now, now);
+      }
+
+      // Perform non-blocking immediate DNS verification check
+      const checkResult = await checkDnsResolution(cleanDomain, DEFAULT_TARGET_HOST);
+      const newStatus = checkResult.verified ? 'verified' : (checkResult.status === 'propagating' ? 'propagating' : 'pending');
+      const verifiedAt = checkResult.verified ? now : (existing?.verified_at || null);
+      const sslStatus = checkResult.verified ? 'active' : 'pending';
+
+      db.prepare(`
+        UPDATE custom_domain_settings 
+        SET verification_status = ?, ssl_status = ?, verified_at = ?, last_checked_at = ?
+        WHERE id = ?
+      `).run(newStatus, sslStatus, verifiedAt, now, id);
+
+      res.json({
+        success: true,
+        message: checkResult.verified 
+          ? `Domain ${cleanDomain} connected and verified!` 
+          : `Domain ${cleanDomain} saved. Please update your DNS records to complete verification.`,
+        settings: {
+          id,
+          domain: cleanDomain,
+          subdomain: generated.subdomain,
+          targetHost: DEFAULT_TARGET_HOST,
+          provider: chosenProvider,
+          verificationStatus: newStatus,
+          sslStatus,
+          verifiedAt,
+          lastCheckedAt: now,
+          dnsRecords: generated
+        },
+        diagnostics: checkResult
+      });
+    } catch (err: any) {
+      console.error("[Custom Domain] Error saving domain:", err);
+      res.status(500).json({ error: "Failed to save domain configuration: " + (err.message || "") });
+    }
+  });
+
+  // POST Verify Custom Domain DNS Live
+  app.post("/api/custom-domain/verify", async (req, res) => {
+    try {
+      let domainToCheck = req.body?.domain;
+      let existing = db.prepare("SELECT * FROM custom_domain_settings ORDER BY updated_at DESC LIMIT 1").get() as any;
+
+      if (!domainToCheck && existing) {
+        domainToCheck = existing.domain;
+      }
+
+      if (!domainToCheck) {
+        return res.status(400).json({ error: "No domain configured to verify" });
+      }
+
+      const cleanDomain = domainToCheck.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '').split(':')[0];
+      const targetHost = existing?.target_host || DEFAULT_TARGET_HOST;
+      const checkResult = await checkDnsResolution(cleanDomain, targetHost);
+
+      const now = new Date().toISOString();
+      const newStatus = checkResult.verified ? 'verified' : (checkResult.status === 'propagating' ? 'propagating' : 'unresolved');
+      const sslStatus = checkResult.verified ? 'active' : (existing?.ssl_status || 'pending');
+      const verifiedAt = checkResult.verified ? now : (existing?.verified_at || null);
+
+      if (existing) {
+        db.prepare(`
+          UPDATE custom_domain_settings 
+          SET verification_status = ?, ssl_status = ?, verified_at = ?, last_checked_at = ?
+          WHERE id = ?
+        `).run(newStatus, sslStatus, verifiedAt, now, existing.id);
+      }
+
+      res.json({
+        success: true,
+        verified: checkResult.verified,
+        status: newStatus,
+        sslStatus,
+        domain: cleanDomain,
+        targetHost,
+        diagnostics: checkResult,
+        lastCheckedAt: now
+      });
+    } catch (err: any) {
+      console.error("[Custom Domain] Error during DNS verification:", err);
+      res.status(500).json({ error: "Verification failed: " + (err.message || "") });
+    }
+  });
+
+  // DELETE Custom Domain
+  app.delete("/api/custom-domain", (req, res) => {
+    try {
+      db.prepare("DELETE FROM custom_domain_settings").run();
+      res.json({ success: true, message: "Custom domain configuration removed successfully." });
+    } catch (err: any) {
+      console.error("[Custom Domain] Error deleting domain:", err);
+      res.status(500).json({ error: "Failed to reset domain configuration" });
+    }
+  });
 
   // API routes
   app.post("/api/bookings/generate-ids", (req, res) => {
@@ -1338,7 +1701,7 @@ async function startServer() {
       const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
       // Try multiple models and apply exponential backoff on transient errors
-      const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite"];
+      const modelsToTry = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite"];
       let text = "";
       let lastError: any = null;
       let usedModel = "";

@@ -56,6 +56,8 @@ export default function AdminLayout() {
       navigate(`/promotional-banners`);
     } else if (query.toLowerCase().includes('blog') || query.toLowerCase().includes('post')) {
       navigate(`/blog`);
+    } else if (query.toLowerCase().includes('domain') || query.toLowerCase().includes('dns') || query.toLowerCase().includes('cname') || query.toLowerCase().includes('ssl')) {
+      navigate(`/domain`);
     } else {
       navigate(`/inventory?search=${encodeURIComponent(query)}`);
     }
@@ -88,7 +90,7 @@ export default function AdminLayout() {
       }
     } else if (path.includes('/analytics') || path.includes('/agents')) {
       crumbs.push({ name: 'Agents', icon: undefined, path: '/analytics' });
-    } else if (path.includes('/blog') || path.includes('/promotional-banners') || path.includes('/website')) {
+    } else if (path.includes('/blog') || path.includes('/promotional-banners') || path.includes('/domain') || path.includes('/website')) {
       crumbs.push({ name: 'Website', icon: undefined, path: '/blog' });
       if (path.includes('/blog')) {
         crumbs.push({ name: 'Blog', icon: undefined, path: '/blog' });
@@ -104,6 +106,8 @@ export default function AdminLayout() {
         } else if (path.includes('/edit/')) {
           crumbs.push({ name: 'Edit Banner', icon: undefined, path: path });
         }
+      } else if (path.includes('/domain')) {
+        crumbs.push({ name: 'Custom Domain', icon: undefined, path: '/domain' });
       }
     }
     return crumbs;
@@ -306,6 +310,21 @@ export default function AdminLayout() {
               >
                 <Sparkles className="w-4 h-4 shrink-0 text-[#f59e0b] group-hover:scale-105 transition-transform" />
                 Promotional Banners
+              </NavLink>
+
+              <NavLink
+                to="/domain"
+                onClick={() => setMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13.5px] transition-colors group ${
+                    isActive 
+                      ? 'bg-sky-500/20 text-white font-bold border-l-2 border-sky-400' 
+                      : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
+                  }`
+                }
+              >
+                <Globe className="w-4 h-4 shrink-0 text-sky-400 group-hover:scale-105 transition-transform" />
+                Custom Domain
               </NavLink>
             </div>
           )}

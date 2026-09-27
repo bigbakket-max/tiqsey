@@ -348,21 +348,34 @@ export default function AttractionDetailModal({
     return { hour, minute };
   };
   
+  const findAttraction = (id: string): Attraction | undefined => {
+    if (!id) return undefined;
+    const trimmed = id.trim();
+    const decoded = decodeURIComponent(trimmed).toLowerCase();
+    return (
+      POPULAR_ATTRACTIONS.find(a => a.id === trimmed) ||
+      POPULAR_ATTRACTIONS.find(a => a.productId === trimmed) ||
+      POPULAR_ATTRACTIONS.find(a => a.id.toLowerCase() === decoded) ||
+      POPULAR_ATTRACTIONS.find(a => a.productId?.toLowerCase() === decoded) ||
+      POPULAR_ATTRACTIONS.find(a => a.name.toLowerCase() === decoded)
+    );
+  };
+
   const [bookingDate, setBookingDate] = useState<string>('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('11:00 AM');
   const [isTimeSlotExpanded, setIsTimeSlotExpanded] = useState(false);
 
   const [attraction, setAttraction] = useState<Attraction | undefined>(() => {
-    return POPULAR_ATTRACTIONS.find(a => a.id === attractionId);
+    return findAttraction(attractionId);
   });
 
   useEffect(() => {
-    setAttraction(POPULAR_ATTRACTIONS.find(a => a.id === attractionId));
+    setAttraction(findAttraction(attractionId));
   }, [attractionId]);
 
   useEffect(() => {
     const handleUpdate = () => {
-      setAttraction(POPULAR_ATTRACTIONS.find(a => a.id === attractionId));
+      setAttraction(findAttraction(attractionId));
     };
     window.addEventListener("tiqsey_attractions_updated", handleUpdate);
     return () => window.removeEventListener("tiqsey_attractions_updated", handleUpdate);
@@ -380,8 +393,10 @@ export default function AttractionDetailModal({
 
     const basePrice = attraction.discountPrice || attraction.price;
 
-    if (attraction.variants && attraction.variants.length > 0) {
-      return attraction.variants.map((v) => {
+    if (attraction.variants && Array.isArray(attraction.variants) && attraction.variants.length > 0) {
+      return attraction.variants
+        .filter((v): v is Variant => Boolean(v && typeof v === 'object'))
+        .map((v) => {
         // Find matching rule for selected date & timeslot
         const matchedRule = v.rules?.find(
           r => r.date === bookingDate && 
@@ -403,17 +418,17 @@ export default function AttractionDetailModal({
         
         const description = descParts.length > 0 
           ? descParts.join(' | ') 
-          : `Custom ticket variant: ${v.name}`;
+          : `Custom ticket variant: ${v.name || 'Standard'}`;
 
         const inventoryText = matchedRule 
           ? ` (${matchedRule.inventory} remaining)` 
           : '';
 
         return {
-          id: v.id,
-          listName: v.name + inventoryText,
-          name: v.name,
-          shortName: v.name,
+          id: v.id || `variant-${Math.random().toString(36).substring(2, 7)}`,
+          listName: (v.name || 'Standard Admission') + inventoryText,
+          name: v.name || 'Standard Admission',
+          shortName: v.name || 'Standard Admission',
           priceOffset,
           couponDiscount: matchedRule ? 0 : 3.80,
           description,
@@ -423,9 +438,9 @@ export default function AttractionDetailModal({
           priceIncludes: v.priceIncludes,
           notes: v.notes,
           otherDetails: v.otherDetails,
-          bookingMode: v.bookingMode,
-          affiliateUrl: v.affiliateUrl,
-          affiliateConfig: v.affiliateConfig,
+          bookingMode: (v.bookingMode || attraction?.bookingMode || 'manual') as BookingMode,
+          affiliateUrl: v.affiliateUrl || attraction?.affiliateConfig?.affiliateUrl,
+          affiliateConfig: v.affiliateConfig || attraction?.affiliateConfig,
           rawVariant: v
         };
       });
@@ -442,9 +457,9 @@ export default function AttractionDetailModal({
         description: `Admission to ${cleanName} permanent collection. Timed entry slots guarantee immediate access without waiting.`,
         duration: '2 Hours',
         inventory: undefined,
-        bookingMode: (attraction.bookingMode || 'manual') as BookingMode,
-        affiliateUrl: attraction.affiliateConfig?.affiliateUrl,
-        affiliateConfig: attraction.affiliateConfig,
+        bookingMode: (attraction?.bookingMode || 'manual') as BookingMode,
+        affiliateUrl: attraction?.affiliateConfig?.affiliateUrl,
+        affiliateConfig: attraction?.affiliateConfig,
         rawVariant: undefined
       },
       { 
@@ -457,9 +472,9 @@ export default function AttractionDetailModal({
         description: `Experience two days of unrestricted exploration with fast-track admission past standard queues.`,
         duration: 'Flexible 48 Hours',
         inventory: undefined,
-        bookingMode: (attraction.bookingMode || 'manual') as BookingMode,
-        affiliateUrl: attraction.affiliateConfig?.affiliateUrl,
-        affiliateConfig: attraction.affiliateConfig,
+        bookingMode: (attraction?.bookingMode || 'manual') as BookingMode,
+        affiliateUrl: attraction?.affiliateConfig?.affiliateUrl,
+        affiliateConfig: attraction?.affiliateConfig,
         rawVariant: undefined
       },
       { 
@@ -472,9 +487,9 @@ export default function AttractionDetailModal({
         description: `Visit twice at any time within a 7-day period. Perfect for paced discovery of temporary galleries.`,
         duration: '7 Days Validity',
         inventory: undefined,
-        bookingMode: (attraction.bookingMode || 'manual') as BookingMode,
-        affiliateUrl: attraction.affiliateConfig?.affiliateUrl,
-        affiliateConfig: attraction.affiliateConfig,
+        bookingMode: (attraction?.bookingMode || 'manual') as BookingMode,
+        affiliateUrl: attraction?.affiliateConfig?.affiliateUrl,
+        affiliateConfig: attraction?.affiliateConfig,
         rawVariant: undefined
       }
     ];
@@ -487,7 +502,7 @@ export default function AttractionDetailModal({
 
   const selectedPackage = useMemo(() => {
     return (
-      dynamicPackages.find(p => p.id === selectedPackageId) || 
+      dynamicPackages.find(p => p && p.id === selectedPackageId) || 
       dynamicPackages[0] || 
       { 
         id: 'general', 
@@ -2515,10 +2530,11 @@ export default function AttractionDetailModal({
                   {/* High-Fidelity Price Section matching Screenshot 1 exactly */}
                   {(() => {
                     // Calculate original and current price cleanly
-                    const originalPricePerItem = attraction.discountPrice 
-                      ? (attraction.price + selectedPackage.priceOffset) 
-                      : Math.round(pricePerItem / (1 - 0.44));
-                    const discountPercent = Math.round(((originalPricePerItem - pricePerItem) / originalPricePerItem) * 100);
+                    const originalPricePerItem = attraction?.discountPrice 
+                      ? ((attraction?.price || 0) + (selectedPackage?.priceOffset || 0)) 
+                      : Math.round(((pricePerItem || 0) / (1 - 0.44)) || 0);
+                    const safeOriginal = Math.max(originalPricePerItem, pricePerItem || 1);
+                    const discountPercent = Math.max(0, Math.round(((safeOriginal - (pricePerItem || 0)) / safeOriginal) * 100));
                     return (
                       <div className="flex flex-col mb-6 mt-2 select-none">
                         {/* Line 1: Starting from Original Price */}

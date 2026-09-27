@@ -291,8 +291,15 @@ export default function ActivitiesPage({
     }
 
     fetchAttractions();
+
+    const handleUpdate = () => {
+      setRetryCount((prev) => prev + 1);
+    };
+    window.addEventListener("tiqsey_attractions_updated", handleUpdate);
+
     return () => {
       isMounted = false;
+      window.removeEventListener("tiqsey_attractions_updated", handleUpdate);
     };
   }, [destination, retryCount]);
 

@@ -47,13 +47,23 @@ class ErrorBoundary extends React.Component<Props, State> {
           <p className="text-gray-600 max-w-md mb-6">
             We're sorry for the inconvenience. The application encountered an unexpected error.
           </p>
-          <button
-            onClick={this.handleRefresh}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-xl font-bold hover:bg-brand/90 transition-all shadow-lg active:scale-95"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh Page
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={this.handleRefresh}
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-brand text-white rounded-xl font-bold hover:bg-brand/90 transition-all shadow-md active:scale-95 cursor-pointer text-sm"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh Page
+            </button>
+            <button
+              onClick={() => {
+                window.location.href = '/';
+              }}
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-white rounded-xl font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-all shadow-sm active:scale-95 cursor-pointer text-sm"
+            >
+              Return to Home
+            </button>
+          </div>
           <div className="mt-8 p-4 bg-gray-50 rounded-lg text-left overflow-auto max-w-full">
             <p className="text-xs font-mono text-red-500">{this.state.error?.toString()}</p>
           </div>
