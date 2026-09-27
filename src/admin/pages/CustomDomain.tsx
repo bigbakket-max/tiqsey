@@ -31,6 +31,15 @@ interface DnsRecord {
   recommended?: boolean;
 }
 
+async function parseJsonSafely(res: Response): Promise<any> {
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Server returned unexpected response (${res.status}). Expected JSON.`);
+  }
+  return res.json();
+}
+
 interface DomainSettings {
   id: string;
   domain: string;
@@ -73,7 +82,7 @@ export default function CustomDomain() {
     try {
       setLoading(true);
       const res = await fetch('/api/custom-domain');
-      const data = await res.json();
+      const data = await parseJsonSafely(res);
       if (data.targetHost) setTargetHost(data.targetHost);
       if (data.verificationToken) setVerificationToken(data.verificationToken);
       if (data.cloudRunService) setCloudRunService(data.cloudRunService);
@@ -124,7 +133,7 @@ export default function CustomDomain() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain: clean, provider })
       });
-      const data = await res.json();
+      const data = await parseJsonSafely(res);
       if (!res.ok) throw new Error(data.error || 'Failed to save custom domain');
 
       setSettings(data.settings);
@@ -152,7 +161,7 @@ export default function CustomDomain() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain: settings?.domain || domainInput })
       });
-      const data = await res.json();
+      const data = await parseJsonSafely(res);
       if (!res.ok) throw new Error(data.error || 'Verification request failed');
 
       if (settings) {
