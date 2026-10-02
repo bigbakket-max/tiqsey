@@ -223,153 +223,173 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Please fill in both email and password.');
     }
 
+    // Attempt backend sync safely without breaking if backend returns HTML (e.g., on static host)
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: trimmedEmail, password }),
       });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || "Login failed");
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        if (!response.ok && data?.error) {
+          console.warn("[Backend Login Warning]:", data.error);
+        }
       }
-
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
-          let users: any[] = [];
-          try {
-            users = JSON.parse(usersRaw);
-          } catch (_) {
-            users = [];
-          }
-          
-          const normalizedEmail = trimmedEmail.toLowerCase();
-          const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
-          let matched = users.find((u: any) => u.email.toLowerCase() === normalizedEmail);
-          
-          if (isAdmin) {
-            if (!matched) {
-              matched = {
-                id: normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
-                name: normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
-                email: normalizedEmail,
-                password: 'password123',
-                bio: 'Super Administrator.',
-                avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
-                createdAt: new Date().toLocaleDateString(),
-                role: 'admin',
-              };
-              users.push(matched);
-              localStorage.setItem('tiqsey_users', JSON.stringify(users));
-            } else if (matched.role !== 'admin') {
-              matched.role = 'admin';
-              localStorage.setItem('tiqsey_users', JSON.stringify(users));
-            }
-          }
-          
-          if (matched) {
-            // Verify password if recorded
-            if (matched.password && matched.password !== password) {
-              reject(new Error('Incorrect password. Please verify your credentials or use the demo password.'));
-              return;
-            }
-
-            // Clean password before setting state
-            const { password: _, ...userSession } = matched;
-            if (isAdmin) {
-              userSession.role = 'admin';
-            }
-            localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
-            setUser(userSession);
-            
-            // Load bookings
-            const storedBookings = localStorage.getItem(`tiqsey_bookings_${userSession.id}`);
-            if (storedBookings) {
-              setBookings(JSON.parse(storedBookings));
-            } else {
-              setBookings([]);
-            }
-            
-            resolve(userSession);
-          } else {
-            // Create user account seamlessly for new email
-            const tempUser: any = {
-              id: `user-${Date.now()}`,
-              name: deriveNameFromEmail(trimmedEmail),
-              email: trimmedEmail,
-              password: password,
-              bio: 'New explorer on Tiqsey!',
-              avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200`,
-              createdAt: new Date().toLocaleDateString(),
-              role: isAdmin ? 'admin' : 'user',
-            };
-            users.push(tempUser);
-            localStorage.setItem('tiqsey_users', JSON.stringify(users));
-
-            const { password: _, ...userSession } = tempUser;
-            localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
-            setUser(userSession);
-            setBookings([]);
-            resolve(userSession);
-          }
-        }, 300);
-      });
-    } catch (err: any) {
-      throw new Error(err.message || 'Login failed');
+    } catch (_) {
+      // Backend unreachable or static hosting - fall back seamlessly to client session
     }
+
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
+        let users: any[] = [];
+        try {
+          users = JSON.parse(usersRaw);
+        } catch (_) {
+          users = [];
+        }
+        
+        const normalizedEmail = trimmedEmail.toLowerCase();
+        const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
+        let matched = users.find((u: any) => u.email.toLowerCase() === normalizedEmail);
+        
+        if (isAdmin) {
+          if (!matched) {
+            matched = {
+              id: normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
+              name: normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
+              email: normalizedEmail,
+              password: 'password123',
+              bio: 'Super Administrator.',
+              avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
+              createdAt: new Date().toLocaleDateString(),
+              role: 'admin',
+            };
+            users.push(matched);
+            localStorage.setItem('tiqsey_users', JSON.stringify(users));
+          } else if (matched.role !== 'admin') {
+            matched.role = 'admin';
+            localStorage.setItem('tiqsey_users', JSON.stringify(users));
+          }
+        }
+        
+        if (matched) {
+          // Verify password if recorded
+          if (matched.password && matched.password !== password) {
+            reject(new Error('Incorrect password. Please verify your credentials or use the demo password.'));
+            return;
+          }
+
+          // Clean password before setting state
+          const { password: _, ...userSession } = matched;
+          if (isAdmin) {
+            userSession.role = 'admin';
+          }
+          localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
+          setUser(userSession);
+          
+          // Load bookings
+          const storedBookings = localStorage.getItem(`tiqsey_bookings_${userSession.id}`);
+          if (storedBookings) {
+            setBookings(JSON.parse(storedBookings));
+          } else {
+            setBookings([]);
+          }
+          
+          resolve(userSession);
+        } else {
+          // Create user account seamlessly for new email
+          const tempUser: any = {
+            id: `user-${Date.now()}`,
+            name: deriveNameFromEmail(trimmedEmail),
+            email: trimmedEmail,
+            password: password,
+            bio: 'New explorer on Tiqsey!',
+            avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200`,
+            createdAt: new Date().toLocaleDateString(),
+            role: isAdmin ? 'admin' : 'user',
+          };
+          users.push(tempUser);
+          localStorage.setItem('tiqsey_users', JSON.stringify(users));
+
+          const { password: _, ...userSession } = tempUser;
+          localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
+          setUser(userSession);
+          setBookings([]);
+          resolve(userSession);
+        }
+      }, 300);
+    });
   };
 
   const register = async (name: string, email: string, password: string): Promise<User> => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      throw new Error('Please fill in all required fields.');
+    }
+
+    // Check if account already exists locally
+    const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
+    let users: any[] = [];
+    try {
+      users = JSON.parse(usersRaw);
+    } catch (_) {
+      users = [];
+    }
+
+    const emailExists = users.some((u: any) => u.email.toLowerCase() === trimmedEmail.toLowerCase());
+    if (emailExists) {
+      throw new Error('An account with this email is already registered. Please sign in instead.');
+    }
+
+    // Attempt backend sync safely without breaking if backend returns HTML (e.g. on static hosting like Hostinger)
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email: trimmedEmail, password }),
       });
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || "Registration failed");
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        if (!response.ok && data?.error) {
+          console.warn("[Backend Register Warning]:", data.error);
+        }
       }
-
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
-          const users = JSON.parse(usersRaw);
-          
-          const emailExists = users.some((u: any) => u.email.toLowerCase() === email.toLowerCase());
-          if (emailExists) {
-            reject(new Error('An account with this email is already registered. Please sign in instead.'));
-            return;
-          }
-
-          const newUserDb = {
-            id: `user-${Date.now()}`,
-            name: name || deriveNameFromEmail(email),
-            email,
-            password,
-            bio: 'New explorer on Tiqsey! Adventure is just a booking away.',
-            avatarUrl: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 900000)}?auto=format&fit=crop&q=80&w=200`,
-            createdAt: new Date().toLocaleDateString(),
-          };
-
-          const updatedUsersList = [...users, newUserDb];
-          localStorage.setItem('tiqsey_users', JSON.stringify(updatedUsersList));
-
-          // Create active session
-          const { password: _, ...userSession } = newUserDb;
-          localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
-          setUser(userSession);
-          setBookings([]); // starts blank
-
-          resolve(userSession);
-        }, 300);
-      });
-    } catch (err: any) {
-      throw new Error(err.message || 'Registration failed');
+    } catch (_) {
+      // Backend unreachable or static hosting - proceed seamlessly
     }
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const normalizedEmail = trimmedEmail.toLowerCase();
+        const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
+
+        const newUserDb = {
+          id: `user-${Date.now()}`,
+          name: name || deriveNameFromEmail(trimmedEmail),
+          email: trimmedEmail,
+          password,
+          bio: 'New explorer on Tiqsey! Adventure is just a booking away.',
+          avatarUrl: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 900000)}?auto=format&fit=crop&q=80&w=200`,
+          createdAt: new Date().toLocaleDateString(),
+          role: (isAdmin ? 'admin' : 'user') as 'admin' | 'user',
+        };
+
+        const updatedUsersList = [...users, newUserDb];
+        localStorage.setItem('tiqsey_users', JSON.stringify(updatedUsersList));
+
+        // Create active session
+        const { password: _, ...userSession } = newUserDb;
+        localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
+        setUser(userSession);
+        setBookings([]); // starts blank
+
+        resolve(userSession);
+      }, 300);
+    });
   };
 
   const loginWithGoogle = async (email: string, name: string, avatarUrl: string): Promise<User> => {
@@ -536,21 +556,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Please log in, register, or provide guest details to buy tickets.');
     }
 
-    // Generate real secure unique IDs from the backend
+    // Generate real secure unique IDs from the backend (with fallback for static hosting)
     let order_number = '';
     let pnr_number = '';
     try {
       const response = await fetch('/api/bookings/generate-ids', { method: 'POST' });
-      const data = await response.json();
-      if (data.success) {
-        order_number = data.orderNumber;
-        pnr_number = data.pnrNumber;
-      } else {
-        throw new Error(data.error);
+      const contentType = response.headers.get("content-type") || "";
+      if (response.ok && contentType.includes("application/json")) {
+        const data = await response.json();
+        if (data.success) {
+          order_number = data.orderNumber;
+          pnr_number = data.pnrNumber;
+        }
       }
-    } catch (err) {
-      console.error("Backend API ID Generation Failed. Ensure backend is running.", err);
-      throw new Error("Unable to generate unique booking IDs via the secure backend. Transaction aborted.");
+    } catch (_) {}
+
+    if (!order_number) {
+      order_number = `OD${Date.now()}${Math.floor(100 + Math.random() * 900)}`;
+    }
+    if (!pnr_number) {
+      pnr_number = `BK${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
     }
 
     const now = new Date();
@@ -586,21 +611,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(`tiqsey_bookings_${activeUser.id}`, JSON.stringify(updatedBookings));
     setBookings(updatedBookings);
 
-    // Save/Sync the completed booking to the backend database
+    // Save/Sync the completed booking to the backend database if available
     try {
       const saveResponse = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newBooking)
       });
-      const saveData = await saveResponse.json();
-      if (saveData.success) {
-        console.log(`[Database Sync] Successfully saved booking ${newBooking.id} to SQLite backend.`);
-      } else {
-        console.error(`[Database Sync Error] Failed to save booking ${newBooking.id}:`, saveData.error);
+      const saveContentType = saveResponse.headers.get("content-type") || "";
+      if (saveContentType.includes("application/json")) {
+        const saveData = await saveResponse.json();
+        if (saveData.success) {
+          console.log(`[Database Sync] Successfully saved booking ${newBooking.id} to SQLite backend.`);
+        }
       }
-    } catch (err) {
-      console.error(`[Database Sync Network Error] Failed to contact backend for booking ${newBooking.id}:`, err);
+    } catch (_) {
+      // Backend not running on static host
+    }
+
+    // Direct Supabase sync from client (ensures customer details are stored in Supabase on static hosts like Hostinger!)
+    try {
+      import('../lib/supabase').then(({ supabase }) => {
+        supabase.from('bookings').upsert({
+          id: newBooking.id,
+          order_number: newBooking.order_number,
+          pnr_number: newBooking.pnr_number,
+          attraction_id: newBooking.attractionId,
+          attraction_name: newBooking.attractionName,
+          attraction_image_url: newBooking.attractionImageUrl,
+          city: newBooking.city,
+          booking_date: newBooking.bookingDate,
+          tickets_count: newBooking.ticketsCount,
+          total_price: newBooking.totalPrice,
+          status: newBooking.status,
+          child_count: newBooking.childCount,
+          guest_name: newBooking.guestInfo?.name || '',
+          guest_email: newBooking.guestInfo?.email || '',
+          guest_phone: (newBooking.guestInfo as any)?.phone || '',
+          passengers_json: JSON.stringify(newBooking.passengers || []),
+          created_at: newBooking.createdAt,
+          timeslot: newBooking.timeslot,
+          payment_currency: newBooking.paymentCurrency,
+          payment_price: newBooking.paymentPrice,
+          payment_symbol: newBooking.paymentSymbol
+        }, { onConflict: 'id' }).then(({ error }) => {
+          if (error) console.warn('[Supabase Client Sync Warning]:', error.message);
+          else console.log('[Supabase Client Sync]: Booking saved to Supabase successfully.');
+        });
+      }).catch(() => {});
+    } catch (sbErr) {
+      console.warn('[Supabase Direct Sync Error]:', sbErr);
     }
 
     return newBooking;
@@ -637,26 +697,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const formattedDate = `${months[now.getMonth()]} ${now.getFullYear()}`;
 
     try {
-      const response = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: `rev-${Date.now()}`,
-          bookingId,
-          attractionId,
-          userId: activeUser.id,
-          userName: activeUser.name,
-          userEmail: activeUser.email,
-          rating,
-          comment,
-          createdAt: formattedDate
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to submit review');
+      try {
+        const response = await fetch('/api/reviews', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: `rev-${Date.now()}`,
+            bookingId,
+            attractionId,
+            userId: activeUser.id,
+            userName: activeUser.name,
+            userEmail: activeUser.email,
+            rating,
+            comment,
+            createdAt: formattedDate
+          })
+        });
+        const contentType = response.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          await response.json();
+        }
+      } catch (_) {
+        // Backend not running on static host
       }
+
+      // Direct Supabase sync for reviews
+      try {
+        import('../lib/supabase').then(({ supabase }) => {
+          supabase.from('reviews').upsert({
+            id: `rev-${Date.now()}`,
+            booking_id: bookingId,
+            attraction_id: attractionId,
+            user_id: activeUser.id,
+            user_name: activeUser.name,
+            user_email: activeUser.email,
+            rating: Number(rating),
+            comment,
+            created_at: new Date().toISOString()
+          }, { onConflict: 'id' }).then(({ error }) => {
+            if (error) console.warn('[Supabase Review Sync Warning]:', error.message);
+          });
+        }).catch(() => {});
+      } catch (_) {}
 
       // Update local storage and state
       const updatedBookings = bookings.map(b => 

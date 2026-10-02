@@ -201,14 +201,45 @@ export default function Bookings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(booking)
       });
-      const data = await response.json();
-      if (data.success) {
-        console.log(`[Admin DB Sync] Booking ${booking.id} synced with backend database successfully.`);
-      } else {
-        console.error(`[Admin DB Sync Error] Failed to sync booking ${booking.id} to SQLite backend database:`, data.error);
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        if (data.success) {
+          console.log(`[Admin DB Sync] Booking ${booking.id} synced with backend database successfully.`);
+        }
       }
     } catch (err) {
-      console.error(`[Admin DB Sync Network Error] Failed to contact backend for booking ${booking.id}:`, err);
+      console.warn(`[Admin DB Sync Network Warning] Backend not reachable for booking ${booking.id}`);
+    }
+
+    // Direct Supabase sync from admin panel
+    try {
+      const { supabase } = await import('../../lib/supabase');
+      await supabase.from('bookings').upsert({
+        id: booking.id,
+        order_number: booking.order_number || booking.orderId || "",
+        pnr_number: booking.pnr_number || booking.bookingRef || "",
+        attraction_id: booking.attractionId || "",
+        attraction_name: booking.attractionName || "",
+        attraction_image_url: booking.attractionImageUrl || "",
+        city: booking.city || "",
+        booking_date: booking.bookingDate || "",
+        tickets_count: Number(booking.travelers || 1),
+        total_price: Number(booking.totalPrice || booking.collectedAmount || 0),
+        status: booking.status || "confirmed",
+        child_count: 0,
+        guest_name: booking.customerName || "",
+        guest_email: booking.customerEmail || "",
+        guest_phone: booking.customerPhone || "",
+        passengers_json: JSON.stringify(booking.passengers || []),
+        created_at: booking.createdAt || "",
+        payment_currency: booking.paymentCurrency || "",
+        payment_price: booking.paymentPrice,
+        payment_symbol: booking.paymentSymbol || ""
+      }, { onConflict: 'id' });
+      console.log(`[Admin Supabase Sync] Booking ${booking.id} synced to Supabase.`);
+    } catch (e) {
+      console.warn('[Admin Supabase Sync Warning]:', e);
     }
   };
 
@@ -216,50 +247,97 @@ export default function Bookings() {
   const loadBookings = async () => {
     setIsRefreshing(true);
     
-    // Fetch bookings from backend database
+    // Fetch bookings from backend database or directly from Supabase
     let backendBookings: AdminBooking[] = [];
+    let backendLoaded = false;
+
     try {
       const response = await fetch('/api/bookings');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const contentType = response.headers.get("content-type") || "";
+      if (response.ok && contentType.includes("application/json")) {
+        const data = await response.json();
+        if (data.success && Array.isArray(data.bookings)) {
+          backendBookings = data.bookings.map((b: any) => ({
+            id: b.id,
+            bookingRef: b.bookingRef || b.pnr_number,
+            orderId: b.orderId || b.order_number,
+            order_number: b.order_number,
+            pnr_number: b.pnr_number,
+            customerName: b.customerName || b.guestInfo?.name || 'Registered User',
+            customerEmail: b.customerEmail || b.guestInfo?.email || 'user@tiqsey.com',
+            customerPhone: b.customerPhone || b.guestInfo?.phone || '+1 (555) 123-4567',
+            createdAt: b.createdAt,
+            attractionId: b.attractionId,
+            attractionName: b.attractionName,
+            variant: b.variant || 'General Admission Tickets',
+            vendorPayable: b.vendorPayable || '--',
+            totalPrice: b.totalPrice,
+            collectedAmount: b.totalPrice,
+            travelers: b.ticketsCount || b.travelers || 1,
+            bookingDate: b.bookingDate,
+            status: b.status || 'confirmed',
+            city: b.city || 'Paris',
+            attractionImageUrl: b.attractionImageUrl || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=600",
+            passengers: b.passengers || [],
+            paymentCurrency: b.paymentCurrency,
+            paymentPrice: b.paymentPrice,
+            paymentSymbol: b.paymentSymbol
+          }));
+          backendLoaded = true;
+          setFetchError(null);
+        }
       }
-      const data = await response.json();
-      if (data.success && Array.isArray(data.bookings)) {
-        backendBookings = data.bookings.map((b: any) => ({
-          id: b.id,
-          bookingRef: b.bookingRef || b.pnr_number,
-          orderId: b.orderId || b.order_number,
-          order_number: b.order_number,
-          pnr_number: b.pnr_number,
-          customerName: b.customerName || b.guestInfo?.name || 'Registered User',
-          customerEmail: b.customerEmail || b.guestInfo?.email || 'user@tiqsey.com',
-          customerPhone: b.customerPhone || b.guestInfo?.phone || '+1 (555) 123-4567',
-          createdAt: b.createdAt,
-          attractionId: b.attractionId,
-          attractionName: b.attractionName,
-          variant: b.variant || 'General Admission Tickets',
-          vendorPayable: b.vendorPayable || '--',
-          totalPrice: b.totalPrice,
-          collectedAmount: b.totalPrice,
-          travelers: b.ticketsCount || b.travelers || 1,
-          bookingDate: b.bookingDate,
-          status: b.status || 'confirmed',
-          city: b.city || 'Paris',
-          attractionImageUrl: b.attractionImageUrl || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=600",
-          passengers: b.passengers || [],
-          paymentCurrency: b.paymentCurrency,
-          paymentPrice: b.paymentPrice,
-          paymentSymbol: b.paymentSymbol
-        }));
-        console.log(`[Admin] Successfully loaded ${backendBookings.length} bookings from backend database.`);
-        setFetchError(null);
-      } else {
-        console.error("[Admin Database Error] Failed to load bookings from backend database:", data.error || "Unknown error");
-        setFetchError(data.error || "Failed to parse bookings from database");
+    } catch (_) {
+      // Backend not running on static host
+    }
+
+    // Direct Supabase query fallback (ensures admin can see live customer bookings on Hostinger static hosting!)
+    if (!backendLoaded) {
+      try {
+        const { supabase } = await import('../../lib/supabase');
+        const { data, error } = await supabase.from('bookings').select('*');
+        if (!error && Array.isArray(data)) {
+          backendBookings = data.map((b: any) => {
+            let passengers = [];
+            try {
+              if (b.passengers_json) {
+                passengers = typeof b.passengers_json === 'string' ? JSON.parse(b.passengers_json) : b.passengers_json;
+              }
+            } catch (_) {}
+
+            return {
+              id: b.id,
+              bookingRef: b.pnr_number || b.id,
+              orderId: b.order_number || b.id,
+              order_number: b.order_number,
+              pnr_number: b.pnr_number,
+              customerName: b.guest_name || 'Registered Customer',
+              customerEmail: b.guest_email || 'customer@tiqsey.com',
+              customerPhone: b.guest_phone || '',
+              createdAt: b.created_at || '',
+              attractionId: b.attraction_id || '',
+              attractionName: b.attraction_name || '',
+              variant: 'General Admission Tickets',
+              vendorPayable: '--',
+              totalPrice: Number(b.total_price) || 0,
+              collectedAmount: Number(b.total_price) || 0,
+              travelers: Number(b.tickets_count) || 1,
+              bookingDate: b.booking_date || '',
+              status: b.status || 'confirmed',
+              city: b.city || '',
+              attractionImageUrl: b.attraction_image_url || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=600",
+              passengers,
+              paymentCurrency: b.payment_currency || '',
+              paymentPrice: b.payment_price,
+              paymentSymbol: b.payment_symbol || ''
+            };
+          });
+          backendLoaded = true;
+          setFetchError(null);
+        }
+      } catch (err: any) {
+        console.warn("[Admin Supabase Query Notice]:", err);
       }
-    } catch (err: any) {
-      console.error("[Admin Database Network Error] Failed to fetch bookings from backend:", err);
-      setFetchError(err.message || String(err));
     }
 
     await new Promise(r => setTimeout(r, 600));

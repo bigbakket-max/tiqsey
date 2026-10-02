@@ -662,12 +662,15 @@ export default function AttractionDetailModal({
     const fetchAllBookings = async () => {
       try {
         const res = await fetch('/api/bookings');
-        const data = await res.json();
-        if (data.success && Array.isArray(data.bookings)) {
-          setAllBookings(data.bookings);
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.bookings)) {
+            setAllBookings(data.bookings);
+          }
         }
       } catch (err) {
-        console.error("Failed to fetch all bookings:", err);
+        // Backend not running on static host
       }
     };
     fetchAllBookings();
@@ -1152,21 +1155,24 @@ export default function AttractionDetailModal({
       if (!id) return;
       try {
         const res = await fetch(`/api/reviews/attraction/${encodeURIComponent(id)}`);
-        const data = await res.json();
-        if (data.success && data.reviews) {
-          const dbReviews = data.reviews.map((r: any) => ({
-            name: r.user_name || 'Verified Customer',
-            rating: r.rating,
-            date: r.created_at || 'Recently',
-            comment: r.comment
-          }));
-          setReviewsList(prev => {
-            const filteredPrev = prev.filter(p => !dbReviews.some((dbR: any) => dbR.comment === p.comment));
-            return [...dbReviews, ...filteredPrev];
-          });
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          const data = await res.json();
+          if (data.success && data.reviews) {
+            const dbReviews = data.reviews.map((r: any) => ({
+              name: r.user_name || 'Verified Customer',
+              rating: r.rating,
+              date: r.created_at || 'Recently',
+              comment: r.comment
+            }));
+            setReviewsList(prev => {
+              const filteredPrev = prev.filter(p => !dbReviews.some((dbR: any) => dbR.comment === p.comment));
+              return [...dbReviews, ...filteredPrev];
+            });
+          }
         }
       } catch (err) {
-        console.error("Failed to fetch database reviews", err);
+        // Backend not running on static host
       }
     };
 
