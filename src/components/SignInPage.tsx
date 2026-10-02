@@ -403,22 +403,6 @@ export default function SignInPage({
             Create an account
           </button>
         </p>
-
-        {/* Demo Account Quick-Fill */}
-        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-center">
-          <button
-            type="button"
-            onClick={() => {
-              setEmail('demo@tiqsey.com');
-              setPassword('password123');
-              if (error) setError('');
-            }}
-            className="text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1.5 cursor-pointer"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-            <span>Click to fill Demo Account credentials</span>
-          </button>
-        </div>
       </div>
     </div>
   );
