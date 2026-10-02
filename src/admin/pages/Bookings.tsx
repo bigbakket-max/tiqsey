@@ -1326,7 +1326,7 @@ export default function Bookings() {
 
                       {/* Small external link indicator to open booking details in a new tab */}
                       <a 
-                        href={`/admin/bookings?orderId=${encodeURIComponent(booking.orderId)}`}
+                        href={`/secure-panel/bookings?orderId=${encodeURIComponent(booking.orderId)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[#8892a0] hover:text-[#5fa6d9] transition-colors p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"

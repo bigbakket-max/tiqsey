@@ -34,7 +34,7 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
 export default function AdminApp() {
   return (
     <AdminLoaderProvider>
-      <BrowserRouter basename="/admin">
+      <BrowserRouter basename="/secure-panel">
         <Routes>
           <Route path="/login" element={<RequireAdmin><Navigate to="/" replace /></RequireAdmin>} />
           <Route path="/" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>

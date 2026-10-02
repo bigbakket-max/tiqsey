@@ -1785,6 +1785,12 @@ async function startServer() {
   // Serve public/uploads directory statically
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
+  // Redirect legacy /admin to new /secure-panel URL (excluding /api/admin)
+  app.get(/^\/admin(\/.*)?$/, (req, res) => {
+    const targetUrl = req.originalUrl.replace(/^\/admin/, '/secure-panel');
+    return res.redirect(301, targetUrl);
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
