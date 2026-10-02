@@ -11,7 +11,20 @@ import { HelmetProvider } from 'react-helmet-async';
 import { fetchActiveFavicon, applyFaviconToDocument, FAVICON_STORAGE_KEY } from './utils/faviconManager';
 
 function Root() {
-  const isAdminRoute = window.location.pathname.startsWith('/admin');
+  const isSubdomainAdmin = typeof window !== 'undefined' && (
+    window.location.hostname === 'admin.tiqsey.com' ||
+    window.location.hostname.startsWith('admin.')
+  );
+  const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+  const isAdminRoute = isSubdomainAdmin || isAdminPath;
+
+  // If user visits admin.tiqsey.com directly, ensure URL path includes /admin for routing
+  useEffect(() => {
+    if (isSubdomainAdmin && !window.location.pathname.startsWith('/admin')) {
+      const rest = window.location.pathname === '/' ? '' : window.location.pathname;
+      window.location.replace('/admin' + rest + window.location.search);
+    }
+  }, [isSubdomainAdmin]);
 
   // Synchronize and apply live dynamic favicon across the entire application and tabs
   useEffect(() => {

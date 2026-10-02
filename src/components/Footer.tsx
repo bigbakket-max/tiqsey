@@ -157,7 +157,10 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
                 </li>
                 {isAdmin && (
                   <li>
-                    <a href="/admin" className="flex items-center gap-2.5 text-indigo-400 font-bold hover:text-indigo-300 transition-colors group">
+                    <a 
+                      href={typeof window !== 'undefined' && window.location.hostname.includes('tiqsey.com') ? 'https://admin.tiqsey.com/admin' : '/admin'} 
+                      className="flex items-center gap-2.5 text-indigo-400 font-bold hover:text-indigo-300 transition-colors group"
+                    >
                       <ShieldCheck className="w-4 h-4 text-indigo-400 fill-indigo-400/10 group-hover:text-indigo-300 transition-colors" />
                       <span>Admin Command Center</span>
                     </a>

@@ -249,28 +249,6 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
                 )}
               </button>
             </div>
-
-            {/* Quick Demo Pre-fill helper */}
-            <div className="pt-2 text-center">
-              <span className="text-[11px] font-medium text-[#829ab1] mr-1.5">
-                Quick fill admin:
-              </span>
-              <button
-                type="button"
-                onClick={() => quickFill('bigbakket@gmail.com')}
-                className="text-[11px] font-medium text-[#334e68] hover:text-[#1d64db] bg-[#f0f4f8] hover:bg-[#e2e8f0] px-2 py-0.5 rounded-md transition-colors cursor-pointer mr-1.5"
-              >
-                bigbakket@gmail.com
-              </button>
-              <button
-                type="button"
-                onClick={() => quickFill('admin@tiqsey.com')}
-                className="text-[11px] font-medium text-[#334e68] hover:text-[#1d64db] bg-[#f0f4f8] hover:bg-[#e2e8f0] px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-              >
-                admin@tiqsey.com
-              </button>
-            </div>
-
           </form>
 
         </div>
@@ -278,7 +256,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
         {/* Back to Home Link */}
         <div className="mt-6 text-center">
           <a
-            href="/"
+            href={typeof window !== 'undefined' && window.location.hostname.includes('tiqsey.com') ? 'https://tiqsey.com' : '/'}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#486581] hover:text-[#0f243e] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />

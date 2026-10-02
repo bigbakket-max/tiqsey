@@ -124,7 +124,7 @@ export default function AdminLayout() {
   };
   const handleLogout = () => {
     logout();
-    window.location.href = '/';
+    window.location.href = window.location.hostname.includes('tiqsey.com') ? 'https://tiqsey.com' : '/';
   };
   const renderSidebarContent = (isCollapsed: boolean, isMobile: boolean) => (
     <>
