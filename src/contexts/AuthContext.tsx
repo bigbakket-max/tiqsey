@@ -44,6 +44,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Default demo credentials
 const DEMO_EMAIL = 'demo@tiqsey.com';
 const DEMO_PASSWORD = 'password123';
+export const ADMIN_PASSWORD = 'bigbakket@admin@1997';
 export const ADMIN_EMAILS = ['admin@tiqsey.com', 'bigbakket@gmail.com'];
 
 export const deriveNameFromEmail = (emailStr: string): string => {
@@ -84,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: 'admin-user-456',
           name: 'System Admin',
           email: 'admin@tiqsey.com',
-          password: 'password123',
+          password: ADMIN_PASSWORD,
           bio: 'Super Administrator.',
           avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
           createdAt: new Date().toLocaleDateString(),
@@ -94,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: 'admin-user-bigbakket',
           name: 'Lead Admin',
           email: 'bigbakket@gmail.com',
-          password: 'password123',
+          password: ADMIN_PASSWORD,
           bio: 'Lead Administrator.',
           avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
           createdAt: new Date().toLocaleDateString(),
@@ -114,16 +115,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: admEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
               name: admEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
               email: admEmail,
-              password: 'password123',
+              password: ADMIN_PASSWORD,
               bio: 'Administrator.',
               avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
               createdAt: new Date().toLocaleDateString(),
               role: 'admin',
             });
             modified = true;
-          } else if (found.role !== 'admin') {
-            found.role = 'admin';
-            modified = true;
+          } else {
+            if (found.role !== 'admin') {
+              found.role = 'admin';
+              modified = true;
+            }
+            if (found.password !== ADMIN_PASSWORD) {
+              found.password = ADMIN_PASSWORD;
+              modified = true;
+            }
           }
         });
 
@@ -261,7 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
               name: normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
               email: normalizedEmail,
-              password: 'password123',
+              password: ADMIN_PASSWORD,
               bio: 'Super Administrator.',
               avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
               createdAt: new Date().toLocaleDateString(),
@@ -269,15 +276,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             };
             users.push(matched);
             localStorage.setItem('tiqsey_users', JSON.stringify(users));
-          } else if (matched.role !== 'admin') {
-            matched.role = 'admin';
-            localStorage.setItem('tiqsey_users', JSON.stringify(users));
+          } else {
+            let userModified = false;
+            if (matched.role !== 'admin') {
+              matched.role = 'admin';
+              userModified = true;
+            }
+            if (matched.password !== ADMIN_PASSWORD) {
+              matched.password = ADMIN_PASSWORD;
+              userModified = true;
+            }
+            if (userModified) {
+              localStorage.setItem('tiqsey_users', JSON.stringify(users));
+            }
           }
         }
         
         if (matched) {
-          // Verify password if recorded
-          if (matched.password && matched.password !== password) {
+          // Verify password
+          if (isAdmin) {
+            if (password !== ADMIN_PASSWORD) {
+              reject(new Error('Incorrect administrator password. Please check your credentials.'));
+              return;
+            }
+          } else if (matched.password && matched.password !== password) {
             reject(new Error('Incorrect password. Please verify your credentials or use the demo password.'));
             return;
           }

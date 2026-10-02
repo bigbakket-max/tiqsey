@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth, ADMIN_EMAILS } from '../../contexts/AuthContext';
+import { useAuth, ADMIN_EMAILS, ADMIN_PASSWORD } from '../../contexts/AuthContext';
 import { 
   Lock, 
   Mail, 
@@ -81,7 +81,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
 
   const quickFill = (adminEmail: string) => {
     setEmail(adminEmail);
-    setPassword('password123');
+    setPassword(ADMIN_PASSWORD);
     setError(null);
   };
 
@@ -256,7 +256,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
         {/* Back to Home Link */}
         <div className="mt-6 text-center">
           <a
-            href={typeof window !== 'undefined' && window.location.hostname.includes('tiqsey.com') ? 'https://tiqsey.com' : '/'}
+            href="/"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#486581] hover:text-[#0f243e] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -284,7 +284,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
             </p>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono space-y-1 mb-4">
               <div>Email: <span className="font-bold text-[#1d64db]">bigbakket@gmail.com</span></div>
-              <div>Password: <span className="font-bold text-[#1d64db]">password123</span></div>
+              <div>Password: <span className="font-bold text-[#1d64db]">bigbakket@admin@1997</span></div>
             </div>
             <button
               onClick={() => {
