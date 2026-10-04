@@ -1315,6 +1315,12 @@ export default function AttractionDetailModal({
                 id="main-hero-img"
                 src={mainImage} 
                 alt={attraction.name}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (!target.src.includes('photo-1512470876302')) {
+                    target.src = 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1200';
+                  }
+                }}
                 className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out hover:scale-105 cursor-pointer"
                 referrerPolicy="no-referrer"
               />
@@ -2000,6 +2006,12 @@ export default function AttractionDetailModal({
                       <div className="flex gap-3 mb-5 border-b border-dashed border-gray-150 dark:border-slate-800 pb-4">
                         <img 
                           src={mainImage} 
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (!target.src.includes('photo-1512470876302')) {
+                              target.src = 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=200';
+                            }
+                          }}
                           className="w-16 h-16 object-cover rounded-xl shrink-0 border border-gray-200 dark:border-slate-850 shadow-3xs" 
                           alt="Selected Attraction" 
                           referrerPolicy="no-referrer" 

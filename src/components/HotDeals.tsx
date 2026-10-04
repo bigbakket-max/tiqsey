@@ -216,6 +216,12 @@ export default function HotDeals({
                       <img
                         src={attr.imageUrl}
                         alt={attr.name}
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (!target.src.includes('photo-1512470876302')) {
+                            target.src = 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=800';
+                          }
+                        }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                         referrerPolicy="no-referrer"
                       />

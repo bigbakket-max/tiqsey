@@ -1242,7 +1242,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 25000,
     price: 16,
     imageUrl:
-      "https://staybook.in/_next/image?url=https%3A%2F%2Fcdn-imgix.headout.com%2Fmedia%2Fimages%2Fffed293228727b6542b6c20a637fd237-9731-amsterdam-1-hour-sightseeing-cruise-in-amsterdam-11.jpg%3Fw%3D1120%26h%3D630%26crop%3Dfaces%26auto%3Dcompress%252Cformat%26fit%3Dmin&w=1080&q=75",
+      "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1080",
     isPopular: true,
   },
   {
@@ -1287,7 +1287,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 45000,
     price: 48,
     imageUrl:
-      "https://staybook.in/_next/image?url=https%3A%2F%2Fcdn-imgix.headout.com%2Fmedia%2Fimages%2F6bdeae1f5858869e1c1b2af9b3d19c63-3128-amsterdam-priority-admission-ticket-to-efteling-theme-park-01.jpg%3Fw%3D1120%26h%3D630%26crop%3Dfaces%26auto%3Dcompress%252Cformat%26fit%3Dmin&w=1080&q=75",
+      "https://images.unsplash.com/photo-1513889961551-628c1e5e2ee9?auto=format&fit=crop&q=80&w=1080",
     isPopular: true,
   },
   {
@@ -1411,7 +1411,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 12000,
     price: 13,
     imageUrl:
-      "https://staybook.in/_next/image?url=https%3A%2F%2Fcdn-imgix.headout.com%2Fmedia%2Fimages%2F1cf8859b431abf187a6f11b0fc8a65fe-8002-Paris-TicketstoOrangerieMuseum-07.jpeg%3Fw%3D1120%26h%3D630%26crop%3Dfaces%26auto%3Dcompress%252Cformat%26fit%3Dmin&w=1080&q=75",
+      "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&q=80&w=1080",
     isPopular: true,
     description:
       "The permanent home of Claude Monet's monumental Water Lilies series, located in a former orangery.",
@@ -1976,7 +1976,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     price: 30.0,
     discountPrice: 25.0,
     imageUrl:
-      "https://staybook.in/_next/image?url=https%3A%2F%2Fcdn-imgix.headout.com%2Fmedia%2Fimages%2F4d60ebd2a7751267b7e6f727f845783d-28789-pattaya-dolphinarium-tickets---thai-residents-04.jpg%3Fw%3D1120%26h%3D630%26crop%3Dfaces%26auto%3Dcompress%252Cformat%26fit%3Dmin&w=1080&q=75",
+      "https://images.unsplash.com/photo-1570481662006-a3a1374699e8?auto=format&fit=crop&q=80&w=1080",
     isPopular: true,
     description:
       "Enjoy a spectacular show featuring intelligent dolphins and seals at Pattaya Dolphinarium.",
@@ -2080,7 +2080,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     price: 48.0,
     discountPrice: 40.0,
     imageUrl:
-      "https://i0.wp.com/darrenbloggie.com/wp-content/uploads/2022/09/gangster-61.jpg?resize=1160%2C773&quality=89&ssl=1",
+      "https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1080",
     isPopular: true,
     description:
       "Enjoy a splash-tastic day out at Phuket's largest water park featuring thrilling rides and a massive wave pool.",
@@ -2106,7 +2106,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     price: 42.0,
     discountPrice: 35.0,
     imageUrl:
-      "https://staybook.in/_next/image?url=https%3A%2F%2Fcdn-imgix.headout.com%2Fmedia%2Fimages%2F4393d34115fee0a3458a5be18ed35ead-28811-pattaya-ramayana-water-park-tickets-02.jpg%3Fw%3D1120%26h%3D630%26crop%3Dfaces%26auto%3Dcompress%252Cformat%26fit%3Dmin&w=1080&q=75",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1080",
     isPopular: true,
     description:
       "Cool off at Thailand's biggest and best water park with dozens of premium water slides and attractions.",
@@ -2855,6 +2855,26 @@ if (typeof window !== "undefined") {
           if (!item.timezone) {
             item.timezone = getFallbackTz(item.city, item.location);
             hasChanges = true;
+          }
+          // Repair broken third-party URLs that may have been saved to local storage previously
+          if (item.imageUrl) {
+            if (item.imageUrl.includes("staybook.in")) {
+              if (item.id === "ams-canal" || item.name?.includes("Amsterdam Canal")) {
+                item.imageUrl = "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1080";
+              } else if (item.name?.includes("Efteling")) {
+                item.imageUrl = "https://images.unsplash.com/photo-1513889961551-628c1e5e2ee9?auto=format&fit=crop&q=80&w=1080";
+              } else if (item.name?.includes("Orangerie")) {
+                item.imageUrl = "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&q=80&w=1080";
+              } else if (item.name?.includes("Dolphin")) {
+                item.imageUrl = "https://images.unsplash.com/photo-1570481662006-a3a1374699e8?auto=format&fit=crop&q=80&w=1080";
+              } else {
+                item.imageUrl = "https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1080";
+              }
+              hasChanges = true;
+            } else if (item.imageUrl.includes("darrenbloggie.com")) {
+              item.imageUrl = "https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1080";
+              hasChanges = true;
+            }
           }
           return item;
         });

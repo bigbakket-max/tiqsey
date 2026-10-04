@@ -664,6 +664,59 @@ async function startServer() {
     }
   });
 
+  // General Image Upload Endpoint for activities, media gallery, banners, blogs
+  app.post("/api/upload", (req, res) => {
+    try {
+      const { image, filename } = req.body;
+      if (!image) {
+        return res.status(400).json({ error: "No image payload provided" });
+      }
+
+      let buffer: Buffer;
+      let ext = 'jpg';
+
+      if (image.startsWith('data:')) {
+        const matches = image.match(/^data:([A-Za-z0-9-+./]+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+          return res.status(400).json({ error: "Invalid base64 image data" });
+        }
+        const mime = matches[1];
+        if (mime.includes('png')) ext = 'png';
+        else if (mime.includes('webp')) ext = 'webp';
+        else if (mime.includes('svg')) ext = 'svg';
+        else if (mime.includes('gif')) ext = 'gif';
+        else ext = 'jpg';
+        buffer = Buffer.from(matches[2], 'base64');
+      } else {
+        return res.status(400).json({ error: "Expected base64 data URI" });
+      }
+
+      const publicUploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      const distUploadsDir = path.join(process.cwd(), 'dist', 'uploads');
+      if (!fs.existsSync(publicUploadsDir)) fs.mkdirSync(publicUploadsDir, { recursive: true });
+      if (!fs.existsSync(distUploadsDir)) fs.mkdirSync(distUploadsDir, { recursive: true });
+
+      const safeBase = filename ? filename.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30) : 'media';
+      const uploadedFilename = `${safeBase}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
+      const publicUploadPath = path.join(publicUploadsDir, uploadedFilename);
+      const distUploadPath = path.join(distUploadsDir, uploadedFilename);
+
+      fs.writeFileSync(publicUploadPath, buffer);
+      if (fs.existsSync(distUploadsDir)) {
+        fs.writeFileSync(distUploadPath, buffer);
+      }
+
+      return res.json({
+        success: true,
+        url: `/uploads/${uploadedFilename}`,
+        filename: uploadedFilename
+      });
+    } catch (err: any) {
+      console.error("[Upload API] Error saving uploaded image:", err);
+      return res.status(500).json({ error: err.message || "Failed to upload image" });
+    }
+  });
+
   // Admin endpoint: Reset / Remove custom favicon back to default brand favicon
   app.delete("/api/admin/favicon", (req, res) => {
     if (!checkAdminAuth(req)) {
@@ -1784,6 +1837,7 @@ async function startServer() {
 
   // Serve public/uploads directory statically
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
+  app.use('/uploads', express.static(path.join(process.cwd(), 'dist', 'uploads')));
 
   // Redirect legacy /admin to new /secure-panel URL (excluding /api/admin)
   app.get(/^\/admin(\/.*)?$/, (req, res) => {

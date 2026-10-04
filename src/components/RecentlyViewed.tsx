@@ -9,6 +9,97 @@ interface RecentlyViewedProps {
   onClear: () => void;
 }
 
+interface RecentlyViewedCardProps {
+  item: Attraction;
+  onSelect: (id: string) => void;
+  formatPrice: (amount: number, currency?: string) => string;
+}
+
+function RecentlyViewedCard({ item, onSelect, formatPrice }: RecentlyViewedCardProps) {
+  const [imgSrc, setImgSrc] = React.useState(item.imageUrl);
+
+  React.useEffect(() => {
+    setImgSrc(item.imageUrl);
+  }, [item.imageUrl]);
+
+  const handleImageError = () => {
+    const fallbacks: Record<string, string> = {
+      Museum: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=800',
+      Adventure: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=800',
+      Landmark: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=800',
+      Nature: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=800',
+      Show: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=800',
+      "Shows & Events": 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=800',
+      Food: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800',
+      Cruise: 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=800',
+      "Theme Parks": 'https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=800',
+    };
+    const key = item.category || '';
+    setImgSrc(fallbacks[key] || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=800');
+  };
+
+  return (
+    <div
+      onClick={() => onSelect(item.id)}
+      className="group cursor-pointer shrink-0 snap-start w-[280px] sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] bg-white dark:bg-slate-950 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-850/80 shadow-[0_8px_30px_-10px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_-8px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-500 flex flex-col h-full"
+    >
+      <div className="relative aspect-[1.4/1] overflow-hidden">
+        <div className="absolute inset-0 bg-slate-100 dark:bg-slate-900 animate-pulse" />
+        <img 
+          src={imgSrc} 
+          alt={item.name}
+          onError={handleImageError}
+          className="relative z-10 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-15 pointer-events-none" />
+
+        <div className="absolute bottom-2.5 left-2.5 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-1 group-hover:translate-y-0 pointer-events-none">
+          <div className="flex items-center gap-1 bg-black/80 text-white px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest shadow-md">
+            View
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-3.5 flex flex-col flex-grow justify-between">
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap truncate max-w-[100px]">
+              {item.category || 'Attraction'}
+            </span>
+            <div className="flex items-center gap-0.5 px-2 py-0.5 bg-[#FFF9EB] dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 rounded-full h-5">
+              <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500 shrink-0" />
+              <span className="text-[10px] font-black text-amber-900 dark:text-amber-200 leading-none">{item.rating}</span>
+            </div>
+          </div>
+          
+          <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-xs md:text-[13px] leading-snug group-hover:text-brand transition-colors line-clamp-1 tracking-tight mb-3">
+            {item.name}
+          </h3>
+        </div>
+        
+        <div className="flex items-center justify-between gap-1.5 pt-2.5 border-t border-slate-100 dark:border-slate-850/60 mt-auto">
+          <div className="flex items-center gap-1 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-350 transition-colors truncate">
+            <Navigation2 className="w-2.5 h-2.5 fill-current shrink-0" />
+            <span className="text-[9px] font-bold uppercase tracking-wider leading-none truncate max-w-[65px]">
+              {item.city}
+            </span>
+          </div>
+          
+          <div className="text-right flex flex-col items-end shrink-0 select-none whitespace-nowrap">
+            <span className="text-[8px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider leading-none mb-0.5">
+              From
+            </span>
+            <span className="text-[11px] md:text-xs font-black text-slate-950 dark:text-slate-200 leading-none">
+              {formatPrice(item.price, item.currency)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RecentlyViewed({ items, onSelect, onClear }: RecentlyViewedProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
@@ -102,66 +193,13 @@ export default function RecentlyViewed({ items, onSelect, onClear }: RecentlyVie
             className="flex overflow-x-auto gap-4 md:gap-6 pb-8 -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory no-scrollbar"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {items.map((item, index) => (
-              <div
+            {items.map((item) => (
+              <RecentlyViewedCard
                 key={item.id}
-                onClick={() => onSelect(item.id)}
-                className="group cursor-pointer shrink-0 snap-start w-[280px] sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] bg-white dark:bg-slate-950 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-850/80 shadow-[0_8px_30px_-10px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_-8px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-500 flex flex-col h-full"
-              >
-                <div className="relative aspect-[1.4/1] overflow-hidden">
-                  <div className="absolute inset-0 bg-slate-100 dark:bg-slate-900 animate-pulse" />
-                  <img 
-                    src={item.imageUrl} 
-                    alt={item.name}
-                    className="relative z-10 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-15 pointer-events-none" />
-                  
-
-                  <div className="absolute bottom-2.5 left-2.5 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-1 group-hover:translate-y-0 pointer-events-none">
-                    <div className="flex items-center gap-1 bg-black/80 text-white px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest shadow-md">
-                      View
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="p-3.5 flex flex-col flex-grow justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap truncate max-w-[100px]">
-                        {item.category || 'Attraction'}
-                      </span>
-                      <div className="flex items-center gap-0.5 px-2 py-0.5 bg-[#FFF9EB] dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 rounded-full h-5">
-                        <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500 shrink-0" />
-                        <span className="text-[10px] font-black text-amber-900 dark:text-amber-200 leading-none">{item.rating}</span>
-                      </div>
-                    </div>
-                    
-                    <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-xs md:text-[13px] leading-snug group-hover:text-brand transition-colors line-clamp-1 tracking-tight mb-3">
-                      {item.name}
-                    </h3>
-                  </div>
-                  
-                  <div className="flex items-center justify-between gap-1.5 pt-2.5 border-t border-slate-100 dark:border-slate-850/60 mt-auto">
-                    <div className="flex items-center gap-1 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-350 transition-colors truncate">
-                      <Navigation2 className="w-2.5 h-2.5 fill-current shrink-0" />
-                      <span className="text-[9px] font-bold uppercase tracking-wider leading-none truncate max-w-[65px]">
-                        {item.city}
-                      </span>
-                    </div>
-                    
-                    <div className="text-right flex flex-col items-end shrink-0 select-none whitespace-nowrap">
-                      <span className="text-[8px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider leading-none mb-0.5">
-                        From
-                      </span>
-                      <span className="text-[11px] md:text-xs font-black text-slate-950 dark:text-slate-200 leading-none">
-                        {formatPrice(item.price, item.currency)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                item={item}
+                onSelect={onSelect}
+                formatPrice={formatPrice}
+              />
             ))}
           </div>
         </div>
