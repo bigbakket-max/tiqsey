@@ -152,7 +152,8 @@ export default function App() {
         typeof window !== "undefined" &&
         window.location.pathname !== "/" &&
         window.location.pathname !== "" &&
-        !window.location.pathname.startsWith("/admin")
+        !window.location.pathname.startsWith("/admin") &&
+        !window.location.pathname.startsWith("/secure-panel")
       ) {
         window.history.replaceState({}, "", "/");
       }
