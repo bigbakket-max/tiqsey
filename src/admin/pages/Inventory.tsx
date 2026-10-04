@@ -50,6 +50,7 @@ import {
   ArrowUpRight
 } from "lucide-react";
 import { POPULAR_ATTRACTIONS, syncCustomAttractions, deduplicateAttractions } from "../../data/mockData";
+import { uploadAndOptimizeImage } from "../../utils/imageUpload";
 import { generateUniqueProductId, getDisplayProductId, registerUsedProductId } from "../../utils/productIdGenerator";
 import { Attraction, Variant, VariantRule, BookingMode, AffiliateConfig } from "../../types";
 import { AFFILIATE_VENDORS, isValidAffiliateUrl, buildAffiliateUrl, resolveAffiliateUrlTokens } from "../../utils/affiliate";
@@ -1064,87 +1065,23 @@ export default function Inventory() {
     setNewUrlInput("");
   };
 
-  const handleGalleryFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGalleryFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        const rawBase64 = reader.result;
-
-        // Compress image using Canvas to ensure it loads fast and fits easily in storage
-        const img = new window.Image();
-        img.onload = async () => {
-          const canvas = document.createElement("canvas");
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-            if (width / height > MAX_WIDTH / MAX_HEIGHT) {
-              height = Math.round((height * MAX_WIDTH) / width);
-              width = MAX_WIDTH;
-            } else {
-              width = Math.round((width * MAX_HEIGHT) / height);
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          let compressedBase64 = rawBase64;
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            try {
-              compressedBase64 = canvas.toDataURL("image/webp", 0.85);
-              if (!compressedBase64.startsWith("data:image/webp")) {
-                compressedBase64 = canvas.toDataURL("image/jpeg", 0.82);
-              }
-            } catch {
-              compressedBase64 = canvas.toDataURL("image/jpeg", 0.82);
-            }
-          }
-
-          let finalUrl = compressedBase64;
-
-          // Attempt to upload to server API for a permanent lightweight URL
-          try {
-            const resp = await fetch("/api/upload", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                image: compressedBase64,
-                filename: file.name
-              })
-            });
-            if (resp.ok) {
-              const data = await resp.json();
-              if (data?.url) {
-                finalUrl = data.url;
-              }
-            }
-          } catch (uploadErr) {
-            console.warn("Upload API unavailable, using optimized base64", uploadErr);
-          }
-
-          setGalleryUrls((prev) => [finalUrl, ...prev.filter((u) => u !== finalUrl)]);
-          setImageUrl(finalUrl);
-        };
-
-        img.onerror = () => {
-          setGalleryUrls((prev) => [rawBase64, ...prev]);
-          setImageUrl(rawBase64);
-        };
-
-        img.src = rawBase64;
+    try {
+      showLoader();
+      const uploadedUrl = await uploadAndOptimizeImage(file);
+      if (uploadedUrl) {
+        setGalleryUrls((prev) => [uploadedUrl, ...prev.filter((u) => u !== uploadedUrl)]);
+        setImageUrl(uploadedUrl);
       }
-    };
-    reader.readAsDataURL(file);
-    // Reset file input so same file can be selected again if needed
-    e.target.value = "";
+    } catch (err) {
+      console.error("Error uploading image in inventory:", err);
+    } finally {
+      hideLoader();
+      e.target.value = "";
+    }
   };
 
   const moveLeft = (index: number) => {

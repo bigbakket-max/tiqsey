@@ -48,6 +48,16 @@ export default function App() {
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string | null>(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
 
+  const [attractionsRev, setAttractionsRev] = useState(0);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setAttractionsRev((prev) => prev + 1);
+    };
+    window.addEventListener("tiqsey_attractions_updated", handleUpdate);
+    return () => window.removeEventListener("tiqsey_attractions_updated", handleUpdate);
+  }, []);
+
   const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem("recentlyViewed");
@@ -69,7 +79,7 @@ export default function App() {
       console.error("Error computing recently viewed items", e);
       return [];
     }
-  }, [recentlyViewedIds]);
+  }, [recentlyViewedIds, attractionsRev]);
 
   const addToRecentlyViewed = (id: string) => {
     setRecentlyViewedIds((prev) => {

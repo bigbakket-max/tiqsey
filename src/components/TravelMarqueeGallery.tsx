@@ -23,8 +23,11 @@ const MarqueeCard = ({ attraction, onClick }: { attraction: Attraction; onClick?
       Landmark: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=600",
       Nature: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=600",
       Show: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=600",
+      "Shows & Events": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=600",
       Food: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=600",
-      Cruise: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600",
+      Cruise: "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=600",
+      "Theme Parks": "https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=600",
+      Tours: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&q=80&w=600",
     };
     const key = attraction.category || "";
     setImgSrc(fallbacks[key] || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=600");
@@ -100,8 +103,20 @@ const MarqueeCard = ({ attraction, onClick }: { attraction: Attraction; onClick?
 };
 
 export function TravelMarqueeGallery({ onSelectAttraction }: TravelMarqueeGalleryProps) {
+  const [rev, setRev] = React.useState(0);
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      setRev((prev) => prev + 1);
+    };
+    window.addEventListener("tiqsey_attractions_updated", handleUpdate);
+    return () => window.removeEventListener("tiqsey_attractions_updated", handleUpdate);
+  }, []);
+
   // Extract real activity listing cards directly from website POPULAR_ATTRACTIONS data
-  const attractions = POPULAR_ATTRACTIONS && POPULAR_ATTRACTIONS.length > 0 ? deduplicateAttractions(POPULAR_ATTRACTIONS) : [];
+  const attractions = React.useMemo(() => {
+    return POPULAR_ATTRACTIONS && POPULAR_ATTRACTIONS.length > 0 ? deduplicateAttractions(POPULAR_ATTRACTIONS) : [];
+  }, [rev]);
 
   // Distribute real listing activity cards across 3 rows using modulo for a varied mix
   const row1 = attractions.filter((_, idx) => idx % 3 === 0);

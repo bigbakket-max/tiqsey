@@ -140,7 +140,12 @@ export function BlogProvider({ children }: { children: ReactNode }) {
   });
 
   React.useEffect(() => {
-    localStorage.setItem('tiqsey_blog_posts', JSON.stringify(posts));
+    try {
+      localStorage.setItem('tiqsey_blog_posts', JSON.stringify(posts));
+      window.dispatchEvent(new Event('tiqsey_blog_updated'));
+    } catch (e) {
+      console.error('Failed to save blog posts to localStorage', e);
+    }
   }, [posts]);
 
   React.useEffect(() => {
@@ -181,9 +186,20 @@ export function BlogProvider({ children }: { children: ReactNode }) {
         }
       }
     };
+    const handleCustomUpdate = () => {
+      try {
+        const raw = localStorage.getItem('tiqsey_blog_posts');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) setPosts(parsed);
+        }
+      } catch (_) {}
+    };
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('tiqsey_blog_updated', handleCustomUpdate);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('tiqsey_blog_updated', handleCustomUpdate);
     };
   }, []);
 

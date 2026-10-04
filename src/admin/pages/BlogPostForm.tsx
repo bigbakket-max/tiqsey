@@ -1,4 +1,5 @@
 import { useAdminLoader } from "../contexts/AdminLoaderContext";
+import { uploadAndOptimizeImage } from "../../utils/imageUpload";
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -593,7 +594,7 @@ export default function BlogPostForm() {
     setIsImageModalOpen(false);
   };
 
-  const handleModalImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleModalImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setUploadFileName(file.name);
@@ -601,26 +602,24 @@ export default function BlogPostForm() {
         const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
         setModalImageAlt(nameWithoutExt);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          setModalImageUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        const url = await uploadAndOptimizeImage(file);
+        if (url) setModalImageUrl(url);
+      } catch (err) {
+        console.error("Modal image upload error:", err);
+      }
     }
   };
 
-  const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          setImageUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        const url = await uploadAndOptimizeImage(file);
+        if (url) setImageUrl(url);
+      } catch (err) {
+        console.error("Cover image upload error:", err);
+      }
     }
   };
 
@@ -634,18 +633,17 @@ export default function BlogPostForm() {
     setIsCoverDragging(false);
   };
 
-  const handleCoverDrop = (e: React.DragEvent) => {
+  const handleCoverDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsCoverDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          setImageUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        const url = await uploadAndOptimizeImage(file);
+        if (url) setImageUrl(url);
+      } catch (err) {
+        console.error("Cover drop upload error:", err);
+      }
     }
   };
 
@@ -659,7 +657,7 @@ export default function BlogPostForm() {
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
@@ -669,13 +667,12 @@ export default function BlogPostForm() {
         const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
         setModalImageAlt(nameWithoutExt);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          setModalImageUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        const url = await uploadAndOptimizeImage(file);
+        if (url) setModalImageUrl(url);
+      } catch (err) {
+        console.error("Drop image upload error:", err);
+      }
     }
   };
 

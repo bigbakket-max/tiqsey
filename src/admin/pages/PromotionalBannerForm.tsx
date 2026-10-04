@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { uploadAndOptimizeImage } from '../../utils/imageUpload';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -315,76 +316,21 @@ export default function PromotionalBannerForm() {
   };
 
   // Image file uploader handler
-  const processImageFile = (file: File) => {
+  const processImageFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       setNotification({ message: 'Please select a valid image file (PNG, JPG, WebP, SVG).', type: 'error' });
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        const rawBase64 = reader.result;
-
-        // Skip compression for SVGs
-        if (file.type === 'image/svg+xml') {
-          setCustomImageUrl(rawBase64);
-          setNotification({ message: 'Banner graphic uploaded successfully!', type: 'success' });
-          setTimeout(() => setNotification(null), 3000);
-          return;
-        }
-
-        // Compress raster images using Canvas
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1000;
-          const MAX_HEIGHT = 625;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-            if (width / height > MAX_WIDTH / MAX_HEIGHT) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            } else {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            // Try high-efficiency WebP with alpha first, otherwise JPEG
-            let compressed = '';
-            try {
-              compressed = canvas.toDataURL('image/webp', 0.82);
-              if (!compressed.startsWith('data:image/webp')) {
-                compressed = canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.75);
-              }
-            } catch {
-              compressed = canvas.toDataURL('image/jpeg', 0.75);
-            }
-            setCustomImageUrl(compressed);
-            setNotification({ message: 'Banner graphic uploaded & optimized successfully!', type: 'success' });
-          } else {
-            setCustomImageUrl(rawBase64);
-            setNotification({ message: 'Banner graphic uploaded successfully!', type: 'success' });
-          }
-          setTimeout(() => setNotification(null), 3000);
-        };
-        img.onerror = () => {
-          setCustomImageUrl(rawBase64);
-          setNotification({ message: 'Banner graphic uploaded successfully!', type: 'success' });
-          setTimeout(() => setNotification(null), 3000);
-        };
-        img.src = rawBase64;
+    try {
+      const url = await uploadAndOptimizeImage(file, 1200, 750, 0.85);
+      if (url) {
+        setCustomImageUrl(url);
+        setNotification({ message: 'Banner graphic uploaded successfully!', type: 'success' });
+        setTimeout(() => setNotification(null), 3000);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      setNotification({ message: err?.message || 'Failed to upload image', type: 'error' });
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
