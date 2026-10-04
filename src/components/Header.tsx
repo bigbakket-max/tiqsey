@@ -235,8 +235,8 @@ export default function Header({
         <div
           className={`h-[56px] sm:h-[68px] relative z-50 backdrop-blur-md transition-colors ${!scrolled && pageName === "home" && !activeDestination ? "bg-[#F4F7F9]/95 dark:bg-slate-950/95 border-b border-gray-200/60 dark:border-slate-800/50 md:border-b-transparent" : "bg-white/95 dark:bg-slate-900/95 border-b border-gray-100/80 dark:border-slate-850/80"}`}
         >
-          <div className="max-w-[1400px] mx-auto pl-1.5 pr-4 sm:pl-3 sm:pr-6 lg:pl-4 lg:pr-8 h-full flex items-center justify-between gap-3 sm:gap-4 md:gap-8">
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0 mr-2 sm:mr-4 md:mr-6">
+          <div className="max-w-[1440px] mx-auto px-2.5 sm:px-4 lg:px-6 h-full flex items-center justify-between gap-2 lg:gap-3 xl:gap-5">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0 mr-1 sm:mr-2 lg:mr-3 xl:mr-4">
               <div
                 className="flex items-center cursor-pointer shrink-0 transition-all duration-300 hover:opacity-90 active:scale-95 select-none"
                 onClick={() => {
@@ -244,16 +244,16 @@ export default function Header({
                   window.scrollTo(0, 0);
                 }}
               >
-                <span className="font-black tracking-tight text-[22px] sm:text-[26px] text-brand dark:text-brand transition-colors leading-none">
+                <span className="font-black tracking-tight text-[22px] sm:text-[25px] text-brand dark:text-brand transition-colors leading-none">
                   Tiqsey<span className="text-brand">.</span>
                 </span>
               </div>
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center flex-1 h-full min-w-0 ml-4 xl:ml-6">
+            <div className="hidden lg:flex items-center h-full shrink-0">
               <nav
-                className="flex items-center h-full relative select-none gap-2 lg:gap-3 xl:gap-[18px]"
+                className="flex items-center h-full relative select-none gap-0.5 xl:gap-2 2xl:gap-3.5"
                 onMouseLeave={() => setHoveredIdx(null)}
               >
                 {[
@@ -287,7 +287,7 @@ export default function Header({
                 ].map((item, idx) => (
                   <div
                     key={idx}
-                    className="group relative h-full flex items-center px-2 transition-colors cursor-pointer"
+                    className="group relative h-full flex items-center px-1.5 xl:px-2.5 transition-colors cursor-pointer"
                     onMouseEnter={() => setHoveredIdx(idx)}
                   >
                     {hoveredIdx === idx && (
@@ -307,7 +307,7 @@ export default function Header({
                     {item.active && (
                       <motion.div
                         layoutId="nav-active-underline"
-                        className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-brand dark:bg-brand rounded-full z-10"
+                        className="absolute bottom-0 left-1.5 right-1.5 h-[2.5px] bg-brand dark:bg-brand rounded-full z-10"
                         transition={{
                           type: "spring",
                           stiffness: 380,
@@ -332,7 +332,7 @@ export default function Header({
                           if (onNavigate) onNavigate("about");
                         }
                       }}
-                      className={`text-[14px] xl:text-[15px] font-bold tracking-tight whitespace-nowrap transition-colors flex items-center gap-1.5 h-full ${
+                      className={`text-[13px] xl:text-[14.5px] font-bold tracking-tight whitespace-nowrap transition-colors flex items-center gap-1.5 h-full ${
                         item.active
                           ? "text-slate-900 dark:text-white"
                           : "text-slate-700 dark:text-slate-300 group-hover:text-brand dark:group-hover:text-brand"

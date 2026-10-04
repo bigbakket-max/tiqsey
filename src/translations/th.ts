@@ -616,7 +616,7 @@ export const th: Record<string, string> = {
   googleSignUpFailed: 'การลงทะเบียนด้วย Google ล้มเหลว',
   hidePassword: 'ซ่อนรหัสผ่าน',
   showPassword: 'แสดงรหัสผ่าน',
-  enterEmailFirst: 'กรุณากรอกอีเมลของคุณก่อน แล้วคลิก \'ลืมรหัสผ่าน?\'',
+  enterEmailFirst: 'กรุณากรอกอีเมลของคุณก่อน แล้วคลิก \\\'ลืมรหัสผ่าน?\\\'',
   passwordResetSent: 'ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลของคุณแล้ว',
   tableOfContents: 'สารบัญ',
   lastUpdated: 'อัปเดตล่าสุด',

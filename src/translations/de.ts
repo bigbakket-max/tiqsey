@@ -616,7 +616,7 @@ export const de: Record<string, string> = {
   googleSignUpFailed: 'Google-Registrierung fehlgeschlagen.',
   hidePassword: 'Passwort ausblenden',
   showPassword: 'Passwort anzeigen',
-  enterEmailFirst: 'Bitte geben Sie zuerst Ihre E-Mail-Adresse ein und klicken Sie auf \'Passwort vergessen?\'.',
+  enterEmailFirst: 'Bitte geben Sie zuerst Ihre E-Mail-Adresse ein und klicken Sie auf \\\'Passwort vergessen?\\\'.',
   passwordResetSent: 'Link zum Zurücksetzen wurde an Ihre E-Mail gesendet.',
   tableOfContents: 'Inhaltsverzeichnis',
   lastUpdated: 'Zuletzt aktualisiert',

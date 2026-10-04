@@ -616,7 +616,7 @@ export const ar: Record<string, string> = {
   googleSignUpFailed: 'فشل التسجيل عبر Google.',
   hidePassword: 'إخفاء كلمة المرور',
   showPassword: 'إظهار كلمة المرور',
-  enterEmailFirst: 'يرجى إدخال البريد الإلكتروني أولاً ثم الضغط على \'نسيت كلمة المرور؟\'.',
+  enterEmailFirst: 'يرجى إدخال البريد الإلكتروني أولاً ثم الضغط على \\\'نسيت كلمة المرور؟\\\'.',
   passwordResetSent: 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.',
   tableOfContents: 'جدول المحتويات',
   lastUpdated: 'آخر تحديث',

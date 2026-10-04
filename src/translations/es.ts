@@ -616,7 +616,7 @@ export const es: Record<string, string> = {
   googleSignUpFailed: 'Error al registrarse con Google.',
   hidePassword: 'Ocultar contraseña',
   showPassword: 'Mostrar contraseña',
-  enterEmailFirst: 'Por favor, introduce primero tu correo electrónico y pulsa \'¿Olvidaste tu contraseña?\'.',
+  enterEmailFirst: 'Por favor, introduce primero tu correo electrónico y pulsa \\\'¿Olvidaste tu contraseña?\\\'.',
   passwordResetSent: 'Enlace de restablecimiento enviado a tu correo.',
   tableOfContents: 'Índice de contenidos',
   lastUpdated: 'Última actualización',

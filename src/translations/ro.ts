@@ -616,7 +616,7 @@ export const ro: Record<string, string> = {
   googleSignUpFailed: 'Înregistrarea cu Google a eșuat.',
   hidePassword: 'Ascunde parola',
   showPassword: 'Arată parola',
-  enterEmailFirst: 'Introdu mai întâi adresa de e-mail, apoi apasă \'Ai uitat parola?\'.',
+  enterEmailFirst: 'Introdu mai întâi adresa de e-mail, apoi apasă \\\'Ai uitat parola?\\\'.',
   passwordResetSent: 'Linkul de resetare a fost trimis pe e-mail.',
   tableOfContents: 'Cuprins',
   lastUpdated: 'Ultima actualizare',

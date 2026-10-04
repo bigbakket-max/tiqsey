@@ -493,8 +493,8 @@ export default function SearchBar({
           placeholder={
             placeholder ||
             (isCompact
-              ? "Search attractions, cities or activities."
-              : "Search destinations, activities, tours, attractions...")
+              ? t("searchActivitiesPlaceholder", "Search attractions, cities or activities.")
+              : t("searchPlaceholder", "Search destinations, activities, tours, attractions..."))
           }
           autoFocus={autoFocus}
           className={`focus:outline-none focus:ring-0 focus:border-none focus-visible:outline-none focus-visible:ring-0 transition-all duration-300 ease-in-out font-sans leading-normal ${
