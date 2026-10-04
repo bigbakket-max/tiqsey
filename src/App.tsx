@@ -33,18 +33,91 @@ import TermsAndConditionsPage from "./components/TermsAndConditionsPage";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 
+type AppPage =
+  | "home"
+  | "attractions-and-museums"
+  | "hot-deals"
+  | "blog"
+  | "sign-in"
+  | "register"
+  | "wishlist"
+  | "my-bookings"
+  | "profile"
+  | "about"
+  | "privacy-policy"
+  | "cookie-policy"
+  | "terms-and-conditions";
+
+function parseInitialRoute(): { page: AppPage; destination: string | null; attractionId: string | null } {
+  if (typeof window === "undefined") {
+    return { page: "home", destination: null, attractionId: null };
+  }
+  const path = window.location.pathname;
+  const params = new URLSearchParams(window.location.search);
+  let attrId = params.get("attraction");
+
+  if (path.startsWith("/activities/")) {
+    attrId = path.split("/activities/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim() || null;
+  }
+
+  if (attrId) {
+    return { page: "home", destination: null, attractionId: attrId };
+  }
+
+  let dest: string | null = null;
+  if (path.startsWith("/destinations/")) {
+    const destId = path.split("/destinations/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim();
+    if (destId) {
+      dest = destId
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+    }
+  }
+
+  if (dest) {
+    return { page: "home", destination: dest, attractionId: null };
+  }
+
+  let page: AppPage = "home";
+  if (path === "/blog" || path.startsWith("/blog/") || params.has("post")) {
+    page = "blog";
+  } else if (path === "/about") {
+    page = "about";
+  } else if (path === "/privacy" || path === "/privacy-policy") {
+    page = "privacy-policy";
+  } else if (path === "/cookies" || path === "/cookie-policy") {
+    page = "cookie-policy";
+  } else if (path === "/terms" || path === "/terms-and-conditions") {
+    page = "terms-and-conditions";
+  } else if (path === "/wishlist" || params.has("items")) {
+    page = "wishlist";
+  } else if (path === "/my-bookings") {
+    page = "my-bookings";
+  } else if (path === "/profile") {
+    page = "profile";
+  } else if (path === "/login" || path === "/sign-in") {
+    page = "sign-in";
+  } else if (path === "/hot-deals") {
+    page = "hot-deals";
+  } else if (path === "/attractions-and-museums" || path === "/things-to-do") {
+    page = "attractions-and-museums";
+  }
+
+  return { page, destination: null, attractionId: null };
+}
+
 export default function App() {
   const { t } = useSettings();
   const { user } = useAuth();
-  const [currentPage, setCurrentPage] = useState<
-    "home" | "attractions-and-museums" | "hot-deals" | "blog" | "sign-in" | "register" | "wishlist" | "my-bookings" | "profile" | "about" | "privacy-policy" | "cookie-policy" | "terms-and-conditions"
-  >("home");
+  
+  const [currentPage, setCurrentPage] = useState<AppPage>(() => parseInitialRoute().page);
   const [selectedDestination, setSelectedDestination] = useState<string | null>(
-    null,
+    () => parseInitialRoute().destination,
   );
-  const [selectedAttractionId, setSelectedAttractionId] = useState<
-    string | null
-  >(null);
+  const [selectedAttractionId, setSelectedAttractionId] = useState<string | null>(
+    () => parseInitialRoute().attractionId,
+  );
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string | null>(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
 
@@ -57,6 +130,34 @@ export default function App() {
     window.addEventListener("tiqsey_attractions_updated", handleUpdate);
     return () => window.removeEventListener("tiqsey_attractions_updated", handleUpdate);
   }, []);
+
+  // Synchronize route when user clicks Browser Back/Forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const route = parseInitialRoute();
+      setSelectedAttractionId(route.attractionId);
+      setSelectedDestination(route.destination);
+      setCurrentPage(route.page);
+      setActiveCategoryFilter(null);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // Ensure that if the user is on the home page view, the URL is always clean '/'
+  useEffect(() => {
+    if (currentPage === "home" && !selectedAttractionId && !selectedDestination) {
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname !== "/" &&
+        window.location.pathname !== "" &&
+        !window.location.pathname.startsWith("/admin")
+      ) {
+        window.history.replaceState({}, "", "/");
+      }
+    }
+  }, [currentPage, selectedAttractionId, selectedDestination]);
 
   const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => {
     try {
@@ -104,69 +205,26 @@ export default function App() {
     }
   };
 
-  // Handle loading attraction from URL (path or query params)
+  // Ensure initial attraction is tracked in recently viewed
   useEffect(() => {
-    try {
-      const path = window.location.pathname;
-      const params = new URLSearchParams(window.location.search);
-      let attrId = params.get("attraction");
-
-      if (path.startsWith("/activities/")) {
-        attrId = path.split("/activities/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim();
-      } else if (path.startsWith("/destinations/")) {
-        const destId = path.split("/destinations/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim();
-        if (destId) {
-          const formattedDest = destId
-            .split("-")
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(" ");
-          setSelectedDestination(formattedDest);
-        }
-      } else if (path === "/blog" || path.startsWith("/blog/") || params.has("post")) {
-        setCurrentPage("blog");
-      } else if (path === "/about") {
-        setCurrentPage("about");
-      } else if (path === "/privacy" || path === "/privacy-policy") {
-        setCurrentPage("privacy-policy");
-      } else if (path === "/cookies" || path === "/cookie-policy") {
-        setCurrentPage("cookie-policy");
-      } else if (path === "/terms" || path === "/terms-and-conditions") {
-        setCurrentPage("terms-and-conditions");
-      } else if (path === "/wishlist" || params.has("items")) {
-        setCurrentPage("wishlist");
-      } else if (path === "/my-bookings") {
-        setCurrentPage("my-bookings");
-      } else if (path === "/profile") {
-        setCurrentPage("profile");
-      } else if (path === "/login" || path === "/sign-in") {
-        setCurrentPage("sign-in");
-      }
-
-      if (attrId) {
-        setSelectedAttractionId(attrId);
-        // Ensure it is in recently viewed
-        setRecentlyViewedIds((prev) => {
-          const filtered = prev.filter((item) => item !== attrId);
-          const updated = [attrId!, ...filtered].slice(0, 20);
+    if (selectedAttractionId) {
+      setRecentlyViewedIds((prev) => {
+        const filtered = prev.filter((item) => item !== selectedAttractionId);
+        const updated = [selectedAttractionId, ...filtered].slice(0, 20);
+        try {
           localStorage.setItem("recentlyViewed", JSON.stringify(updated));
-          return updated;
-        });
-      }
-    } catch (e) {
-      console.error("Error handling initial attraction from URL", e);
+        } catch (_) {}
+        return updated;
+      });
     }
-  }, []);
+  }, [selectedAttractionId]);
 
   // Protect private pages with local session check
   useEffect(() => {
     const checkSession = () => {
       const privatePages = ["wishlist", "my-bookings", "profile"];
       if (privatePages.includes(currentPage)) {
-        // TODO: Reconnect Supabase authentication session check here.
-        // const { data: { session } } = await supabase.auth.getSession();
-        // if (!session) { ... }
         if (!user) {
-          // Redirect to /login
           window.history.pushState({}, "", "/login");
           setCurrentPage("sign-in");
         }
@@ -175,20 +233,19 @@ export default function App() {
     checkSession();
   }, [currentPage, user]);
 
-  const handleCloseDetail = () => {
+  const navigateHome = () => {
+    setSelectedDestination(null);
     setSelectedAttractionId(null);
-    try {
-      const url = new URL(window.location.href);
-      if (url.searchParams.has("attraction")) {
-        url.searchParams.delete("attraction");
-      }
-      if (url.pathname.startsWith("/activities/")) {
-        url.pathname = "/";
-      }
-      window.history.replaceState({}, "", url.toString());
-    } catch (e) {
-      console.error("Error rewriting URL on detail close", e);
+    setActiveCategoryFilter(null);
+    setCurrentPage("home");
+    if (typeof window !== "undefined" && window.location.pathname !== "/") {
+      window.history.pushState({}, "", "/");
     }
+    window.scrollTo(0, 0);
+  };
+
+  const handleCloseDetail = () => {
+    navigateHome();
   };
 
   const handleViewAttraction = (id: string) => {
@@ -221,15 +278,7 @@ export default function App() {
             );
             window.scrollTo(0, 0);
           }}
-          onNavigateToHome={() => {
-            setSelectedAttractionId(null);
-            setSelectedDestination(null);
-            setActiveCategoryFilter(null);
-            setCurrentPage("home");
-            // Update URL
-            window.history.pushState({}, "", "/");
-            window.scrollTo(0, 0);
-          }}
+          onNavigateToHome={navigateHome}
         />
       );
     }
@@ -252,10 +301,7 @@ export default function App() {
     if (currentPage === "attractions-and-museums") {
       return (
         <AttractionsAndMuseumsPage
-          onBackToHome={() => {
-            setCurrentPage("home");
-            window.scrollTo(0, 0);
-          }}
+          onBackToHome={navigateHome}
           onViewAttraction={handleViewAttraction}
         />
       );
@@ -264,10 +310,7 @@ export default function App() {
     if (currentPage === "hot-deals") {
       return (
         <HotDealsPage
-          onBackToHome={() => {
-            setCurrentPage("home");
-            window.scrollTo(0, 0);
-          }}
+          onBackToHome={navigateHome}
           onViewAttraction={handleViewAttraction}
         />
       );
@@ -276,10 +319,7 @@ export default function App() {
     if (currentPage === "blog") {
       return (
         <BlogPage
-          onBackToHome={() => {
-            setCurrentPage("home");
-            window.scrollTo(0, 0);
-          }}
+          onBackToHome={navigateHome}
           onViewAttraction={handleViewAttraction}
         />
       );
@@ -501,21 +541,18 @@ export default function App() {
           activeDestination={selectedDestination}
           onWishlistOpen={() => setWishlistOpen(true)}
           onViewAttraction={handleViewAttraction}
-          onExplore={() => {
-            setSelectedDestination(null);
-            setSelectedAttractionId(null);
-            setCurrentPage("home");
-          }}
+          onExplore={navigateHome}
           onNavigate={(page) => {
-            setSelectedDestination(null);
-            setSelectedAttractionId(null);
-            setCurrentPage(page);
             if (page === "home") {
-              window.history.pushState({}, "", "/");
+              navigateHome();
             } else {
+              setSelectedDestination(null);
+              setSelectedAttractionId(null);
+              setActiveCategoryFilter(null);
+              setCurrentPage(page);
               window.history.pushState({}, "", `/${page}`);
+              window.scrollTo(0, 0);
             }
-            window.scrollTo(0, 0);
           }}
           onSearch={(q) => {
             const queryLower = q.toLowerCase().trim();
