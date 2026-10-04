@@ -679,7 +679,7 @@ export default function ActivitiesPage({
 
               <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto justify-end">
                 <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 dark:text-slate-500">
-                  SORT BY:
+                  {t('sortBy', 'SORT BY')}:
                 </span>
                 <div className="relative flex items-center bg-slate-50/50 dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl px-3 h-10 shadow-xs transition-all focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10">
                   <select
@@ -691,25 +691,25 @@ export default function ActivitiesPage({
                       value="recommended"
                       className="dark:bg-slate-900 font-bold"
                     >
-                      Recommended Matches
+                      {t('recommendedMatches', 'Recommended Matches')}
                     </option>
                     <option
                       value="priceAsc"
                       className="dark:bg-slate-900 font-bold"
                     >
-                      Price: Low to High
+                      {t('priceLowHigh', 'Price: Low to High')}
                     </option>
                     <option
                       value="priceDesc"
                       className="dark:bg-slate-900 font-bold"
                     >
-                      Price: High to Low
+                      {t('priceHighLow', 'Price: High to Low')}
                     </option>
                     <option
                       value="ratingDesc"
                       className="dark:bg-slate-900 font-bold"
                     >
-                      Top Guest Ratings First
+                      {t('topGuestRatingsFirst', 'Top Guest Ratings First')}
                     </option>
                   </select>
                   <ChevronDown className="absolute right-3 w-3.5 h-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />

@@ -16,6 +16,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { PromotionalBanner } from '../types';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface BannerCardProps {
   banner: PromotionalBanner;
@@ -30,6 +31,7 @@ export default function BannerCard({
   mode = 'live',
   onNavigateAction
 }: BannerCardProps) {
+  const { t } = useSettings();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const handleCopy = (e: React.MouseEvent, code: string) => {
@@ -277,12 +279,12 @@ export default function BannerCard({
               {copiedCode === banner.promoCode ? (
                 <>
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400">Copied</span>
+                  <span className="text-emerald-400">{t('copied', 'Copied')}</span>
                 </>
               ) : (
                 <>
                   <Copy className="w-3.5 h-3.5 text-yellow-300" />
-                  <span>{banner.ctaText || 'Copy'}</span>
+                  <span>{banner.ctaText ? t(banner.ctaText) : t('copy', 'Copy')}</span>
                 </>
               )}
             </button>
@@ -347,10 +349,10 @@ export default function BannerCard({
         {/* Card Footer */}
         <div className="z-10 flex items-center justify-between border-t border-white/10 pt-2 text-[10px]">
           <span className="text-white/60 font-semibold uppercase tracking-wider">
-            {banner.termsText || 'T&CS APPLY'}
+            {banner.termsText ? t(banner.termsText) : t('tcsApply', 'T&CS APPLY')}
           </span>
           <span className="text-[#00bfa5] font-black uppercase flex items-center gap-0.5 group-hover/card:underline">
-            <span>{banner.ctaText || 'EXPLORE TICKETS'}</span>
+            <span>{banner.ctaText ? t(banner.ctaText) : t('exploreTickets', 'EXPLORE TICKETS')}</span>
             <ArrowRight className="w-3 h-3" />
           </span>
         </div>
@@ -424,10 +426,10 @@ export default function BannerCard({
         {/* Card Footer */}
         <div className="z-10 flex items-center justify-between border-t border-white/10 pt-2 text-[10px] text-green-200">
           <span className="font-semibold uppercase tracking-wider">
-            {banner.termsText || 'T&CS APPLY'}
+            {banner.termsText ? t(banner.termsText) : t('tcsApply', 'T&CS APPLY')}
           </span>
           <span className="font-extrabold uppercase flex items-center gap-0.5">
-            <span>{banner.ctaText || 'PARK SPECIALS'}</span>
+            <span>{banner.ctaText ? t(banner.ctaText) : t('parkSpecials', 'PARK SPECIALS')}</span>
           </span>
         </div>
 
@@ -495,10 +497,10 @@ export default function BannerCard({
         {/* Card Footer */}
         <div className="z-10 flex items-center justify-between border-t border-white/10 pt-2 text-[10px] text-rose-100">
           <span className="font-semibold uppercase tracking-wider opacity-90">
-            {banner.termsText || 'BEST PRICE GUARANTEED'}
+            {banner.termsText ? t(banner.termsText) : t('bestPriceGuaranteed', 'BEST PRICE GUARANTEED')}
           </span>
           <span className="font-extrabold uppercase flex items-center gap-0.5 text-yellow-300 group-hover/card:underline">
-            <span>{banner.ctaText || 'EXPLORE NOW'}</span>
+            <span>{banner.ctaText ? t(banner.ctaText) : t('exploreNow', 'EXPLORE NOW')}</span>
             <ArrowRight className="w-2.5 h-2.5 text-yellow-300" />
           </span>
         </div>
@@ -525,13 +527,13 @@ export default function BannerCard({
         {banner.badgeText && (
           <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-sm">
             {renderBadgeIcon(banner.badgeIcon)}
-            <span>{banner.badgeText}</span>
+            <span>{t(banner.badgeText)}</span>
           </div>
         )}
         {banner.secondaryBadge && (
           <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/40 text-white text-[10px] font-bold shadow-sm backdrop-blur-md border border-white/10">
             <Sparkles className="w-2.5 h-2.5 text-amber-300" />
-            <span>{banner.secondaryBadge}</span>
+            <span>{t(banner.secondaryBadge)}</span>
           </div>
         )}
       </div>
@@ -558,10 +560,10 @@ export default function BannerCard({
       {/* Footer */}
       <div className="z-10 flex items-center justify-between border-t border-white/15 pt-2 text-[10px] text-white">
         <span className="text-white/80 font-semibold uppercase tracking-wider truncate max-w-[140px]">
-          {banner.termsText || (banner.promoCode ? `CODE: ${banner.promoCode}` : 'LIMITED OFFER')}
+          {banner.termsText ? t(banner.termsText) : (banner.promoCode ? `${t('promoCodeLabel', 'CODE')}: ${banner.promoCode}` : t('limitedOffer', 'LIMITED OFFER'))}
         </span>
         <span className="font-extrabold uppercase flex items-center gap-1 text-amber-300 group-hover/card:underline shrink-0">
-          <span>{banner.ctaText || 'EXPLORE'}</span>
+          <span>{banner.ctaText ? t(banner.ctaText) : t('explore', 'EXPLORE')}</span>
           <ArrowRight className="w-3 h-3" />
         </span>
       </div>

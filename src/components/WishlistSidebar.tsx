@@ -55,7 +55,7 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
           <div className="flex items-center gap-2">
             <Heart className="w-5 h-5 text-[#e3000f] fill-[#e3000f]" />
             <h2 className="text-[17px] font-extrabold text-slate-800 dark:text-slate-150">
-              Saved Wishlist
+              {t('savedWishlist', 'Saved Wishlist')}
             </h2>
             <span className="bg-rose-50 dark:bg-rose-950/30 text-[#e3000f] dark:text-rose-400 text-xs font-black px-2.5 py-0.5 rounded-full select-none">
               {wishlist.length}
@@ -65,7 +65,7 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
           <button
             onClick={onClose}
             className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
-            aria-label="Close Wishlist"
+            aria-label={t('close', 'Close')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -79,33 +79,33 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
                 <Heart className="w-7 h-7 text-slate-300 dark:text-slate-700" />
               </div>
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
-                Your wishlist is empty
+                {t('emptyWishlistTitle', 'Your wishlist is empty')}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-[280px] leading-relaxed">
-                Start searching or exploring. Click the heart icon on any attraction card to catalog your favorites right here!
+                {t('emptyWishlistDesc', 'Start searching or exploring. Click the heart icon on any attraction card to catalog your favorites right here!')}
               </p>
               <button
                 onClick={onClose}
                 className="mt-6 flex items-center gap-2 text-xs font-black text-brand uppercase tracking-wider hover:underline"
               >
-                <span>Find Attractions</span>
+                <span>{t('findAttractions', 'Find Attractions')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs font-bold text-slate-400 dark:text-slate-500 pb-1 uppercase tracking-widest">
-                <span>Selected Items</span>
+                <span>{t('selectedItems', 'Selected Items')}</span>
                 <button
                   onClick={() => {
-                    if (window.confirm("Are you sure you want to clear your entire wishlist?")) {
+                    if (window.confirm(t('confirmClearWishlist', "Are you sure you want to clear your entire wishlist?"))) {
                       clearWishlist();
                     }
                   }}
                   className="text-[#e3000f]/80 hover:text-[#e3000f] transition-colors flex items-center gap-1 cursor-pointer font-bold"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Clear All</span>
+                  <span>{t('clearAll', 'Clear All')}</span>
                 </button>
               </div>
 
@@ -188,7 +188,7 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
               className="w-full h-11 bg-[#e3000f] text-white text-[13.5px] font-black uppercase tracking-wider rounded-xl hover:bg-opacity-95 shadow-md flex items-center justify-center gap-2 group cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
-              <span>Explore Saved Favorites</span>
+              <span>{t('exploreSavedFavorites', 'Explore Saved Favorites')}</span>
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </button>
           </div>

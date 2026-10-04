@@ -306,10 +306,10 @@ export default function WishlistPage({
           
           <div className="space-y-2">
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Sign In Required
+              {t('signInRequired', 'Sign In Required')}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-              Please sign in to your Tiqsey account to access and sync your saved wishlist items across all devices.
+              {t('signInRequiredWishlistDesc', 'Please sign in to your Tiqsey account to access and sync your saved wishlist items across all devices.')}
             </p>
           </div>
 
@@ -319,14 +319,14 @@ export default function WishlistPage({
               className="w-full py-3 px-5 bg-[#e3000f] hover:bg-[#c2000d] text-white font-bold rounded-xl transition-colors text-sm shadow-sm cursor-pointer"
               id="wishlist-signin-btn"
             >
-              Sign In
+              {t('signIn', 'Sign In')}
             </button>
             <button
               onClick={onBackToHome}
               className="w-full py-3 px-5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm cursor-pointer"
               id="wishlist-back-btn"
             >
-              Return to Home
+              {t('returnToHome', 'Return to Home')}
             </button>
           </div>
         </div>

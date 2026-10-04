@@ -2285,7 +2285,7 @@ export default function AttractionDetailModal({
                         {childCount > 0 && (
                           <div className="flex justify-between font-bold text-slate-500 dark:text-slate-400">
                             <span>
-                              {childCount} x Child Ticket
+                              {childCount} x {t('childTicket', 'Child Ticket')}
                             </span>
                             <span>
                               {currency.code} {((childPricePerItem * childCount) * currency.rate).toFixed(2)}
@@ -2293,18 +2293,18 @@ export default function AttractionDetailModal({
                           </div>
                         )}
                         <div className="flex justify-between font-bold text-slate-500 dark:text-slate-400">
-                          <span>Booking Fee</span>
+                          <span>{t('bookingFee', 'Booking Fee')}</span>
                           <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
                             {currency.code} 0.00
                           </span>
                         </div>
                         <div className="flex justify-between font-bold text-slate-500 dark:text-slate-400">
-                          <span>Local Taxes & VAT</span>
-                          <span className="text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Included</span>
+                          <span>{t('taxesVat', 'Local Taxes & VAT')}</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">{t('included', 'Included')}</span>
                         </div>
                         {promoDiscount > 0 && (
                           <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400">
-                            <span>Promo Discount</span>
+                            <span>{t('promoDiscount', 'Promo Discount')}</span>
                             <span>-{currency.code} {(promoDiscount * currency.rate).toFixed(2)}</span>
                           </div>
                         )}
@@ -2315,7 +2315,7 @@ export default function AttractionDetailModal({
                         <div className="flex gap-2">
                           <input
                             type="text"
-                            placeholder="Promo Code"
+                            placeholder={t('promoCode', 'Promo Code')}
                             value={promoCode}
                             onChange={(e) => setPromoCode(e.target.value)}
                             className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#E03A2B] focus:border-transparent transition-all"
@@ -2325,7 +2325,7 @@ export default function AttractionDetailModal({
                             onClick={handleApplyPromo}
                             className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
                           >
-                            Apply
+                            {t('apply', 'Apply')}
                           </button>
                         </div>
                         {promoError && <p className="text-rose-500 text-xs font-semibold">{promoError}</p>}
@@ -2335,7 +2335,7 @@ export default function AttractionDetailModal({
                       {/* Grand total price block */}
                       <div className="bg-[#FFF9EE] dark:bg-amber-950/10 p-4 rounded-xl border border-[#FFEEDB] dark:border-amber-900/20 mb-6 flex items-center justify-between">
                         <div>
-                          <span className="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-widest block">Total Price (All Inc.)</span>
+                          <span className="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-widest block">{t('totalPriceAllInc', 'Total Price (All Inc.)')}</span>
                           <span className="text-xl font-black text-slate-900 dark:text-white leading-none">
                             {currency.code} {(totalPriceFloat * currency.rate).toFixed(2)}
                           </span>
@@ -3279,10 +3279,10 @@ export default function AttractionDetailModal({
             </div>
 
             <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-2 uppercase">
-              Thank you for your order!
+              {t('thankYouForOrder', 'Thank you for your order!')}
             </h2>
             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-              Your order is being processed and it will max 30 min to confirmed .
+              {t('orderProcessingNotice', 'Your order is being processed and will take a maximum of 30 minutes to be confirmed.')}
             </p>
 
             {/* Digitized boarding Pass visualization typical of travel apps */}
@@ -3295,14 +3295,14 @@ export default function AttractionDetailModal({
               <div className="flex gap-4 items-center mb-5 border-b border-dashed border-gray-200 dark:border-slate-800 pb-4">
                 <img src={mainImage} className="w-16 h-16 object-cover rounded-xl shrink-0 border border-gray-200 dark:border-slate-850" alt="Attraction summary ticket" referrerPolicy="no-referrer" />
                 <div>
-                  <span className="text-[10px] font-black uppercase text-brand tracking-widest leading-none block mb-1">Explorer Ticket Pass</span>
+                  <span className="text-[10px] font-black uppercase text-brand tracking-widest leading-none block mb-1">{t('explorerTicketPass', 'Explorer Ticket Pass')}</span>
                   <h4 className="text-sm font-black text-slate-900 dark:text-white line-clamp-1">{attraction.name}</h4>
                   <div className="mt-1.5 space-y-1">
                     <span className="text-[11px] sm:text-[11.5px] font-mono font-bold text-slate-500 dark:text-slate-400 block">
-                      Order Number: <span className="text-slate-800 dark:text-slate-200 font-extrabold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/50">{bookingSuccess.order_number || bookingSuccess.orderId || 'OD631794549437610'}</span>
+                      {t('orderNumber', 'Order Number')}: <span className="text-slate-800 dark:text-slate-200 font-extrabold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/50">{bookingSuccess.order_number || bookingSuccess.orderId || 'OD631794549437610'}</span>
                     </span>
                     <span className="text-[11px] sm:text-[11.5px] font-mono font-bold text-slate-500 dark:text-slate-400 block">
-                      PNR Number: <span className="text-slate-800 dark:text-slate-200 font-extrabold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/50">{bookingSuccess.pnr_number || bookingSuccess.bookingRef || 'BKDDFLYY8XM'}</span>
+                      {t('pnrNumber', 'PNR Number')}: <span className="text-slate-800 dark:text-slate-200 font-extrabold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/50">{bookingSuccess.pnr_number || bookingSuccess.bookingRef || 'BKDDFLYY8XM'}</span>
                     </span>
                   </div>
                 </div>
@@ -3310,27 +3310,27 @@ export default function AttractionDetailModal({
 
               <div className="grid grid-cols-2 gap-y-4 text-xs font-bold leading-normal">
                 <div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Reservation Date</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">{t('reservationDate', 'Reservation Date')}</span>
                   <span className="text-[#1a1a1a] dark:text-slate-200 font-extrabold">{bookingSuccess.bookingDate || bookingDate}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Admission Time</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">{t('admissionTime', 'Admission Time')}</span>
                   <span className="text-[#1a1a1a] dark:text-slate-200 font-extrabold">{selectedTimeSlot}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Primary Traveler</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">{t('primaryTraveler', 'Primary Traveler')}</span>
                   <span className="text-[#1a1a1a] dark:text-slate-200 font-extrabold truncate block max-w-[150px]">{bookingSuccess.guestInfo?.name || guestName}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Participants</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">{t('participants', 'Participants')}</span>
                   <span className="text-[#1a1a1a] dark:text-slate-200 font-extrabold">
-                    {guestCount} Adult{guestCount > 1 ? 's' : ''}
-                    {childCount > 0 && `, ${childCount} Child${childCount > 1 ? 'ren' : ''}`}
+                    {guestCount} {t('adultTicket', 'Adult Ticket')}{guestCount > 1 ? 's' : ''}
+                    {childCount > 0 && `, ${childCount} ${t('childTicket', 'Child Ticket')}${childCount > 1 ? 's' : ''}`}
                   </span>
                 </div>
                 {additionalPassengers.length > 0 && (
                   <div className="col-span-2 border-t border-dashed border-gray-200 dark:border-slate-800/60 pt-3 mt-1">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Additional Passengers</span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">{t('additionalPassengers', 'Additional Passengers')}</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-[#1a1a1a] dark:text-slate-200 font-extrabold text-[11px]">
                       {additionalPassengers.map((p, pIdx) => (
                         <div key={pIdx} className="truncate flex items-center gap-1">
@@ -3345,14 +3345,14 @@ export default function AttractionDetailModal({
                   </div>
                 )}
                 <div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Amount Processed</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">{t('amountProcessed', 'Amount Processed')}</span>
                   <span className="text-brand text-sm font-black">{formatPrice(bookingSuccess.totalPrice ?? totalPriceFloat, attraction?.currency)}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Pass Status</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">{t('passStatus', 'Pass Status')}</span>
                   <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 uppercase text-[10px] font-black">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    Active admission QR
+                    {t('activeAdmissionQR', 'Active admission QR')}
                   </span>
                 </div>
               </div>
@@ -3367,7 +3367,7 @@ export default function AttractionDetailModal({
                   />
                 </div>
                 <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest select-none">
-                  Ticket pass UUID: {bookingSuccess.id || 'CONF-8172901-AMS'}
+                  {t('ticketPassUUID', 'Ticket pass UUID')}: {bookingSuccess.id || 'CONF-8172901-AMS'}
                 </span>
               </div>
 
@@ -3402,7 +3402,7 @@ export default function AttractionDetailModal({
                 className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <Download className="w-4 h-4" />
-                <span>Download Ticket</span>
+                <span>{t('downloadTicket', 'Download Ticket')}</span>
               </button>
               <button
                 id="view-my-tickets-btn"
@@ -3414,14 +3414,14 @@ export default function AttractionDetailModal({
                 }}
                 className="w-full sm:w-auto px-6 py-2.5 bg-brand hover:bg-[#be000b] active:scale-95 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
               >
-                View My Tickets
+                {t('viewMyTickets', 'View My Tickets')}
               </button>
               <button
                 id="continue-explore-btn"
                 onClick={onClose}
                 className="w-full sm:w-auto px-6 py-2.5 bg-gray-100 dark:bg-slate-805 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer"
               >
-                Continue Traveling
+                {t('continueTraveling', 'Continue Traveling')}
               </button>
             </div>
 

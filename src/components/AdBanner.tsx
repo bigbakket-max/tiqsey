@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { PromotionalBanner } from '../types';
 import { getStoredBanners, BANNER_UPDATE_EVENT, DEFAULT_PROMOTIONAL_BANNERS } from '../utils/bannerStorage';
+import { useSettings } from '../contexts/SettingsContext';
 import BannerCard from './BannerCard';
 
 interface AdBannerProps {
@@ -10,6 +11,7 @@ interface AdBannerProps {
 }
 
 export default function AdBanner({ onSelectDestination, onNavigate }: AdBannerProps) {
+  const { t } = useSettings();
   const [banners, setBanners] = useState<PromotionalBanner[]>([]);
 
   useEffect(() => {
@@ -63,10 +65,10 @@ export default function AdBanner({ onSelectDestination, onNavigate }: AdBannerPr
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-5 gap-2">
           <div>
             <span className="text-[#e3000f] font-bold text-xs mb-1 block tracking-wider uppercase">
-              Exclusive Offers & Best Deals
+              {t('exclusiveOffersDeals', 'Exclusive Offers & Best Deals')}
             </span>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-              Activities Promotions
+              {t('activitiesPromotions', 'Activities Promotions')}
             </h2>
           </div>
         </div>

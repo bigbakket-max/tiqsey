@@ -35,7 +35,7 @@ export default function MyBookingsPage({
   onNavigateToSignIn,
 }: MyBookingsPageProps) {
   const { user, bookings, submitReview, addBooking, cancelBooking } = useAuth();
-  const { formatPrice } = useSettings();
+  const { formatPrice, t } = useSettings();
   
   const [activeTab, setActiveTab] = useState<"upcoming" | "completed">("upcoming");
   const [selectedBookingForTicket, setSelectedBookingForTicket] = useState<Booking | null>(null);
@@ -126,10 +126,10 @@ export default function MyBookingsPage({
           
           <div className="space-y-2">
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Sign In Required
+              {t('signInRequired', 'Sign In Required')}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-              Please sign in to view your bookings, download ticket vouchers, and manage your upcoming reservations.
+              {t('signInRequiredBookingsDesc', 'Please sign in to view your bookings, download ticket vouchers, and manage your upcoming reservations.')}
             </p>
           </div>
 
@@ -138,13 +138,13 @@ export default function MyBookingsPage({
               onClick={onNavigateToSignIn}
               className="w-full py-3 px-5 bg-brand hover:bg-brand-dark text-white font-bold rounded-xl transition-colors text-sm shadow-sm cursor-pointer"
             >
-              Sign In
+              {t('signIn', 'Sign In')}
             </button>
             <button
               onClick={onBackToHome}
               className="w-full py-3 px-5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm cursor-pointer"
             >
-              Return to Home
+              {t('returnToHome', 'Return to Home')}
             </button>
           </div>
         </div>
@@ -167,7 +167,7 @@ export default function MyBookingsPage({
               className="group flex items-center gap-2 text-xs font-black text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 uppercase tracking-widest transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-              <span>Back to home</span>
+              <span>{t('backToHome', 'Back to Home')}</span>
             </button>
           </div>
 
@@ -178,32 +178,32 @@ export default function MyBookingsPage({
                   <Ticket className="w-5 h-5 text-brand" />
                 </div>
                 <span className="text-xs font-black uppercase tracking-widest text-brand bg-brand/5 dark:bg-brand/10 px-2.5 py-1 rounded-md">
-                  Reservation Hub
+                  {t('reservationHub', 'Reservation Hub')}
                 </span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-slate-50">
-                My tickets
+                {t('myTickets', 'My tickets')}
               </h1>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2 max-w-2xl">
-                These tickets were either purchased with the same email used in your Tiqets account or when you were signed in.
+                {t('myTicketsDesc', 'These tickets were either purchased with the same email used in your Tiqets account or when you were signed in.')}
               </p>
             </div>
 
             <div className="flex items-center gap-4 shrink-0 bg-slate-50 dark:bg-slate-950 px-5 py-4 rounded-2xl border border-slate-100 dark:border-slate-850 select-none">
               <div className="flex flex-col items-end pr-4 border-r border-slate-200 dark:border-slate-850">
                 <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  Upcoming
+                  {t('upcoming', 'Upcoming')}
                 </span>
                 <span className="text-xl font-black text-slate-800 dark:text-slate-100">
-                  {categorizedBookings.pending.length + categorizedBookings.upcoming.length} Active
+                  {categorizedBookings.pending.length + categorizedBookings.upcoming.length} {t('active', 'Active')}
                 </span>
               </div>
               <div className="flex flex-col pl-1.5">
                 <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  Completed
+                  {t('completed', 'Completed')}
                 </span>
                 <span className="text-xl font-black text-emerald-500">
-                  {categorizedBookings.completed.length} Done
+                  {categorizedBookings.completed.length} {t('done', 'Done')}
                 </span>
               </div>
             </div>
@@ -231,7 +231,7 @@ export default function MyBookingsPage({
                       : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
                   }`}
                 >
-                  <span>{tab.label}</span>
+                  <span>{tab.id === 'upcoming' ? t('upcoming', 'Upcoming') : t('completed', 'Completed')}</span>
                   <span
                     className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
                       isActive
@@ -256,7 +256,7 @@ export default function MyBookingsPage({
           {/* Bookings List / Empty State */}
           <div className="space-y-4 w-full">
             <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 capitalize">
-              {activeTab === "upcoming" ? "Upcoming" : "Completed"} ({currentList.length})
+              {activeTab === "upcoming" ? t('upcoming', 'Upcoming') : t('completed', 'Completed')} ({currentList.length})
             </h3>
 
             {currentList.length === 0 ? (
@@ -269,12 +269,12 @@ export default function MyBookingsPage({
                   <Ticket className="w-8 h-8 text-slate-300 dark:text-slate-700" />
                 </div>
                 <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 tracking-tight capitalize">
-                  No {activeTab === "upcoming" ? "confirmed/upcoming" : activeTab} tickets found
+                  {activeTab === "upcoming" ? t('noUpcomingBookings', 'No confirmed/upcoming tickets found') : t('noCompletedBookings', 'No completed tickets found')}
                 </h3>
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
                   {activeTab === "upcoming"
-                    ? "Looks like you don't have any upcoming trips scheduled. Time to plan your next adventure!"
-                    : "Your completed journeys and ticket history will show up here once you have taken them."}
+                    ? t('noUpcomingBookingsDesc', "Looks like you don't have any upcoming trips scheduled. Time to plan your next adventure!")
+                    : t('noCompletedBookingsDesc', "Your completed journeys and ticket history will show up here once you have taken them.")}
                 </p>
                 {activeTab === "upcoming" && (
                   <button
@@ -282,7 +282,7 @@ export default function MyBookingsPage({
                     className="mt-6 px-6 h-11 bg-brand hover:bg-brand-dark text-white text-[13px] font-black uppercase tracking-wider rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                   >
                     <Compass className="w-4 h-4" />
-                    <span>Browse Attractions</span>
+                    <span>{t('browseAttractions', 'Browse Attractions')}</span>
                   </button>
                 )}
               </motion.div>

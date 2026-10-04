@@ -34,6 +34,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { POPULAR_ATTRACTIONS } from "../data/mockData";
 import { Attraction } from "../types";
 import { useBlog } from '../contexts/BlogContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 // Blog Post Interface
 export interface BlogPost {
@@ -63,6 +64,7 @@ interface BlogPageProps {
 
 export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPageProps) {
   const { posts } = useBlog();
+  const { t } = useSettings();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
@@ -187,11 +189,11 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
   });
 
   const categoryConfigs = [
-    { label: "All", icon: LayoutGrid },
-    { label: "Destination Guides", icon: MapPin },
-    { label: "Travel Tips", icon: Lightbulb },
-    { label: "Food & Culture", icon: UtensilsCrossed },
-    { label: "Hidden Gems", icon: Gem },
+    { label: "All", key: "catAll", icon: LayoutGrid },
+    { label: "Destination Guides", key: "catTravelGuides", icon: MapPin },
+    { label: "Travel Tips", key: "catTipsTricks", icon: Lightbulb },
+    { label: "Food & Culture", key: "catFoodDrink", icon: UtensilsCrossed },
+    { label: "Hidden Gems", key: "catTopAttractions", icon: Gem },
   ];
 
   // Helper to get real matching attractions for a post's city
@@ -254,7 +256,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
             className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 font-semibold text-sm"
           >
             <Check className="w-4 h-4 text-emerald-500 stroke-[3px]" />
-            Link copied to clipboard!
+            {t('copiedToClipboard', 'Link copied to clipboard!')}
           </motion.div>
         )}
       </AnimatePresence>
@@ -277,10 +279,10 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                   onClick={onBackToHome}
                   className="hover:text-[#FF385C] transition-colors cursor-pointer"
                 >
-                  Home
+                  {t('homeNav', 'Home')}
                 </button>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                <span className="font-semibold text-slate-700 dark:text-slate-300">Blog</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{t('travelBlog', 'Blog')}</span>
               </div>
 
               {/* Header with Title and Airplane / Landmark Graphic */}
@@ -289,17 +291,17 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                   {/* Badge */}
                   <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200/70 dark:border-rose-900/50 text-[#FF385C] text-xs font-bold uppercase tracking-wider mb-4 shadow-sm">
                     <Tag className="w-3.5 h-3.5 fill-[#FF385C]/20" />
-                    TIQSEY CHRONICLES
+                    {t('blogHeroEyebrow', 'TIQSEY CHRONICLES')}
                   </div>
 
                   {/* Main Headline */}
                   <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.15]">
-                    Your Ultimate Travel Journal
+                    {t('blogHeroTitle', 'Your Ultimate Travel Journal')}
                   </h1>
 
                   {/* Subtitle */}
                   <p className="mt-3.5 text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed max-w-xl">
-                    Inspiring guides, local secrets, cultural stories and practical travel tips to fuel your next adventure.
+                    {t('blogHeroSubtitle', 'Inspiring guides, local secrets, cultural stories and practical travel tips to fuel your next adventure.')}
                   </p>
                 </div>
 
@@ -459,7 +461,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
               <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-150/70 dark:border-slate-800 flex flex-col md:flex-row gap-4 justify-between items-center">
                 {/* Category Tags with Icons */}
                 <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none select-none">
-                  {categoryConfigs.map(({ label, icon: IconComponent }) => {
+                  {categoryConfigs.map(({ label, key, icon: IconComponent }) => {
                     const isActive = selectedCategory === label;
                     return (
                       <button
@@ -472,7 +474,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                         }`}
                       >
                         <IconComponent className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
-                        <span>{label}</span>
+                        <span>{t(key || label, label)}</span>
                       </button>
                     );
                   })}
@@ -485,7 +487,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search articles, cities, tags..."
+                    placeholder={t('searchArticlesPlaceholder', 'Search articles, destinations, or tips...')}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-[#FF385C]/60 dark:focus:border-[#FF385C]/60 text-slate-800 dark:text-slate-200 transition-all placeholder:text-slate-400"
                   />
                 </div>
@@ -642,7 +644,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                     }}
                     className="mt-6 px-5 py-2.5 bg-[#FF385C] text-white rounded-xl text-sm font-bold shadow-md hover:bg-[#E00B41] transition-colors cursor-pointer"
                   >
-                    Reset Search
+                    {t('resetSearch', 'Reset Search')}
                   </button>
                 </div>
               )}
@@ -664,7 +666,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                   className="flex items-center gap-2 py-2 px-3.5 text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-[#FF385C] dark:hover:text-[#FF385C] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm transition-all cursor-pointer group"
                 >
                   <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-                  Back to Journal
+                  {t('backToBlog', 'Back to Journal')}
                 </button>
 
                 <div className="flex items-center gap-2">
@@ -677,7 +679,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                     }`}
                   >
                     <Heart className={`w-3.5 h-3.5 ${likedPosts.includes(selectedPost.id) ? "fill-current" : ""}`} />
-                    <span>{likedPosts.includes(selectedPost.id) ? "Liked" : "Like"}</span>
+                    <span>{likedPosts.includes(selectedPost.id) ? t('liked', 'Liked') : t('like', 'Like')}</span>
                   </button>
 
                   <button
@@ -689,13 +691,13 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                     }`}
                   >
                     <Bookmark className={`w-3.5 h-3.5 ${bookmarkedPosts.includes(selectedPost.id) ? "fill-current" : ""}`} />
-                    <span>{bookmarkedPosts.includes(selectedPost.id) ? "Saved" : "Save"}</span>
+                    <span>{bookmarkedPosts.includes(selectedPost.id) ? t('saved', 'Saved') : t('save', 'Save')}</span>
                   </button>
 
                   <button
                     onClick={(e) => handleShare(e, selectedPost)}
                     className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white shadow-sm transition-all"
-                    title="Share Article Link"
+                    title={t('shareArticle', 'Share Article Link')}
                   >
                     <Share2 className="w-4 h-4" />
                   </button>
@@ -847,7 +849,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                   <div className="flex items-center gap-2">
                     <MessageSquare className="w-5 h-5 text-[#FF385C]" />
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-                      Comments ({(comments[selectedPost.id] || []).length})
+                      {t('comments', 'Comments')} ({(comments[selectedPost.id] || []).length})
                     </h3>
                   </div>
 
@@ -874,7 +876,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                       ))
                     ) : (
                       <div className="text-center py-6 text-slate-400 text-sm">
-                        No comments yet. Be the first to start the conversation!
+                        {t('noCommentsYet', 'No comments yet. Be the first to start the conversation!')}
                       </div>
                     )}
                   </div>
@@ -882,14 +884,14 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                   {/* Comment Form */}
                   <form onSubmit={handleCommentSubmit} className="space-y-3 pt-4 border-t border-slate-200/60 dark:border-slate-800/60">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
-                      Share your thoughts
+                      {t('shareThoughts', 'Share your thoughts')}
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <input
                         type="text"
                         value={newCommentName}
                         onChange={(e) => setNewCommentName(e.target.value)}
-                        placeholder="Your Name"
+                        placeholder={t('yourNamePlaceholder', 'Your Name')}
                         className="sm:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#FF385C]/60 text-slate-800 dark:text-slate-200 transition-all"
                         required
                       />
@@ -898,7 +900,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                           type="text"
                           value={newCommentText}
                           onChange={(e) => setNewCommentText(e.target.value)}
-                          placeholder="Add a comment..."
+                          placeholder={t('addCommentPlaceholder', 'Add a comment...')}
                           className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-4 pr-12 py-2.5 text-sm focus:outline-none focus:border-[#FF385C]/60 text-slate-800 dark:text-slate-200 transition-all"
                           required
                         />

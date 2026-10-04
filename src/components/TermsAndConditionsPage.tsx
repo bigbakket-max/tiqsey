@@ -19,6 +19,7 @@ import {
   Building2,
   Clock
 } from "lucide-react";
+import { useSettings } from "../contexts/SettingsContext";
 
 interface TermsAndConditionsPageProps {
   onBackToHome: () => void;
@@ -38,6 +39,7 @@ const SECTIONS = [
 ];
 
 export default function TermsAndConditionsPage({ onBackToHome }: TermsAndConditionsPageProps) {
+  const { t } = useSettings();
   const [activeSection, setActiveSection] = useState("acceptance");
 
   useEffect(() => {
@@ -66,10 +68,10 @@ export default function TermsAndConditionsPage({ onBackToHome }: TermsAndConditi
         <div className="max-w-7xl mx-auto relative z-10">
           <button
             onClick={onBackToHome}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3.5 py-2 rounded-lg transition-all mb-8 border border-slate-700/60"
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3.5 py-2 rounded-lg transition-all mb-8 border border-slate-700/60 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Home
+            {t('backToHome', 'Back to Home')}
           </button>
 
           <div className="max-w-3xl">
@@ -78,7 +80,7 @@ export default function TermsAndConditionsPage({ onBackToHome }: TermsAndConditi
               Legal & Service Terms
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4">
-              Terms & Conditions
+              {t('termsAndConditions', 'Terms & Conditions')}
             </h1>
             <p className="text-lg text-gray-300 leading-relaxed mb-6">
               Welcome to Tiqsey. These Terms and Conditions govern your access to and use of the Tiqsey website, mobile interfaces, ticket booking engine, and customer support services.

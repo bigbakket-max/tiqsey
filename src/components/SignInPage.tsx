@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, ArrowRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 export default function SignInPage({
   onBackToHome,
@@ -10,6 +11,7 @@ export default function SignInPage({
   onNavigateToRegister: () => void;
 }) {
   const { login } = useAuth();
+  const { t } = useSettings();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -21,7 +23,7 @@ export default function SignInPage({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setError('Please enter your email and password.');
+      setError(t('fillAllFields', 'Please enter your email and password.'));
       return;
     }
 
@@ -32,7 +34,7 @@ export default function SignInPage({
       await login(email, password);
       onBackToHome();
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password. Please try again.');
+      setError(err.message || t('invalidCredentials', 'Invalid email or password. Please try again.'));
     } finally {
       setIsLoading(false);
     }
@@ -40,7 +42,7 @@ export default function SignInPage({
 
   const handleForgotPassword = () => {
     if (!email) {
-      setError('Please enter your email address first, then click Forgot password.');
+      setError(t('enterEmailFirst', 'Please enter your email address first, then click Forgot password.'));
       return;
     }
     setForgotSent(true);
@@ -77,17 +79,17 @@ export default function SignInPage({
             className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition-colors cursor-pointer group font-normal"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-            <span>Back to Home</span>
+            <span>{t('backToHome', 'Back to Home')}</span>
           </button>
         </div>
 
         {/* Headings */}
         <div className="mb-8">
           <h1 className="text-3xl sm:text-[34px] font-extrabold text-slate-900 tracking-tight leading-tight">
-            Welcome back
+            {t('welcomeBack', 'Welcome back')}
           </h1>
           <p className="mt-2 text-sm sm:text-base text-slate-500 leading-relaxed font-normal">
-            Sign in to manage your bookings, wishlist, and ticket vouchers.
+            {t('signInHeroDesc', 'Sign in to manage your bookings, wishlist, and ticket vouchers.')}
           </p>
         </div>
 
@@ -104,7 +106,7 @@ export default function SignInPage({
           <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-sm font-medium flex items-start gap-2.5 shadow-xs">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <p className="leading-snug">
-              Password reset link has been sent to <strong>{email}</strong>.
+              {t('passwordResetSent', `Password reset link has been sent to ${email}.`, { email })}
             </p>
           </div>
         )}
@@ -114,7 +116,7 @@ export default function SignInPage({
           {/* Email Address */}
           <div>
             <label className="block text-sm font-semibold text-slate-900 mb-2">
-              Email address
+              {t('emailAddress', 'Email address')}
             </label>
             <div className="relative">
               <Mail className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -126,7 +128,7 @@ export default function SignInPage({
                   setEmail(e.target.value);
                   if (error) setError('');
                 }}
-                placeholder="name@example.com"
+                placeholder={t('emailPlaceholder', 'name@example.com')}
                 className="w-full bg-white border border-slate-200 hover:border-slate-300 rounded-xl pl-11 pr-4 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:ring-0 transition-colors outline-none font-normal"
               />
             </div>
@@ -135,7 +137,7 @@ export default function SignInPage({
           {/* Password */}
           <div>
             <label className="block text-sm font-semibold text-slate-900 mb-2">
-              Password
+              {t('password', 'Password')}
             </label>
             <div className="relative">
               <Lock className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -147,14 +149,14 @@ export default function SignInPage({
                   setPassword(e.target.value);
                   if (error) setError('');
                 }}
-                placeholder="Enter your password"
+                placeholder={t('enterPassword', 'Enter your password')}
                 className="w-full bg-white border border-slate-200 hover:border-slate-300 rounded-xl pl-11 pr-11 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:ring-0 transition-colors outline-none font-normal"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1 cursor-pointer"
-                title={showPassword ? 'Hide password' : 'Show password'}
+                title={showPassword ? t('hidePassword', 'Hide password') : t('showPassword', 'Show password')}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -170,7 +172,7 @@ export default function SignInPage({
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="w-4 h-4 rounded border-slate-300 text-[#e31b23] focus:ring-[#e31b23] cursor-pointer"
               />
-              <span className="font-normal text-slate-600">Remember me</span>
+              <span className="font-normal text-slate-600">{t('rememberMe', 'Remember me')}</span>
             </label>
 
             <button
@@ -178,7 +180,7 @@ export default function SignInPage({
               onClick={handleForgotPassword}
               className="text-[#e31b23] font-normal hover:underline cursor-pointer transition-colors"
             >
-              Forgot password?
+              {t('forgotPassword', 'Forgot password?')}
             </button>
           </div>
 
@@ -192,11 +194,11 @@ export default function SignInPage({
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin text-white" />
-                  <span>Signing In...</span>
+                  <span>{t('signingIn', 'Signing In...')}</span>
                 </>
               ) : (
                 <>
-                  <span>Sign In</span>
+                  <span>{t('signIn', 'Sign In')}</span>
                   <ArrowRight className="w-5 h-5 stroke-[2.5]" />
                 </>
               )}
@@ -206,13 +208,13 @@ export default function SignInPage({
 
         {/* Footer: Create Account Link */}
         <p className="mt-8 text-center text-sm text-slate-500 font-normal">
-          Don’t have an account yet?{' '}
+          {t('dontHaveAccount', "Don’t have an account yet?")}{' '}
           <button
             type="button"
             onClick={onNavigateToRegister}
             className="text-[#e31b23] font-medium hover:underline cursor-pointer ml-1"
           >
-            Create an account
+            {t('createAccount', 'Create an account')}
           </button>
         </p>
 
