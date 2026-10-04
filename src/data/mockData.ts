@@ -2080,7 +2080,14 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     price: 48.0,
     discountPrice: 40.0,
     imageUrl:
-      "https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1080",
+      "https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1200",
+    galleryUrls: [
+      "https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1200",
+      "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&q=80&w=800"
+    ],
     isPopular: true,
     description:
       "Enjoy a splash-tastic day out at Phuket's largest water park featuring thrilling rides and a massive wave pool.",

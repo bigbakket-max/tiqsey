@@ -6,7 +6,7 @@ import {
   Globe,
   Phone, ArrowLeft, Image, Smartphone, Zap, BookOpen, Compass, Info, RotateCcw, Map,
   MessageSquare, Plus, ChevronLeft, ChevronRight, Heart, Share2, Copy, Mail, ExternalLink,
-  Tag, ShieldCheck, Download
+  Tag, ShieldCheck, Download, Images, LayoutGrid
 } from 'lucide-react';
 import { useSettings, CURRENCIES } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -903,18 +903,80 @@ export default function AttractionDetailModal({
       urls.push(attraction.imageUrl);
     }
     for (const url of galleryUrls) {
-      if (!urls.includes(url)) {
+      if (url && !urls.includes(url)) {
         urls.push(url);
       }
     }
-    const defaultGallery = [
-      'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=800', // flowers
-      'https://images.unsplash.com/photo-1572947650440-e8a97ef053b2?auto=format&fit=crop&q=80&w=800', // gallery view
-      'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&q=80&w=800', // museum hall
-      'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=800', // classical face portrait
-      'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=800'  // brushes paint
+
+    const categoryPool: Record<string, string[]> = {
+      'Theme Parks': [
+        'https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1200',
+        'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&q=80&w=1000',
+      ],
+      Adventure: [
+        'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=1200',
+        'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?auto=format&fit=crop&q=80&w=1000',
+      ],
+      Museum: [
+        'https://images.unsplash.com/photo-1518998053901-5348d3961a04?auto=format&fit=crop&q=80&w=1200',
+        'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1572947650440-e8a97ef053b2?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=1000',
+      ],
+      Landmark: [
+        'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1200',
+        'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1513584684374-8bab748fbf90?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1543783207-ec64e4d95325?auto=format&fit=crop&q=80&w=1000',
+      ],
+      Nature: [
+        'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=1200',
+        'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1426604966848-d7adac402bff?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=1000',
+      ],
+      Show: [
+        'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=1200',
+        'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=1000',
+      ],
+      Food: [
+        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1200',
+        'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&q=80&w=1000',
+      ],
+      Cruise: [
+        'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1200',
+        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&q=80&w=1000',
+      ]
+    };
+
+    const cat = attraction?.category || '';
+    const pool = categoryPool[cat] || [
+      'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1000',
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1000',
+      'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=1000',
+      'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=1000',
+      'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1000'
     ];
-    for (const img of defaultGallery) {
+
+    for (const img of pool) {
       if (urls.length >= 5) break;
       if (!urls.includes(img)) {
         urls.push(img);
@@ -922,6 +984,39 @@ export default function AttractionDetailModal({
     }
     return urls.slice(0, 5);
   }, [attraction, galleryUrls]);
+
+  // Lightbox state for 5-frame gallery & full-screen view
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [activeLightboxIndex, setActiveLightboxIndex] = useState(0);
+
+  const openLightbox = (index: number) => {
+    setActiveLightboxIndex(Math.max(0, Math.min(index, galleryImages.length - 1)));
+    setIsLightboxOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setIsLightboxOpen(false);
+  };
+
+  const nextLightboxImage = () => {
+    setActiveLightboxIndex((prev) => (prev + 1) % galleryImages.length);
+  };
+
+  const prevLightboxImage = () => {
+    setActiveLightboxIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+  };
+
+  // Keyboard navigation for Lightbox
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') nextLightboxImage();
+      if (e.key === 'ArrowLeft') prevLightboxImage();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, galleryImages.length]);
 
   const mainImage = galleryImages[0] || attraction?.imageUrl || 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=800';
 
@@ -1307,74 +1402,205 @@ export default function AttractionDetailModal({
       </div>
 
       {!bookingSuccess && !bookingFormStep && (
-        <div id="gallery-hero-section" className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-2 select-none">
-          <div className="relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden group pointer-events-auto">
-            {/* Main single image */}
-            <div className="relative w-full h-full overflow-hidden bg-slate-100 dark:bg-slate-900">
-              <img 
-                id="main-hero-img"
-                src={mainImage} 
-                alt={attraction.name}
-                onError={(e) => {
-                  const target = e.currentTarget;
-                  if (!target.src.includes('photo-1512470876302')) {
-                    target.src = 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1200';
-                  }
-                }}
-                className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out hover:scale-105 cursor-pointer"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-            
-            {/* Hot deals badge */}
-            {attraction.discountPrice && (
-              <div className="absolute top-4 left-4 z-10">
-                <span className="self-start bg-brand text-white text-[10px] lg:text-xs font-black uppercase px-3 py-1.5 rounded-lg shadow-md flex items-center gap-1.5 leading-none select-none">
-                  <Flame className="w-3.5 h-3.5 fill-white" />
-                  Hot Ticket Deals
-                </span>
+        <div id="gallery-hero-section" className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-5 sm:pt-6 pb-2 select-none">
+          {/* 5-Frame Gallery Container */}
+          <div className="relative w-full rounded-2xl md:rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-2.5 md:gap-3 h-[320px] sm:h-[400px] md:h-[460px] lg:h-[500px]">
+              
+              {/* FRAME 1: Large Main Image (Left, spans 7 columns on md+, full height) */}
+              <div 
+                onClick={() => openLightbox(0)}
+                className="relative md:col-span-7 h-full overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800"
+              >
+                <img
+                  id="main-hero-img"
+                  src={galleryImages[0] || mainImage}
+                  alt={`${attraction.name} - Frame 1`}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.src.includes('photo-1512470876302')) {
+                      target.src = 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1200';
+                    }
+                  }}
+                  className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                  referrerPolicy="no-referrer"
+                />
+                
+                {/* Subtle dark hover tint */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+
+                {/* Hot deals badge */}
+                {attraction.discountPrice && (
+                  <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 pointer-events-none">
+                    <span className="bg-brand text-white text-[10px] sm:text-xs font-black uppercase px-3 py-1.5 rounded-lg shadow-md flex items-center gap-1.5 leading-none select-none">
+                      <Flame className="w-3.5 h-3.5 fill-white" />
+                      Hot Ticket Deals
+                    </span>
+                  </div>
+                )}
+
+                {/* Mobile-only Action Buttons */}
+                <div className="flex md:hidden items-center gap-2 absolute top-3 right-3 z-20">
+                  <motion.button
+                    whileTap={{ scale: 0.85 }}
+                    whileHover={{ scale: 1.05 }}
+                    onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                    className="flex items-center justify-center w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs cursor-pointer"
+                    title="Share Activity"
+                    aria-label="Share Activity"
+                  >
+                    <Share2 className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                  </motion.button>
+
+                  <motion.button
+                    whileTap={{ scale: 0.85 }}
+                    whileHover={{ scale: 1.05 }}
+                    onClick={(e) => { e.stopPropagation(); toggleWishlist(attraction); }}
+                    className="flex items-center justify-center w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs cursor-pointer"
+                    title={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
+                    aria-label={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
+                  >
+                    <Heart 
+                      className={`w-4.5 h-4.5 transition-colors ${
+                        isWishlisted(attraction.id) 
+                          ? 'fill-[#e3000f] text-[#e3000f]' 
+                          : 'text-slate-600 dark:text-slate-400'
+                      }`} 
+                    />
+                  </motion.button>
+                </div>
+
+                {/* Mobile-only 'View All Images' chip */}
+                <div className="md:hidden absolute bottom-3 right-3 z-10">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openLightbox(0);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/75 hover:bg-black text-white font-bold text-xs shadow-md backdrop-blur-xs transition-colors cursor-pointer"
+                  >
+                    <Images className="w-3.5 h-3.5 text-brand" />
+                    <span>View All ({galleryImages.length})</span>
+                  </button>
+                </div>
               </div>
-            )}
 
-            {/* Floating Share Button */}
-            {attraction && (
-              <motion.button
-                whileTap={{ scale: 0.85 }}
-                whileHover={{ scale: 1.05 }}
-                onClick={handleShare}
-                className="absolute top-4 right-[4.25rem] z-20 flex items-center justify-center w-11 h-11 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-lg border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs transition-colors cursor-pointer group/share"
-                title="Share Activity"
-                aria-label="Share Activity"
-              >
-                <Share2 className="w-5 h-5 text-slate-600 dark:text-slate-400 group-hover/share:text-brand transition-colors" />
-              </motion.button>
-            )}
-
-            {/* Wishlist/Favorite Floating Button */}
-            {attraction && (
-              <motion.button
-                whileTap={{ scale: 0.85 }}
-                whileHover={{ scale: 1.05 }}
-                onClick={() => toggleWishlist(attraction)}
-                className="absolute top-4 right-4 z-20 flex items-center justify-center w-11 h-11 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-lg border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs transition-colors cursor-pointer group/fav"
-                title={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
-                aria-label={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
-              >
-                <motion.div
-                  animate={isWishlisted(attraction.id) ? { scale: [1, 1.35, 1] } : { scale: 1 }}
-                  transition={{ duration: 0.35, ease: "easeInOut" }}
-                  className="flex items-center justify-center"
+              {/* 4 Supporting Frames on the right arranged in a 2x2 grid */}
+              <div className="hidden md:grid md:col-span-5 grid-cols-2 grid-rows-2 gap-2 sm:gap-2.5 md:gap-3 h-full">
+                
+                {/* FRAME 2: Top Left */}
+                <div
+                  onClick={() => openLightbox(1)}
+                  className="relative h-full w-full overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800"
                 >
-                  <Heart 
-                    className={`w-5.5 h-5.5 transition-colors duration-200 ${
-                      isWishlisted(attraction.id) 
-                        ? 'fill-[#e3000f] text-[#e3000f]' 
-                        : 'text-slate-600 dark:text-slate-400 group-hover/fav:text-[#e3000f] dark:group-hover/fav:text-[#e3000f]'
-                    }`} 
+                  <img
+                    src={galleryImages[1]}
+                    alt={`${attraction.name} - Frame 2`}
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800';
+                    }}
+                    className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                    referrerPolicy="no-referrer"
                   />
-                </motion.div>
-              </motion.button>
-            )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+                </div>
+
+                {/* FRAME 3: Top Right */}
+                <div
+                  onClick={() => openLightbox(2)}
+                  className="relative h-full w-full overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800"
+                >
+                  <img
+                    src={galleryImages[2]}
+                    alt={`${attraction.name} - Frame 3`}
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=800';
+                    }}
+                    className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+
+                  {/* Desktop Action Buttons (Share & Wishlist) in top right of Frame 3 */}
+                  <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
+                      whileHover={{ scale: 1.05 }}
+                      onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                      className="flex items-center justify-center w-10 h-10 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs transition-colors cursor-pointer group/share"
+                      title="Share Activity"
+                      aria-label="Share Activity"
+                    >
+                      <Share2 className="w-4.5 h-4.5 text-slate-600 dark:text-slate-400 group-hover/share:text-brand transition-colors" />
+                    </motion.button>
+
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
+                      whileHover={{ scale: 1.05 }}
+                      onClick={(e) => { e.stopPropagation(); toggleWishlist(attraction); }}
+                      className="flex items-center justify-center w-10 h-10 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs transition-colors cursor-pointer group/fav"
+                      title={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
+                      aria-label={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
+                    >
+                      <Heart 
+                        className={`w-5 h-5 transition-colors ${
+                          isWishlisted(attraction.id) 
+                            ? 'fill-[#e3000f] text-[#e3000f]' 
+                            : 'text-slate-600 dark:text-slate-400 group-hover/fav:text-[#e3000f]'
+                        }`} 
+                      />
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* FRAME 4: Bottom Left */}
+                <div
+                  onClick={() => openLightbox(3)}
+                  className="relative h-full w-full overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800"
+                >
+                  <img
+                    src={galleryImages[3]}
+                    alt={`${attraction.name} - Frame 4`}
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&q=80&w=800';
+                    }}
+                    className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+                </div>
+
+                {/* FRAME 5: Bottom Right (With 'View All Images' button) */}
+                <div
+                  onClick={() => openLightbox(4)}
+                  className="relative h-full w-full overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800"
+                >
+                  <img
+                    src={galleryImages[4]}
+                    alt={`${attraction.name} - Frame 5`}
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=800';
+                    }}
+                    className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+
+                  {/* 'View All Images' Button over bottom-right frame */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openLightbox(0);
+                    }}
+                    className="absolute bottom-3 right-3 sm:bottom-3.5 sm:right-3.5 z-20 flex items-center gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-white/95 dark:bg-slate-900/95 hover:bg-white dark:hover:bg-slate-900 text-slate-900 dark:text-white font-bold text-xs sm:text-[13px] shadow-lg backdrop-blur-md border border-slate-200/80 dark:border-slate-700/80 transition-all hover:scale-105 active:scale-95 cursor-pointer group/btn"
+                  >
+                    <Images className="w-4 h-4 text-brand group-hover/btn:scale-110 transition-transform" />
+                    <span>View All Images</span>
+                  </button>
+                </div>
+
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -3419,6 +3645,107 @@ export default function AttractionDetailModal({
             >
               <X className="w-4 h-4" />
             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Full-Screen Interactive Lightbox Gallery Modal */}
+      <AnimatePresence>
+        {isLightboxOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between select-none"
+          >
+            {/* Header: Title, Counter, and Close Button */}
+            <div className="flex items-center justify-between px-4 sm:px-6 py-4 bg-black/40 backdrop-blur-sm border-b border-white/10 z-10">
+              <div className="flex items-center gap-3 min-w-0 pr-4">
+                <span className="text-white/80 font-mono text-xs sm:text-sm font-semibold bg-white/10 px-2.5 py-1 rounded-md">
+                  {activeLightboxIndex + 1} / {galleryImages.length}
+                </span>
+                <h3 className="text-white text-sm sm:text-base font-bold truncate">
+                  {attraction.name}
+                </h3>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={closeLightbox}
+                  className="p-2 sm:p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  title="Close Gallery (Esc)"
+                  aria-label="Close Gallery"
+                >
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Main Stage: Image and Navigation Controls */}
+            <div className="relative flex-1 flex items-center justify-center p-3 sm:p-6 md:p-8 overflow-hidden">
+              {/* Prev Button */}
+              <button
+                type="button"
+                onClick={prevLightboxImage}
+                className="absolute left-3 sm:left-6 z-20 p-2.5 sm:p-3 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 backdrop-blur-xs transition-all hover:scale-110 active:scale-95 cursor-pointer"
+                title="Previous Image (Left arrow)"
+                aria-label="Previous Image"
+              >
+                <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7" />
+              </button>
+
+              {/* Main Active Image */}
+              <div className="relative max-w-5xl max-h-[70vh] sm:max-h-[75vh] w-full h-full flex items-center justify-center">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={activeLightboxIndex}
+                    src={galleryImages[activeLightboxIndex]}
+                    alt={`${attraction.name} - Photo ${activeLightboxIndex + 1}`}
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.02 }}
+                    transition={{ duration: 0.2 }}
+                    className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                    referrerPolicy="no-referrer"
+                  />
+                </AnimatePresence>
+              </div>
+
+              {/* Next Button */}
+              <button
+                type="button"
+                onClick={nextLightboxImage}
+                className="absolute right-3 sm:right-6 z-20 p-2.5 sm:p-3 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 backdrop-blur-xs transition-all hover:scale-110 active:scale-95 cursor-pointer"
+                title="Next Image (Right arrow)"
+                aria-label="Next Image"
+              >
+                <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7" />
+              </button>
+            </div>
+
+            {/* Bottom Thumbnail Strip */}
+            <div className="px-4 sm:px-6 py-3 bg-black/50 backdrop-blur-sm border-t border-white/10 overflow-x-auto flex items-center justify-center gap-2 sm:gap-3 z-10">
+              {galleryImages.map((img, idx) => (
+                <button
+                  key={`thumb-${idx}`}
+                  type="button"
+                  onClick={() => setActiveLightboxIndex(idx)}
+                  className={`relative w-14 h-11 sm:w-20 sm:h-14 rounded-lg overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
+                    activeLightboxIndex === idx
+                      ? 'border-brand scale-105 shadow-md shadow-brand/20 opacity-100 ring-2 ring-brand/40'
+                      : 'border-transparent opacity-50 hover:opacity-90'
+                  }`}
+                >
+                  <img
+                    src={img}
+                    alt={`Thumbnail ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </button>
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
