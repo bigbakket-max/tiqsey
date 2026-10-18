@@ -4,11 +4,13 @@ import * as dotenv from 'dotenv';
 // Load environment variables if present
 dotenv.config();
 
-// Initialize Supabase client with project credentials
-const supabaseUrl = process.env.SUPABASE_URL || 'https://lzjjwsvalvfkgwtzuime.supabase.co';
-const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || 'your-anon-key';
+// Initialize Supabase client with project credentials if provided
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = (supabaseUrl && supabaseKey && !supabaseUrl.includes('lzjjwsvalvfkgwtzuime'))
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
 // Replaced 'your_table' with 'bookings' from the Tiqsey project
 export async function getTableData(tableName = 'bookings') {

@@ -13,33 +13,44 @@ dotenv.config();
 // Initialize SQLite database
 const db = new Database('bookings.db');
 
-// Supabase Project Configuration
-const SUPABASE_PROJECT_ID = 'lzjjwsvalvfkgwtzuime';
-const DEFAULT_SUPABASE_URL = 'https://lzjjwsvalvfkgwtzuime.supabase.co';
-const DEFAULT_SUPABASE_KEY = 'sb_publishable_KxzN2RLPv5Q7nVqDRqPw-w_mi317li6';
-
-// Initialize Supabase client
+// Supabase Optional Integration
 let supabaseClient: any = null;
 let isSupabaseOffline = false;
 let lastSupabaseCheckTime = 0;
-const SUPABASE_COOLDOWN_MS = 15000; // 15 seconds cooldown
+const SUPABASE_COOLDOWN_MS = 60000; // 60 seconds cooldown
 
-function getSupabaseClient() {
-  const supabaseUrl = process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_KEY || DEFAULT_SUPABASE_KEY;
+function isSupabaseConfigured(): boolean {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
+    return false;
+  }
+
+  if (
+    supabaseUrl.includes('lzjjwsvalvfkgwtzuime') ||
+    supabaseUrl.includes('placeholder') ||
+    !supabaseUrl.startsWith('http')
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function getSupabaseProjectId(): string {
+  const supabaseUrl = process.env.SUPABASE_URL || '';
+  const match = supabaseUrl.match(/https?:\/\/([^.]+)\./);
+  return match ? match[1] : '';
+}
+
+function getSupabaseClient() {
+  if (!isSupabaseConfigured()) {
     return null;
   }
 
-  try {
-    const parsed = new URL(supabaseUrl);
-    if (!parsed.protocol.startsWith('http')) {
-      return null;
-    }
-  } catch {
-    return null;
-  }
+  const supabaseUrl = process.env.SUPABASE_URL!;
+  const supabaseKey = process.env.SUPABASE_KEY!;
 
   if (isSupabaseOffline) {
     const now = Date.now();
@@ -53,9 +64,9 @@ function getSupabaseClient() {
   if (!supabaseClient) {
     try {
       supabaseClient = createClient(supabaseUrl, supabaseKey);
-      console.log(`[Supabase] Client initialized for project ${SUPABASE_PROJECT_ID} (${supabaseUrl})`);
+      console.log(`[Supabase] Client initialized for remote sync (${supabaseUrl})`);
     } catch (err: any) {
-      console.error(`[Supabase Init Error]`, err);
+      console.warn(`[Supabase Init Warning]:`, err?.message || err);
       isSupabaseOffline = true;
       lastSupabaseCheckTime = Date.now();
       return null;
@@ -111,7 +122,7 @@ async function fetchFromSupabase() {
 
   try {
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Supabase request timed out")), 8000)
+      setTimeout(() => reject(new Error("Supabase request timed out")), 5000)
     );
     const fetchPromise = supabase
       .from('bookings')
@@ -121,7 +132,7 @@ async function fetchFromSupabase() {
     const { data, error } = result;
 
     if (error) {
-      console.error(`[Supabase Fetch Error]:`, error.message);
+      console.warn(`[Supabase Fetch Warning]:`, error.message);
       isSupabaseOffline = true;
       lastSupabaseCheckTime = Date.now();
       return null;
@@ -129,7 +140,7 @@ async function fetchFromSupabase() {
 
     return data;
   } catch (err: any) {
-    console.error(`[Supabase Fetch Catch]:`, err.message || err);
+    console.warn(`[Supabase Fetch Warning]:`, err.message || err);
     isSupabaseOffline = true;
     lastSupabaseCheckTime = Date.now();
     return null;
@@ -170,7 +181,7 @@ async function saveToSupabase(booking: any) {
 
   try {
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Supabase save timed out")), 8000)
+      setTimeout(() => reject(new Error("Supabase save timed out")), 5000)
     );
     // Try to upsert so it works for both insert and update
     const savePromise = supabase
@@ -180,7 +191,7 @@ async function saveToSupabase(booking: any) {
     const actualResult: any = await Promise.race([savePromise, timeoutPromise]);
 
     if (actualResult.error) {
-      console.error(`[Supabase Save Error]:`, actualResult.error.message);
+      console.warn(`[Supabase Save Warning]:`, actualResult.error.message);
       isSupabaseOffline = true;
       lastSupabaseCheckTime = Date.now();
       return false;
@@ -189,7 +200,7 @@ async function saveToSupabase(booking: any) {
     console.log(`[Supabase] Stored customer booking ${payload.id} (${payload.order_number}) for "${payload.guest_name}" in Supabase table "bookings"`);
     return true;
   } catch (err: any) {
-    console.error(`[Supabase Save Catch]:`, err.message || err);
+    console.warn(`[Supabase Save Warning]:`, err.message || err);
     isSupabaseOffline = true;
     lastSupabaseCheckTime = Date.now();
     return false;
@@ -215,13 +226,13 @@ async function saveReviewToSupabase(review: any) {
     };
     const { error } = await supabase.from('reviews').upsert(payload, { onConflict: 'id' });
     if (error) {
-      console.error(`[Supabase Review Error]:`, error.message);
+      console.warn(`[Supabase Review Warning]:`, error.message);
       return false;
     }
     console.log(`[Supabase] Stored customer review ${payload.id} in Supabase table "reviews"`);
     return true;
   } catch (err: any) {
-    console.error(`[Supabase Review Catch]:`, err.message || err);
+    console.warn(`[Supabase Review Warning]:`, err.message || err);
     return false;
   }
 }
@@ -1081,7 +1092,7 @@ async function startServer() {
         rating,
         comment,
         createdAt
-      }).catch(e => console.error('[Supabase Review Background Error]:', e));
+      }).catch(e => console.warn('[Supabase Review Background Warning]:', e));
 
       res.json({ success: true });
     } catch (err: any) {
@@ -1093,34 +1104,48 @@ async function startServer() {
   // Supabase Live Status Endpoint
   app.get("/api/supabase/status", async (req, res) => {
     try {
+      const isConfigured = isSupabaseConfigured();
+      const projectId = getSupabaseProjectId();
+      if (!isConfigured) {
+        return res.json({ 
+          configured: false,
+          connected: false, 
+          projectId: projectId || null, 
+          message: "Supabase not configured. Using local SQLite database." 
+        });
+      }
       const supabase = getSupabaseClient();
       if (!supabase) {
         return res.json({ 
+          configured: true,
           connected: false, 
-          projectId: SUPABASE_PROJECT_ID, 
-          message: "Supabase client not initialized" 
+          projectId, 
+          message: "Supabase client offline or cooldown in effect" 
         });
       }
       const { data, error } = await supabase.from('bookings').select('id, guest_name, order_number, created_at').limit(5);
       if (error) {
-        return res.status(500).json({ 
+        return res.json({ 
+          configured: true,
           connected: false, 
-          projectId: SUPABASE_PROJECT_ID, 
+          projectId, 
           error: error.message 
         });
       }
       return res.json({
+        configured: true,
         connected: true,
-        projectId: SUPABASE_PROJECT_ID,
+        projectId,
         table: 'bookings',
         bookingsCount: data ? data.length : 0,
         recentBookings: data || []
       });
     } catch (err: any) {
-      return res.status(500).json({ 
+      return res.json({ 
+        configured: false, 
         connected: false, 
-        projectId: SUPABASE_PROJECT_ID, 
-        error: err.message 
+        projectId: getSupabaseProjectId() || null, 
+        error: err.message || "Unknown error"
       });
     }
   });

@@ -212,32 +212,34 @@ export default function Bookings() {
       console.warn(`[Admin DB Sync Network Warning] Backend not reachable for booking ${booking.id}`);
     }
 
-    // Direct Supabase sync from admin panel
+    // Direct Supabase sync from admin panel (if configured)
     try {
-      const { supabase } = await import('../../lib/supabase');
-      await supabase.from('bookings').upsert({
-        id: booking.id,
-        order_number: booking.order_number || booking.orderId || "",
-        pnr_number: booking.pnr_number || booking.bookingRef || "",
-        attraction_id: booking.attractionId || "",
-        attraction_name: booking.attractionName || "",
-        attraction_image_url: booking.attractionImageUrl || "",
-        city: booking.city || "",
-        booking_date: booking.bookingDate || "",
-        tickets_count: Number(booking.travelers || 1),
-        total_price: Number(booking.totalPrice || booking.collectedAmount || 0),
-        status: booking.status || "confirmed",
-        child_count: 0,
-        guest_name: booking.customerName || "",
-        guest_email: booking.customerEmail || "",
-        guest_phone: booking.customerPhone || "",
-        passengers_json: JSON.stringify(booking.passengers || []),
-        created_at: booking.createdAt || "",
-        payment_currency: booking.paymentCurrency || "",
-        payment_price: booking.paymentPrice,
-        payment_symbol: booking.paymentSymbol || ""
-      }, { onConflict: 'id' });
-      console.log(`[Admin Supabase Sync] Booking ${booking.id} synced to Supabase.`);
+      const { supabase, isSupabaseConfigured } = await import('../../lib/supabase');
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('bookings').upsert({
+          id: booking.id,
+          order_number: booking.order_number || booking.orderId || "",
+          pnr_number: booking.pnr_number || booking.bookingRef || "",
+          attraction_id: booking.attractionId || "",
+          attraction_name: booking.attractionName || "",
+          attraction_image_url: booking.attractionImageUrl || "",
+          city: booking.city || "",
+          booking_date: booking.bookingDate || "",
+          tickets_count: Number(booking.travelers || 1),
+          total_price: Number(booking.totalPrice || booking.collectedAmount || 0),
+          status: booking.status || "confirmed",
+          child_count: 0,
+          guest_name: booking.customerName || "",
+          guest_email: booking.customerEmail || "",
+          guest_phone: booking.customerPhone || "",
+          passengers_json: JSON.stringify(booking.passengers || []),
+          created_at: booking.createdAt || "",
+          payment_currency: booking.paymentCurrency || "",
+          payment_price: booking.paymentPrice,
+          payment_symbol: booking.paymentSymbol || ""
+        }, { onConflict: 'id' });
+        console.log(`[Admin Supabase Sync] Booking ${booking.id} synced to Supabase.`);
+      }
     } catch (e) {
       console.warn('[Admin Supabase Sync Warning]:', e);
     }
@@ -291,12 +293,13 @@ export default function Bookings() {
       // Backend not running on static host
     }
 
-    // Direct Supabase query fallback (ensures admin can see live customer bookings on Hostinger static hosting!)
+    // Direct Supabase query fallback (if configured, ensures admin can see live customer bookings on Hostinger static hosting!)
     if (!backendLoaded) {
       try {
-        const { supabase } = await import('../../lib/supabase');
-        const { data, error } = await supabase.from('bookings').select('*');
-        if (!error && Array.isArray(data)) {
+        const { supabase, isSupabaseConfigured } = await import('../../lib/supabase');
+        if (isSupabaseConfigured && supabase) {
+          const { data, error } = await supabase.from('bookings').select('*');
+          if (!error && Array.isArray(data)) {
           backendBookings = data.map((b: any) => {
             let passengers = [];
             try {
@@ -335,10 +338,11 @@ export default function Bookings() {
           backendLoaded = true;
           setFetchError(null);
         }
-      } catch (err: any) {
-        console.warn("[Admin Supabase Query Notice]:", err);
       }
+    } catch (err: any) {
+      console.warn("[Admin Supabase Query Notice]:", err);
     }
+  }
 
     await new Promise(r => setTimeout(r, 600));
     
@@ -1028,11 +1032,11 @@ export default function Bookings() {
 
         {/* Refresh and Filter buttons */}
         <div className="flex items-center gap-2">
-          {/* Supabase status badge */}
+          {/* Database status badge */}
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-md text-[11px] font-bold">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Supabase Connected</span>
-            <span className="text-[10px] text-emerald-700/60 dark:text-emerald-300/60 font-mono">(lzjjwsvalvfkgwtzuime)</span>
+            <span>Database Connected</span>
+            <span className="text-[10px] text-emerald-700/60 dark:text-emerald-300/60 font-mono">(Live SQLite)</span>
           </div>
 
           <button

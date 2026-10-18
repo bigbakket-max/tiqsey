@@ -651,39 +651,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Backend not running on static host
     }
 
-    // Direct Supabase sync from client (ensures customer details are stored in Supabase on static hosts like Hostinger!)
+    // Direct Supabase sync from client (if configured)
     try {
-      import('../lib/supabase').then(({ supabase }) => {
-        supabase.from('bookings').upsert({
-          id: newBooking.id,
-          order_number: newBooking.order_number,
-          pnr_number: newBooking.pnr_number,
-          attraction_id: newBooking.attractionId,
-          attraction_name: newBooking.attractionName,
-          attraction_image_url: newBooking.attractionImageUrl,
-          city: newBooking.city,
-          booking_date: newBooking.bookingDate,
-          tickets_count: newBooking.ticketsCount,
-          total_price: newBooking.totalPrice,
-          status: newBooking.status,
-          child_count: newBooking.childCount,
-          guest_name: newBooking.guestInfo?.name || '',
-          guest_email: newBooking.guestInfo?.email || '',
-          guest_phone: (newBooking.guestInfo as any)?.phone || '',
-          passengers_json: JSON.stringify(newBooking.passengers || []),
-          created_at: newBooking.createdAt,
-          timeslot: newBooking.timeslot,
-          payment_currency: newBooking.paymentCurrency,
-          payment_price: newBooking.paymentPrice,
-          payment_symbol: newBooking.paymentSymbol
-        }, { onConflict: 'id' }).then(({ error }) => {
+      import('../lib/supabase').then(async ({ supabase, isSupabaseConfigured }) => {
+        if (!isSupabaseConfigured || !supabase) return;
+        try {
+          const { error } = await supabase.from('bookings').upsert({
+            id: newBooking.id,
+            order_number: newBooking.order_number,
+            pnr_number: newBooking.pnr_number,
+            attraction_id: newBooking.attractionId,
+            attraction_name: newBooking.attractionName,
+            attraction_image_url: newBooking.attractionImageUrl,
+            city: newBooking.city,
+            booking_date: newBooking.bookingDate,
+            tickets_count: newBooking.ticketsCount,
+            total_price: newBooking.totalPrice,
+            status: newBooking.status,
+            child_count: newBooking.childCount,
+            guest_name: newBooking.guestInfo?.name || '',
+            guest_email: newBooking.guestInfo?.email || '',
+            guest_phone: (newBooking.guestInfo as any)?.phone || '',
+            passengers_json: JSON.stringify(newBooking.passengers || []),
+            created_at: newBooking.createdAt,
+            timeslot: newBooking.timeslot,
+            payment_currency: newBooking.paymentCurrency,
+            payment_price: newBooking.paymentPrice,
+            payment_symbol: newBooking.paymentSymbol
+          }, { onConflict: 'id' });
           if (error) console.warn('[Supabase Client Sync Warning]:', error.message);
           else console.log('[Supabase Client Sync]: Booking saved to Supabase successfully.');
-        });
+        } catch (_) {}
       }).catch(() => {});
-    } catch (sbErr) {
-      console.warn('[Supabase Direct Sync Error]:', sbErr);
-    }
+    } catch (_) {}
 
     return newBooking;
   };
@@ -743,22 +743,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Backend not running on static host
       }
 
-      // Direct Supabase sync for reviews
+      // Direct Supabase sync for reviews (if configured)
       try {
-        import('../lib/supabase').then(({ supabase }) => {
-          supabase.from('reviews').upsert({
-            id: `rev-${Date.now()}`,
-            booking_id: bookingId,
-            attraction_id: attractionId,
-            user_id: activeUser.id,
-            user_name: activeUser.name,
-            user_email: activeUser.email,
-            rating: Number(rating),
-            comment,
-            created_at: new Date().toISOString()
-          }, { onConflict: 'id' }).then(({ error }) => {
+        import('../lib/supabase').then(async ({ supabase, isSupabaseConfigured }) => {
+          if (!isSupabaseConfigured || !supabase) return;
+          try {
+            const { error } = await supabase.from('reviews').upsert({
+              id: `rev-${Date.now()}`,
+              booking_id: bookingId,
+              attraction_id: attractionId,
+              user_id: activeUser.id,
+              user_name: activeUser.name,
+              user_email: activeUser.email,
+              rating: Number(rating),
+              comment,
+              created_at: new Date().toISOString()
+            }, { onConflict: 'id' });
             if (error) console.warn('[Supabase Review Sync Warning]:', error.message);
-          });
+          } catch (_) {}
         }).catch(() => {});
       } catch (_) {}
 
