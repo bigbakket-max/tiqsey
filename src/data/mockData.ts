@@ -857,6 +857,73 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     openingHours: "Daily: 09:00 - 22:00",
   },
   {
+    id: "kor-gyeongbokgung",
+    timezone: "Korea Standard Time",
+    name: "Gyeongbokgung Palace & Royal Hanbok Experience: Historic Seoul Tour",
+    location: "Seoul, South Korea",
+    city: "Seoul",
+    region: "Asia",
+    category: "Landmark",
+    rating: 4.9,
+    reviewsCount: 16820,
+    price: 18,
+    discountPrice: 14,
+    imageUrl: "/assets/aistudio/image_ea5bb7e3.png",
+    galleryUrls: [
+      "/assets/aistudio/image_ea5bb7e3.png",
+      "https://images.unsplash.com/photo-1538485399081-7191377e8241?auto=format&fit=crop&q=85&w=1200",
+      "https://images.unsplash.com/photo-1546874177-9e664107314e?auto=format&fit=crop&q=85&w=1200"
+    ],
+    isPopular: true,
+    description: "Step into Korea's Joseon Dynasty at the grand Gyeongbokgung Palace. Wear a traditional Korean Hanbok with complimentary royal palace admission, professional hair styling, and an expert guided tour through historic pavilions and tranquil royal gardens.",
+    highlights: [
+      "Skip-the-line entrance to Gyeongbokgung Palace with Hanbok rental",
+      "Hundreds of designer Hanbok robes & complimentary royal hair styling",
+      "Witness the Royal Guard Changing Ceremony at Gwanghwamun Gate",
+      "Discover the Hyangwonjeong & Gyeonghoeru lakeside pavilions"
+    ],
+    included: [
+      "Traditional Hanbok rental (2-4 hours)",
+      "Free palace admission in Hanbok",
+      "Locker service and themed accessories",
+      "English & Korean speaking guide"
+    ],
+    duration: "2-4 hours",
+    openingHours: "Daily: 09:00 - 18:00 (Closed Tuesdays)"
+  },
+  {
+    id: "kor-nseoultower",
+    timezone: "Korea Standard Time",
+    name: "N Seoul Tower Observatory & Namsan Mountain Cable Car Pass",
+    location: "Seoul, South Korea",
+    city: "Seoul",
+    region: "Asia",
+    category: "Landmark",
+    rating: 4.8,
+    reviewsCount: 14210,
+    price: 16,
+    imageUrl: "https://images.unsplash.com/photo-1517154421773-0529f29ea451?auto=format&fit=crop&q=85&w=1200",
+    galleryUrls: [
+      "https://images.unsplash.com/photo-1517154421773-0529f29ea451?auto=format&fit=crop&q=85&w=1200",
+      "https://images.unsplash.com/photo-1538485399081-7191377e8241?auto=format&fit=crop&q=85&w=1200"
+    ],
+    isPopular: true,
+    description: "Admire panoramic 360-degree views of Seoul from the iconic N Seoul Tower. Ride the scenic Namsan Cable Car, see the famous Locks of Love bridge, and gaze across the Han River skyline.",
+    highlights: [
+      "Fast-track entry to N Seoul Tower 360° digital observatory",
+      "Panoramic views of downtown Seoul, Inwangsan, and the Han River",
+      "Visit the world-famous Namsan Padlocks of Love terrace",
+      "Sunset and evening night-lights experience"
+    ],
+    included: [
+      "Observatory deck admission ticket",
+      "Access to love padlock observation decks",
+      "Interactive media art exhibition"
+    ],
+    duration: "1-2 hours",
+    openingHours: "Daily: 10:00 - 22:30"
+  },
+  {
     id: "ny-911-memorial",
     timezone: "Eastern Standard Time",
     name: "9/11 Memorial Museum, New York | Skip-The-Line Admission Tickets",
@@ -2647,6 +2714,12 @@ export const DESTINATIONS: Destination[] = [
     attractionsCount: 156,
     imageUrl:
       "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1200",
+  },
+  {
+    id: "south-korea",
+    name: "South Korea",
+    attractionsCount: 178,
+    imageUrl: "/assets/aistudio/image_ea5bb7e3.png",
   },
 ];
 

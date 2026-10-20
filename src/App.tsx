@@ -5,6 +5,7 @@ import Hero from "./components/Hero";
 import FeaturedDestinations from "./components/FeaturedDestinations";
 import PopularAttractions from "./components/PopularAttractions";
 import AdBanner from "./components/AdBanner";
+import LargeFeaturedBanner from "./components/LargeFeaturedBanner";
 import TrustBar from "./components/TrustBar";
 import RecentlyViewed from "./components/RecentlyViewed";
 import HotDeals from "./components/HotDeals";
@@ -504,6 +505,30 @@ export default function App() {
             window.scrollTo(0, 0);
           }}
         />
+        <ScrollReveal delay={0.05}>
+          <LargeFeaturedBanner
+            onSelectDestination={(dest) => {
+              setSelectedDestination(dest);
+              window.history.pushState(
+                {},
+                "",
+                `/destinations/${encodeURIComponent(dest.toLowerCase().replace(/\s+/g, "-"))}`,
+              );
+              window.scrollTo(0, 0);
+            }}
+            onViewAttraction={handleViewAttraction}
+            onNavigate={(url) => {
+              if (url.startsWith("/")) {
+                window.history.pushState({}, "", url);
+                const page = url.replace("/", "");
+                if (page === "hot-deals" || page === "attractions-and-museums" || page === "blog") {
+                  setCurrentPage(page as AppPage);
+                }
+                window.scrollTo(0, 0);
+              }
+            }}
+          />
+        </ScrollReveal>
         <ScrollReveal>
           <FeaturedDestinations onSelectDestination={setSelectedDestination} />
         </ScrollReveal>

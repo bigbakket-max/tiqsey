@@ -104,6 +104,31 @@ export interface PromotionalBanner {
   updatedAt: string;
 }
 
+export interface LargeHeroBannerSlide {
+  id: string;
+  title: string;
+  subtitle: string;
+  badgeText?: string;
+  partnerLogosText?: string;
+  imageUrl: string;
+  ctaText: string;
+  destinationUrl: string;
+  destinationType: 'destination' | 'activity' | 'section' | 'custom';
+  textStyle?: 'golden-glow' | 'modern-white' | 'sunset-amber' | 'neon-cyan';
+  isActive: boolean;
+  order: number;
+  highlightOffer?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface LargeHeroBannerConfig {
+  isEnabled: boolean;
+  autoPlayInterval: number; // in milliseconds (e.g. 5000, 0 = disabled)
+  showPartnerBadges: boolean;
+  slides: LargeHeroBannerSlide[];
+}
+
 export interface VariantRule {
   id: string;
   date: string; // YYYY-MM-DD

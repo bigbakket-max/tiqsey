@@ -30,7 +30,7 @@ import {
   Tablet,
   Smartphone
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AdminPagination } from '../components/AdminPagination';
 import { PromotionalBanner } from '../../types';
 import { 
@@ -43,9 +43,14 @@ import {
   BANNER_UPDATE_EVENT 
 } from '../../utils/bannerStorage';
 import BannerCard from '../../components/BannerCard';
+import LargeBannerManager from '../components/LargeBannerManager';
 
 export default function PromotionalBanners() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'large-hero' | 'promo-cards'>(
+    searchParams.get('tab') === 'cards' ? 'promo-cards' : 'large-hero'
+  );
   const [banners, setBanners] = useState<PromotionalBanner[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [templateFilter, setTemplateFilter] = useState('all');
@@ -295,79 +300,126 @@ export default function PromotionalBanners() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               Promotional Banners
             </h1>
-            <span className="px-3 py-0.5 bg-sky-50 dark:bg-sky-950/60 text-[#0284c7] dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/60 rounded-full text-xs font-bold shadow-xs">
-              {banners.length} total
+            <span className="px-3 py-0.5 bg-orange-50 dark:bg-orange-950/60 text-[#ff6b00] border border-orange-200/60 dark:border-orange-800/60 rounded-full text-xs font-bold shadow-xs">
+              Marketing & Deals
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Manage homepage banners, discount campaigns, playground cards, and custom promotional visuals.
+            Manage large panoramic featured homepage banners, trending activity carousels, and promotional deal cards.
           </p>
         </div>
-
-        <div className="flex items-center gap-2 sm:gap-2.5 flex-nowrap overflow-x-auto pb-2 -mb-2 scrollbar-none max-w-full shrink-0">
-          <button
-            type="button"
-            onClick={() => setShowLivePreview(!showLivePreview)}
-            className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-2xs cursor-pointer"
-          >
-            {showLivePreview ? <EyeOff className="w-3.5 h-3.5 text-slate-500" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
-            <span>{showLivePreview ? 'Hide Preview' : 'Show Preview'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleResetDefaults}
-            className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-2xs cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-            <span>Reset Defaults</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (banners.length >= 6) {
-                showToast('Maximum limit of 6 banners reached. Please delete a banner first.', 'info');
-              } else {
-                navigate('/promotional-banners/new?type=readymade');
-              }
-            }}
-            className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer ${
-              banners.length >= 6 
-                ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed' 
-                : 'bg-[#0f172a] hover:bg-slate-800 text-white'
-            }`}
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Upload Ready-Made</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (banners.length >= 6) {
-                showToast('Maximum limit of 6 banners reached. Please delete a banner first.', 'info');
-              } else {
-                navigate('/promotional-banners/new');
-              }
-            }}
-            className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer ${
-              banners.length >= 6 
-                ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed' 
-                : 'bg-[#4f46e5] hover:bg-indigo-700 text-white'
-            }`}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create Custom Banner</span>
-          </button>
-        </div>
       </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2 sm:gap-6">
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('large-hero');
+            setSearchParams({ tab: 'large-hero' });
+          }}
+          className={`pb-3 px-1 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+            activeTab === 'large-hero'
+              ? 'border-[#ff6b00] text-[#ff6b00]'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-[#ff6b00]" />
+          <span>Large Homepage Banner (Carousel)</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-100 dark:bg-orange-950/60 text-[#ff6b00]">
+            Featured
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('promo-cards');
+            setSearchParams({ tab: 'cards' });
+          }}
+          className={`pb-3 px-1 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+            activeTab === 'promo-cards'
+              ? 'border-[#0284c7] text-[#0284c7]'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Layers className="w-4 h-4 text-[#0284c7]" />
+          <span>Activity Promo Cards (Grid)</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-sky-100 dark:bg-sky-950/60 text-[#0284c7]">
+            {banners.length}
+          </span>
+        </button>
+      </div>
+
+      {activeTab === 'large-hero' ? (
+        <LargeBannerManager />
+      ) : (
+        <div className="space-y-6">
+          {/* Action Buttons for Promo Cards */}
+          <div className="flex items-center justify-end gap-2 sm:gap-2.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setShowLivePreview(!showLivePreview)}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-2xs cursor-pointer"
+            >
+              {showLivePreview ? <EyeOff className="w-3.5 h-3.5 text-slate-500" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
+              <span>{showLivePreview ? 'Hide Preview' : 'Show Preview'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleResetDefaults}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-2xs cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+              <span>Reset Defaults</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (banners.length >= 6) {
+                  showToast('Maximum limit of 6 banners reached. Please delete a banner first.', 'info');
+                } else {
+                  navigate('/promotional-banners/new?type=readymade');
+                }
+              }}
+              className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer ${
+                banners.length >= 6 
+                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed' 
+                  : 'bg-[#0f172a] hover:bg-slate-800 text-white'
+              }`}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Upload Ready-Made</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (banners.length >= 6) {
+                  showToast('Maximum limit of 6 banners reached. Please delete a banner first.', 'info');
+                } else {
+                  navigate('/promotional-banners/new');
+                }
+              }}
+              className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer ${
+                banners.length >= 6 
+                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed' 
+                  : 'bg-[#4f46e5] hover:bg-indigo-700 text-white'
+              }`}
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Custom Banner</span>
+            </button>
+          </div>
+
 
       {/* 4 Top KPI Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -834,6 +886,8 @@ export default function PromotionalBanners() {
         )}
       </div>
     </div>
-  );
+  )}
+</div>
+);
 }
 
