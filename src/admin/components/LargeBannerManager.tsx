@@ -41,42 +41,37 @@ import {
 import LargeFeaturedBanner from '../../components/LargeFeaturedBanner';
 import { POPULAR_ATTRACTIONS } from '../../data/mockData';
 
-// Scenic travel preset images
+// Scenic travel preset images matching Tiqsey website destinations
 const PRESET_BANNER_IMAGES = [
   {
-    name: 'South Korea (Reference Artwork)',
-    url: '/assets/aistudio/image_ea5bb7e3.png',
-    tag: 'Official Reference'
+    name: 'Rome (Colosseum Golden Hour Panorama)',
+    url: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=2000&q=85',
+    tag: 'Rome Verified'
   },
   {
-    name: 'Tokyo, Japan (Mt. Fuji & Sakura)',
-    url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1920&q=85',
-    tag: 'Trending Japan'
+    name: 'Dubai (Burj Khalifa & Skyline Sunset)',
+    url: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=2000&q=85',
+    tag: 'Dubai Official'
   },
   {
-    name: 'Dubai (Desert Safari & Skyline)',
-    url: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1920&q=85',
-    tag: 'Middle East'
+    name: 'Paris (Louvre Museum & Seine River)',
+    url: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=2000&q=85',
+    tag: 'Paris France'
   },
   {
-    name: 'Bali (Sunset Temple & Coasts)',
-    url: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1920&q=85',
-    tag: 'Tropical'
+    name: 'New York (Manhattan & Edge NYC)',
+    url: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=2000&q=85',
+    tag: 'New York USA'
   },
   {
-    name: 'Paris (Louvre & City of Lights)',
-    url: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1920&q=85',
-    tag: 'Europe'
+    name: 'Singapore (Marina Bay & Gardens by the Bay)',
+    url: 'https://images.unsplash.com/photo-1525596662741-e94ff9f26de1?auto=format&fit=crop&w=2000&q=85',
+    tag: 'Singapore'
   },
   {
-    name: 'Swiss Alps (Mountains & Lakes)',
-    url: 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?auto=format&fit=crop&w=1920&q=85',
-    tag: 'Nature'
-  },
-  {
-    name: 'Singapore (Marina Bay Night)',
-    url: 'https://images.unsplash.com/photo-1525596662741-e94ff9f26de1?auto=format&fit=crop&w=1920&q=85',
-    tag: 'Southeast Asia'
+    name: 'Tokyo (teamLab & Shibuya Lights)',
+    url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=2000&q=85',
+    tag: 'Tokyo Japan'
   }
 ];
 
@@ -94,12 +89,12 @@ export default function LargeBannerManager() {
     title: '',
     subtitle: '',
     badgeText: '',
-    partnerLogosText: '',
-    imageUrl: '/assets/aistudio/image_ea5bb7e3.png',
-    ctaText: 'BOOK NOW',
-    destinationUrl: 'Seoul',
+    partnerLogosText: 'TIQSEY VERIFIED  |  CURATED EXPERIENCES  |  INSTANT CONFIRMATION',
+    imageUrl: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=2000&q=85',
+    ctaText: 'Explore Rome',
+    destinationUrl: 'Rome',
     destinationType: 'destination',
-    textStyle: 'golden-glow',
+    textStyle: 'modern-white',
     isActive: true,
     highlightOffer: ''
   });
@@ -147,13 +142,13 @@ export default function LargeBannerManager() {
     setFormData({
       title: '',
       subtitle: '',
-      badgeText: 'TRENDING NOW',
-      partnerLogosText: 'thrillophilia.com  |  Imagine your Korea  |  KOREA TOURISM ORGANIZATION',
-      imageUrl: '/assets/aistudio/image_ea5bb7e3.png',
-      ctaText: 'BOOK NOW',
-      destinationUrl: 'Seoul',
+      badgeText: '',
+      partnerLogosText: 'TIQSEY VERIFIED  |  CURATED EXPERIENCES  |  INSTANT CONFIRMATION',
+      imageUrl: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=2000&q=85',
+      ctaText: 'Explore Rome',
+      destinationUrl: 'Rome',
       destinationType: 'destination',
-      textStyle: 'golden-glow',
+      textStyle: 'modern-white',
       isActive: true,
       order: config.slides.length + 1,
       highlightOffer: ''
@@ -191,9 +186,9 @@ export default function LargeBannerManager() {
         subtitle: formData.subtitle || '',
         badgeText: formData.badgeText || '',
         partnerLogosText: formData.partnerLogosText || '',
-        imageUrl: formData.imageUrl || '/assets/aistudio/image_ea5bb7e3.png',
-        ctaText: formData.ctaText || 'BOOK NOW',
-        destinationUrl: formData.destinationUrl || 'Seoul',
+        imageUrl: formData.imageUrl || 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=2000&q=85',
+        ctaText: formData.ctaText || 'EXPLORE NOW',
+        destinationUrl: formData.destinationUrl || 'Dubai',
         destinationType: (formData.destinationType as any) || 'destination',
         textStyle: (formData.textStyle as any) || 'golden-glow',
         isActive: formData.isActive ?? true,
@@ -271,7 +266,7 @@ export default function LargeBannerManager() {
               type="button"
               onClick={handleMasterToggle}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                config.isEnabled ? 'bg-[#ff6b00]' : 'bg-slate-300 dark:bg-slate-700'
+                config.isEnabled ? 'bg-[#e3000f]' : 'bg-slate-300 dark:bg-slate-700'
               }`}
             >
               <span
@@ -297,11 +292,12 @@ export default function LargeBannerManager() {
             <select
               value={config.autoPlayInterval}
               onChange={(e) => handleIntervalChange(Number(e.target.value))}
-              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#e3000f]"
             >
               <option value={3000}>3 seconds</option>
-              <option value={5000}>5 seconds (Default)</option>
-              <option value={7000}>7 seconds</option>
+              <option value={5000}>5 seconds</option>
+              <option value={6000}>6 seconds (Default)</option>
+              <option value={8000}>8 seconds</option>
               <option value={10000}>10 seconds</option>
               <option value={0}>Paused (Manual only)</option>
             </select>
@@ -310,11 +306,11 @@ export default function LargeBannerManager() {
           {/* Partner Badges Toggle */}
           <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-800 pl-4 sm:pl-6">
             <input 
-              type="checkbox"
+              type="checkbox" 
               id="partnerBadgeToggle"
               checked={config.showPartnerBadges}
               onChange={handlePartnerToggle}
-              className="w-4 h-4 rounded text-[#ff6b00] focus:ring-[#ff6b00] border-slate-300 cursor-pointer"
+              className="w-4 h-4 rounded text-[#e3000f] focus:ring-[#e3000f] border-slate-300 cursor-pointer"
             />
             <label htmlFor="partnerBadgeToggle" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
               Partner Logos / Badges
@@ -337,7 +333,7 @@ export default function LargeBannerManager() {
             type="button"
             onClick={handleResetDefaults}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-            title="Reset to Reference Defaults"
+            title="Reset to Website Defaults"
           >
             <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
             <span className="hidden sm:inline">Reset Defaults</span>
@@ -346,7 +342,7 @@ export default function LargeBannerManager() {
           <button
             type="button"
             onClick={handleOpenAddModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-[#ff6b00] hover:bg-[#e05e00] text-white shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-[#e3000f] hover:bg-[#c7000d] text-white shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Add Banner Slide</span>
@@ -371,7 +367,7 @@ export default function LargeBannerManager() {
                 type="button"
                 onClick={() => setPreviewViewport('desktop')}
                 className={`p-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  previewViewport === 'desktop' ? 'bg-[#ff6b00] text-white' : 'text-slate-400 hover:text-white'
+                  previewViewport === 'desktop' ? 'bg-[#e3000f] text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Desktop View"
               >
@@ -381,7 +377,7 @@ export default function LargeBannerManager() {
                 type="button"
                 onClick={() => setPreviewViewport('tablet')}
                 className={`p-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  previewViewport === 'tablet' ? 'bg-[#ff6b00] text-white' : 'text-slate-400 hover:text-white'
+                  previewViewport === 'tablet' ? 'bg-[#e3000f] text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Tablet View"
               >
@@ -391,7 +387,7 @@ export default function LargeBannerManager() {
                 type="button"
                 onClick={() => setPreviewViewport('mobile')}
                 className={`p-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  previewViewport === 'mobile' ? 'bg-[#ff6b00] text-white' : 'text-slate-400 hover:text-white'
+                  previewViewport === 'mobile' ? 'bg-[#e3000f] text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Mobile View"
               >
@@ -426,7 +422,7 @@ export default function LargeBannerManager() {
           <button
             type="button"
             onClick={handleOpenAddModal}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#ff6b00] hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#e3000f] hover:underline"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add New Slide</span>
@@ -505,8 +501,8 @@ export default function LargeBannerManager() {
 
                   <div className="flex flex-wrap items-center gap-3 mt-2 text-[11px] text-slate-600 dark:text-slate-400">
                     <span className="flex items-center gap-1 font-semibold">
-                      <Tag className="w-3 h-3 text-[#ff6b00]" />
-                      <span>CTA: "{slide.ctaText || 'BOOK NOW'}"</span>
+                      <Tag className="w-3 h-3 text-[#e3000f]" />
+                      <span>CTA: "{slide.ctaText || 'EXPLORE NOW'}"</span>
                     </span>
                     <span className="flex items-center gap-1 font-semibold">
                       <MapPin className="w-3 h-3 text-sky-500" />
@@ -574,7 +570,7 @@ export default function LargeBannerManager() {
                 <button
                   type="button"
                   onClick={handleOpenAddModal}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#ff6b00] text-white"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#e3000f] hover:bg-[#c7000d] text-white"
                 >
                   Add Slide
                 </button>
@@ -620,12 +616,12 @@ export default function LargeBannerManager() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. SOUTH KOREA"
+                    placeholder="e.g. DUBAI UNLOCKED or PARIS ESSENTIALS"
                     value={formData.title || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">If 2 words (e.g. SOUTH KOREA), displays on 2 stacked lines</p>
+                  <p className="text-[10px] text-slate-400 mt-1">If 2 words (e.g. DUBAI UNLOCKED), displays on 2 stacked lines</p>
                 </div>
 
                 <div>
@@ -634,10 +630,10 @@ export default function LargeBannerManager() {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. YOUR K-CULTURE TRIP AWAITS"
+                    placeholder="e.g. BURJ KHALIFA & LUXURY DESERT SAFARIS"
                     value={formData.subtitle || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, subtitle: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
               </div>
@@ -650,10 +646,10 @@ export default function LargeBannerManager() {
                   </label>
                   <input
                     type="text"
-                    placeholder="thrillophilia.com | Imagine your Korea | Korea Tourism"
+                    placeholder="VISIT DUBAI | EMAAR OFFICIAL | BEST PRICE GUARANTEE"
                     value={formData.partnerLogosText || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, partnerLogosText: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
 
@@ -663,10 +659,10 @@ export default function LargeBannerManager() {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. TRENDING DESTINATION or 20% OFF"
+                    placeholder="e.g. HOT DEAL 25% OFF or MOST POPULAR"
                     value={formData.badgeText || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, badgeText: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
               </div>
@@ -686,7 +682,7 @@ export default function LargeBannerManager() {
                       onClick={() => setFormData(prev => ({ ...prev, imageUrl: preset.url }))}
                       className={`relative aspect-[16/10] rounded-xl overflow-hidden border-2 text-left group transition-all ${
                         formData.imageUrl === preset.url 
-                          ? 'border-[#ff6b00] ring-2 ring-[#ff6b00]/30 shadow-md scale-[1.02]' 
+                          ? 'border-brand ring-2 ring-brand/30 shadow-md scale-[1.02]' 
                           : 'border-slate-200 dark:border-slate-700 hover:border-slate-400'
                       }`}
                     >
@@ -697,7 +693,7 @@ export default function LargeBannerManager() {
                         </span>
                       </div>
                       {formData.imageUrl === preset.url && (
-                        <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#ff6b00] text-white flex items-center justify-center">
+                        <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-brand text-white flex items-center justify-center">
                           <Check className="w-2.5 h-2.5 stroke-[3]" />
                         </div>
                       )}
@@ -713,7 +709,7 @@ export default function LargeBannerManager() {
                     placeholder="Custom Image URL or file path"
                     value={formData.imageUrl || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                    className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+                    className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                   <input 
                     type="file" 
@@ -741,10 +737,10 @@ export default function LargeBannerManager() {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. BOOK NOW"
+                    placeholder="e.g. EXPLORE NOW"
                     value={formData.ctaText || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, ctaText: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
 
@@ -755,9 +751,10 @@ export default function LargeBannerManager() {
                   <select
                     value={formData.textStyle || 'golden-glow'}
                     onChange={(e) => setFormData(prev => ({ ...prev, textStyle: e.target.value as any }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option value="golden-glow">✨ Golden Warm Glow (Reference Style)</option>
+                    <option value="brand-red">🔴 Tiqsey Brand Red Glow</option>
                     <option value="modern-white">⚪ Modern Crisp White</option>
                     <option value="sunset-amber">🌅 Sunset Vibrant Amber</option>
                     <option value="neon-cyan">💎 Futuristic Neon Cyan</option>
@@ -774,7 +771,7 @@ export default function LargeBannerManager() {
                   <select
                     value={formData.destinationType || 'destination'}
                     onChange={(e) => setFormData(prev => ({ ...prev, destinationType: e.target.value as any }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option value="destination">City / Destination</option>
                     <option value="activity">Specific Activity / Attraction</option>
@@ -789,13 +786,16 @@ export default function LargeBannerManager() {
                   </label>
                   {formData.destinationType === 'activity' ? (
                     <select
-                      value={formData.destinationUrl || ''}
+                      value={formData.destinationUrl || 'dubai-burj'}
                       onChange={(e) => setFormData(prev => ({ ...prev, destinationUrl: e.target.value }))}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
                     >
-                      <option value="kor-gyeongbokgung">Gyeongbokgung Palace & Royal Hanbok Experience (Seoul)</option>
-                      <option value="kor-nseoultower">N Seoul Tower Observatory (Seoul)</option>
-                      {POPULAR_ATTRACTIONS.slice(0, 10).map(att => (
+                      <option value="dubai-burj">Burj Khalifa: At The Top (Dubai)</option>
+                      <option value="louvre">The Louvre Museum: Fast Track (Paris)</option>
+                      <option value="edge-nyc">Edge NYC: Observation Deck (New York)</option>
+                      <option value="colosseum">Colosseum & Roman Forum (Rome)</option>
+                      <option value="gardens-by-the-bay">Gardens by the Bay & Flower Dome (Singapore)</option>
+                      {POPULAR_ATTRACTIONS.slice(0, 15).map(att => (
                         <option key={att.id} value={att.id}>
                           {att.name} ({att.city})
                         </option>
@@ -803,17 +803,17 @@ export default function LargeBannerManager() {
                     </select>
                   ) : formData.destinationType === 'destination' ? (
                     <select
-                      value={formData.destinationUrl || 'Seoul'}
+                      value={formData.destinationUrl || 'Dubai'}
                       onChange={(e) => setFormData(prev => ({ ...prev, destinationUrl: e.target.value }))}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
                     >
-                      <option value="Seoul">Seoul, South Korea</option>
-                      <option value="Tokyo">Tokyo, Japan</option>
                       <option value="Dubai">Dubai, UAE</option>
-                      <option value="Bali">Bali, Indonesia</option>
-                      <option value="Singapore">Singapore</option>
                       <option value="Paris">Paris, France</option>
+                      <option value="New York">New York, USA</option>
+                      <option value="Singapore">Singapore</option>
                       <option value="Rome">Rome, Italy</option>
+                      <option value="London">London, UK</option>
+                      <option value="Tokyo">Tokyo, Japan</option>
                       <option value="Barcelona">Barcelona, Spain</option>
                       <option value="Amsterdam">Amsterdam, Netherlands</option>
                     </select>
@@ -823,7 +823,7 @@ export default function LargeBannerManager() {
                       placeholder="e.g. #hot-deals or https://..."
                       value={formData.destinationUrl || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, destinationUrl: e.target.value }))}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand"
                     />
                   )}
                 </div>
@@ -836,7 +836,7 @@ export default function LargeBannerManager() {
                   id="slideActiveToggle"
                   checked={formData.isActive ?? true}
                   onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                  className="w-4 h-4 rounded text-[#ff6b00] focus:ring-[#ff6b00] border-slate-300 cursor-pointer"
+                  className="w-4 h-4 rounded text-brand focus:ring-brand border-slate-300 cursor-pointer"
                 />
                 <label htmlFor="slideActiveToggle" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
                   Slide is Active and visible in carousel
@@ -854,7 +854,7 @@ export default function LargeBannerManager() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl text-xs font-black bg-[#ff6b00] hover:bg-[#e05e00] text-white shadow-md hover:shadow-lg transition-all"
+                  className="px-6 py-2.5 rounded-xl text-xs font-black bg-[#e3000f] hover:bg-[#c7000d] text-white shadow-md hover:shadow-lg transition-all"
                 >
                   {editingSlide ? 'Update Slide' : 'Save & Publish Slide'}
                 </button>

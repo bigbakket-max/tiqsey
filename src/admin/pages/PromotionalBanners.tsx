@@ -306,7 +306,7 @@ export default function PromotionalBanners() {
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               Promotional Banners
             </h1>
-            <span className="px-3 py-0.5 bg-orange-50 dark:bg-orange-950/60 text-[#ff6b00] border border-orange-200/60 dark:border-orange-800/60 rounded-full text-xs font-bold shadow-xs">
+            <span className="px-3 py-0.5 bg-red-50 dark:bg-red-950/60 text-brand border border-red-200/60 dark:border-red-800/60 rounded-full text-xs font-bold shadow-xs">
               Marketing & Deals
             </span>
           </div>
@@ -326,13 +326,13 @@ export default function PromotionalBanners() {
           }}
           className={`pb-3 px-1 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
             activeTab === 'large-hero'
-              ? 'border-[#ff6b00] text-[#ff6b00]'
+              ? 'border-brand text-brand'
               : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
-          <Sparkles className="w-4 h-4 text-[#ff6b00]" />
+          <Sparkles className="w-4 h-4 text-brand" />
           <span>Large Homepage Banner (Carousel)</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-100 dark:bg-orange-950/60 text-[#ff6b00]">
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 dark:bg-red-950/60 text-brand">
             Featured
           </span>
         </button>

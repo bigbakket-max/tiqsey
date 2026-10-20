@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Sparkles, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, ExternalLink } from 'lucide-react';
 import { LargeHeroBannerConfig, LargeHeroBannerSlide } from '../types';
 import { 
   getStoredLargeHeroBannerConfig, 
@@ -96,9 +96,9 @@ export default function LargeFeaturedBanner({
     if (!touchStartX.current || !touchEndX.current) return;
     const diff = touchStartX.current - touchEndX.current;
     if (diff > 50) {
-      handleNext(); // Swiped left -> Next
+      handleNext();
     } else if (diff < -50) {
-      handlePrev(); // Swiped right -> Prev
+      handlePrev();
     }
     touchStartX.current = null;
     touchEndX.current = null;
@@ -111,32 +111,30 @@ export default function LargeFeaturedBanner({
   const currentSlide = activeSlides[currentIndex] || activeSlides[0];
 
   const handleActionClick = (e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
+    if (e) e.stopPropagation();
+    if (!currentSlide) return;
 
     const { destinationType, destinationUrl } = currentSlide;
     if (!destinationUrl) return;
 
-    if (destinationType === 'activity') {
+    if (destinationType === 'destination') {
+      if (onSelectDestination) {
+        onSelectDestination(destinationUrl);
+      } else {
+        const el = document.getElementById('destinations');
+        el?.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else if (destinationType === 'activity') {
       if (onViewAttraction) {
         onViewAttraction(destinationUrl);
       } else if (onNavigate) {
-        onNavigate(`/activities/${encodeURIComponent(destinationUrl)}`);
-      }
-    } else if (destinationType === 'destination') {
-      if (onSelectDestination) {
-        onSelectDestination(destinationUrl);
-      } else if (onNavigate) {
-        onNavigate(`/destinations/${encodeURIComponent(destinationUrl.toLowerCase().replace(/\s+/g, '-'))}`);
+        onNavigate(`/attraction/${destinationUrl}`);
       }
     } else if (destinationType === 'section') {
       const targetId = destinationUrl.replace('#', '');
       const el = document.getElementById(targetId);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
-    } else {
+      el?.scrollIntoView({ behavior: 'smooth' });
+    } else if (destinationType === 'custom') {
       if (destinationUrl.startsWith('http://') || destinationUrl.startsWith('https://')) {
         window.open(destinationUrl, '_blank', 'noopener,noreferrer');
       } else if (onNavigate) {
@@ -145,64 +143,92 @@ export default function LargeFeaturedBanner({
     }
   };
 
-  // Render title with stylized line break if two words
+  // Render title with stylized line break (First word large, following words punchy second line)
   const renderTitle = (titleText: string, textStyle?: string) => {
-    const parts = titleText.trim().split(/\s+/);
-    
-    // Glowing gradient classes based on text style
-    let gradientClass = 'from-[#fff6d6] via-[#ffd277] to-[#d69527]';
-    let filterClass = 'drop-shadow-[0_4px_18px_rgba(245,158,11,0.55)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]';
+    let line1 = '';
+    let line2 = '';
 
-    if (textStyle === 'modern-white') {
-      gradientClass = 'from-white via-slate-100 to-slate-300';
-      filterClass = 'drop-shadow-[0_4px_16px_rgba(255,255,255,0.4)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]';
-    } else if (textStyle === 'sunset-amber') {
-      gradientClass = 'from-[#ffe8b3] via-[#ff9a3c] to-[#e65100]';
-      filterClass = 'drop-shadow-[0_4px_18px_rgba(230,81,0,0.6)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]';
-    } else if (textStyle === 'neon-cyan') {
-      gradientClass = 'from-[#e0f7fa] via-[#26c6da] to-[#00838f]';
-      filterClass = 'drop-shadow-[0_4px_18px_rgba(0,188,212,0.6)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]';
+    if (titleText.includes('\n')) {
+      const lines = titleText.split('\n');
+      line1 = lines[0].trim();
+      line2 = lines.slice(1).join(' ').trim();
+    } else {
+      const upper = titleText.trim();
+      if (upper.startsWith('NEW YORK')) {
+        line1 = 'NEW YORK';
+        line2 = upper.replace(/^NEW YORK\s*/i, '').trim();
+      } else {
+        const parts = upper.split(/\s+/);
+        if (parts.length >= 2) {
+          line1 = parts[0];
+          line2 = parts.slice(1).join(' ');
+        } else {
+          line1 = upper;
+        }
+      }
     }
 
-    if (parts.length === 2) {
+    // Default clean ivory & pure white styling matching reference image_9595294f.png
+    let line1Color = 'text-[#faf5ee]';
+    let line2Color = 'text-white';
+    let line1DropShadow = 'drop-shadow-[0_4px_16px_rgba(0,0,0,0.85)]';
+    let line2DropShadow = 'drop-shadow-[0_4px_16px_rgba(0,0,0,0.85)]';
+
+    if (textStyle === 'golden-glow') {
+      line1Color = 'text-transparent bg-clip-text bg-gradient-to-b from-[#fff7d6] via-[#ffd677] to-[#d69527]';
+      line2Color = 'text-transparent bg-clip-text bg-gradient-to-b from-[#ffe8b3] via-[#ffc857] to-[#b87314]';
+      line1DropShadow = 'drop-shadow-[0_4px_18px_rgba(245,158,11,0.5)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]';
+      line2DropShadow = 'drop-shadow-[0_4px_18px_rgba(245,158,11,0.4)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]';
+    } else if (textStyle === 'brand-red') {
+      line1Color = 'text-white';
+      line2Color = 'text-transparent bg-clip-text bg-gradient-to-b from-rose-100 via-rose-300 to-[#e3000f]';
+      line2DropShadow = 'drop-shadow-[0_4px_18px_rgba(227,0,15,0.65)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]';
+    } else if (textStyle === 'sunset-amber') {
+      line1Color = 'text-transparent bg-clip-text bg-gradient-to-b from-[#ffe8b3] via-[#ff9a3c] to-[#e65100]';
+      line2Color = 'text-white';
+      line1DropShadow = 'drop-shadow-[0_4px_18px_rgba(230,81,0,0.6)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]';
+    }
+
+    if (line2) {
       return (
-        <span className={`block font-[950] tracking-tight text-transparent bg-clip-text bg-gradient-to-b ${gradientClass} ${filterClass} leading-[0.92]`}>
-          <span className="block">{parts[0]}</span>
-          <span className="block">{parts[1]}</span>
-        </span>
+        <div className="text-left font-black tracking-tight leading-[0.88] uppercase select-none">
+          <span className={`block text-5xl sm:text-6xl md:text-7xl lg:text-[76px] xl:text-[84px] font-black tracking-tight ${line1Color} ${line1DropShadow}`}>
+            {line1}
+          </span>
+          <span className={`block text-2xl sm:text-3xl md:text-4xl lg:text-[42px] xl:text-[46px] font-black tracking-tight mt-1 sm:mt-2 ${line2Color} ${line2DropShadow}`}>
+            {line2}
+          </span>
+        </div>
       );
     }
 
     return (
-      <span className={`block font-[950] tracking-tight text-transparent bg-clip-text bg-gradient-to-b ${gradientClass} ${filterClass} leading-[0.95]`}>
-        {titleText}
-      </span>
+      <div className="text-left font-black tracking-tight leading-[0.9] uppercase select-none">
+        <span className={`block text-5xl sm:text-6xl md:text-7xl lg:text-[76px] xl:text-[84px] font-black tracking-tight ${line1Color} ${line1DropShadow}`}>
+          {line1}
+        </span>
+      </div>
     );
   };
 
-  // Parse partner logos text into badges
+  // Parse partner logos text into badges with red shield icon for Tiqsey Verified
   const renderPartnerBadges = (partnerText?: string) => {
     if (!config.showPartnerBadges || !partnerText) return null;
     const items = partnerText.split('|').map(s => s.trim()).filter(Boolean);
 
     return (
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-white/90 text-[10px] sm:text-xs font-semibold mb-2 sm:mb-3">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-white text-[11px] sm:text-xs font-bold tracking-[0.14em] uppercase mb-2.5 sm:mb-3.5 select-none drop-shadow-sm">
         {items.map((item, idx) => (
           <React.Fragment key={idx}>
-            {idx > 0 && <span className="text-white/40 font-light select-none">|</span>}
-            <div className="flex items-center gap-1.5 drop-shadow-sm">
+            {idx > 0 && <span className="text-white/35 font-light px-0.5 select-none">|</span>}
+            <div className="flex items-center gap-2">
               {idx === 0 && (
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400/90 inline-block shadow-xs" />
+                <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#e3000f] fill-[#e3000f] drop-shadow-sm shrink-0" viewBox="0 0 24 24">
+                  <path d="M12 2L4 5.5v6c0 5.25 3.4 10.15 8 11.5 4.6-1.35 8-6.25 8-11.5v-6L12 2z" />
+                  <path d="M9 12.2l2 2 4.5-4.5" stroke="white" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </svg>
               )}
-              {idx === 1 && (
-                <span className="inline-flex items-center justify-center w-3 h-3 rounded-full bg-gradient-to-tr from-rose-500 via-amber-400 to-sky-400 text-[8px] font-black text-white">
-                  ★
-                </span>
-              )}
-              {idx === 2 && (
-                <Sparkles className="w-2.5 h-2.5 text-amber-300" />
-              )}
-              <span className="tracking-wide uppercase text-[9px] sm:text-[11px] font-bold text-white/90">
+              <span className={idx === 0 ? 'font-black text-white' : 'font-semibold text-white/95'}>
                 {item}
               </span>
             </div>
@@ -220,9 +246,9 @@ export default function LargeFeaturedBanner({
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         
-        {/* Banner Card Container with exact panoramic aspect ratio and rounded corners */}
+        {/* Banner Card Container with wide cinematic panoramic aspect ratio and rounded corners */}
         <div 
-          className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-200/40 dark:border-slate-800/80 bg-slate-950 group cursor-pointer aspect-[2.4/1] sm:aspect-[3.1/1] md:aspect-[3.7/1] lg:aspect-[4.1/1] min-h-[250px] sm:min-h-[290px] md:min-h-[330px]"
+          className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-800/40 bg-[#050f18] group cursor-pointer aspect-[2.1/1] sm:aspect-[2.6/1] md:aspect-[3/1] lg:aspect-[3/1] min-h-[280px] sm:min-h-[320px] md:min-h-[350px] lg:min-h-[380px]"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
           onTouchStart={handleTouchStart}
@@ -247,44 +273,44 @@ export default function LargeFeaturedBanner({
             </div>
           ))}
 
-          {/* Deep dark gradient overlay on the left to ensure high typographic legibility */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent z-10 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/25 z-10 pointer-events-none" />
+          {/* Deep rich dark gradient overlay on the left to ensure high typographic legibility */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#030b14]/95 via-[#030b14]/75 via-45% to-transparent to-75% z-10 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#030b14]/60 via-transparent to-transparent z-10 pointer-events-none" />
 
           {/* Left-Aligned Overlaid Hero Content */}
-          <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center px-6 sm:px-10 md:px-14 lg:px-16 max-w-xl sm:max-w-2xl">
+          <div className="absolute inset-y-0 left-0 z-20 flex flex-col justify-center px-6 sm:px-10 md:px-14 lg:px-16 max-w-xl sm:max-w-2xl lg:max-w-3xl">
             
-            {/* Top Partner Logos / Badges */}
+            {/* Top Partner Logos / Badges with Red Shield Checkmark */}
             {renderPartnerBadges(currentSlide.partnerLogosText)}
 
             {/* Optional Promotional Pill Badge */}
             {currentSlide.badgeText && (
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-md w-fit mb-2">
-                <Sparkles className="w-3 h-3 text-slate-950" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#e3000f] text-white text-[10px] font-black uppercase tracking-wider shadow-md w-fit mb-2">
                 <span>{currentSlide.badgeText}</span>
               </div>
             )}
 
             {/* Hero Grand Title */}
-            <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif">
+            <div>
               {renderTitle(currentSlide.title, currentSlide.textStyle)}
             </div>
 
             {/* Subtitle / Tagline */}
             {currentSlide.subtitle && (
-              <p className="text-white font-extrabold uppercase text-[10px] sm:text-xs md:text-sm lg:text-base tracking-[0.18em] sm:tracking-[0.24em] drop-shadow-md mt-1.5 sm:mt-2.5">
+              <p className="text-white/95 font-medium text-sm sm:text-base md:text-lg lg:text-[18px] tracking-normal drop-shadow-md mt-2.5 sm:mt-4">
                 {currentSlide.subtitle}
               </p>
             )}
 
-            {/* Call To Action Button (matching the white pill button from reference) */}
-            <div className="mt-3 sm:mt-4 md:mt-5">
+            {/* Call To Action Button (matching reference styling with crimson red arrow) */}
+            <div className="mt-4 sm:mt-6">
               <button
                 type="button"
                 onClick={(e) => handleActionClick(e)}
-                className="inline-flex items-center justify-center bg-white hover:bg-amber-400 text-stone-900 hover:text-stone-950 font-black px-6 sm:px-8 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm tracking-wider uppercase shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
+                className="group/btn inline-flex items-center gap-2.5 bg-white hover:bg-slate-50 text-slate-950 px-6 sm:px-7 py-2.5 sm:py-3.5 rounded-full text-xs sm:text-sm md:text-base font-bold shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 cursor-pointer"
               >
-                <span>{currentSlide.ctaText ? t(currentSlide.ctaText) : t('bookNow', 'BOOK NOW')}</span>
+                <span>{currentSlide.ctaText || 'Explore Rome'}</span>
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#e3000f] stroke-[3] transition-transform duration-200 group-hover/btn:translate-x-1" />
               </button>
             </div>
 
@@ -299,9 +325,9 @@ export default function LargeFeaturedBanner({
                 handlePrev();
               }}
               aria-label="Previous slide"
-              className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/85 hover:bg-white text-slate-800 shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 cursor-pointer backdrop-blur-xs"
+              className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white hover:bg-white text-slate-800 shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 cursor-pointer"
             >
-              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+              <ChevronLeft className="w-5 h-5 text-slate-800 stroke-[2.8]" />
             </button>
           )}
 
@@ -314,15 +340,15 @@ export default function LargeFeaturedBanner({
                 handleNext();
               }}
               aria-label="Next slide"
-              className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/85 hover:bg-white text-slate-800 shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 cursor-pointer backdrop-blur-xs"
+              className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white hover:bg-white text-slate-800 shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 cursor-pointer"
             >
-              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+              <ChevronRight className="w-5 h-5 text-slate-800 stroke-[2.8]" />
             </button>
           )}
 
-          {/* Bottom Pagination Dots / Indicators (matching the reference styling with elongated active pill) */}
+          {/* Bottom Pagination Dots / Indicators (housed in translucent dark capsule) */}
           {activeSlides.length > 1 && (
-            <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 z-30">
+            <div className="absolute bottom-3.5 sm:bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30 bg-slate-950/70 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-lg border border-white/10">
               {activeSlides.map((_, dotIdx) => (
                 <button
                   key={dotIdx}
@@ -334,8 +360,8 @@ export default function LargeFeaturedBanner({
                   aria-label={`Go to slide ${dotIdx + 1}`}
                   className={`transition-all duration-300 rounded-full cursor-pointer ${
                     dotIdx === currentIndex
-                      ? 'w-6 sm:w-8 h-1.5 sm:h-2 bg-[#f97316] shadow-sm'
-                      : 'w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white/70 hover:bg-white'
+                      ? 'w-7 sm:w-8 h-2 bg-[#e3000f] shadow-xs'
+                      : 'w-2 h-2 bg-white/70 hover:bg-white'
                   }`}
                 />
               ))}

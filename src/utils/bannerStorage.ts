@@ -225,70 +225,84 @@ export function resetToDefaultBanners(): void {
 export const LARGE_BANNER_STORAGE_KEY = 'tiqsey_large_hero_banner_config';
 export const LARGE_BANNER_UPDATE_EVENT = 'tiqsey_large_banner_updated';
 
+export const LARGE_HERO_BANNER_VERSION = 'v4_rome_target';
+
 export const DEFAULT_LARGE_HERO_BANNER_CONFIG: LargeHeroBannerConfig = {
+  version: LARGE_HERO_BANNER_VERSION,
   isEnabled: true,
-  autoPlayInterval: 5000,
+  autoPlayInterval: 6000,
   showPartnerBadges: true,
   slides: [
     {
-      id: 'slide-south-korea',
-      title: 'SOUTH KOREA',
-      subtitle: 'YOUR K-CULTURE TRIP AWAITS',
-      partnerLogosText: 'thrillophilia.com  |  Imagine your Korea  |  KOREA TOURISM ORGANIZATION',
-      badgeText: 'TRENDING DESTINATION',
-      imageUrl: '/assets/aistudio/image_ea5bb7e3.png',
-      ctaText: 'BOOK NOW',
-      destinationUrl: 'Seoul',
+      id: 'slide-rome-beyond',
+      title: 'ROME BEYOND THE ORDINARY',
+      subtitle: 'Colosseum • Vatican Museums • Sistine Chapel',
+      partnerLogosText: 'TIQSEY VERIFIED  |  CURATED EXPERIENCES  |  INSTANT CONFIRMATION',
+      imageUrl: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=2000&q=85',
+      ctaText: 'Explore Rome',
+      destinationUrl: 'Rome',
       destinationType: 'destination',
-      textStyle: 'golden-glow',
+      textStyle: 'modern-white',
       isActive: true,
       order: 1,
-      highlightOffer: 'Royal Palace Passes & K-Wave Experiences with Instant Confirmation'
+      highlightOffer: 'Priority Colosseum Arena Access, Vatican Museums & Sistine Chapel Tour'
     },
     {
-      id: 'slide-japan-tokyo',
-      title: 'JAPAN DISCOVERY',
-      subtitle: 'MT. FUJI, SHIBUYA & CHERRY BLOSSOMS',
-      partnerLogosText: 'Tiqsey Curated  |  Japan National Tourism  |  JR Pass Express',
-      badgeText: 'MOST POPULAR',
-      imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1920&q=85',
-      ctaText: 'BOOK NOW',
-      destinationUrl: 'Tokyo',
-      destinationType: 'destination',
-      textStyle: 'sunset-amber',
-      isActive: true,
-      order: 2,
-      highlightOffer: 'teamLab Planets & Tokyo Tower Fast-Track Tickets'
-    },
-    {
-      id: 'slide-dubai-adventures',
+      id: 'slide-dubai-unlocked',
       title: 'DUBAI UNLOCKED',
-      subtitle: 'BURJ KHALIFA & LUXURY DESERT SAFARIS',
-      partnerLogosText: 'Visit Dubai  |  Emaar Official  |  Best Price Guarantee',
+      subtitle: 'Burj Khalifa • Luxury Desert Safaris • Miracle Garden',
+      partnerLogosText: 'TIQSEY VERIFIED  |  EMAAR OFFICIAL  |  BEST PRICE GUARANTEE',
       badgeText: 'HOT DEAL 25% OFF',
-      imageUrl: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1920&q=85',
-      ctaText: 'EXPLORE NOW',
+      imageUrl: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=2000&q=85',
+      ctaText: 'Explore Dubai',
       destinationUrl: 'Dubai',
       destinationType: 'destination',
       textStyle: 'golden-glow',
       isActive: true,
-      order: 3,
-      highlightOffer: 'At The Top Level 124/125 & 4x4 Dune Bashing BBQ Dinners'
+      order: 2,
+      highlightOffer: 'At The Top Level 124/125, Desert 4x4 Safari BBQ Dinners & Miracle Garden'
     },
     {
-      id: 'slide-bali-paradise',
-      title: 'BALI PARADISE',
-      subtitle: 'WATERFALLS, TEMPLE SUNSETS & SPEEDBOATS',
-      partnerLogosText: 'Wonderful Indonesia  |  Bali Island Tours  |  Verified Operators',
-      badgeText: 'SUMMER SPECIAL',
-      imageUrl: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1920&q=85',
-      ctaText: 'DISCOVER BALI',
-      destinationUrl: 'Bali',
+      id: 'slide-paris-essentials',
+      title: 'PARIS ESSENTIALS',
+      subtitle: 'The Louvre Museum • Eiffel Tower Summit • Seine Cruise',
+      partnerLogosText: 'TIQSEY VERIFIED  |  PARIS CITY PASS  |  SKIP THE LINE',
+      imageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=2000&q=85',
+      ctaText: 'Explore Paris',
+      destinationUrl: 'Paris',
+      destinationType: 'destination',
+      textStyle: 'modern-white',
+      isActive: true,
+      order: 3,
+      highlightOffer: 'Fast-Track Louvre Mona Lisa Passes & Eiffel Tower Summit Observatory'
+    },
+    {
+      id: 'slide-nyc-highlights',
+      title: 'NEW YORK PASS',
+      subtitle: 'Edge NYC • 9/11 Memorial • Summit One Vanderbilt',
+      partnerLogosText: 'TIQSEY VERIFIED  |  NYC TOURISM  |  MOBILE VOUCHER',
+      imageUrl: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=2000&q=85',
+      ctaText: 'Explore NYC',
+      destinationUrl: 'New York',
       destinationType: 'destination',
       textStyle: 'modern-white',
       isActive: true,
       order: 4,
-      highlightOffer: 'Nusa Penida Day Tours & Uluwatu Sunset Kecak Fire Dances'
+      highlightOffer: '100th Floor Glass Floor Sky Deck & All-Inclusive Explorer Passes'
+    },
+    {
+      id: 'slide-singapore-wonders',
+      title: 'SINGAPORE WONDERS',
+      subtitle: 'Gardens by the Bay • Universal Studios • Marina Bay',
+      partnerLogosText: 'TIQSEY VERIFIED  |  SINGAPORE PASS  |  BEST PRICE',
+      imageUrl: 'https://images.unsplash.com/photo-1525596662741-e94ff9f26de1?auto=format&fit=crop&w=2000&q=85',
+      ctaText: 'Explore Singapore',
+      destinationUrl: 'Singapore',
+      destinationType: 'destination',
+      textStyle: 'modern-white',
+      isActive: true,
+      order: 5,
+      highlightOffer: 'Supertree Observatory, Cloud Forest & Universal Studios Rides'
     }
   ]
 };
@@ -303,6 +317,12 @@ export function getStoredLargeHeroBannerConfig(): LargeHeroBannerConfig {
     }
     const parsed = JSON.parse(raw);
     if (parsed && Array.isArray(parsed.slides)) {
+      // Check if user has legacy mock slides or needs update to the latest Rome reference
+      const isLatest = parsed.version === LARGE_HERO_BANNER_VERSION && parsed.slides.length > 0 && parsed.slides[0]?.id === 'slide-rome-beyond';
+      if (!isLatest) {
+        localStorage.setItem(LARGE_BANNER_STORAGE_KEY, JSON.stringify(DEFAULT_LARGE_HERO_BANNER_CONFIG));
+        return DEFAULT_LARGE_HERO_BANNER_CONFIG;
+      }
       parsed.slides.sort((a: LargeHeroBannerSlide, b: LargeHeroBannerSlide) => (a.order || 0) - (b.order || 0));
       return parsed;
     }

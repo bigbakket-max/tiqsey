@@ -123,6 +123,7 @@ export interface LargeHeroBannerSlide {
 }
 
 export interface LargeHeroBannerConfig {
+  version?: string;
   isEnabled: boolean;
   autoPlayInterval: number; // in milliseconds (e.g. 5000, 0 = disabled)
   showPartnerBadges: boolean;

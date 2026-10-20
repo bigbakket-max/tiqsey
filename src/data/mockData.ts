@@ -868,9 +868,8 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 16820,
     price: 18,
     discountPrice: 14,
-    imageUrl: "/assets/aistudio/image_ea5bb7e3.png",
+    imageUrl: "https://images.unsplash.com/photo-1538485399081-7191377e8241?auto=format&fit=crop&q=85&w=1200",
     galleryUrls: [
-      "/assets/aistudio/image_ea5bb7e3.png",
       "https://images.unsplash.com/photo-1538485399081-7191377e8241?auto=format&fit=crop&q=85&w=1200",
       "https://images.unsplash.com/photo-1546874177-9e664107314e?auto=format&fit=crop&q=85&w=1200"
     ],
@@ -2719,7 +2718,8 @@ export const DESTINATIONS: Destination[] = [
     id: "south-korea",
     name: "South Korea",
     attractionsCount: 178,
-    imageUrl: "/assets/aistudio/image_ea5bb7e3.png",
+    imageUrl:
+      "https://images.unsplash.com/photo-1538485399081-7191377e8241?auto=format&fit=crop&q=80&w=1200",
   },
 ];
 

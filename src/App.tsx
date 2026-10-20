@@ -505,30 +505,6 @@ export default function App() {
             window.scrollTo(0, 0);
           }}
         />
-        <ScrollReveal delay={0.05}>
-          <LargeFeaturedBanner
-            onSelectDestination={(dest) => {
-              setSelectedDestination(dest);
-              window.history.pushState(
-                {},
-                "",
-                `/destinations/${encodeURIComponent(dest.toLowerCase().replace(/\s+/g, "-"))}`,
-              );
-              window.scrollTo(0, 0);
-            }}
-            onViewAttraction={handleViewAttraction}
-            onNavigate={(url) => {
-              if (url.startsWith("/")) {
-                window.history.pushState({}, "", url);
-                const page = url.replace("/", "");
-                if (page === "hot-deals" || page === "attractions-and-museums" || page === "blog") {
-                  setCurrentPage(page as AppPage);
-                }
-                window.scrollTo(0, 0);
-              }
-            }}
-          />
-        </ScrollReveal>
         <ScrollReveal>
           <FeaturedDestinations onSelectDestination={setSelectedDestination} />
         </ScrollReveal>
@@ -551,6 +527,30 @@ export default function App() {
         </ScrollReveal>
         <ScrollReveal delay={0.1}>
           <PopularAttractions onViewAttraction={handleViewAttraction} />
+        </ScrollReveal>
+        <ScrollReveal delay={0.1}>
+          <LargeFeaturedBanner
+            onSelectDestination={(dest) => {
+              setSelectedDestination(dest);
+              window.history.pushState(
+                {},
+                "",
+                `/destinations/${encodeURIComponent(dest.toLowerCase().replace(/\s+/g, "-"))}`,
+              );
+              window.scrollTo(0, 0);
+            }}
+            onViewAttraction={handleViewAttraction}
+            onNavigate={(url) => {
+              if (url.startsWith("/")) {
+                window.history.pushState({}, "", url);
+                const page = url.replace("/", "");
+                if (page === "hot-deals" || page === "attractions-and-museums" || page === "blog") {
+                  setCurrentPage(page as AppPage);
+                }
+                window.scrollTo(0, 0);
+              }
+            }}
+          />
         </ScrollReveal>
         <ScrollReveal delay={0.1}>
           <TrustBar />
