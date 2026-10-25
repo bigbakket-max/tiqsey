@@ -2,6 +2,8 @@ import { PromotionalBanner, LargeHeroBannerConfig, LargeHeroBannerSlide } from '
 
 export const BANNER_STORAGE_KEY = 'tiqsey_promotional_banners';
 export const BANNER_UPDATE_EVENT = 'tiqsey_banners_updated';
+export const PROMOTIONAL_BANNERS_VERSION_KEY = 'tiqsey_promotional_banners_version';
+export const PROMOTIONAL_BANNERS_VERSION = 'v4_rich_travel_scenery_4grid';
 
 export const DEFAULT_PROMOTIONAL_BANNERS: PromotionalBanner[] = [
   {
@@ -13,10 +15,11 @@ export const DEFAULT_PROMOTIONAL_BANNERS: PromotionalBanner[] = [
     badgeText: 'PLAY DEAL',
     badgeIcon: 'flame',
     promoCode: 'TIQSEYPLAY',
-    ctaText: 'Copy',
+    ctaText: 'Copy Code',
     destinationUrl: 'deals',
     destinationType: 'section',
-    customBgColor: '#7700e6',
+    customImageUrl: 'https://images.unsplash.com/photo-1513889961551-628c1e5e2ee9?auto=format&fit=crop&w=1200&q=80',
+    customBgColor: '#4c1d95',
     termsText: 'CODE: TIQSEYPLAY',
     order: 1,
     isActive: true,
@@ -35,7 +38,8 @@ export const DEFAULT_PROMOTIONAL_BANNERS: PromotionalBanner[] = [
     ctaText: 'Explore Tickets',
     destinationUrl: 'tournament',
     destinationType: 'section',
-    customBgColor: '#055c63',
+    customImageUrl: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+    customBgColor: '#042f2e',
     termsText: 'T&Cs apply',
     order: 2,
     isActive: true,
@@ -46,15 +50,16 @@ export const DEFAULT_PROMOTIONAL_BANNERS: PromotionalBanner[] = [
     id: 'banner-water-parks-3',
     template: 'water-parks',
     title: 'Swim, slide & save',
-    subtitle: 'SUMMER Break',
+    subtitle: 'SUMMER BREAK',
     highlightText: 'Extra 15% off',
     badgeText: 'WATER PARKS',
     badgeIcon: 'compass',
-    secondaryBadge: 'SUMMER Break',
+    secondaryBadge: 'Summer Splash',
     ctaText: 'Park Specials',
     destinationUrl: 'summer',
     destinationType: 'section',
-    customBgColor: '#049408',
+    customImageUrl: 'https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&w=1200&q=80',
+    customBgColor: '#064e3b',
     termsText: 'T&Cs apply',
     order: 3,
     isActive: true,
@@ -73,7 +78,8 @@ export const DEFAULT_PROMOTIONAL_BANNERS: PromotionalBanner[] = [
     ctaText: 'Explore Now',
     destinationUrl: 'Kuala Lumpur',
     destinationType: 'destination',
-    customBgColor: '#e11d48',
+    customImageUrl: 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=1200&q=80',
+    customBgColor: '#881337',
     customGradientFrom: '#db2777',
     customGradientTo: '#f59e0b',
     termsText: 'Best price guaranteed',
@@ -88,11 +94,49 @@ export function getStoredBanners(): PromotionalBanner[] {
   if (typeof window === 'undefined') return DEFAULT_PROMOTIONAL_BANNERS;
   
   try {
+    const version = localStorage.getItem(PROMOTIONAL_BANNERS_VERSION_KEY);
     const data = localStorage.getItem(BANNER_STORAGE_KEY);
-    if (!data) {
-      localStorage.setItem(BANNER_STORAGE_KEY, JSON.stringify(DEFAULT_PROMOTIONAL_BANNERS));
-      return DEFAULT_PROMOTIONAL_BANNERS;
+
+    // If version is missing or old, upgrade defaults with new high-res scenery backgrounds
+    if (version !== PROMOTIONAL_BANNERS_VERSION || !data) {
+      let existingList: PromotionalBanner[] = [];
+      if (data) {
+        try {
+          existingList = JSON.parse(data);
+        } catch {
+          existingList = [];
+        }
+      }
+
+      const defaultMap = new Map(DEFAULT_PROMOTIONAL_BANNERS.map(b => [b.id, b]));
+      const upgraded: PromotionalBanner[] = [];
+
+      // Add upgraded defaults while keeping user active status
+      DEFAULT_PROMOTIONAL_BANNERS.forEach(defaultBanner => {
+        const found = existingList.find(b => b.id === defaultBanner.id);
+        if (found) {
+          upgraded.push({
+            ...defaultBanner,
+            isActive: found.isActive !== undefined ? found.isActive : defaultBanner.isActive,
+            order: found.order !== undefined ? found.order : defaultBanner.order
+          });
+        } else {
+          upgraded.push(defaultBanner);
+        }
+      });
+
+      // Preserve any custom banners created by the admin
+      existingList.forEach(item => {
+        if (!defaultMap.has(item.id)) {
+          upgraded.push(item);
+        }
+      });
+
+      localStorage.setItem(BANNER_STORAGE_KEY, JSON.stringify(upgraded));
+      localStorage.setItem(PROMOTIONAL_BANNERS_VERSION_KEY, PROMOTIONAL_BANNERS_VERSION);
+      return upgraded.sort((a, b) => (a.order || 0) - (b.order || 0));
     }
+
     const parsed = JSON.parse(data);
     if (Array.isArray(parsed) && parsed.length > 0) {
       return parsed.sort((a, b) => (a.order || 0) - (b.order || 0));

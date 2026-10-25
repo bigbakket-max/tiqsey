@@ -546,7 +546,7 @@ export default function PromotionalBanners() {
           <div className="transition-all duration-300">
             <div className={`grid gap-4 ${
               previewViewport === 'desktop' 
-                ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-full' 
+                ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-full' 
                 : previewViewport === 'tablet'
                 ? 'grid-cols-1 sm:grid-cols-2 max-w-4xl mx-auto'
                 : 'grid-cols-1 max-w-sm mx-auto'
