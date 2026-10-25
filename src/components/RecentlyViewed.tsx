@@ -137,7 +137,7 @@ export default function RecentlyViewed({ items, onSelect, onClear }: RecentlyVie
   if (items.length === 0) return null;
 
   return (
-    <section className="py-4 md:py-6 bg-gray-50/80 border-y border-gray-100 overflow-hidden">
+    <section className="py-4 md:py-6 bg-transparent border-y border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-5">
           <div className="flex items-center gap-5">

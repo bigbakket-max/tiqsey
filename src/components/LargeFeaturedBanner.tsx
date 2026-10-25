@@ -248,7 +248,7 @@ export default function LargeFeaturedBanner({
         
         {/* Banner Card Container with wide cinematic panoramic aspect ratio and rounded corners */}
         <div 
-          className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-800/40 bg-[#050f18] group cursor-pointer aspect-[2.1/1] sm:aspect-[2.6/1] md:aspect-[3/1] lg:aspect-[3/1] min-h-[280px] sm:min-h-[320px] md:min-h-[350px] lg:min-h-[380px]"
+          className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs border border-slate-800/40 dark:border-slate-800/80 bg-[#050f18] group cursor-pointer aspect-[2.1/1] sm:aspect-[2.6/1] md:aspect-[3/1] lg:aspect-[3/1] min-h-[280px] sm:min-h-[320px] md:min-h-[350px] lg:min-h-[380px]"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
           onTouchStart={handleTouchStart}

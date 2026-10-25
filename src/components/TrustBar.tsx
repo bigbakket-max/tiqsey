@@ -364,7 +364,7 @@ export default function TrustBar() {
   };
 
   return (
-    <section className="relative w-full bg-white dark:bg-slate-950/20 py-8 md:py-10" id="trust-bar-section">
+    <section className="relative w-full bg-transparent py-8 md:py-10" id="trust-bar-section">
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         <div className="flex flex-col items-start gap-5 w-full">
           
@@ -397,7 +397,7 @@ export default function TrustBar() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.08, duration: 0.35 }}
-                  className="flex flex-col items-start gap-3.5 p-5 md:p-6 bg-slate-50 dark:bg-slate-900/40 border border-slate-100/80 dark:border-slate-800/60 rounded-2xl w-[80vw] sm:w-[280px] md:w-auto shrink-0 snap-center hover:-translate-y-1 hover:shadow-xs transition-all duration-300"
+                  className="flex flex-col items-start gap-3.5 p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl w-[80vw] sm:w-[280px] md:w-auto shrink-0 snap-center hover:-translate-y-1 hover:shadow-md shadow-xs transition-all duration-300"
                 >
                   <div className="flex items-start justify-start w-full pointer-events-none">
                     {characterElement}

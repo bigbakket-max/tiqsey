@@ -230,10 +230,10 @@ export default function Header({
   return (
     <>
       <header
-        className={`sticky top-0 left-0 right-0 z-50 flex flex-col transition-all duration-300 ${!scrolled && pageName === "home" && !activeDestination ? "bg-[#F4F7F9] dark:bg-slate-950 shadow-none" : "bg-white dark:bg-slate-900 shadow-sm"}`}
+        className={`sticky top-0 left-0 right-0 z-50 flex flex-col transition-all duration-300 ${!scrolled && pageName === "home" && !activeDestination ? "bg-[#f0f4f8] dark:bg-slate-950 shadow-none" : "bg-white dark:bg-slate-900 shadow-sm"}`}
       >
         <div
-          className={`h-[56px] sm:h-[68px] relative z-50 backdrop-blur-md transition-colors ${!scrolled && pageName === "home" && !activeDestination ? "bg-[#F4F7F9]/95 dark:bg-slate-950/95 border-b border-gray-200/60 dark:border-slate-800/50 md:border-b-transparent" : "bg-white/95 dark:bg-slate-900/95 border-b border-gray-100/80 dark:border-slate-850/80"}`}
+          className={`h-[56px] sm:h-[68px] relative z-50 backdrop-blur-md transition-colors ${!scrolled && pageName === "home" && !activeDestination ? "bg-[#f0f4f8]/95 dark:bg-slate-950/95 border-b border-gray-200/60 dark:border-slate-800/50 md:border-b-transparent" : "bg-white/95 dark:bg-slate-900/95 border-b border-gray-100/80 dark:border-slate-850/80"}`}
         >
           <div className="max-w-[1440px] mx-auto px-2.5 sm:px-4 lg:px-6 h-full flex items-center justify-between gap-2 lg:gap-3 xl:gap-5">
             <div className="flex items-center gap-2 sm:gap-3 shrink-0 mr-1 sm:mr-2 lg:mr-3 xl:mr-4">
