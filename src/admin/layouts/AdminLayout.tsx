@@ -109,6 +109,8 @@ export default function AdminLayout() {
         }
       } else if (path.includes('/favicon')) {
         crumbs.push({ name: 'Favicon', icon: undefined, path: '/favicon' });
+      } else if (path.includes('/custom-domain')) {
+        crumbs.push({ name: 'Custom Domain', icon: undefined, path: '/custom-domain' });
       }
     }
     return crumbs;
@@ -326,6 +328,21 @@ export default function AdminLayout() {
               >
                 <ImageIcon className="w-4 h-4 shrink-0 text-sky-400 group-hover:scale-105 transition-transform" />
                 Favicon
+              </NavLink>
+
+              <NavLink
+                to="/custom-domain"
+                onClick={() => setMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13.5px] transition-colors group ${
+                    isActive 
+                      ? 'bg-sky-500/20 text-white font-bold border-l-2 border-sky-400' 
+                      : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
+                  }`
+                }
+              >
+                <Globe className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-105 transition-transform" />
+                Custom Domain
               </NavLink>
             </div>
           )}
