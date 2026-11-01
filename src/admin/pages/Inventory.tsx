@@ -58,6 +58,14 @@ import AttractionCard from "../../components/AttractionCard";
 import { GEOGRAPHY_DATA } from "../../data/geographyData";
 import { CURRENCIES } from "../../contexts/SettingsContext";
 
+export const DEFAULT_STANDARD_HIGHLIGHTS = [
+  "Enjoy hassle-free entry with pre-booked entry tickets.",
+  "Explore the beautiful exhibition galleries at your own leisure.",
+  "Admire the incredible structures and local historic collections.",
+  "Learn about fascinating histories and stories behind the exhibitions.",
+  "Create unforgettable and delightful memories with family and friends."
+];
+
 const TIMEZONES = [
 { value: "Cape Verde Standard Time", label: "(UTC-01:00) Cabo Verde Is." },
   { value: "UTC-02", label: "(UTC-02:00) Coordinated Universal Time-02" },
@@ -725,6 +733,15 @@ export default function Inventory() {
   const [affiliateLastClickedAt, setAffiliateLastClickedAt] = useState<string>("");
   const [bookingModeFilter, setBookingModeFilter] = useState<'all' | 'manual' | 'affiliate'>('all');
 
+  // Highlights Editor visual states
+  const [highlightsEditorMode, setHighlightsEditorMode] = useState<'visual' | 'raw'>('visual');
+  const [newHighlightText, setNewHighlightText] = useState("");
+
+  // Quick Highlights Modal states (from Inventory Table)
+  const [quickHighlightsAttr, setQuickHighlightsAttr] = useState<Attraction | null>(null);
+  const [quickHighlightsList, setQuickHighlightsList] = useState<string[]>([]);
+  const [quickHighlightNewText, setQuickHighlightNewText] = useState("");
+
   useEffect(() => {
     if (isEditRoute && id) {
       const attr = attractions.find(a => a.id === id);
@@ -812,8 +829,37 @@ export default function Inventory() {
           setMonthWiseHours(defaultMonthWise);
         }
 
-        setIsDaysDropdownOpen(false);
-        setHighlightsInput((attr.highlights || []).join("\n"));
+        const initialHighlights = (attr.highlights && attr.highlights.length > 0)
+          ? attr.highlights
+          : (attr.id === 'ams-rijksmuseum'
+            ? [
+                'Skip-the-line entry to the Rijksmuseum.',
+                'View masterpieces by Rembrandt, Vermeer, and other Dutch masters.',
+                'See the famous The Night Watch.',
+                'Explore Dutch art and history at your own pace.',
+                'Learn fascinating stories behind the museum\'s collection.',
+                'Enjoy a memorable cultural experience in Amsterdam.'
+              ]
+            : attr.id === 'ams-van-gogh'
+            ? [
+                'Enjoy skip-the-line entry for a hassle-free visit.',
+                'Admire the iconic masterpieces of Vincent van Gogh.',
+                'Explore the museum at your own pace.',
+                'Learn about Van Gogh\'s artistic techniques, influences, and inspirations.',
+                'Experience a smooth, engaging, and enriching museum visit.'
+              ]
+            : attr.id === 'lis-jeronimos'
+            ? [
+                'Enjoy entry to the magnificent Jerónimos Monastery, a masterpiece of Portuguese architecture.',
+                'Admire the stunning Manueline-style design, renowned for its intricate stone carvings and maritime motifs.',
+                'Explore the beautiful cloisters, considered among the finest in Europe.',
+                'Learn about Portugal’s Age of Discovery and the monastery’s historical significance.',
+                'Visit the tombs of renowned figures, including Vasco da Gama and Luís de Camões.',
+                'Discover a Jerónimos Monastery UNESCO World Heritage Site that reflects Portugal’s rich cultural heritage.',
+                'Explore the monument at your own pace and enjoy a memorable journey through history.'
+              ]
+            : DEFAULT_STANDARD_HIGHLIGHTS);
+        setHighlightsInput(initialHighlights.join("\n"));
         setIncludedInput((attr.included || []).join("\n"));
         setIsPopular(attr.isPopular ?? false);
         setFastTrack(attr.fastTrack ?? false);
@@ -961,7 +1007,7 @@ export default function Inventory() {
       setMonthWiseHours({});
       setTimeRangeInput("09:00 - 18:00");
       setIsDaysDropdownOpen(false);
-      setHighlightsInput("");
+      setHighlightsInput(DEFAULT_STANDARD_HIGHLIGHTS.join("\n"));
       setIncludedInput("");
       setIsPopular(false);
       setFastTrack(false);
@@ -1174,6 +1220,57 @@ export default function Inventory() {
   // Handle opening modal for editing an activity
   const handleEditClick = (attr: Attraction) => {
     navigate(`/inventory/edit/${attr.id}`);
+  };
+
+  // Handle opening quick highlights editor directly from catalogue table
+  const handleOpenQuickHighlights = (attr: Attraction) => {
+    setQuickHighlightsAttr(attr);
+    const existing = (attr.highlights && attr.highlights.length > 0)
+      ? attr.highlights
+      : (attr.id === 'ams-rijksmuseum'
+        ? [
+            'Skip-the-line entry to the Rijksmuseum.',
+            'View masterpieces by Rembrandt, Vermeer, and other Dutch masters.',
+            'See the famous The Night Watch.',
+            'Explore Dutch art and history at your own pace.',
+            'Learn fascinating stories behind the museum\'s collection.',
+            'Enjoy a memorable cultural experience in Amsterdam.'
+          ]
+        : attr.id === 'ams-van-gogh'
+        ? [
+            'Enjoy skip-the-line entry for a hassle-free visit.',
+            'Admire the iconic masterpieces of Vincent van Gogh.',
+            'Explore the museum at your own pace.',
+            'Learn about Van Gogh\'s artistic techniques, influences, and inspirations.',
+            'Experience a smooth, engaging, and enriching museum visit.'
+          ]
+        : attr.id === 'lis-jeronimos'
+        ? [
+            'Enjoy entry to the magnificent Jerónimos Monastery, a masterpiece of Portuguese architecture.',
+            'Admire the stunning Manueline-style design, renowned for its intricate stone carvings and maritime motifs.',
+            'Explore the beautiful cloisters, considered among the finest in Europe.',
+            'Learn about Portugal’s Age of Discovery and the monastery’s historical significance.',
+            'Visit the tombs of renowned figures, including Vasco da Gama and Luís de Camões.',
+            'Discover a Jerónimos Monastery UNESCO World Heritage Site that reflects Portugal’s rich cultural heritage.',
+            'Explore the monument at your own pace and enjoy a memorable journey through history.'
+          ]
+        : DEFAULT_STANDARD_HIGHLIGHTS);
+    setQuickHighlightsList([...existing]);
+    setQuickHighlightNewText("");
+  };
+
+  const handleSaveQuickHighlights = () => {
+    if (!quickHighlightsAttr) return;
+    const cleanHighlights = quickHighlightsList.map(h => h.trim()).filter(Boolean);
+    const updatedAttr: Attraction = {
+      ...quickHighlightsAttr,
+      highlights: cleanHighlights
+    };
+    const updatedList = attractions.map(a => a.id === quickHighlightsAttr.id ? updatedAttr : a);
+    const cleanList = deduplicateAttractions(updatedList);
+    setAttractions(cleanList);
+    syncCustomAttractions(cleanList);
+    setQuickHighlightsAttr(null);
   };
 
   // Handle delete operation
@@ -1756,6 +1853,13 @@ export default function Inventory() {
                     {/* Action Tools */}
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleOpenQuickHighlights(attr)}
+                          className="p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors group cursor-pointer"
+                          title="Edit Highlights"
+                        >
+                          <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                        </button>
                         <button
                           onClick={() => handleEditClick(attr)}
                           className="p-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors group"
@@ -4101,7 +4205,229 @@ export default function Inventory() {
                           </div>
                         </div>
 
-                      {/* Section 2: Geographical Settings */}
+                      {/* Section 2: Experience Highlights (Customer Detail Page) */}
+                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/60 gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-1.5 h-5 bg-[#e3000f] rounded-sm shrink-0" />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                                  Experience Highlights
+                                </h3>
+                                <span className="text-[10px] bg-red-50 dark:bg-red-950/60 text-[#e3000f] font-bold px-2 py-0.5 rounded border border-red-200/50 dark:border-red-800/40">
+                                  Detail Page Feature
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                                Edit bullet points that appear in the &quot;HIGHLIGHTS&quot; section with the red accent on the public activity page.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                              <button
+                                type="button"
+                                onClick={() => setHighlightsEditorMode('visual')}
+                                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                                  highlightsEditorMode === 'visual'
+                                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                                }`}
+                              >
+                                Visual List
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setHighlightsEditorMode('raw')}
+                                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                                  highlightsEditorMode === 'raw'
+                                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                                }`}
+                              >
+                                Bulk Text
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setHighlightsInput(DEFAULT_STANDARD_HIGHLIGHTS.join('\n'))}
+                              className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold px-2 py-1 cursor-pointer"
+                              title="Reset to 5 standard attraction highlights"
+                            >
+                              Reset to Default
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Editor Body */}
+                        {highlightsEditorMode === 'visual' ? (
+                          <div className="space-y-3">
+                            {(() => {
+                              const items = highlightsInput.split('\n').filter(Boolean);
+                              return (
+                                <>
+                                  {items.length === 0 ? (
+                                    <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400">
+                                      No custom highlights yet. Click &quot;Add Highlight&quot; below or &quot;Reset to Default&quot; to load standard bullets.
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-2">
+                                      {items.map((item, idx) => (
+                                        <div 
+                                          key={idx} 
+                                          className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 group hover:border-[#5fa6d9]/50 transition-colors"
+                                        >
+                                          <span className="w-6 text-center font-bold text-xs text-[#e3000f] shrink-0">
+                                            •
+                                          </span>
+                                          <input
+                                            type="text"
+                                            value={item}
+                                            onChange={(e) => {
+                                              const updated = [...items];
+                                              updated[idx] = e.target.value;
+                                              setHighlightsInput(updated.join('\n'));
+                                            }}
+                                            placeholder="Enter highlight bullet text..."
+                                            className="flex-1 bg-transparent border-0 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-0 px-1"
+                                          />
+                                          <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                              type="button"
+                                              disabled={idx === 0}
+                                              onClick={() => {
+                                                if (idx === 0) return;
+                                                const updated = [...items];
+                                                const temp = updated[idx - 1];
+                                                updated[idx - 1] = updated[idx];
+                                                updated[idx] = temp;
+                                                setHighlightsInput(updated.join('\n'));
+                                              }}
+                                              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
+                                              title="Move up"
+                                            >
+                                              <ChevronUp className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              disabled={idx === items.length - 1}
+                                              onClick={() => {
+                                                if (idx === items.length - 1) return;
+                                                const updated = [...items];
+                                                const temp = updated[idx + 1];
+                                                updated[idx + 1] = updated[idx];
+                                                updated[idx] = temp;
+                                                setHighlightsInput(updated.join('\n'));
+                                              }}
+                                              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
+                                              title="Move down"
+                                            >
+                                              <ChevronDown className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const updated = items.filter((_, i) => i !== idx);
+                                                setHighlightsInput(updated.join('\n'));
+                                              }}
+                                              className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded cursor-pointer"
+                                              title="Delete highlight"
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Add new highlight item */}
+                                  <div className="flex items-center gap-2 pt-1">
+                                    <input
+                                      type="text"
+                                      value={newHighlightText}
+                                      onChange={(e) => setNewHighlightText(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          if (newHighlightText.trim()) {
+                                            const updated = [...items, newHighlightText.trim()];
+                                            setHighlightsInput(updated.join('\n'));
+                                            setNewHighlightText("");
+                                          }
+                                        }
+                                      }}
+                                      placeholder="Add a new highlight bullet point (e.g. Skip-the-line entrance ticket included)..."
+                                      className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#5fa6d9]"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (newHighlightText.trim()) {
+                                          const updated = [...items, newHighlightText.trim()];
+                                          setHighlightsInput(updated.join('\n'));
+                                          setNewHighlightText("");
+                                        }
+                                      }}
+                                      className="flex items-center gap-1.5 px-3 py-2 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                      <span>Add Highlight</span>
+                                    </button>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <textarea
+                              rows={6}
+                              value={highlightsInput}
+                              onChange={(e) => setHighlightsInput(e.target.value)}
+                              placeholder="Enter one highlight point per line..."
+                              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#5fa6d9] leading-relaxed"
+                            />
+                            <p className="text-[11px] text-slate-400">
+                              Tip: Type or paste one bullet per line. Each line becomes a distinct bullet point in the customer detail modal.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Customer Detail Modal Real-Time Preview */}
+                        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 space-y-2">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <Sparkles className="w-3 h-3 text-[#e3000f]" />
+                            Live Customer Detail Modal Preview
+                          </span>
+                          
+                          <div className="bg-slate-50/70 dark:bg-slate-950/60 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+                            <div className="flex items-center gap-2.5 border-l-4 border-[#e3000f] pl-3 select-none">
+                              <h4 className="text-sm font-black text-slate-900 dark:text-white tracking-wider leading-none uppercase">
+                                HIGHLIGHTS
+                              </h4>
+                            </div>
+                            <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-150 dark:border-slate-800">
+                              <ul className="list-disc pl-5 space-y-2 text-slate-800 dark:text-slate-200 font-semibold text-xs leading-relaxed">
+                                {highlightsInput.split('\n').filter(Boolean).map((item, idx) => (
+                                  <li key={idx} className="marker:text-[#e3000f]">
+                                    {item}
+                                  </li>
+                                ))}
+                                {highlightsInput.split('\n').filter(Boolean).length === 0 && (
+                                  <li className="marker:text-[#e3000f] italic text-slate-400">
+                                    No highlights configured.
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 3: Geographical Settings */}
                       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <Globe className="w-4 h-4 text-[#5fa6d9]" />
@@ -4151,7 +4477,7 @@ export default function Inventory() {
                           </div>
                         </div>
 
-                      {/* Section 3: Classification & Supplier */}
+                      {/* Section 4: Classification & Supplier */}
                       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <Layers className="w-4 h-4 text-[#5fa6d9]" />
@@ -4231,7 +4557,7 @@ export default function Inventory() {
                           </div>
                         </div>
 
-                      {/* Section 4: Features & Badges */}
+                      {/* Section 5: Features & Badges */}
                       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <Sparkles className="w-4 h-4 text-[#5fa6d9]" />
@@ -4268,7 +4594,7 @@ export default function Inventory() {
                           </div>
                         </div>
 
-                      {/* Section 5: Pricing Configuration & Limits */}
+                      {/* Section 6: Pricing Configuration & Limits */}
                       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <DollarSign className="w-4 h-4 text-[#5fa6d9]" />
@@ -4369,7 +4695,7 @@ export default function Inventory() {
                           </div>
                         </div>
 
-                      {/* Section 6: Logistics & Operational Hours */}
+                      {/* Section 7: Logistics & Operational Hours */}
                       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-6">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <Clock className="w-4 h-4 text-[#5fa6d9]" />
@@ -4728,7 +5054,7 @@ export default function Inventory() {
                           </div>
                         </div>
 
-                      {/* Section 7: Booking Policies & Cutoffs */}
+                      {/* Section 8: Booking Policies & Cutoffs */}
                       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-6">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <CheckCircle2 className="w-4 h-4 text-[#5fa6d9]" />
@@ -5365,6 +5691,202 @@ export default function Inventory() {
         </div>
       )}
 
+
+      {/* Quick Highlights Modal (Direct Edit from Table) */}
+      {quickHighlightsAttr && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-6 bg-[#e3000f] rounded-sm shrink-0" />
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    Edit Highlights
+                    <span className="text-xs bg-red-50 dark:bg-red-950/60 text-[#e3000f] px-2 py-0.5 rounded font-mono font-bold truncate max-w-[280px]">
+                      {quickHighlightsAttr.name}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Customize the customer-facing bullet points displayed on the detail modal.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickHighlightsAttr(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Highlight Bullet Points ({quickHighlightsList.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQuickHighlightsList([...DEFAULT_STANDARD_HIGHLIGHTS])}
+                  className="text-xs font-bold text-[#5fa6d9] hover:underline cursor-pointer"
+                >
+                  Reset to 5 Standard Highlights
+                </button>
+              </div>
+
+              {/* Items List */}
+              <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+                {quickHighlightsList.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/70 dark:border-slate-800/80 group"
+                  >
+                    <span className="w-5 text-center font-bold text-sm text-[#e3000f] shrink-0">
+                      •
+                    </span>
+                    <input
+                      type="text"
+                      value={item}
+                      onChange={(e) => {
+                        const updated = [...quickHighlightsList];
+                        updated[idx] = e.target.value;
+                        setQuickHighlightsList(updated);
+                      }}
+                      className="flex-1 bg-transparent border-0 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-0 px-1"
+                    />
+                    <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                      <button
+                        type="button"
+                        disabled={idx === 0}
+                        onClick={() => {
+                          if (idx === 0) return;
+                          const updated = [...quickHighlightsList];
+                          const temp = updated[idx - 1];
+                          updated[idx - 1] = updated[idx];
+                          updated[idx] = temp;
+                          setQuickHighlightsList(updated);
+                        }}
+                        className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
+                        title="Move up"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={idx === quickHighlightsList.length - 1}
+                        onClick={() => {
+                          if (idx === quickHighlightsList.length - 1) return;
+                          const updated = [...quickHighlightsList];
+                          const temp = updated[idx + 1];
+                          updated[idx + 1] = updated[idx];
+                          updated[idx] = temp;
+                          setQuickHighlightsList(updated);
+                        }}
+                        className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
+                        title="Move down"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuickHighlightsList(quickHighlightsList.filter((_, i) => i !== idx));
+                        }}
+                        className="p-1 text-rose-500 hover:text-rose-700 rounded cursor-pointer"
+                        title="Delete highlight"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {quickHighlightsList.length === 0 && (
+                  <p className="text-xs text-slate-400 italic py-2 text-center">
+                    No highlights configured. Add one below or click &quot;Reset to 5 Standard Highlights&quot;.
+                  </p>
+                )}
+              </div>
+
+              {/* Add Bullet */}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="text"
+                  value={quickHighlightNewText}
+                  onChange={(e) => setQuickHighlightNewText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (quickHighlightNewText.trim()) {
+                        setQuickHighlightsList([...quickHighlightsList, quickHighlightNewText.trim()]);
+                        setQuickHighlightNewText("");
+                      }
+                    }
+                  }}
+                  placeholder="Type a new highlight bullet point and press Enter..."
+                  className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#5fa6d9]"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (quickHighlightNewText.trim()) {
+                      setQuickHighlightsList([...quickHighlightsList, quickHighlightNewText.trim()]);
+                      setQuickHighlightNewText("");
+                    }
+                  }}
+                  className="flex items-center gap-1 px-3 py-2 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+
+              {/* Live Preview Box */}
+              <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 space-y-2">
+                <div className="flex items-center gap-2 border-l-4 border-[#e3000f] pl-2.5 select-none">
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    HIGHLIGHTS (LIVE PREVIEW)
+                  </h4>
+                </div>
+                <div className="bg-white dark:bg-slate-900/60 p-3 rounded-lg border border-slate-150 dark:border-slate-800">
+                  <ul className="list-disc pl-5 space-y-1 text-slate-800 dark:text-slate-200 font-semibold text-xs leading-relaxed">
+                    {quickHighlightsList.filter(Boolean).map((item, idx) => (
+                      <li key={idx} className="marker:text-[#e3000f]">
+                        {item}
+                      </li>
+                    ))}
+                    {quickHighlightsList.filter(Boolean).length === 0 && (
+                      <li className="marker:text-[#e3000f] italic text-slate-400">
+                        No highlights.
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50">
+              <button
+                type="button"
+                onClick={() => setQuickHighlightsAttr(null)}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveQuickHighlights}
+                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save Highlights</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Save Confirmation Modal */}
       {showSaveConfirm && (

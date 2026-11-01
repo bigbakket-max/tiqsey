@@ -569,6 +569,15 @@ export default function Header({
                             <Ticket className="w-4 h-4 text-brand" />
                             My Bookings
                           </button>
+                          {(user.role === 'admin' || user.email.toLowerCase() === 'admin@tiqsey.com' || user.email.toLowerCase() === 'bigbakket@gmail.com') && (
+                            <a
+                              href="/secure-panel"
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 font-bold text-sm transition-colors text-left mb-1"
+                            >
+                              <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                              Admin Panel
+                            </a>
+                          )}
                           <button
                             onClick={() => {
                               logout();

@@ -14,7 +14,6 @@ import PromotionalBanners from './pages/PromotionalBanners';
 import PromotionalBannerForm from './pages/PromotionalBannerForm';
 import GeminiLogoShowcase from './pages/GeminiLogoShowcase';
 import FaviconManagement from './pages/FaviconManagement';
-import CustomDomain from './pages/CustomDomain';
 
 function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -52,9 +51,8 @@ export default function AdminApp() {
             <Route path="promotional-banners/new" element={<PromotionalBannerForm />} />
             <Route path="promotional-banners/edit/:id" element={<PromotionalBannerForm />} />
             <Route path="favicon" element={<FaviconManagement />} />
-            <Route path="website/favicon" element={<Navigate to="/favicon" replace />} />
-            <Route path="custom-domain" element={<CustomDomain />} />
-            <Route path="website/domain" element={<Navigate to="/custom-domain" replace />} />
+            <Route path="custom-domain" element={<Navigate to="/" replace />} />
+            <Route path="website/domain" element={<Navigate to="/" replace />} />
             <Route path="gemini-logo" element={<GeminiLogoShowcase />} />
             {/* Catch-all redirect to dashboard */}
             <Route path="*" element={<Navigate to="/" replace />} />

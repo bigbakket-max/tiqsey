@@ -1050,6 +1050,11 @@ export default function AttractionDetailModal({
 
   // Calculate highlights for this attraction
   const highlightsList = useMemo(() => {
+    // 1. If customized/edited highlights exist on the attraction, prioritize them!
+    if (attraction?.highlights && Array.isArray(attraction.highlights) && attraction.highlights.length > 0) {
+      return attraction.highlights;
+    }
+    // 2. Default showcase activities if not explicitly customized
     if (attraction?.id === 'ams-rijksmuseum') {
       return [
         'Skip-the-line entry to the Rijksmuseum.',
@@ -1080,9 +1085,7 @@ export default function AttractionDetailModal({
         'Explore the monument at your own pace and enjoy a memorable journey through history.'
       ];
     }
-    if (attraction?.highlights && attraction.highlights.length > 0) {
-      return attraction.highlights;
-    }
+    // 3. Universal standard default highlights matching the screenshot
     return [
       'Enjoy hassle-free entry with pre-booked entry tickets.',
       'Explore the beautiful exhibition galleries at your own leisure.',
