@@ -11,8 +11,8 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     city: "Amsterdam",
     region: "Europe",
     category: "Museum",
-    rating: 4.9,
-    reviewsCount: 18400,
+    rating: 4.7,
+    reviewsCount: 3682,
     price: 21,
     discountPrice: 16,
     imageUrl:
@@ -489,8 +489,8 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     city: "Amsterdam",
     region: "Europe",
     category: "Museum",
-    rating: 4.8,
-    reviewsCount: 15600,
+    rating: 4.4,
+    reviewsCount: 2810,
     price: 22,
     imageUrl:
       "https://aws-tiqets-cdn.imgix.net/images/content/71e1edc441ef419789f059c8ee9b3ec4.jpg?auto=format%2Ccompress&dpr=2&fit=crop&h=360&q=30&w=1200",
@@ -1289,7 +1289,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     region: "Europe",
     category: "Fun",
     rating: 4.6,
-    reviewsCount: 12500,
+    reviewsCount: 2503,
     price: 23,
     imageUrl:
       "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2f/b9/02/65/heineken-experience-in.jpg?w=900&h=-1&s=1",
@@ -1297,19 +1297,40 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
   },
   {
     id: "ams-canal",
-    productId: "64788876",
+    productId: "8175978",
     timezone: "W. Europe Standard Time",
     name: "1-Hour Amsterdam Canal Cruise",
     location: "Amsterdam, Netherlands",
     city: "Amsterdam",
     region: "Europe",
     category: "Cruise",
-    rating: 4.7,
-    reviewsCount: 25000,
-    price: 16,
+    rating: 4.3,
+    reviewsCount: 1245,
+    price: 29,
+    discountPrice: 16,
     imageUrl:
-      "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1080",
+      "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1200",
     isPopular: true,
+    galleryUrls: [
+      "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1200",
+      "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1588698948796-031fbf1051fa?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1584003564941-616f20f48f53?auto=format&fit=crop&q=80&w=800",
+    ],
+    highlights: [
+      "Enjoy hassle-free entry with pre-booked entry tickets.",
+      "Explore the beautiful exhibition galleries at your own leisure.",
+      "Admire the incredible structures and local historic collections.",
+      "Learn about fascinating histories and storied buildings."
+    ],
+    description: "Enjoy a scenic 1-hour cruise through Amsterdam's historic canal belt with pre-booked tickets and panoramic views.",
+    included: [
+      "1-hour canal cruise ticket",
+      "Audio commentary in multiple languages",
+      "Free city audio guide map"
+    ],
+    duration: "1 hour",
+    openingHours: "Daily: 09:30 - 21:00",
   },
   {
     id: "ams-keukenhof",
@@ -1320,8 +1341,9 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     region: "Europe",
     category: "Nature",
     rating: 4.8,
-    reviewsCount: 32000,
-    price: 19.5,
+    reviewsCount: 3200,
+    price: 24,
+    discountPrice: 19.60,
     imageUrl:
       "https://denhaag.com/sites/default/files/styles/og_image/public/2020-01/Keukenhof.jpg?h=3ec75680&itok=v2pdc0tg",
     isPopular: true,

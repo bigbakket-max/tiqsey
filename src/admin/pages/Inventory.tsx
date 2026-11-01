@@ -4205,174 +4205,7 @@ export default function Inventory() {
                           </div>
                         </div>
 
-                      {/* Section 2: Geographical Settings */}
-                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
-                        <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
-                          <Globe className="w-4 h-4 text-[#5fa6d9]" />
-                          <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Geographical Time Zone & Currency</h3>
-                        </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                                Geographical Time Zone *
-                              </label>
-                              <select
-                                required
-                                value={timezone}
-                                onChange={(e) => setTimezone(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white cursor-pointer"
-                              >
-                                <option value="">Select Time Zone</option>
-                                {TIMEZONES.map((tz) => (
-                                  <option key={tz.value} value={tz.value}>
-                                    {tz.label}
-                                  </option>
-                                ))}
-                              </select>
-                              <span className="text-[10px] text-slate-400 mt-1 block font-semibold">Used to calculate timezone-aware availability and local deadlines.</span>
-                            </div>
-
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                                Geographical Currency *
-                              </label>
-                              <select
-                                required
-                                value={currencyCode}
-                                onChange={(e) => setCurrencyCode(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white cursor-pointer"
-                              >
-                                <option value="">Select Currency</option>
-                                {CURRENCIES.map((c) => (
-                                  <option key={c.code} value={c.code}>
-                                    {c.code} - {c.name} ({c.symbol})
-                                  </option>
-                                ))}
-                              </select>
-                              <span className="text-[10px] text-slate-400 mt-1 block font-semibold">Used to calculate and display accurate local equivalent conversions.</span>
-                            </div>
-                          </div>
-                        </div>
-
-                      {/* Section 3: Classification & Supplier */}
-                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
-                        <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
-                          <Layers className="w-4 h-4 text-[#5fa6d9]" />
-                          <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Classification & Supplier</h3>
-                        </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                                Category Label *
-                              </label>
-                              <select
-                                value={categoryPresets.includes(category) ? category : "Custom Category"}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  if (val === "Custom Category") {
-                                    setCategory(categoryPresets.includes(category) ? "" : category);
-                                  } else {
-                                    setCategory(val);
-                                  }
-                                }}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white cursor-pointer"
-                              >
-                                {categoryPresets.map((p) => (
-                                  <option key={p} value={p}>
-                                    {p}
-                                  </option>
-                                ))}
-                                <option value="Custom Category">Custom Category</option>
-                              </select>
-
-                              {!categoryPresets.includes(category) && (
-                                <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-250">
-                                  <input
-                                    type="text"
-                                    required
-                                    value={category}
-                                    onChange={(e) => setCategory(e.target.value)}
-                                    placeholder="Enter custom category name"
-                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2 text-xs focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white"
-                                  />
-                                </div>
-                              )}
-                            </div>
-
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                                Registered Provider / Supplier
-                              </label>
-                              <select
-                                value={supplier === "Local Operator" ? "Local Operator" : "Custom Supplier"}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  if (val === "Local Operator") {
-                                    setSupplier("Local Operator");
-                                  } else {
-                                    setSupplier("Custom Supplier");
-                                  }
-                                }}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white cursor-pointer"
-                              >
-                                <option value="Local Operator">Local Operator</option>
-                                <option value="Custom Supplier">Custom Supplier</option>
-                              </select>
-                              {supplier !== "Local Operator" && (
-                                <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-250">
-                                  <input
-                                    type="text"
-                                    value={supplier === "Custom Supplier" ? "" : supplier}
-                                    onChange={(e) => setSupplier(e.target.value || "Custom Supplier")}
-                                    placeholder="Enter custom supplier name"
-                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2 text-xs focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white"
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                      {/* Section 4: Features & Badges */}
-                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
-                        <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
-                          <Sparkles className="w-4 h-4 text-[#5fa6d9]" />
-                          <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Features & Badges</h3>
-                        </div>
-                          <div className="flex flex-wrap gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-950 px-4 py-3 rounded-md border border-slate-200 dark:border-slate-800 hover:border-[#5fa6d9] transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={isPopular}
-                                onChange={(e) => setIsPopular(e.target.checked)}
-                                className="w-4 h-4 text-[#5fa6d9] rounded border-slate-300 focus:ring-[#5fa6d9]"
-                              />
-                              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Bestseller</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-950 px-4 py-3 rounded-md border border-slate-200 dark:border-slate-800 hover:border-[#5fa6d9] transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={fastTrack}
-                                onChange={(e) => setFastTrack(e.target.checked)}
-                                className="w-4 h-4 text-[#5fa6d9] rounded border-slate-300 focus:ring-[#5fa6d9]"
-                              />
-                              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Trending</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-950 px-4 py-3 rounded-md border border-slate-200 dark:border-slate-800 hover:border-[#5fa6d9] transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={isAvailable}
-                                onChange={(e) => setIsAvailable(e.target.checked)}
-                                className="w-4 h-4 text-[#5fa6d9] rounded border-slate-300 focus:ring-[#5fa6d9]"
-                              />
-                              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Available</span>
-                            </label>
-                          </div>
-                        </div>
-
-                      {/* Section 4.5: Highlights & Experience Points (Customer-Facing Bullet Points) */}
+                      {/* Section 2: Experience Highlights (Customer Detail Page) */}
                       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-5">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/60 gap-3">
                           <div className="flex items-center gap-2.5">
@@ -4594,7 +4427,174 @@ export default function Inventory() {
                         </div>
                       </div>
 
-                      {/* Section 5: Pricing Configuration & Limits */}
+                      {/* Section 3: Geographical Settings */}
+                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
+                        <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
+                          <Globe className="w-4 h-4 text-[#5fa6d9]" />
+                          <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Geographical Time Zone & Currency</h3>
+                        </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Geographical Time Zone *
+                              </label>
+                              <select
+                                required
+                                value={timezone}
+                                onChange={(e) => setTimezone(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white cursor-pointer"
+                              >
+                                <option value="">Select Time Zone</option>
+                                {TIMEZONES.map((tz) => (
+                                  <option key={tz.value} value={tz.value}>
+                                    {tz.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <span className="text-[10px] text-slate-400 mt-1 block font-semibold">Used to calculate timezone-aware availability and local deadlines.</span>
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Geographical Currency *
+                              </label>
+                              <select
+                                required
+                                value={currencyCode}
+                                onChange={(e) => setCurrencyCode(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white cursor-pointer"
+                              >
+                                <option value="">Select Currency</option>
+                                {CURRENCIES.map((c) => (
+                                  <option key={c.code} value={c.code}>
+                                    {c.code} - {c.name} ({c.symbol})
+                                  </option>
+                                ))}
+                              </select>
+                              <span className="text-[10px] text-slate-400 mt-1 block font-semibold">Used to calculate and display accurate local equivalent conversions.</span>
+                            </div>
+                          </div>
+                        </div>
+
+                      {/* Section 4: Classification & Supplier */}
+                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
+                        <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
+                          <Layers className="w-4 h-4 text-[#5fa6d9]" />
+                          <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Classification & Supplier</h3>
+                        </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Category Label *
+                              </label>
+                              <select
+                                value={categoryPresets.includes(category) ? category : "Custom Category"}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === "Custom Category") {
+                                    setCategory(categoryPresets.includes(category) ? "" : category);
+                                  } else {
+                                    setCategory(val);
+                                  }
+                                }}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white cursor-pointer"
+                              >
+                                {categoryPresets.map((p) => (
+                                  <option key={p} value={p}>
+                                    {p}
+                                  </option>
+                                ))}
+                                <option value="Custom Category">Custom Category</option>
+                              </select>
+
+                              {!categoryPresets.includes(category) && (
+                                <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-250">
+                                  <input
+                                    type="text"
+                                    required
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    placeholder="Enter custom category name"
+                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2 text-xs focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white"
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Registered Provider / Supplier
+                              </label>
+                              <select
+                                value={supplier === "Local Operator" ? "Local Operator" : "Custom Supplier"}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === "Local Operator") {
+                                    setSupplier("Local Operator");
+                                  } else {
+                                    setSupplier("Custom Supplier");
+                                  }
+                                }}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white cursor-pointer"
+                              >
+                                <option value="Local Operator">Local Operator</option>
+                                <option value="Custom Supplier">Custom Supplier</option>
+                              </select>
+                              {supplier !== "Local Operator" && (
+                                <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-250">
+                                  <input
+                                    type="text"
+                                    value={supplier === "Custom Supplier" ? "" : supplier}
+                                    onChange={(e) => setSupplier(e.target.value || "Custom Supplier")}
+                                    placeholder="Enter custom supplier name"
+                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2 text-xs focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                      {/* Section 5: Features & Badges */}
+                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
+                        <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
+                          <Sparkles className="w-4 h-4 text-[#5fa6d9]" />
+                          <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Features & Badges</h3>
+                        </div>
+                          <div className="flex flex-wrap gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-950 px-4 py-3 rounded-md border border-slate-200 dark:border-slate-800 hover:border-[#5fa6d9] transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={isPopular}
+                                onChange={(e) => setIsPopular(e.target.checked)}
+                                className="w-4 h-4 text-[#5fa6d9] rounded border-slate-300 focus:ring-[#5fa6d9]"
+                              />
+                              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Bestseller</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-950 px-4 py-3 rounded-md border border-slate-200 dark:border-slate-800 hover:border-[#5fa6d9] transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={fastTrack}
+                                onChange={(e) => setFastTrack(e.target.checked)}
+                                className="w-4 h-4 text-[#5fa6d9] rounded border-slate-300 focus:ring-[#5fa6d9]"
+                              />
+                              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Trending</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-950 px-4 py-3 rounded-md border border-slate-200 dark:border-slate-800 hover:border-[#5fa6d9] transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={isAvailable}
+                                onChange={(e) => setIsAvailable(e.target.checked)}
+                                className="w-4 h-4 text-[#5fa6d9] rounded border-slate-300 focus:ring-[#5fa6d9]"
+                              />
+                              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Available</span>
+                            </label>
+                          </div>
+                        </div>
+
+                      {/* Section 6: Pricing Configuration & Limits */}
                       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <DollarSign className="w-4 h-4 text-[#5fa6d9]" />
@@ -4695,7 +4695,7 @@ export default function Inventory() {
                           </div>
                         </div>
 
-                      {/* Section 6: Logistics & Operational Hours */}
+                      {/* Section 7: Logistics & Operational Hours */}
                       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-6">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <Clock className="w-4 h-4 text-[#5fa6d9]" />
@@ -5054,7 +5054,7 @@ export default function Inventory() {
                           </div>
                         </div>
 
-                      {/* Section 7: Booking Policies & Cutoffs */}
+                      {/* Section 8: Booking Policies & Cutoffs */}
                       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-6">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <CheckCircle2 className="w-4 h-4 text-[#5fa6d9]" />
