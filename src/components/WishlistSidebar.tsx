@@ -53,11 +53,11 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
         {/* Header */}
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/20 backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-[#e3000f] fill-[#e3000f]" />
+            <Heart className="w-5 h-5 text-[#ff0018] fill-[#ff0018]" />
             <h2 className="text-[17px] font-extrabold text-slate-800 dark:text-slate-150">
               {t('savedWishlist', 'Saved Wishlist')}
             </h2>
-            <span className="bg-rose-50 dark:bg-rose-950/30 text-[#e3000f] dark:text-rose-400 text-xs font-black px-2.5 py-0.5 rounded-full select-none">
+            <span className="bg-rose-50 dark:bg-rose-950/30 text-[#ff0018] dark:text-rose-400 text-xs font-black px-2.5 py-0.5 rounded-full select-none">
               {wishlist.length}
             </span>
           </div>
@@ -102,7 +102,7 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
                       clearWishlist();
                     }
                   }}
-                  className="text-[#e3000f]/80 hover:text-[#e3000f] transition-colors flex items-center gap-1 cursor-pointer font-bold"
+                  className="text-[#ff0018]/80 hover:text-[#ff0018] transition-colors flex items-center gap-1 cursor-pointer font-bold"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>{t('clearAll', 'Clear All')}</span>
@@ -145,7 +145,7 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
                       <h4 className="text-xs sm:text-[13px] font-extrabold text-slate-800 dark:text-slate-200 leading-tight truncate mt-0.5 group-hover/item:text-brand transition-colors">
                         {item.name}
                       </h4>
-                      <p className="text-xs font-extrabold text-[#e3000f] mt-1.5 flex items-center gap-1.5">
+                      <p className="text-xs font-extrabold text-[#ff0018] mt-1.5 flex items-center gap-1.5">
                         <span className="text-[10px] text-slate-400 font-normal">From</span>
                         <span>{formatPrice(item.discountPrice || item.price, item.currency)}</span>
                       </p>
@@ -157,7 +157,7 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
                         e.stopPropagation();
                         toggleWishlist(item);
                       }}
-                      className="p-1.5 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-350 hover:text-[#e3000f] dark:hover:text-rose-400 transition-colors cursor-pointer shrink-0"
+                      className="p-1.5 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-350 hover:text-[#ff0018] dark:hover:text-rose-400 transition-colors cursor-pointer shrink-0"
                       title="Remove from Wishlist"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -185,7 +185,7 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
                   }
                 }
               }}
-              className="w-full h-11 bg-[#e3000f] text-white text-[13.5px] font-black uppercase tracking-wider rounded-xl hover:bg-opacity-95 shadow-md flex items-center justify-center gap-2 group cursor-pointer"
+              className="w-full h-11 bg-[#ff0018] text-white text-[13.5px] font-black uppercase tracking-wider rounded-xl hover:bg-opacity-95 shadow-md flex items-center justify-center gap-2 group cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               <span>{t('exploreSavedFavorites', 'Explore Saved Favorites')}</span>

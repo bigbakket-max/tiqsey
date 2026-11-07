@@ -385,7 +385,7 @@ export default function SearchBar({
           part.toLowerCase() === query.toLowerCase() ? (
             <span
               key={i}
-              className="text-[#e3000f] dark:text-red-400 font-bold bg-[#e3000f]/10 dark:bg-red-500/20 px-1 py-0.5 rounded-sm"
+              className="text-[#ff0018] dark:text-red-400 font-bold bg-[#ff0018]/10 dark:bg-red-500/20 px-1 py-0.5 rounded-sm"
             >
               {part}
             </span>
@@ -469,9 +469,9 @@ export default function SearchBar({
             ? `${
                 isPageFilter
                   ? "bg-slate-50/50 dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-900 border-slate-250 dark:border-slate-800 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-brand/60 focus-within:ring-2 focus-within:ring-brand/10 shadow-xs"
-                  : "bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800/80 border-slate-300/90 dark:border-slate-700 hover:border-[#e3000f]/50 dark:hover:border-[#e3000f]/50 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-[#e3000f] dark:focus-within:border-[#e3000f] focus-within:ring-2 focus-within:ring-[#e3000f]/15 shadow-2xs"
+                  : "bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800/80 border-slate-300/90 dark:border-slate-700 hover:border-[#ff0018]/50 dark:hover:border-[#ff0018]/50 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-[#ff0018] dark:focus-within:border-[#ff0018] focus-within:ring-2 focus-within:ring-[#ff0018]/15 shadow-2xs"
               } rounded-full h-10 border transition-all overflow-hidden`
-            : "bg-white dark:bg-slate-900 rounded-full p-1.5 pl-6 md:pl-8 h-14 border border-[#e3000f]/40 dark:border-[#e3000f]/30 hover:border-[#e3000f] focus-within:border-[#e3000f] focus-within:ring-4 focus-within:ring-[#e3000f]/5 shadow-sm transition-all duration-300"
+            : "bg-white dark:bg-slate-900 rounded-full p-1.5 pl-6 md:pl-8 h-14 border border-[#ff0018]/40 dark:border-[#ff0018]/30 hover:border-[#ff0018] focus-within:border-[#ff0018] focus-within:ring-4 focus-within:ring-[#ff0018]/5 shadow-sm transition-all duration-300"
         }`}
       >
         {!isCompact && (
@@ -565,7 +565,7 @@ export default function SearchBar({
           >
             {isSearching ? (
               <div className="p-10 flex flex-col items-center justify-center">
-                <div className="w-8 h-8 border-3 border-slate-100 dark:border-slate-800 border-t-[#e3000f] rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-3 border-slate-100 dark:border-slate-800 border-t-[#ff0018] rounded-full animate-spin"></div>
                 <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-3.5 tracking-wide">
                   Searching amazing experiences...
                 </p>
@@ -586,7 +586,7 @@ export default function SearchBar({
                           e.stopPropagation();
                           clearAllRecentSearches();
                         }}
-                        className="text-[11px] font-bold text-slate-400 hover:text-[#e3000f] transition-colors cursor-pointer flex items-center gap-1"
+                        className="text-[11px] font-bold text-slate-400 hover:text-[#ff0018] transition-colors cursor-pointer flex items-center gap-1"
                       >
                         <Trash2 className="w-3 h-3" />
                         Clear All
@@ -605,7 +605,7 @@ export default function SearchBar({
                             setIsFocused(false);
                           }}
                         >
-                          <Clock className="w-3 h-3 text-slate-400 group-hover:text-[#e3000f] transition-colors" />
+                          <Clock className="w-3 h-3 text-slate-400 group-hover:text-[#ff0018] transition-colors" />
                           <span>{item}</span>
                           <button
                             type="button"
@@ -641,7 +641,7 @@ export default function SearchBar({
                           setShowSuggestions(false);
                           setIsFocused(false);
                         }}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 hover:border-[#e3000f]/50 hover:bg-rose-50/50 dark:hover:bg-rose-950/30 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-[#e3000f] transition-all cursor-pointer shadow-2xs"
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 hover:border-[#ff0018]/50 hover:bg-rose-50/50 dark:hover:bg-rose-950/30 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-[#ff0018] transition-all cursor-pointer shadow-2xs"
                       >
                         {city}
                       </button>
@@ -670,7 +670,7 @@ export default function SearchBar({
                           className="w-10 h-10 rounded-lg border border-slate-200/60 dark:border-slate-800 shadow-2xs group-hover:scale-105 transition-transform"
                         />
                         <div className="min-w-0 flex-1">
-                          <h5 className="text-[12px] font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#e3000f] transition-colors truncate">
+                          <h5 className="text-[12px] font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#ff0018] transition-colors truncate">
                             {attraction.name}
                           </h5>
                           <p className="text-[10px] text-slate-400 font-medium">
@@ -713,7 +713,7 @@ export default function SearchBar({
                               className="w-11 h-11 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-2xs"
                             />
                             <div className="min-w-0 flex-1">
-                              <h4 className="text-[14px] font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#e3000f] transition-colors truncate">
+                              <h4 className="text-[14px] font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#ff0018] transition-colors truncate">
                                 {highlightText(item.name, searchQuery)}
                               </h4>
                               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
@@ -736,7 +736,7 @@ export default function SearchBar({
                 {attractionSuggestions.length > 0 && (
                   <div className="py-2">
                     <div className="px-5 py-2 flex items-center gap-2 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                      <Landmark className="w-3.5 h-3.5 text-[#e3000f]" />
+                      <Landmark className="w-3.5 h-3.5 text-[#ff0018]" />
                       <span>Activities & Experiences</span>
                     </div>
                     {attractionSuggestions.map((item) => {
@@ -774,7 +774,7 @@ export default function SearchBar({
                                   </span>
                                 )}
                               </div>
-                              <h4 className="text-[14px] font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#e3000f] transition-colors line-clamp-1 leading-snug">
+                              <h4 className="text-[14px] font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#ff0018] transition-colors line-clamp-1 leading-snug">
                                 {highlightText(item.name, searchQuery)}
                               </h4>
                               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1 mt-0.5 truncate">
@@ -786,7 +786,7 @@ export default function SearchBar({
 
                           <div className="text-right shrink-0">
                             <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block uppercase tracking-wider">From</span>
-                            <span className="text-[14px] font-extrabold text-slate-900 dark:text-white group-hover:text-[#e3000f] transition-colors">
+                            <span className="text-[14px] font-extrabold text-slate-900 dark:text-white group-hover:text-[#ff0018] transition-colors">
                               {formatPrice(displayPrice)}
                             </span>
                           </div>
@@ -803,10 +803,10 @@ export default function SearchBar({
                   className="w-full py-3.5 px-5 bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer group"
                 >
                   <span className="flex items-center gap-1.5">
-                    <Search className="w-3.5 h-3.5 text-[#e3000f]" />
-                    <span>See all results for <strong className="text-[#e3000f]">"{searchQuery}"</strong></span>
+                    <Search className="w-3.5 h-3.5 text-[#ff0018]" />
+                    <span>See all results for <strong className="text-[#ff0018]">"{searchQuery}"</strong></span>
                   </span>
-                  <span className="flex items-center gap-1 text-[#e3000f] font-bold group-hover:translate-x-1 transition-transform">
+                  <span className="flex items-center gap-1 text-[#ff0018] font-bold group-hover:translate-x-1 transition-transform">
                     Search ({suggestions.length}) →
                   </span>
                 </button>

@@ -438,19 +438,47 @@ export default function BookingDetailsView({
                 </span>
               </div>
               
-              <div className="flex gap-2">
-                <button className="border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-md text-[11px] font-bold transition-colors shadow-sm">
-                  Cancel Booking
-                </button>
-                <button 
-                  onClick={() => {
-                    onUpdateStatus(booking.id, 'confirmed');
-                    triggerToast("Booking marked as CONFIRMED successfully!", "success");
+              <div className="flex items-center gap-2">
+                <select
+                  value={booking.status}
+                  onChange={(e) => {
+                    const newSt = e.target.value;
+                    onUpdateStatus(booking.id, newSt);
+                    triggerToast(`Booking status updated to ${newSt.toUpperCase()}`, "success");
                   }}
-                  className="bg-brand hover:opacity-90 text-white px-4 py-1.5 rounded-md text-[11px] font-black transition-colors cursor-pointer shadow-sm"
+                  className="bg-white dark:bg-slate-850 border border-slate-250 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-[11px] font-bold rounded-md px-2.5 py-1.5 focus:outline-none focus:border-[#5fa6d9] cursor-pointer"
                 >
-                  Confirm Booking
-                </button>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+                {booking.status !== 'cancelled' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Are you sure you want to cancel this booking?")) {
+                        onUpdateStatus(booking.id, 'cancelled');
+                        triggerToast("Booking marked as CANCELLED.", "info");
+                      }
+                    }}
+                    className="border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 px-3 py-1.5 rounded-md text-[11px] font-bold transition-colors shadow-sm cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                )}
+                {booking.status !== 'confirmed' && (
+                  <button 
+                    onClick={() => {
+                      onUpdateStatus(booking.id, 'confirmed');
+                      triggerToast("Booking marked as CONFIRMED successfully!", "success");
+                    }}
+                    className="bg-brand hover:opacity-90 text-white px-3 py-1.5 rounded-md text-[11px] font-black transition-colors cursor-pointer shadow-sm"
+                  >
+                    Confirm
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -828,7 +856,7 @@ export default function BookingDetailsView({
           <div className="bg-[#f8fafc] dark:bg-slate-950/40 p-4 rounded-xl border border-slate-150 dark:border-slate-800/80 min-h-[90px] flex flex-col justify-between">
             <div>
               <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-1">TOTAL AMOUNT</p>
-              <p className="font-extrabold text-[#e3000f] text-base">
+              <p className="font-extrabold text-[#ff0018] text-base">
                 <EurToInrTooltip 
                   amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 66)} 
                   bookingDate={booking.bookingDate} 
@@ -956,7 +984,7 @@ export default function BookingDetailsView({
                     </span>
                   </td>
                   <td className="py-4 px-3 font-medium text-slate-600 dark:text-slate-400">portal</td>
-                  <td className="py-4 pl-3 font-mono text-[#e3000f] font-bold select-all">
+                  <td className="py-4 pl-3 font-mono text-[#ff0018] font-bold select-all">
                     chk_d9119e3p124cb543ns8g
                   </td>
                 </tr>

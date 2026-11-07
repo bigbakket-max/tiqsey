@@ -90,7 +90,7 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
           </div>
         ) : attr.discountPrice ? (
           <div className="absolute top-3 left-3 z-20 flex items-center bg-black/80 rounded-full p-0.5 shadow-md select-none border border-white/5">
-            <div className="flex items-center gap-1 bg-[#FF0000] text-white rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider">
+            <div className="flex items-center gap-1 bg-[#e3000f] text-white rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider">
               <Flame className="w-2.5 h-2.5 fill-white stroke-none animate-pulse" />
               <span>Hot Deal</span>
             </div>
@@ -146,7 +146,7 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
                   <span className="text-[10px] text-slate-400 dark:text-slate-500 line-through font-bold leading-none">
                     {formatPrice(attr.price, attr.currency)}
                   </span>
-                  <span className="text-sm sm:text-base font-black text-[#FF0022] dark:text-[#FF3E4E] leading-none">
+                  <span className="text-sm sm:text-base font-black text-[#e3000f] dark:text-red-400 leading-none">
                     {formatPrice(attr.discountPrice, attr.currency)}
                   </span>
                 </div>

@@ -85,7 +85,7 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
             <div className="lg:col-span-4 space-y-6">
               <div>
                 <span className="text-3xl md:text-4xl font-black tracking-tight text-white block">
-                  Tiqsey<span className="text-[#ff3b30]">.</span>
+                  Tiqsey<span className="text-[#e3000f]">.</span>
                 </span>
                 <p className="text-slate-400 text-sm font-medium leading-relaxed mt-3 max-w-xs">
                   Making culture accessible to everyone. We help you find and book the best tickets for museums and attractions worldwide.
@@ -98,7 +98,7 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
                   href="https://www.facebook.com/people/Tiqsy/61581389273998"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-[#0e1d38] hover:bg-[#ff3b30] text-slate-300 hover:text-white flex items-center justify-center transition-all duration-200 border border-slate-800/80 shadow-xs"
+                  className="w-9 h-9 rounded-full bg-[#0e1d38] hover:bg-[#e3000f] text-slate-300 hover:text-white flex items-center justify-center transition-all duration-200 border border-slate-800/80 shadow-xs"
                   aria-label="Facebook"
                   title="Facebook"
                 >
@@ -108,7 +108,7 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
                   href="https://www.instagram.com/tiqsey_official/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-[#0e1d38] hover:bg-[#ff3b30] text-slate-300 hover:text-white flex items-center justify-center transition-all duration-200 border border-slate-800/80 shadow-xs"
+                  className="w-9 h-9 rounded-full bg-[#0e1d38] hover:bg-[#e3000f] text-slate-300 hover:text-white flex items-center justify-center transition-all duration-200 border border-slate-800/80 shadow-xs"
                   aria-label="Instagram"
                   title="Instagram"
                 >
@@ -116,7 +116,7 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
                 </a>
                 <a
                   href="mailto:support@tiqsey.com"
-                  className="w-9 h-9 rounded-full bg-[#0e1d38] hover:bg-[#ff3b30] text-slate-300 hover:text-white flex items-center justify-center transition-all duration-200 border border-slate-800/80 shadow-xs"
+                  className="w-9 h-9 rounded-full bg-[#0e1d38] hover:bg-[#e3000f] text-slate-300 hover:text-white flex items-center justify-center transition-all duration-200 border border-slate-800/80 shadow-xs"
                   aria-label="Gmail / Email Support"
                   title="Email Us (support@tiqsey.com)"
                 >
@@ -131,31 +131,31 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
             <div className="lg:col-span-2 space-y-4">
               <div>
                 <h4 className="font-extrabold text-white text-sm uppercase tracking-wider">Platform</h4>
-                <div className="w-5 h-[2px] bg-[#ff3b30] rounded-full mt-2" />
+                <div className="w-5 h-[2px] bg-[#e3000f] rounded-full mt-2" />
               </div>
               <ul className="space-y-3.5 text-sm font-medium text-slate-300 pt-1">
                 <li>
-                  <a href="#" className="flex items-center gap-2.5 hover:text-[#ff3b30] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('home'); }}>
-                    <Home className="w-4 h-4 text-slate-400 group-hover:text-[#ff3b30] transition-colors" />
+                  <a href="#" className="flex items-center gap-2.5 hover:text-[#e3000f] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('home'); }}>
+                    <Home className="w-4 h-4 text-slate-400 group-hover:text-[#e3000f] transition-colors" />
                     <span>Home</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="flex items-center gap-2.5 text-[#ff3b30] font-bold hover:text-red-400 transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('hot-deals'); }}>
-                    <Flame className="w-4 h-4 text-[#ff3b30] fill-current" />
+                  <a href="#" className="flex items-center gap-2.5 text-[#e3000f] font-bold hover:text-red-400 transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('hot-deals'); }}>
+                    <Flame className="w-4 h-4 text-[#e3000f] fill-current" />
                     <span>Hot Deals</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="flex items-center gap-2.5 hover:text-[#ff3b30] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('attractions-and-museums'); }}>
-                    <Ticket className="w-4 h-4 text-slate-400 group-hover:text-[#ff3b30] transition-colors" />
+                  <a href="#" className="flex items-center gap-2.5 hover:text-[#e3000f] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('attractions-and-museums'); }}>
+                    <Ticket className="w-4 h-4 text-slate-400 group-hover:text-[#e3000f] transition-colors" />
                     <span>Things To Do</span>
                   </a>
                 </li>
 
                 <li>
-                  <a href="#" className="flex items-center gap-2.5 hover:text-[#ff3b30] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('blog'); }}>
-                    <BookOpen className="w-4 h-4 text-slate-400 group-hover:text-[#ff3b30] transition-colors" />
+                  <a href="#" className="flex items-center gap-2.5 hover:text-[#e3000f] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('blog'); }}>
+                    <BookOpen className="w-4 h-4 text-slate-400 group-hover:text-[#e3000f] transition-colors" />
                     <span>Travel Blog</span>
                   </a>
                 </li>
@@ -174,30 +174,30 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
             <div className="lg:col-span-2 space-y-4">
               <div>
                 <h4 className="font-extrabold text-white text-sm uppercase tracking-wider">About & Policies</h4>
-                <div className="w-5 h-[2px] bg-[#ff3b30] rounded-full mt-2" />
+                <div className="w-5 h-[2px] bg-[#e3000f] rounded-full mt-2" />
               </div>
               <ul className="space-y-3.5 text-sm font-medium text-slate-300 pt-1">
                 <li>
-                  <a href="#" className="flex items-center gap-2.5 hover:text-[#ff3b30] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('about'); }}>
-                    <User className="w-4 h-4 text-slate-400 group-hover:text-[#ff3b30] transition-colors" />
+                  <a href="#" className="flex items-center gap-2.5 hover:text-[#e3000f] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('about'); }}>
+                    <User className="w-4 h-4 text-slate-400 group-hover:text-[#e3000f] transition-colors" />
                     <span>About Tiqsey</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="flex items-center gap-2.5 hover:text-[#ff3b30] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('cookie-policy'); }}>
-                    <Cookie className="w-4 h-4 text-slate-400 group-hover:text-[#ff3b30] transition-colors" />
+                  <a href="#" className="flex items-center gap-2.5 hover:text-[#e3000f] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('cookie-policy'); }}>
+                    <Cookie className="w-4 h-4 text-slate-400 group-hover:text-[#e3000f] transition-colors" />
                     <span>Cookie Policy</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="flex items-center gap-2.5 hover:text-[#ff3b30] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('privacy-policy'); }}>
-                    <Lock className="w-4 h-4 text-slate-400 group-hover:text-[#ff3b30] transition-colors" />
+                  <a href="#" className="flex items-center gap-2.5 hover:text-[#e3000f] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('privacy-policy'); }}>
+                    <Lock className="w-4 h-4 text-slate-400 group-hover:text-[#e3000f] transition-colors" />
                     <span>Privacy Policy</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="flex items-center gap-2.5 hover:text-[#ff3b30] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('terms-and-conditions'); }}>
-                    <FileText className="w-4 h-4 text-slate-400 group-hover:text-[#ff3b30] transition-colors" />
+                  <a href="#" className="flex items-center gap-2.5 hover:text-[#e3000f] transition-colors group" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('terms-and-conditions'); }}>
+                    <FileText className="w-4 h-4 text-slate-400 group-hover:text-[#e3000f] transition-colors" />
                     <span>Terms & Conditions</span>
                   </a>
                 </li>
@@ -208,25 +208,25 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
             <div className="lg:col-span-4 space-y-4">
               <div>
                 <h4 className="font-extrabold text-white text-sm uppercase tracking-wider">Support & Media</h4>
-                <div className="w-5 h-[2px] bg-[#ff3b30] rounded-full mt-2" />
+                <div className="w-5 h-[2px] bg-[#e3000f] rounded-full mt-2" />
               </div>
 
               <ul className="space-y-3 text-sm font-medium text-slate-300 pt-1">
                 <li>
-                  <a href="mailto:support@tiqsey.com" className="flex items-center gap-2.5 hover:text-[#ff3b30] transition-colors group">
-                    <Mail className="w-4 h-4 text-slate-400 shrink-0 group-hover:text-[#ff3b30] transition-colors" />
+                  <a href="mailto:support@tiqsey.com" className="flex items-center gap-2.5 hover:text-[#e3000f] transition-colors group">
+                    <Mail className="w-4 h-4 text-slate-400 shrink-0 group-hover:text-[#e3000f] transition-colors" />
                     <span className="truncate">support@tiqsey.com</span>
                   </a>
                 </li>
                 <li>
-                  <a href="https://www.facebook.com/people/Tiqsy/61581389273998" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 hover:text-[#ff3b30] transition-colors group">
-                    <Facebook className="w-4 h-4 text-slate-400 shrink-0 group-hover:text-[#ff3b30] transition-colors" />
+                  <a href="https://www.facebook.com/people/Tiqsy/61581389273998" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 hover:text-[#e3000f] transition-colors group">
+                    <Facebook className="w-4 h-4 text-slate-400 shrink-0 group-hover:text-[#e3000f] transition-colors" />
                     <span>Facebook</span>
                   </a>
                 </li>
                 <li>
-                  <a href="https://www.instagram.com/tiqsey_official/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 hover:text-[#ff3b30] transition-colors group">
-                    <Instagram className="w-4 h-4 text-slate-400 shrink-0 group-hover:text-[#ff3b30] transition-colors" />
+                  <a href="https://www.instagram.com/tiqsey_official/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 hover:text-[#e3000f] transition-colors group">
+                    <Instagram className="w-4 h-4 text-slate-400 shrink-0 group-hover:text-[#e3000f] transition-colors" />
                     <span>Instagram</span>
                   </a>
                 </li>
@@ -246,11 +246,11 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
                     onChange={(e) => setEmailInput(e.target.value)}
                     placeholder="Enter your email"
                     required
-                    className="w-full bg-[#0d1a33]/90 text-white text-sm px-4 py-2.5 rounded-full border border-slate-800/80 focus:outline-none focus:border-[#ff3b30] placeholder:text-slate-500 pr-12 font-medium transition-all"
+                    className="w-full bg-[#0d1a33]/90 text-white text-sm px-4 py-2.5 rounded-full border border-slate-800/80 focus:outline-none focus:border-[#e3000f] placeholder:text-slate-500 pr-12 font-medium transition-all"
                   />
                   <button
                     type="submit"
-                    className="absolute right-1.5 w-8 h-8 rounded-full bg-[#ff3b30] hover:bg-red-600 text-white flex items-center justify-center transition-all shadow-md cursor-pointer active:scale-95 shrink-0"
+                    className="absolute right-1.5 w-8 h-8 rounded-full bg-[#e3000f] hover:bg-red-600 text-white flex items-center justify-center transition-all shadow-md cursor-pointer active:scale-95 shrink-0"
                     title="Subscribe"
                   >
                     {subscribed ? <Check className="w-4 h-4 stroke-[3]" /> : <ArrowRight className="w-4 h-4 stroke-[2.5]" />}

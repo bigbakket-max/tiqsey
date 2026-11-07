@@ -712,7 +712,7 @@ export default function Header({
                 <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
                     <span className="font-black tracking-tight text-3xl text-brand dark:text-brand select-none">
-                      Tiqsey
+                      Tiqsey<span className="text-brand">.</span>
                     </span>
                   </div>
                   <button

@@ -56,7 +56,7 @@ const MarqueeCard = ({ attraction, onClick }: { attraction: Attraction; onClick?
         {/* Top Badges */}
         <div className="absolute top-2 inset-x-2 flex items-center justify-between pointer-events-none">
           {discountPercent > 0 ? (
-            <span className="bg-[#FF0000] text-white text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+            <span className="bg-[#e3000f] text-white text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
               <Flame className="w-2.5 h-2.5 fill-white stroke-none" />
               -{discountPercent}%
             </span>

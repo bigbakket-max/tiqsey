@@ -791,6 +791,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
         localStorage.setItem(`tiqsey_bookings_${activeUser.id}`, JSON.stringify(updatedBookings));
         setBookings(updatedBookings);
+
+        // Sync cancellation to SQLite backend
+        fetch(`/api/bookings/${encodeURIComponent(bookingId)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'cancelled' })
+        }).catch(() => {});
+
         resolve();
       }, 300);
     });

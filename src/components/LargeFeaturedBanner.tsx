@@ -181,7 +181,7 @@ export default function LargeFeaturedBanner({
       line2DropShadow = 'drop-shadow-[0_4px_18px_rgba(245,158,11,0.4)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]';
     } else if (textStyle === 'brand-red') {
       line1Color = 'text-white';
-      line2Color = 'text-transparent bg-clip-text bg-gradient-to-b from-rose-100 via-rose-300 to-[#e3000f]';
+      line2Color = 'text-transparent bg-clip-text bg-gradient-to-b from-rose-100 via-rose-300 to-[#ff0018]';
       line2DropShadow = 'drop-shadow-[0_4px_18px_rgba(227,0,15,0.65)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]';
     } else if (textStyle === 'sunset-amber') {
       line1Color = 'text-transparent bg-clip-text bg-gradient-to-b from-[#ffe8b3] via-[#ff9a3c] to-[#e65100]';
@@ -223,7 +223,7 @@ export default function LargeFeaturedBanner({
             {idx > 0 && <span className="text-white/35 font-light px-0.5 select-none">|</span>}
             <div className="flex items-center gap-2">
               {idx === 0 && (
-                <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#e3000f] fill-[#e3000f] drop-shadow-sm shrink-0" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#ff0018] fill-[#ff0018] drop-shadow-sm shrink-0" viewBox="0 0 24 24">
                   <path d="M12 2L4 5.5v6c0 5.25 3.4 10.15 8 11.5 4.6-1.35 8-6.25 8-11.5v-6L12 2z" />
                   <path d="M9 12.2l2 2 4.5-4.5" stroke="white" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </svg>
@@ -285,7 +285,7 @@ export default function LargeFeaturedBanner({
 
             {/* Optional Promotional Pill Badge */}
             {currentSlide.badgeText && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#e3000f] text-white text-[10px] font-black uppercase tracking-wider shadow-md w-fit mb-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#ff0018] text-white text-[10px] font-black uppercase tracking-wider shadow-md w-fit mb-2">
                 <span>{currentSlide.badgeText}</span>
               </div>
             )}
@@ -310,7 +310,7 @@ export default function LargeFeaturedBanner({
                 className="group/btn inline-flex items-center gap-2.5 bg-white hover:bg-slate-50 text-slate-950 px-6 sm:px-7 py-2.5 sm:py-3.5 rounded-full text-xs sm:text-sm md:text-base font-bold shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 cursor-pointer"
               >
                 <span>{currentSlide.ctaText || 'Explore Rome'}</span>
-                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#e3000f] stroke-[3] transition-transform duration-200 group-hover/btn:translate-x-1" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#ff0018] stroke-[3] transition-transform duration-200 group-hover/btn:translate-x-1" />
               </button>
             </div>
 
@@ -360,7 +360,7 @@ export default function LargeFeaturedBanner({
                   aria-label={`Go to slide ${dotIdx + 1}`}
                   className={`transition-all duration-300 rounded-full cursor-pointer ${
                     dotIdx === currentIndex
-                      ? 'w-7 sm:w-8 h-2 bg-[#e3000f] shadow-xs'
+                      ? 'w-7 sm:w-8 h-2 bg-[#ff0018] shadow-xs'
                       : 'w-2 h-2 bg-white/70 hover:bg-white'
                   }`}
                 />

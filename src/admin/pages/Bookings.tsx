@@ -208,6 +208,13 @@ export default function Bookings() {
           console.log(`[Admin DB Sync] Booking ${booking.id} synced with backend database successfully.`);
         }
       }
+
+      // Also invoke patch endpoint to ensure atomic column updates in SQLite
+      fetch(`/api/bookings/${encodeURIComponent(booking.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(booking)
+      }).catch(() => {});
     } catch (err) {
       console.warn(`[Admin DB Sync Network Warning] Backend not reachable for booking ${booking.id}`);
     }
@@ -605,16 +612,9 @@ export default function Bookings() {
     const mockStatuses = ['cart_abandoned', 'payment_due', 'confirmed', 'completed', 'pending', 'cancelled', 'rejected', 'partial_paid', 'will_be_cart_abandoned'];
 
     finalBookings = finalBookings.map(b => {
-      let updatedStatus = b.status;
-      if (b.status !== 'confirmed' && b.status !== 'completed' && b.status !== 'cancelled') {
-         // Randomly assign one of the new mock statuses for variety, except for core bookings
-         if (getMockIndex(b.id + 's', 10) > 5) {
-            updatedStatus = mockStatuses[getMockIndex(b.id + 'st', mockStatuses.length)];
-         }
-      }
       return {
         ...b,
-        status: updatedStatus,
+        status: b.status || 'confirmed',
         source: b.source || mockSources[getMockIndex(b.id, mockSources.length)],
         type: b.type || mockTypes[getMockIndex(b.id + 't', mockTypes.length)],
         review: b.review || mockReviews[getMockIndex(b.id + 'r', mockReviews.length)]

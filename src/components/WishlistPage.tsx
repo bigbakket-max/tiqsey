@@ -299,7 +299,7 @@ export default function WishlistPage({
       <div className="min-h-screen bg-[#F4F7F9] dark:bg-slate-950 transition-colors duration-300 font-sans pb-16 flex flex-col items-center justify-center px-4">
         <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200/60 dark:border-slate-800/60 shadow-xl text-center space-y-6">
           <div className="flex justify-center">
-            <div className="w-16 h-16 bg-rose-50 dark:bg-rose-950/30 text-[#e3000f] rounded-full flex items-center justify-center">
+            <div className="w-16 h-16 bg-rose-50 dark:bg-rose-950/30 text-[#ff0018] rounded-full flex items-center justify-center">
               <Lock className="w-7 h-7" />
             </div>
           </div>
@@ -316,7 +316,7 @@ export default function WishlistPage({
           <div className="pt-2 flex flex-col gap-3">
             <button
               onClick={onNavigateToSignIn}
-              className="w-full py-3 px-5 bg-[#e3000f] hover:bg-[#c2000d] text-white font-bold rounded-xl transition-colors text-sm shadow-sm cursor-pointer"
+              className="w-full py-3 px-5 bg-[#ff0018] hover:bg-[#e00015] text-white font-bold rounded-xl transition-colors text-sm shadow-sm cursor-pointer"
               id="wishlist-signin-btn"
             >
               {t('signIn', 'Sign In')}
@@ -374,7 +374,7 @@ export default function WishlistPage({
                 {!isViewingShared && (
                   <button
                     onClick={() => setShowClearConfirm(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-rose-50 dark:bg-rose-950/20 text-[#e3000f] dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/40 transition-all border border-rose-100/60 dark:border-rose-900/40 shadow-xs cursor-pointer active:scale-95"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-rose-50 dark:bg-rose-950/20 text-[#ff0018] dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/40 transition-all border border-rose-100/60 dark:border-rose-900/40 shadow-xs cursor-pointer active:scale-95"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Clear All</span>
@@ -388,9 +388,9 @@ export default function WishlistPage({
             <div>
               <div className="flex items-center gap-2.5 mb-2.5">
                 <div className="p-2 bg-rose-50 dark:bg-rose-950/40 rounded-xl border border-rose-100/50 dark:border-rose-900/30">
-                  <Heart className="w-5 h-5 text-[#e3000f] fill-[#e3000f]" />
+                  <Heart className="w-5 h-5 text-[#ff0018] fill-[#ff0018]" />
                 </div>
-                <span className="text-xs font-black uppercase tracking-widest text-[#e3000f] bg-rose-50/60 dark:bg-rose-950/20 px-2.5 py-1 rounded-md">
+                <span className="text-xs font-black uppercase tracking-widest text-[#ff0018] bg-rose-50/60 dark:bg-rose-950/20 px-2.5 py-1 rounded-md">
                   {isViewingShared ? "Shared Collection" : "Saved Collections"}
                 </span>
               </div>
@@ -417,7 +417,7 @@ export default function WishlistPage({
                 <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   Unique Cities
                 </span>
-                <span className="text-xl font-black text-[#e3000f]">
+                <span className="text-xl font-black text-[#ff0018]">
                   {Math.max(0, cities.length - 1)}
                 </span>
               </div>
@@ -480,7 +480,7 @@ export default function WishlistPage({
                   <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0 mt-2 md:mt-0">
                     <button
                       onClick={handleImportShared}
-                      className="flex-1 md:flex-none h-10 px-4 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-[#e3000f] hover:bg-opacity-90 shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                      className="flex-1 md:flex-none h-10 px-4 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-[#ff0018] hover:bg-opacity-90 shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Save to My Wishlist</span>
@@ -497,7 +497,7 @@ export default function WishlistPage({
 
               {/* Statistics Banner */}
               {stats.savings > 0 && (
-                <div className="bg-[#e3000f] text-white rounded-3xl p-6 sm:p-8 shadow-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="bg-[#ff0018] text-white rounded-3xl p-6 sm:p-8 shadow-md relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 relative z-10">
                     <div className="flex items-center justify-center w-12 h-12 bg-white/20 rounded-2xl shrink-0">
@@ -531,7 +531,7 @@ export default function WishlistPage({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Type city or attraction name..."
-                      className="w-full h-11 px-4 text-xs font-bold bg-[#e3000f]/5 border border-[#e3000f]/10 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 transition-all"
+                      className="w-full h-11 px-4 text-xs font-bold bg-[#ff0018]/5 border border-[#ff0018]/10 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 transition-all"
                     />
                   </div>
 
@@ -543,7 +543,7 @@ export default function WishlistPage({
                       <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as any)}
-                        className="appearance-none w-full h-full pl-4 pr-10 text-xs font-bold bg-[#e3000f]/5 border border-[#e3000f]/10 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-slate-800 dark:text-slate-100 cursor-pointer transition-all"
+                        className="appearance-none w-full h-full pl-4 pr-10 text-xs font-bold bg-[#ff0018]/5 border border-[#ff0018]/10 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-slate-800 dark:text-slate-100 cursor-pointer transition-all"
                       >
                         <option value="name">Name (A-Z)</option>
                         <option value="price-asc">Price: Low to High</option>
@@ -574,7 +574,7 @@ export default function WishlistPage({
                       <select
                         value={selectedRegion}
                         onChange={(e) => setSelectedRegion(e.target.value)}
-                        className="w-full h-full pl-10 pr-10 text-xs font-bold bg-[#e3000f]/5 border border-[#e3000f]/10 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-slate-800 dark:text-slate-100 cursor-pointer appearance-none transition-all"
+                        className="w-full h-full pl-10 pr-10 text-xs font-bold bg-[#ff0018]/5 border border-[#ff0018]/10 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-slate-800 dark:text-slate-100 cursor-pointer appearance-none transition-all"
                       >
                         {regions.map((region, idx) => (
                           <option key={idx} value={region} className="font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900">
@@ -600,7 +600,7 @@ export default function WishlistPage({
                       <select
                         value={selectedDestination}
                         onChange={(e) => setSelectedDestination(e.target.value)}
-                        className="w-full h-full pl-10 pr-10 text-xs font-bold bg-[#e3000f]/5 border border-[#e3000f]/10 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-slate-800 dark:text-slate-100 cursor-pointer appearance-none transition-all"
+                        className="w-full h-full pl-10 pr-10 text-xs font-bold bg-[#ff0018]/5 border border-[#ff0018]/10 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-slate-800 dark:text-slate-100 cursor-pointer appearance-none transition-all"
                       >
                         {destinations.map((dest, idx) => (
                           <option key={idx} value={dest} className="font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900">
@@ -626,7 +626,7 @@ export default function WishlistPage({
                       <select
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="w-full h-full pl-10 pr-10 text-xs font-bold bg-[#e3000f]/5 border border-[#e3000f]/10 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-slate-800 dark:text-slate-100 cursor-pointer appearance-none transition-all"
+                        className="w-full h-full pl-10 pr-10 text-xs font-bold bg-[#ff0018]/5 border border-[#ff0018]/10 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-slate-800 dark:text-slate-100 cursor-pointer appearance-none transition-all"
                       >
                         {categories.map((cat, idx) => (
                           <option key={idx} value={cat} className="font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900">
@@ -652,7 +652,7 @@ export default function WishlistPage({
                       <select
                         value={selectedCity}
                         onChange={(e) => setSelectedCity(e.target.value)}
-                        className="w-full h-full pl-10 pr-10 text-xs font-bold bg-[#e3000f]/5 border border-[#e3000f]/10 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-slate-800 dark:text-slate-100 cursor-pointer appearance-none transition-all"
+                        className="w-full h-full pl-10 pr-10 text-xs font-bold bg-[#ff0018]/5 border border-[#ff0018]/10 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-slate-800 dark:text-slate-100 cursor-pointer appearance-none transition-all"
                       >
                         {cities.map((city, idx) => (
                           <option key={idx} value={city} className="font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900">
@@ -710,7 +710,7 @@ export default function WishlistPage({
                         setSelectedDestination("All");
                         setSearchQuery("");
                       }}
-                      className="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#e3000f]/10 hover:text-[#e3000f] transition-all cursor-pointer"
+                      className="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#ff0018]/10 hover:text-[#ff0018] transition-all cursor-pointer"
                     >
                       Reset Filters
                     </button>
@@ -759,7 +759,7 @@ export default function WishlistPage({
                   clearWishlist();
                   setShowClearConfirm(false);
                 }}
-                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-[#e3000f] hover:bg-opacity-90 shadow-sm transition-all cursor-pointer"
+                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-[#ff0018] hover:bg-opacity-90 shadow-sm transition-all cursor-pointer"
               >
                 Clear Entire List
               </button>
@@ -778,7 +778,7 @@ export default function WishlistPage({
           <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-100 dark:border-slate-800 font-sans z-10">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-[#e3000f]/10 dark:bg-red-950/40 text-[#e3000f] rounded-xl">
+                <div className="p-2.5 bg-[#ff0018]/10 dark:bg-red-950/40 text-[#ff0018] rounded-xl">
                   <Share2 className="w-5 h-5" />
                 </div>
                 <div>
@@ -814,7 +814,7 @@ export default function WishlistPage({
                 onClick={() => {
                   fallbackCopy(shareLink);
                 }}
-                className="h-9 px-4 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-[#e3000f] hover:bg-opacity-95 shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+                className="h-9 px-4 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-[#ff0018] hover:bg-opacity-95 shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
               >
                 {copied ? (
                   <>
@@ -831,10 +831,10 @@ export default function WishlistPage({
             </div>
 
             {/* Hint message */}
-            <div className="flex items-start gap-2 bg-[#e3000f]/5 border border-[#e3000f]/10 p-3.5 rounded-2xl mt-4">
-              <Sparkles className="w-4 h-4 text-[#e3000f] shrink-0 mt-0.5 animate-pulse" />
+            <div className="flex items-start gap-2 bg-[#ff0018]/5 border border-[#ff0018]/10 p-3.5 rounded-2xl mt-4">
+              <Sparkles className="w-4 h-4 text-[#ff0018] shrink-0 mt-0.5 animate-pulse" />
               <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400 leading-normal">
-                <span className="font-bold text-[#e3000f]">Pro-Tip:</span> Opening this link on any device will allow instant comparison of prices, reviews, and duration, with one-tap backup to that device's local wishlist.
+                <span className="font-bold text-[#ff0018]">Pro-Tip:</span> Opening this link on any device will allow instant comparison of prices, reviews, and duration, with one-tap backup to that device's local wishlist.
               </p>
             </div>
 

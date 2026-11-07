@@ -94,7 +94,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
   };
 
   // Determine button colors based on booking status to match both screenshots
-  const saveButtonBg = isPending ? 'bg-[#e3000f] hover:bg-red-700' : 'bg-[#f35a06] hover:bg-orange-700';
+  const saveButtonBg = isPending ? 'bg-[#ff0018] hover:bg-red-700' : 'bg-[#f35a06] hover:bg-orange-700';
   
   const { text: badgeText, classes: badgeStyle } = useMemo(() => {
     switch (booking.status) {
@@ -213,7 +213,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
             {/* Service Type */}
             <div className="relative">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Service Type <span className="text-[#e3000f]">*</span>
+                Service Type <span className="text-[#ff0018]">*</span>
               </label>
               <div className="relative">
                 <select 
@@ -239,7 +239,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
             {/* Vendor */}
             <div className="relative">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Vendor <span className="text-[#e3000f]">*</span>
+                Vendor <span className="text-[#ff0018]">*</span>
               </label>
               <div className="relative">
                 <select 
@@ -275,7 +275,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
             {/* Vendor Payment Policy */}
             <div className="relative">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Vendor Payment Policy <span className="text-[#e3000f]">*</span>
+                Vendor Payment Policy <span className="text-[#ff0018]">*</span>
               </label>
               <div className="relative">
                 <select 
@@ -300,7 +300,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
             {/* Vendor Cancellation Policy */}
             <div className="relative">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Vendor Cancellation Policy <span className="text-[#e3000f]">*</span>
+                Vendor Cancellation Policy <span className="text-[#ff0018]">*</span>
               </label>
               <div className="relative">
                 <select 
@@ -325,7 +325,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
             {/* Currency */}
             <div className="relative">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Currency <span className="text-[#e3000f]">*</span>
+                Currency <span className="text-[#ff0018]">*</span>
               </label>
               <div className="relative">
                 <select 

@@ -372,6 +372,19 @@ db.exec(`
     value TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS attractions (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    city TEXT,
+    category TEXT,
+    price REAL,
+    data_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_attractions_name ON attractions(name);
+  CREATE INDEX IF NOT EXISTS idx_attractions_city ON attractions(city);
 `);
 
 // Seed default favicon in site_settings if not set
@@ -1178,6 +1191,181 @@ async function startServer() {
     } catch (err: any) {
       console.error("[Database Error] Error saving/updating booking:", err);
       res.status(500).json({ error: "Failed to save booking to database", details: err.message });
+    }
+  });
+
+  // Patch/update specific booking fields (status, date, timeslot, etc.)
+  app.patch("/api/bookings/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body || {};
+      console.log(`[Database] Patching booking ${id}:`, updates);
+
+      const existing = db.prepare('SELECT * FROM bookings WHERE id = ? OR order_number = ?').get(id, id) as any;
+      if (!existing) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+
+      const targetId = existing.id;
+      const newStatus = updates.status !== undefined ? updates.status : existing.status;
+      const newBookingDate = updates.bookingDate !== undefined ? updates.bookingDate : existing.booking_date;
+      const newTimeslot = updates.timeslot !== undefined ? updates.timeslot : existing.timeslot;
+      const newGuestName = updates.customerName !== undefined ? updates.customerName : (updates.guestInfo?.name !== undefined ? updates.guestInfo.name : existing.guest_name);
+      const newGuestEmail = updates.customerEmail !== undefined ? updates.customerEmail : (updates.guestInfo?.email !== undefined ? updates.guestInfo.email : existing.guest_email);
+      const newGuestPhone = updates.customerPhone !== undefined ? updates.customerPhone : (updates.guestInfo?.phone !== undefined ? updates.guestInfo.phone : existing.guest_phone);
+      const newPassengers = updates.passengers !== undefined ? JSON.stringify(updates.passengers) : existing.passengers_json;
+      const newTotalPrice = updates.totalPrice !== undefined ? updates.totalPrice : existing.total_price;
+      const newTicketsCount = updates.travelers !== undefined ? updates.travelers : (updates.ticketsCount !== undefined ? updates.ticketsCount : existing.tickets_count);
+
+      db.prepare(`
+        UPDATE bookings SET
+          status = ?,
+          booking_date = ?,
+          timeslot = ?,
+          guest_name = ?,
+          guest_email = ?,
+          guest_phone = ?,
+          passengers_json = ?,
+          total_price = ?,
+          tickets_count = ?
+        WHERE id = ?
+      `).run(
+        newStatus,
+        newBookingDate,
+        newTimeslot,
+        newGuestName,
+        newGuestEmail,
+        newGuestPhone,
+        newPassengers,
+        newTotalPrice,
+        newTicketsCount,
+        targetId
+      );
+
+      // Attempt remote Supabase sync if online
+      try {
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          await supabase.from('bookings').update({
+            status: newStatus,
+            booking_date: newBookingDate,
+            timeslot: newTimeslot,
+            guest_name: newGuestName,
+            guest_email: newGuestEmail,
+            guest_phone: newGuestPhone,
+            passengers_json: newPassengers,
+            total_price: newTotalPrice,
+            tickets_count: newTicketsCount
+          }).eq('id', targetId);
+        }
+      } catch (e) {
+        console.warn("[Database Sync] Supabase patch warning:", e);
+      }
+
+      res.json({ success: true, id: targetId, status: newStatus });
+    } catch (err: any) {
+      console.error("[Database Error] Failed to patch booking:", err);
+      res.status(500).json({ error: "Failed to update booking", details: err.message });
+    }
+  });
+
+  // Delete a booking from backend database
+  app.delete("/api/bookings/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`[Database] Deleting booking: ${id}`);
+
+      db.prepare('DELETE FROM bookings WHERE id = ? OR order_number = ?').run(id, id);
+
+      try {
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          await supabase.from('bookings').delete().eq('id', id);
+        }
+      } catch (e) {
+        console.warn("[Database Sync] Supabase delete warning:", e);
+      }
+
+      res.json({ success: true, message: `Booking ${id} deleted successfully` });
+    } catch (err: any) {
+      console.error("[Database Error] Failed to delete booking:", err);
+      res.status(500).json({ error: "Failed to delete booking", details: err.message });
+    }
+  });
+
+  // Get all custom/persisted attractions from SQLite
+  app.get("/api/inventory/attractions", (req, res) => {
+    try {
+      const rows = db.prepare('SELECT data_json FROM attractions ORDER BY updated_at DESC').all() as any[];
+      const attractions = rows.map(r => {
+        try {
+          return JSON.parse(r.data_json);
+        } catch (_) {
+          return null;
+        }
+      }).filter(Boolean);
+
+      res.json({ success: true, count: attractions.length, attractions });
+    } catch (err: any) {
+      console.error("[Database Error] Failed to fetch inventory attractions:", err);
+      res.status(500).json({ error: "Failed to fetch attractions", details: err.message });
+    }
+  });
+
+  // Upsert attraction or batch of attractions
+  app.post("/api/inventory/attractions", (req, res) => {
+    try {
+      const payload = req.body;
+      const items = Array.isArray(payload) ? payload : (payload.attraction ? [payload.attraction] : (payload.attractions ? payload.attractions : [payload]));
+      
+      const now = new Date().toISOString();
+      const stmt = db.prepare(`
+        INSERT INTO attractions (id, name, city, category, price, data_json, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          name = excluded.name,
+          city = excluded.city,
+          category = excluded.category,
+          price = excluded.price,
+          data_json = excluded.data_json,
+          updated_at = excluded.updated_at
+      `);
+
+      const upsertMany = db.transaction((list: any[]) => {
+        for (const item of list) {
+          if (!item || !item.id) continue;
+          stmt.run(
+            item.id,
+            item.name || "Untitled Attraction",
+            item.city || "",
+            item.category || "General",
+            Number(item.price) || 0,
+            JSON.stringify(item),
+            now,
+            now
+          );
+        }
+      });
+
+      upsertMany(items);
+      console.log(`[Database] Persisted ${items.length} attraction(s) into database`);
+      res.json({ success: true, savedCount: items.length });
+    } catch (err: any) {
+      console.error("[Database Error] Failed to save attraction:", err);
+      res.status(500).json({ error: "Failed to save attraction", details: err.message });
+    }
+  });
+
+  // Delete an attraction from database
+  app.delete("/api/inventory/attractions/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`[Database] Deleting attraction: ${id}`);
+      db.prepare('DELETE FROM attractions WHERE id = ?').run(id);
+      res.json({ success: true, message: `Attraction ${id} deleted successfully` });
+    } catch (err: any) {
+      console.error("[Database Error] Failed to delete attraction:", err);
+      res.status(500).json({ error: "Failed to delete attraction", details: err.message });
     }
   });
 
