@@ -16,7 +16,7 @@ import WishlistSidebar from "./components/WishlistSidebar";
 import { ScrollReveal } from "./components/ScrollReveal";
 import { useSettings } from "./contexts/SettingsContext";
 import { useAuth } from "./contexts/AuthContext";
-import { POPULAR_ATTRACTIONS } from "./data/mockData";
+import { POPULAR_ATTRACTIONS, DESTINATIONS } from "./data/mockData";
 import { getDisplayProductId } from "./utils/productIdGenerator";
 import { Attraction } from "./types";
 import AttractionsAndMuseumsPage from "./components/AttractionsAndMuseumsPage";
@@ -120,6 +120,7 @@ export default function App() {
     () => parseInitialRoute().attractionId,
   );
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string | null>(null);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState<string>("");
   const [wishlistOpen, setWishlistOpen] = useState(false);
 
   const [attractionsRev, setAttractionsRev] = useState(0);
@@ -239,6 +240,7 @@ export default function App() {
     setSelectedDestination(null);
     setSelectedAttractionId(null);
     setActiveCategoryFilter(null);
+    setGlobalSearchQuery("");
     setCurrentPage("home");
     if (typeof window !== "undefined" && window.location.pathname !== "/") {
       window.history.pushState({}, "", "/");
@@ -254,6 +256,83 @@ export default function App() {
     addToRecentlyViewed(id);
     setSelectedAttractionId(id);
     window.history.pushState({}, "", `/activities/${encodeURIComponent(id)}`);
+    window.scrollTo(0, 0);
+  };
+
+  const handleGlobalSearch = (q: string) => {
+    const queryLower = q.trim().toLowerCase();
+    if (!queryLower) return;
+
+    // 1. Direct attraction match (exact or substring)
+    const matchingAttraction = POPULAR_ATTRACTIONS.find(
+      (a) =>
+        a.name.toLowerCase() === queryLower ||
+        a.id.toLowerCase() === queryLower ||
+        getDisplayProductId(a).toLowerCase() === queryLower ||
+        a.name.toLowerCase().includes(queryLower),
+    );
+    if (matchingAttraction) {
+      handleViewAttraction(matchingAttraction.id);
+      return;
+    }
+
+    // 2. City or Destination match
+    const matchingDestination = DESTINATIONS.find(
+      (d) =>
+        d.name.toLowerCase() === queryLower ||
+        d.id.toLowerCase() === queryLower ||
+        d.name.toLowerCase().includes(queryLower) ||
+        queryLower.includes(d.name.toLowerCase()),
+    );
+    if (matchingDestination) {
+      setSelectedDestination(matchingDestination.name);
+      setSelectedAttractionId(null);
+      setActiveCategoryFilter(null);
+      setGlobalSearchQuery("");
+      setCurrentPage("home");
+      window.history.pushState(
+        {},
+        "",
+        `/destinations/${encodeURIComponent(matchingDestination.name.toLowerCase().replace(/\s+/g, "-"))}`,
+      );
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    // 3. Category match
+    const knownCategories = [
+      "museum",
+      "art",
+      "nature",
+      "outdoor",
+      "landmark",
+      "cruise",
+      "adventure",
+      "food",
+      "parks",
+      "entertainment",
+      "shows",
+      "tours",
+    ];
+    const matchedCategory = knownCategories.find((c) => queryLower.includes(c));
+    if (matchedCategory) {
+      setSelectedDestination(null);
+      setSelectedAttractionId(null);
+      setActiveCategoryFilter(matchedCategory);
+      setGlobalSearchQuery("");
+      setCurrentPage("attractions-and-museums");
+      window.history.pushState({}, "", "/attractions-and-museums");
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    // 4. General search query -> browse all attractions with query applied
+    setSelectedDestination(null);
+    setSelectedAttractionId(null);
+    setActiveCategoryFilter(null);
+    setGlobalSearchQuery(q);
+    setCurrentPage("attractions-and-museums");
+    window.history.pushState({}, "", "/attractions-and-museums");
     window.scrollTo(0, 0);
   };
 
@@ -305,6 +384,8 @@ export default function App() {
         <AttractionsAndMuseumsPage
           onBackToHome={navigateHome}
           onViewAttraction={handleViewAttraction}
+          initialSearchQuery={globalSearchQuery}
+          initialCategory={activeCategoryFilter || undefined}
         />
       );
     }
@@ -479,34 +560,20 @@ export default function App() {
             );
             window.scrollTo(0, 0);
           }}
-          onSearch={(q) => {
-            const queryLower = q.toLowerCase().trim();
-            const matchingAttraction = POPULAR_ATTRACTIONS.find(
-              (a) =>
-                a.name.toLowerCase() === queryLower ||
-                a.id.toLowerCase() === queryLower,
-            );
-            if (matchingAttraction) {
-              setSelectedDestination(matchingAttraction.city);
-              window.history.pushState(
-                {},
-                "",
-                `/destinations/${encodeURIComponent(matchingAttraction.city.toLowerCase().replace(/\s+/g, "-"))}`,
-              );
-            } else {
-              setSelectedDestination(q);
-              window.history.pushState(
-                {},
-                "",
-                `/destinations/${encodeURIComponent(q.toLowerCase().replace(/\s+/g, "-"))}`,
-              );
-            }
-            setSelectedAttractionId(null);
-            window.scrollTo(0, 0);
-          }}
+          onSearch={handleGlobalSearch}
         />
         <ScrollReveal>
-          <FeaturedDestinations onSelectDestination={setSelectedDestination} />
+          <FeaturedDestinations
+            onSelectDestination={(dest) => {
+              setSelectedDestination(dest);
+              window.history.pushState(
+                {},
+                "",
+                `/destinations/${encodeURIComponent(dest.toLowerCase().replace(/\s+/g, "-"))}`,
+              );
+              window.scrollTo(0, 0);
+            }}
+          />
         </ScrollReveal>
         <RecentlyViewed
           items={recentlyViewedItems}
@@ -580,29 +647,7 @@ export default function App() {
               window.scrollTo(0, 0);
             }
           }}
-          onSearch={(q) => {
-            const queryLower = q.toLowerCase().trim();
-            const matchingAttraction = POPULAR_ATTRACTIONS.find(
-              (a) =>
-                a.name.toLowerCase() === queryLower ||
-                a.id.toLowerCase() === queryLower ||
-                getDisplayProductId(a).toLowerCase() === queryLower ||
-                a.name.toLowerCase().includes(queryLower)
-            );
-            if (matchingAttraction) {
-              handleViewAttraction(matchingAttraction.id);
-            } else {
-              setSelectedDestination(q);
-              window.history.pushState(
-                {},
-                "",
-                `/destinations/${encodeURIComponent(q.toLowerCase().replace(/\s+/g, "-"))}`,
-              );
-              setSelectedAttractionId(null);
-              setCurrentPage("home");
-              window.scrollTo(0, 0);
-            }
-          }}
+          onSearch={handleGlobalSearch}
         />
         {mainContent()}
         <Footer

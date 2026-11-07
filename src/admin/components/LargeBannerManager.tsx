@@ -266,7 +266,7 @@ export default function LargeBannerManager() {
               type="button"
               onClick={handleMasterToggle}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                config.isEnabled ? 'bg-[#ff0018]' : 'bg-slate-300 dark:bg-slate-700'
+                config.isEnabled ? 'bg-[#e3000f]' : 'bg-slate-300 dark:bg-slate-700'
               }`}
             >
               <span
@@ -292,7 +292,7 @@ export default function LargeBannerManager() {
             <select
               value={config.autoPlayInterval}
               onChange={(e) => handleIntervalChange(Number(e.target.value))}
-              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#ff0018]"
+              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#e3000f]"
             >
               <option value={3000}>3 seconds</option>
               <option value={5000}>5 seconds</option>
@@ -310,7 +310,7 @@ export default function LargeBannerManager() {
               id="partnerBadgeToggle"
               checked={config.showPartnerBadges}
               onChange={handlePartnerToggle}
-              className="w-4 h-4 rounded text-[#ff0018] focus:ring-[#ff0018] border-slate-300 cursor-pointer"
+              className="w-4 h-4 rounded text-[#e3000f] focus:ring-[#e3000f] border-slate-300 cursor-pointer"
             />
             <label htmlFor="partnerBadgeToggle" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
               Partner Logos / Badges
@@ -342,7 +342,7 @@ export default function LargeBannerManager() {
           <button
             type="button"
             onClick={handleOpenAddModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-[#ff0018] hover:bg-[#e00015] text-white shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black bg-[#e3000f] hover:bg-[#e00015] text-white shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Add Banner Slide</span>
@@ -367,7 +367,7 @@ export default function LargeBannerManager() {
                 type="button"
                 onClick={() => setPreviewViewport('desktop')}
                 className={`p-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  previewViewport === 'desktop' ? 'bg-[#ff0018] text-white' : 'text-slate-400 hover:text-white'
+                  previewViewport === 'desktop' ? 'bg-[#e3000f] text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Desktop View"
               >
@@ -377,7 +377,7 @@ export default function LargeBannerManager() {
                 type="button"
                 onClick={() => setPreviewViewport('tablet')}
                 className={`p-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  previewViewport === 'tablet' ? 'bg-[#ff0018] text-white' : 'text-slate-400 hover:text-white'
+                  previewViewport === 'tablet' ? 'bg-[#e3000f] text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Tablet View"
               >
@@ -387,7 +387,7 @@ export default function LargeBannerManager() {
                 type="button"
                 onClick={() => setPreviewViewport('mobile')}
                 className={`p-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  previewViewport === 'mobile' ? 'bg-[#ff0018] text-white' : 'text-slate-400 hover:text-white'
+                  previewViewport === 'mobile' ? 'bg-[#e3000f] text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Mobile View"
               >
@@ -422,7 +422,7 @@ export default function LargeBannerManager() {
           <button
             type="button"
             onClick={handleOpenAddModal}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#ff0018] hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#e3000f] hover:underline"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add New Slide</span>
@@ -501,7 +501,7 @@ export default function LargeBannerManager() {
 
                   <div className="flex flex-wrap items-center gap-3 mt-2 text-[11px] text-slate-600 dark:text-slate-400">
                     <span className="flex items-center gap-1 font-semibold">
-                      <Tag className="w-3 h-3 text-[#ff0018]" />
+                      <Tag className="w-3 h-3 text-[#e3000f]" />
                       <span>CTA: "{slide.ctaText || 'EXPLORE NOW'}"</span>
                     </span>
                     <span className="flex items-center gap-1 font-semibold">
@@ -570,7 +570,7 @@ export default function LargeBannerManager() {
                 <button
                   type="button"
                   onClick={handleOpenAddModal}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#ff0018] hover:bg-[#e00015] text-white"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#e3000f] hover:bg-[#e00015] text-white"
                 >
                   Add Slide
                 </button>
@@ -854,7 +854,7 @@ export default function LargeBannerManager() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl text-xs font-black bg-[#ff0018] hover:bg-[#e00015] text-white shadow-md hover:shadow-lg transition-all"
+                  className="px-6 py-2.5 rounded-xl text-xs font-black bg-[#e3000f] hover:bg-[#e00015] text-white shadow-md hover:shadow-lg transition-all"
                 >
                   {editingSlide ? 'Update Slide' : 'Save & Publish Slide'}
                 </button>

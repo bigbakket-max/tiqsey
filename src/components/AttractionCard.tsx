@@ -23,20 +23,26 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
   }, [attr.imageUrl]);
 
   const handleImageError = () => {
-    const fallbacks: Record<string, string> = {
-      Museum: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=800',
-      Adventure: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=800',
-      Landmark: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=800',
-      Nature: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=800',
-      Show: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=800',
-      "Shows & Events": 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=800',
-      Food: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800',
-      Cruise: 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=800',
-      "Theme Parks": 'https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=800',
-      Tours: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&q=80&w=800',
-    };
-    const key = attr.category || '';
-    setImgSrc(fallbacks[key] || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=800');
+    const catLower = (attr.category || "").toLowerCase();
+    if (catLower.includes("museum") || catLower.includes("art")) {
+      setImgSrc("https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=800");
+    } else if (catLower.includes("landmark") || catLower.includes("historic") || catLower.includes("building") || catLower.includes("architecture")) {
+      setImgSrc("https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=800");
+    } else if (catLower.includes("deck") || catLower.includes("observation") || catLower.includes("view")) {
+      setImgSrc("https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&q=80&w=800");
+    } else if (catLower.includes("park") || catLower.includes("fun") || catLower.includes("thrill")) {
+      setImgSrc("https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=800");
+    } else if (catLower.includes("zoo") || catLower.includes("aquarium") || catLower.includes("nature")) {
+      setImgSrc("https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=800");
+    } else if (catLower.includes("cruise") || catLower.includes("boat") || catLower.includes("water")) {
+      setImgSrc("https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=800");
+    } else if (catLower.includes("food") || catLower.includes("dining") || catLower.includes("wine")) {
+      setImgSrc("https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800");
+    } else if (catLower.includes("tour") || catLower.includes("walking")) {
+      setImgSrc("https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&q=80&w=800");
+    } else {
+      setImgSrc("https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=800");
+    }
   };
 
   return (

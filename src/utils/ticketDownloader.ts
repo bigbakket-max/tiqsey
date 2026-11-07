@@ -108,7 +108,7 @@ export function downloadTicketVoucher(data: TicketDownloadData) {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background-color: #ff0018;
+      background-color: #e3000f;
       color: #ffffff;
       padding: 10px 20px;
       border-radius: 12px;
@@ -167,7 +167,7 @@ export function downloadTicketVoucher(data: TicketDownloadData) {
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.15em;
-      background-color: #ff0018;
+      background-color: #e3000f;
       padding: 4px 10px;
       border-radius: 9999px;
       margin-bottom: 6px;
@@ -356,7 +356,7 @@ export function downloadTicketVoucher(data: TicketDownloadData) {
     .logo-text {
       font-weight: 900;
       font-size: 14px;
-      color: #ff0018;
+      color: #e3000f;
       letter-spacing: -0.02em;
     }
 
@@ -445,7 +445,7 @@ export function downloadTicketVoucher(data: TicketDownloadData) {
 
         <div>
           <label>Total Price</label>
-          <span style="color: #ff0018; font-weight: 900;">${priceStr}</span>
+          <span style="color: #e3000f; font-weight: 900;">${priceStr}</span>
         </div>
 
         <div class="info-item-full">

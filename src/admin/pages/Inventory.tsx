@@ -4215,13 +4215,13 @@ export default function Inventory() {
                       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-5">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/60 gap-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-1.5 h-5 bg-[#ff0018] rounded-sm shrink-0" />
+                            <div className="w-1.5 h-5 bg-[#e3000f] rounded-sm shrink-0" />
                             <div>
                               <div className="flex items-center gap-2">
                                 <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
                                   Experience Highlights
                                 </h3>
-                                <span className="text-[10px] bg-red-50 dark:bg-red-950/60 text-[#ff0018] font-bold px-2 py-0.5 rounded border border-red-200/50 dark:border-red-800/40">
+                                <span className="text-[10px] bg-red-50 dark:bg-red-950/60 text-[#e3000f] font-bold px-2 py-0.5 rounded border border-red-200/50 dark:border-red-800/40">
                                   Detail Page Feature
                                 </span>
                               </div>
@@ -4285,7 +4285,7 @@ export default function Inventory() {
                                           key={idx} 
                                           className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 group hover:border-[#5fa6d9]/50 transition-colors"
                                         >
-                                          <span className="w-6 text-center font-bold text-xs text-[#ff0018] shrink-0">
+                                          <span className="w-6 text-center font-bold text-xs text-[#e3000f] shrink-0">
                                             •
                                           </span>
                                           <input
@@ -4405,12 +4405,12 @@ export default function Inventory() {
                         {/* Customer Detail Modal Real-Time Preview */}
                         <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 space-y-2">
                           <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                            <Sparkles className="w-3 h-3 text-[#ff0018]" />
+                            <Sparkles className="w-3 h-3 text-[#e3000f]" />
                             Live Customer Detail Modal Preview
                           </span>
                           
                           <div className="bg-slate-50/70 dark:bg-slate-950/60 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-3">
-                            <div className="flex items-center gap-2.5 border-l-4 border-[#ff0018] pl-3 select-none">
+                            <div className="flex items-center gap-2.5 border-l-4 border-[#e3000f] pl-3 select-none">
                               <h4 className="text-sm font-black text-slate-900 dark:text-white tracking-wider leading-none uppercase">
                                 HIGHLIGHTS
                               </h4>
@@ -4418,12 +4418,12 @@ export default function Inventory() {
                             <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-150 dark:border-slate-800">
                               <ul className="list-disc pl-5 space-y-2 text-slate-800 dark:text-slate-200 font-semibold text-xs leading-relaxed">
                                 {highlightsInput.split('\n').filter(Boolean).map((item, idx) => (
-                                  <li key={idx} className="marker:text-[#ff0018]">
+                                  <li key={idx} className="marker:text-[#e3000f]">
                                     {item}
                                   </li>
                                 ))}
                                 {highlightsInput.split('\n').filter(Boolean).length === 0 && (
-                                  <li className="marker:text-[#ff0018] italic text-slate-400">
+                                  <li className="marker:text-[#e3000f] italic text-slate-400">
                                     No highlights configured.
                                   </li>
                                 )}
@@ -5705,11 +5705,11 @@ export default function Inventory() {
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-1.5 h-6 bg-[#ff0018] rounded-sm shrink-0" />
+                <div className="w-1.5 h-6 bg-[#e3000f] rounded-sm shrink-0" />
                 <div>
                   <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
                     Edit Highlights
-                    <span className="text-xs bg-red-50 dark:bg-red-950/60 text-[#ff0018] px-2 py-0.5 rounded font-mono font-bold truncate max-w-[280px]">
+                    <span className="text-xs bg-red-50 dark:bg-red-950/60 text-[#e3000f] px-2 py-0.5 rounded font-mono font-bold truncate max-w-[280px]">
                       {quickHighlightsAttr.name}
                     </span>
                   </h3>
@@ -5749,7 +5749,7 @@ export default function Inventory() {
                     key={idx}
                     className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/70 dark:border-slate-800/80 group"
                   >
-                    <span className="w-5 text-center font-bold text-sm text-[#ff0018] shrink-0">
+                    <span className="w-5 text-center font-bold text-sm text-[#e3000f] shrink-0">
                       •
                     </span>
                     <input
@@ -5850,7 +5850,7 @@ export default function Inventory() {
 
               {/* Live Preview Box */}
               <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 space-y-2">
-                <div className="flex items-center gap-2 border-l-4 border-[#ff0018] pl-2.5 select-none">
+                <div className="flex items-center gap-2 border-l-4 border-[#e3000f] pl-2.5 select-none">
                   <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
                     HIGHLIGHTS (LIVE PREVIEW)
                   </h4>
@@ -5858,12 +5858,12 @@ export default function Inventory() {
                 <div className="bg-white dark:bg-slate-900/60 p-3 rounded-lg border border-slate-150 dark:border-slate-800">
                   <ul className="list-disc pl-5 space-y-1 text-slate-800 dark:text-slate-200 font-semibold text-xs leading-relaxed">
                     {quickHighlightsList.filter(Boolean).map((item, idx) => (
-                      <li key={idx} className="marker:text-[#ff0018]">
+                      <li key={idx} className="marker:text-[#e3000f]">
                         {item}
                       </li>
                     ))}
                     {quickHighlightsList.filter(Boolean).length === 0 && (
-                      <li className="marker:text-[#ff0018] italic text-slate-400">
+                      <li className="marker:text-[#e3000f] italic text-slate-400">
                         No highlights.
                       </li>
                     )}

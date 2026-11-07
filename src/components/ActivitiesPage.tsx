@@ -25,6 +25,7 @@ import {
   TrendingUp,
   ShieldCheck,
   ChevronDown,
+  Palette,
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
 import { getDisplayProductId } from "../utils/productIdGenerator";
@@ -199,27 +200,6 @@ const getCategoryMeta = (category: string) => {
   };
 };
 
-// Simple Fallback Palette Icon
-const Palette = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.7255 3.09032 17.1962 4.85857 19C5.03442 19.1758 5.12234 19.2638 5.16361 19.3496C5.19946 19.4241 5.2 19.507 5.16524 19.581C5.12528 19.666 5.03606 19.7497 4.85761 19.9172L4.28014 20.4593C3.93175 20.7863 3.75756 20.9498 3.75385 21.1044C3.75051 21.2435 3.82138 21.3734 3.94073 21.4468C4.0772 21.5307 4.31295 21.5307 4.78446 21.5307H12Z" />
-    <circle cx="7.5" cy="10.5" r="1" fill="currentColor" />
-    <circle cx="11.5" cy="7.5" r="1" fill="currentColor" />
-    <circle cx="16.5" cy="9.5" r="1" fill="currentColor" />
-    <circle cx="15.5" cy="14.5" r="1" fill="currentColor" />
-  </svg>
-);
 
 
 
@@ -552,11 +532,22 @@ export default function ActivitiesPage({
       <div className="relative w-full h-[280px] md:h-[350px] bg-slate-950 overflow-hidden mb-0">
         <div
           key={heroImage}
-          className="absolute inset-0 bg-cover bg-center transition-all duration-1000 scale-105"
-          style={{ backgroundImage: `url(${heroImage})` }}
+          className="absolute inset-0 overflow-hidden"
         >
+          <img
+            src={heroImage}
+            alt={destination}
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (!target.src.includes('photo-1473951574080')) {
+                target.src = "https://images.unsplash.com/photo-1473951574080-01fe45ec8643?auto=format&fit=crop&w=1200&q=80";
+              }
+            }}
+            className="w-full h-full object-cover transition-all duration-1000 scale-105"
+            referrerPolicy="no-referrer"
+          />
           {/* Subtle overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/30 pointer-events-none" />
           
           {/* Manual slide indicator dots */}
           {heroImages.length > 1 && (

@@ -873,7 +873,7 @@ export default function MyBookingsPage({
               exit={{ scale: 0.9, opacity: 0 }}
               className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 dark:border-slate-800 font-sans z-10"
             >
-              <div className="flex items-center gap-3 text-[#ff0018]">
+              <div className="flex items-center gap-3 text-[#e3000f]">
                 <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 rounded-xl">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
@@ -898,7 +898,7 @@ export default function MyBookingsPage({
                     handleCancelBooking(cancellingBookingId);
                     setCancellingBookingId(null);
                   }}
-                  className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-[#ff0018] hover:bg-opacity-90 shadow-sm transition-all cursor-pointer active:scale-95"
+                  className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-[#e3000f] hover:bg-opacity-90 shadow-sm transition-all cursor-pointer active:scale-95"
                 >
                   Confirm Cancellation
                 </button>

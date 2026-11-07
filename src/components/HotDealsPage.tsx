@@ -438,8 +438,8 @@ export default function HotDealsPage({
                           stroke="currentColor"
                           className={`w-4 h-4 transition-colors duration-200 ${
                             isWishlisted(attr.id) 
-                              ? "text-[#ff0018] fill-[#ff0018]" 
-                              : "text-slate-600 dark:text-zinc-350 group-hover/fav:text-[#ff0018] group-hover/fav:fill-[#ff0018]/10"
+                              ? "text-[#e3000f] fill-[#e3000f]" 
+                              : "text-slate-600 dark:text-zinc-350 group-hover/fav:text-[#e3000f] group-hover/fav:fill-[#e3000f]/10"
                           }`}
                         >
                           <path

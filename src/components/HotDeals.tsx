@@ -255,7 +255,7 @@ export default function HotDeals({
                           stroke="currentColor"
                           className={`w-4 h-4 transition-colors duration-200 ${
                             isWishlisted(attr.id)
-                              ? "text-[#ff0018] fill-[#ff0018]"
+                              ? "text-[#e3000f] fill-[#e3000f]"
                               : "text-white group-hover/fav:text-rose-400"
                           }`}
                         >

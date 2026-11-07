@@ -856,7 +856,7 @@ export default function BookingDetailsView({
           <div className="bg-[#f8fafc] dark:bg-slate-950/40 p-4 rounded-xl border border-slate-150 dark:border-slate-800/80 min-h-[90px] flex flex-col justify-between">
             <div>
               <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-1">TOTAL AMOUNT</p>
-              <p className="font-extrabold text-[#ff0018] text-base">
+              <p className="font-extrabold text-[#e3000f] text-base">
                 <EurToInrTooltip 
                   amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 66)} 
                   bookingDate={booking.bookingDate} 
@@ -984,7 +984,7 @@ export default function BookingDetailsView({
                     </span>
                   </td>
                   <td className="py-4 px-3 font-medium text-slate-600 dark:text-slate-400">portal</td>
-                  <td className="py-4 pl-3 font-mono text-[#ff0018] font-bold select-all">
+                  <td className="py-4 pl-3 font-mono text-[#e3000f] font-bold select-all">
                     chk_d9119e3p124cb543ns8g
                   </td>
                 </tr>

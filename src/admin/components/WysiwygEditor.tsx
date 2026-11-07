@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import { 
   Bold, 
   Italic, 
@@ -43,7 +43,10 @@ import {
   PenTool,
   Layers,
   Divide,
-  Trash2
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  ListFilter
 } from "lucide-react";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -62,6 +65,182 @@ import { FontSize, Indent as CustomIndent, LineHeight, ParagraphSpacing } from '
 import Highlight from '@tiptap/extension-highlight';
 import Placeholder from '@tiptap/extension-placeholder';
 
+export interface VisualSectionItem {
+  id: string;
+  title: string;
+  content: string;
+}
+
+function escapeHtml(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+export function serializeVisualSections(sections: VisualSectionItem[]): string {
+  if (!sections || sections.length === 0) return "";
+  return `<div class="visual-list-container space-y-6">
+${sections.map((s, idx) => `  <div class="visual-list-item${idx > 0 ? ' pt-5 border-t border-slate-100 dark:border-slate-800' : ''}">
+    <h4 class="visual-list-title text-[#6b8299] dark:text-[#8cb4d2] text-[13px] font-bold tracking-wider uppercase mb-2 font-sans">${escapeHtml(s.title || 'SECTION')}</h4>
+    <p class="visual-list-body text-slate-700 dark:text-slate-200 text-[14px] leading-relaxed font-sans">${escapeHtml(s.content || '')}</p>
+  </div>`).join('\n')}
+</div>`;
+}
+
+export function parseVisualSections(htmlOrText: string): VisualSectionItem[] {
+  if (!htmlOrText || !htmlOrText.trim()) return [];
+
+  // Browser environment with DOMParser
+  if (typeof window !== 'undefined' && typeof DOMParser !== 'undefined') {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlOrText, 'text/html');
+
+      // 1. Structured .visual-list-item elements
+      const visualItems = doc.querySelectorAll('.visual-list-item');
+      if (visualItems.length > 0) {
+        const result: VisualSectionItem[] = [];
+        visualItems.forEach((el, i) => {
+          const titleEl = el.querySelector('.visual-list-title, h1, h2, h3, h4, h5');
+          const bodyEl = el.querySelector('.visual-list-body, p, ul, div:not(.visual-list-title)');
+          const title = (titleEl?.textContent || `SECTION ${i + 1}`).trim();
+          const content = (bodyEl ? (bodyEl.textContent || '') : el.textContent?.replace(title, '') || '').trim();
+          result.push({
+            id: `sec-${i}-${Date.now()}`,
+            title,
+            content
+          });
+        });
+        return result;
+      }
+
+      // 2. Heading-based structure (h1, h2, h3, h4, h5)
+      const headings = doc.querySelectorAll('h1, h2, h3, h4, h5');
+      if (headings.length > 0) {
+        const sections: VisualSectionItem[] = [];
+        let currentTitle = "";
+        let currentContentParts: string[] = [];
+
+        const flush = () => {
+          if (currentTitle || currentContentParts.length > 0) {
+            sections.push({
+              id: `sec-${sections.length}-${Date.now()}`,
+              title: currentTitle || `SECTION ${sections.length + 1}`,
+              content: currentContentParts.join('\n\n').trim()
+            });
+            currentTitle = "";
+            currentContentParts = [];
+          }
+        };
+
+        const bodyChildren = Array.from(doc.body.children);
+        if (bodyChildren.length > 0) {
+          for (const child of bodyChildren) {
+            const tagName = child.tagName.toLowerCase();
+            if (['h1', 'h2', 'h3', 'h4', 'h5'].includes(tagName)) {
+              flush();
+              currentTitle = child.textContent?.trim() || "";
+            } else {
+              const text = child.textContent?.trim();
+              if (text) currentContentParts.push(text);
+            }
+          }
+          flush();
+          if (sections.length > 0) return sections;
+        }
+      }
+    } catch {
+      // Fall through to plain text parsing
+    }
+  }
+
+  // 3. Fallback plain text / string parsing
+  const raw = htmlOrText.replace(/<[^>]*>/g, '\n').trim();
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
+
+  const sections: VisualSectionItem[] = [];
+  let curTitle = "";
+  let curContent: string[] = [];
+
+  for (const line of lines) {
+    const isHeading = (line.length <= 40 && (line === line.toUpperCase() || line.endsWith(':'))) && !line.startsWith('http');
+    if (isHeading) {
+      if (curTitle || curContent.length > 0) {
+        sections.push({
+          id: `sec-${sections.length}-${Date.now()}`,
+          title: curTitle.replace(/:$/, '') || `SECTION ${sections.length + 1}`,
+          content: curContent.join(' ').trim()
+        });
+        curContent = [];
+      }
+      curTitle = line.replace(/:$/, '');
+    } else {
+      curContent.push(line);
+    }
+  }
+  if (curTitle || curContent.length > 0) {
+    sections.push({
+      id: `sec-${sections.length}-${Date.now()}`,
+      title: curTitle.replace(/:$/, '') || "PACKAGE DETAILS",
+      content: curContent.join(' ').trim()
+    });
+  }
+
+  return sections.length > 0 ? sections : [{
+    id: `sec-default-${Date.now()}`,
+    title: "PACKAGE DETAILS",
+    content: raw
+  }];
+}
+
+export interface VisualListCustomerViewProps {
+  htmlOrText?: string;
+  className?: string;
+  sections?: VisualSectionItem[];
+}
+
+export const VisualListCustomerView: React.FC<VisualListCustomerViewProps> = ({
+  htmlOrText = "",
+  className = "",
+  sections: propSections
+}) => {
+  const sections = useMemo(() => {
+    if (propSections && propSections.length > 0) return propSections;
+    return parseVisualSections(htmlOrText);
+  }, [htmlOrText, propSections]);
+
+  if (!sections || sections.length === 0) {
+    return (
+      <div className="py-6 text-center text-xs text-slate-400 italic font-sans">
+        No package policies or exclusions specified.
+      </div>
+    );
+  }
+
+  return (
+    <div className={`space-y-6 font-sans ${className}`}>
+      {sections.map((sec, idx) => (
+        <div 
+          key={sec.id || idx} 
+          className={idx > 0 ? "pt-5 border-t border-slate-100 dark:border-slate-800" : ""}
+        >
+          <h4 className="text-[#6b8299] dark:text-[#8cb4d2] text-[12px] sm:text-[13px] font-bold tracking-wider uppercase mb-2 select-none font-sans">
+            {sec.title}
+          </h4>
+          <p className="text-slate-700 dark:text-slate-200 text-[13px] sm:text-[14px] leading-relaxed font-normal whitespace-pre-line font-sans">
+            {sec.content}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export interface PackageTemplate {
   id: string;
   title: string;
@@ -71,6 +250,26 @@ export interface PackageTemplate {
 }
 
 export const PACKAGE_TEMPLATES: PackageTemplate[] = [
+  {
+    id: "amsterdam-canal-cruise",
+    title: "Amsterdam Canal Cruise (Visual List)",
+    description: "Age Policy (17+), Peak Demand Pricing Note, and 1-Hour Admission.",
+    badge: "Reference",
+    html: `<div class="visual-list-container space-y-6">
+  <div class="visual-list-item">
+    <h4 class="visual-list-title text-[#6b8299] dark:text-[#8cb4d2] text-[13px] font-bold tracking-wider uppercase mb-2 font-sans">AGE POLICY</h4>
+    <p class="visual-list-body text-slate-700 dark:text-slate-200 text-[14px] leading-relaxed font-sans">Adult tickets are applicable for visitors aged 17 years and above.</p>
+  </div>
+  <div class="visual-list-item pt-5 border-t border-slate-100 dark:border-slate-800">
+    <h4 class="visual-list-title text-[#6b8299] dark:text-[#8cb4d2] text-[13px] font-bold tracking-wider uppercase mb-2 font-sans">IMPORTANT NOTES</h4>
+    <p class="visual-list-body text-slate-700 dark:text-slate-200 text-[14px] leading-relaxed font-sans">Prices of tickets for this attraction are higher than what is mentioned on the tickets due to a substantial peak in demand. The prices of tickets are a combination of basic ticket charges, high sourcing costs, last-minute acquiring costs, and taxes.</p>
+  </div>
+  <div class="visual-list-item pt-5 border-t border-slate-100 dark:border-slate-800">
+    <h4 class="visual-list-title text-[#6b8299] dark:text-[#8cb4d2] text-[13px] font-bold tracking-wider uppercase mb-2 font-sans">PRICE INCLUDES</h4>
+    <p class="visual-list-body text-slate-700 dark:text-slate-200 text-[14px] leading-relaxed font-sans">Admission to 1-Hour Amsterdam Canal Cruise permanent collection.</p>
+  </div>
+</div>`
+  },
   {
     id: "full-package",
     title: "Complete Tour & Activity Package",
@@ -184,7 +383,77 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   helperText
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [viewMode, setViewMode] = useState<"editor" | "preview" | "html">("editor");
+  const [viewMode, setViewMode] = useState<"visual-list" | "editor" | "preview" | "html">(
+    label.toLowerCase().includes("package") || label.toLowerCase().includes("policy") ? "visual-list" : "editor"
+  );
+
+  // Structured Visual List State
+  const [visualSections, setVisualSections] = useState<VisualSectionItem[]>(() => {
+    return parseVisualSections(value);
+  });
+
+  // Keep visualSections in sync if value changes externally
+  useEffect(() => {
+    const currentSerialized = serializeVisualSections(visualSections);
+    if (value && value !== currentSerialized) {
+      const parsed = parseVisualSections(value);
+      if (parsed.length > 0) {
+        setVisualSections(parsed);
+      }
+    }
+  }, [value]);
+
+  const updateVisualSections = (newSections: VisualSectionItem[]) => {
+    setVisualSections(newSections);
+    const html = serializeVisualSections(newSections);
+    onChange(html);
+    if (editor && editor.getHTML() !== html) {
+      editor.commands.setContent(html);
+    }
+  };
+
+  const handleUpdateSection = (index: number, field: "title" | "content", val: string) => {
+    const updated = [...visualSections];
+    updated[index] = { ...updated[index], [field]: val };
+    updateVisualSections(updated);
+  };
+
+  const handleAddPresetSection = (title: string, content: string) => {
+    const newSection: VisualSectionItem = {
+      id: `sec-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      title,
+      content
+    };
+    updateVisualSections([...visualSections, newSection]);
+  };
+
+  const handleMoveSection = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= visualSections.length) return;
+    const copy = [...visualSections];
+    const temp = copy[index];
+    copy[index] = copy[target];
+    copy[target] = temp;
+    updateVisualSections(copy);
+  };
+
+  const handleDuplicateSection = (index: number) => {
+    const item = visualSections[index];
+    const dupe: VisualSectionItem = {
+      ...item,
+      id: `sec-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      title: `${item.title} (COPY)`
+    };
+    const copy = [...visualSections];
+    copy.splice(index + 1, 0, dupe);
+    updateVisualSections(copy);
+  };
+
+  const handleDeleteSection = (index: number) => {
+    const copy = visualSections.filter((_, i) => i !== index);
+    updateVisualSections(copy);
+  };
+
   const [isFocused, setIsFocused] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
@@ -587,7 +856,36 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           <div className="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-2xs">
             <button
               type="button"
-              onClick={() => setViewMode("editor")}
+              onClick={() => {
+                if (editor) {
+                  const currentHtml = editor.getHTML();
+                  if (currentHtml) {
+                    setVisualSections(parseVisualSections(currentHtml));
+                  }
+                }
+                setViewMode("visual-list");
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                viewMode === "visual-list"
+                  ? "bg-white dark:bg-slate-850 text-[#5fa6d9] shadow-xs"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              }`}
+              title="Structured Visual List builder for Package Details, Policies & Exclusions"
+            >
+              <ListOrdered className="w-3 h-3 text-[#5fa6d9]" />
+              <span>Visual List</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (viewMode === "visual-list") {
+                  const html = serializeVisualSections(visualSections);
+                  if (editor && editor.getHTML() !== html) {
+                    editor.commands.setContent(html);
+                  }
+                }
+                setViewMode("editor");
+              }}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
                 viewMode === "editor"
                   ? "bg-white dark:bg-slate-850 text-[#5fa6d9] shadow-xs"
@@ -599,7 +897,13 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setViewMode("preview")}
+              onClick={() => {
+                if (viewMode === "visual-list") {
+                  const html = serializeVisualSections(visualSections);
+                  onChange(html);
+                }
+                setViewMode("preview");
+              }}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
                 viewMode === "preview"
                   ? "bg-white dark:bg-slate-850 text-[#5fa6d9] shadow-xs"
@@ -611,7 +915,13 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setViewMode("html")}
+              onClick={() => {
+                if (viewMode === "visual-list") {
+                  const html = serializeVisualSections(visualSections);
+                  onChange(html);
+                }
+                setViewMode("html");
+              }}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
                 viewMode === "html"
                   ? "bg-white dark:bg-slate-850 text-[#5fa6d9] shadow-xs"
@@ -1387,9 +1697,180 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           </div>
         )}
 
-        {/* CONTENT AREA: 3 VIEW MODES */}
+        {/* CONTENT AREA: 4 VIEW MODES */}
         <div className={`flex-1 relative ${isFullscreen ? "min-h-[400px] overflow-y-auto" : ""}`}>
           
+          {/* 0. VISUAL LIST BUILDER */}
+          {viewMode === "visual-list" && (
+            <div className="p-4 sm:p-5 bg-slate-50/60 dark:bg-slate-900/40 min-h-[260px] space-y-4">
+              {/* Header and Quick Add Presets Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-200/80 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-[#5fa6d9]/10 text-[#5fa6d9] flex items-center justify-center">
+                    <ListOrdered className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                      Visual Policy & Inclusion Sections
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Reorder, edit, and manage policies displayed to customers
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Add Presets matching Image 2 */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Add Preset:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleAddPresetSection("AGE POLICY", "Adult tickets are applicable for visitors aged 17 years and above.")}
+                    className="text-[10px] font-bold px-2 py-1 rounded bg-white dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-2xs transition-colors cursor-pointer"
+                  >
+                    + Age Policy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddPresetSection("IMPORTANT NOTES", "Prices of tickets for this attraction are higher than what is mentioned on the tickets due to a substantial peak in demand. The prices of tickets are a combination of basic ticket charges, high sourcing costs, last-minute acquiring costs, and taxes.")}
+                    className="text-[10px] font-bold px-2 py-1 rounded bg-white dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-2xs transition-colors cursor-pointer"
+                  >
+                    + Important Notes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddPresetSection("PRICE INCLUDES", "Admission to 1-Hour Amsterdam Canal Cruise permanent collection.")}
+                    className="text-[10px] font-bold px-2 py-1 rounded bg-white dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-2xs transition-colors cursor-pointer"
+                  >
+                    + Price Includes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddPresetSection("WHAT'S EXCLUDED", "Food and drinks, hotel pickup and drop-off, and gratuities.")}
+                    className="text-[10px] font-bold px-2 py-1 rounded bg-white dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-2xs transition-colors cursor-pointer"
+                  >
+                    + Excluded
+                  </button>
+                </div>
+              </div>
+
+              {/* Sections List */}
+              {visualSections.length === 0 ? (
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 space-y-3">
+                  <FileText className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No Visual List sections added</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Click a quick preset above or create a custom policy section below.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAddPresetSection("AGE POLICY", "Adult tickets are applicable for visitors aged 17 years and above.")}
+                    className="px-3.5 py-1.5 bg-[#5fa6d9] hover:bg-[#4b96cb] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
+                  >
+                    + Add Age Policy Section
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {visualSections.map((sec, idx) => (
+                    <div 
+                      key={sec.id}
+                      className="p-3.5 sm:p-4 bg-white dark:bg-slate-950 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-[#5fa6d9]/40 transition-all space-y-2.5"
+                    >
+                      {/* Section Card Top Header */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono">
+                            #{idx + 1}
+                          </span>
+                          <input
+                            type="text"
+                            value={sec.title}
+                            onChange={(e) => handleUpdateSection(idx, "title", e.target.value.toUpperCase())}
+                            placeholder="SECTION TITLE (e.g. AGE POLICY)"
+                            className="font-bold text-xs sm:text-[13px] tracking-wider uppercase text-[#6b8299] dark:text-[#8cb4d2] bg-transparent border-b border-dashed border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 focus:border-[#5fa6d9] focus:outline-none px-1 py-0.5 w-full max-w-sm transition-colors"
+                          />
+                        </div>
+
+                        {/* Controls */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveSection(idx, -1)}
+                            disabled={idx === 0}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-20 cursor-pointer"
+                            title="Move Up"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveSection(idx, 1)}
+                            disabled={idx === visualSections.length - 1}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-20 cursor-pointer"
+                            title="Move Down"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDuplicateSection(idx)}
+                            className="p-1 rounded text-slate-400 hover:text-[#5fa6d9] hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                            title="Duplicate"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSection(idx)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Content Area */}
+                      <div>
+                        <textarea
+                          value={sec.content}
+                          onChange={(e) => handleUpdateSection(idx, "content", e.target.value)}
+                          placeholder="Provide description, age guidelines, requirements, or inclusions..."
+                          rows={2}
+                          className="w-full text-xs sm:text-[13px] leading-relaxed text-slate-700 dark:text-slate-200 bg-slate-50/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 rounded-lg p-2.5 focus:outline-none focus:border-[#5fa6d9] focus:bg-white dark:focus:bg-slate-950 transition-all resize-y"
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Add Section Footer Button */}
+                  <div className="pt-2 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => handleAddPresetSection("NEW SECTION", "")}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-2xs transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-[#5fa6d9]" />
+                      <span>+ Add New Section</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const html = serializeVisualSections(visualSections);
+                        onChange(html);
+                        setViewMode("preview");
+                      }}
+                      className="text-xs font-bold text-[#5fa6d9] hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Preview Guest View →</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 1. VISUAL EDITOR */}
           {viewMode === "editor" && (
             <div className="relative">
@@ -1411,21 +1892,21 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                       onClick={() => handleApplyTemplate(PACKAGE_TEMPLATES[0], "replace")}
                       className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#5fa6d9] text-white hover:bg-[#3884b6] transition-colors cursor-pointer shadow-xs"
                     >
-                      + Full Package Template
+                      + Amsterdam Canal Visual List
                     </button>
                     <button
                       type="button"
                       onClick={() => handleApplyTemplate(PACKAGE_TEMPLATES[1], "replace")}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors cursor-pointer shadow-2xs"
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors cursor-pointer shadow-2xs"
                     >
-                      + Inclusions & Exclusions
+                      + Full Package Template
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleApplyTemplate(PACKAGE_TEMPLATES[3], "replace")}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors cursor-pointer shadow-2xs"
+                      onClick={() => handleApplyTemplate(PACKAGE_TEMPLATES[2], "replace")}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors cursor-pointer shadow-2xs"
                     >
-                      + Age Policy
+                      + Inclusions & Exclusions
                     </button>
                   </div>
                 </div>
@@ -1448,31 +1929,33 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                 </span>
               </div>
 
-              <div className="bg-white dark:bg-slate-950 rounded-xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-3">
-                <h5 className="text-[12px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-900">
-                  Package Details & Information
-                </h5>
+              <div className="bg-white dark:bg-slate-950 rounded-xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <h5 className="text-[12px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    Package Details, Policies & Exclusions
+                  </h5>
+                  <span className="text-[10px] font-bold text-[#5fa6d9] uppercase tracking-wider">
+                    Visual List
+                  </span>
+                </div>
 
                 {value && value.trim() !== "" ? (
-                  <div 
-                    className="text-[13px] text-slate-600 dark:text-slate-300 space-y-2 leading-relaxed prose dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: value }}
-                  />
+                  <VisualListCustomerView htmlOrText={value} />
                 ) : (
-                  <div className="py-8 text-center text-slate-400 text-xs italic">
-                    No content added yet. Switch back to Editor to write package details.
+                  <div className="py-8 text-center text-slate-400 text-xs italic font-sans">
+                    No content added yet. Switch back to Visual List or Editor to write package details.
                   </div>
                 )}
               </div>
 
               <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                <span>This simulation matches the guest-facing ticket modal styling in Tiqsey checkout.</span>
+                <span>Matches the live guest-facing ticket modal styling in Tiqsey checkout.</span>
                 <button
                   type="button"
-                  onClick={() => setViewMode("editor")}
+                  onClick={() => setViewMode("visual-list")}
                   className="font-bold text-[#5fa6d9] hover:underline cursor-pointer"
                 >
-                  Return to Visual Editor →
+                  Return to Visual List Builder →
                 </button>
               </div>
             </div>
@@ -1515,8 +1998,8 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           {/* Left: Mode badge and live counters */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 font-bold text-slate-500 dark:text-slate-400">
-              <span className={`w-2 h-2 rounded-full ${viewMode === 'editor' ? 'bg-emerald-500' : viewMode === 'preview' ? 'bg-sky-500' : 'bg-indigo-500'}`} />
-              <span className="capitalize">{viewMode === 'editor' ? 'Visual Editor' : viewMode === 'preview' ? 'Customer Preview' : 'HTML Mode'}</span>
+              <span className={`w-2 h-2 rounded-full ${viewMode === 'visual-list' ? 'bg-[#5fa6d9]' : viewMode === 'editor' ? 'bg-emerald-500' : viewMode === 'preview' ? 'bg-sky-500' : 'bg-indigo-500'}`} />
+              <span className="capitalize">{viewMode === 'visual-list' ? 'Visual List' : viewMode === 'editor' ? 'Visual Editor' : viewMode === 'preview' ? 'Customer Preview' : 'HTML Mode'}</span>
             </div>
 
             <div className="hidden sm:flex items-center gap-3 text-slate-400 dark:text-slate-500 border-l border-slate-200 dark:border-slate-800 pl-3">

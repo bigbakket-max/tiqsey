@@ -25,20 +25,38 @@ import { Helmet } from "react-helmet-async";
 interface Props {
   onBackToHome: () => void;
   onViewAttraction: (id: string) => void;
+  initialSearchQuery?: string;
+  initialCategory?: string;
 }
 
 export default function AttractionsAndMuseumsPage({
   onBackToHome,
   onViewAttraction,
+  initialSearchQuery,
+  initialCategory,
 }: Props) {
   const { t } = useSettings();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery || "");
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    initialCategory || "All",
+  );
   const [selectedRegion, setSelectedRegion] = useState<string>("All");
   const [selectedCity, setSelectedCity] = useState<string>("All");
   const [sortBy, setSortBy] = useState<
     "popularity" | "rating" | "price-asc" | "price-desc"
   >("popularity");
+
+  React.useEffect(() => {
+    if (initialSearchQuery !== undefined) {
+      setSearchQuery(initialSearchQuery);
+    }
+  }, [initialSearchQuery]);
+
+  React.useEffect(() => {
+    if (initialCategory) {
+      setSelectedCategory(initialCategory);
+    }
+  }, [initialCategory]);
 
   const [rev, setRev] = useState(0);
   const [isLoading, setIsLoading] = useState(true);

@@ -19,6 +19,27 @@ import { buildAffiliateUrl, recordAffiliateClick } from '../utils/affiliate';
 import AttractionCard from './AttractionCard';
 import { Breadcrumb, BreadcrumbItem } from './Breadcrumb';
 import { Helmet } from 'react-helmet-async';
+import { VisualListCustomerView } from '../admin/components/WysiwygEditor';
+
+const getDefaultPackageVisualListNotes = (pkg?: any, attraction?: any): string => {
+  const attractionTitle = attraction?.name || "Amsterdam Canal Cruise";
+  const pkgTitle = pkg?.name || "1-Hour Amsterdam Canal Cruise";
+  
+  return `<div class="visual-list-container space-y-6">
+  <div class="visual-list-item">
+    <h4 class="visual-list-title text-[#6b8299] dark:text-[#8cb4d2] text-[13px] font-bold tracking-wider uppercase mb-2">AGE POLICY</h4>
+    <p class="visual-list-body text-slate-700 dark:text-slate-200 text-[14px] leading-relaxed">Adult tickets are applicable for visitors aged 17 years and above.</p>
+  </div>
+  <div class="visual-list-item pt-5 border-t border-slate-100 dark:border-slate-800">
+    <h4 class="visual-list-title text-[#6b8299] dark:text-[#8cb4d2] text-[13px] font-bold tracking-wider uppercase mb-2">IMPORTANT NOTES</h4>
+    <p class="visual-list-body text-slate-700 dark:text-slate-200 text-[14px] leading-relaxed">Prices of tickets for this attraction are higher than what is mentioned on the tickets due to a substantial peak in demand. The prices of tickets are a combination of basic ticket charges, high sourcing costs, last-minute acquiring costs, and taxes.</p>
+  </div>
+  <div class="visual-list-item pt-5 border-t border-slate-100 dark:border-slate-800">
+    <h4 class="visual-list-title text-[#6b8299] dark:text-[#8cb4d2] text-[13px] font-bold tracking-wider uppercase mb-2">PRICE INCLUDES</h4>
+    <p class="visual-list-body text-slate-700 dark:text-slate-200 text-[14px] leading-relaxed">Admission to ${pkgTitle || attractionTitle} permanent collection.</p>
+  </div>
+</div>`;
+};
 
 const COUNTRIES = [
   { name: 'Afghanistan', code: 'AF', dial: '+93' },
@@ -2640,36 +2661,25 @@ export default function AttractionDetailModal({
                           </div>
                         </div>
 
-                        {/* Expanded details section */}
+                        {/* Expanded details section - Visual List matching Image 2 */}
                         {isExpanded && (
-                          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                            <h5 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                              PACKAGE DETAILS & INFORMATION
-                            </h5>
-                            <ul className="space-y-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
-                              <li className="flex items-start gap-2">
-                                <span className="text-slate-400">•</span>
-                                <span>Enjoy a scenic 1-hour cruise through Amsterdam&apos;s historic canal belt.</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="text-slate-400">•</span>
-                                <span>Admire beautiful canal houses, charming bridges, and traditional houseboats.</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="text-slate-400">•</span>
-                                <span>Pass by famous landmarks and iconic city sights.</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="text-slate-400">•</span>
-                                <span>Capture stunning photos of Amsterdam&apos;s picturesque canals.</span>
-                              </li>
-                              {pkg.notes && (
-                                <li className="flex items-start gap-2 pt-1 text-slate-500">
-                                  <span className="text-slate-400">•</span>
-                                  <span dangerouslySetInnerHTML={{ __html: pkg.notes }} />
-                                </li>
-                              )}
-                            </ul>
+                          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                            <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800/80">
+                              <h5 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                PACKAGE DETAILS, POLICIES & EXCLUSIONS
+                              </h5>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#5fa6d9]/10 text-[#5fa6d9] border border-[#5fa6d9]/20 uppercase tracking-wider">
+                                Visual List
+                              </span>
+                            </div>
+
+                            <VisualListCustomerView 
+                              htmlOrText={
+                                pkg.notes && pkg.notes.trim() !== ''
+                                  ? pkg.notes
+                                  : getDefaultPackageVisualListNotes(pkg, attraction)
+                              }
+                            />
                           </div>
                         )}
                       </div>

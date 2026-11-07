@@ -445,7 +445,7 @@ export default function Hero({ onSelectDestination, onSearch }: HeroProps) {
               <span className="block font-black text-slate-900 dark:text-white">
                 {t('heroTitle2', 'unforgettable')}
               </span>
-              <span className="block font-black bg-gradient-to-r from-[#e3000f] via-rose-600 to-[#c7000d] bg-clip-text text-transparent">
+              <span className="block font-black text-brand">
                 {t('heroTitle3', 'experiences')}
               </span>
               <span className="inline-flex items-center justify-center flex-wrap gap-x-2 font-['Caveat',cursive] font-bold text-3xl sm:text-4xl md:text-5xl lg:text-[56px] xl:text-[62px] tracking-normal leading-tight mt-0.5">

@@ -104,7 +104,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     price: 25,
     discountPrice: 18,
     imageUrl:
-      "https://www.casabatllo.es/wp-content/uploads/2023/01/casa-mila-pedrera.png",
+      "https://images.unsplash.com/photo-1583772212953-b26a1caea864?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
     description:
       "Explore La Pedrera (Casa Milà), another of Gaudí’s iconic buildings, famous for its unique stone facade and sculptural roof.",
@@ -134,7 +134,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 15200,
     price: 36,
     imageUrl:
-      "https://www.edgenyc.com/content/uploads/2025/04/Flex-Admission.jpg",
+      "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
     description:
       "Experience 360-degree views of New York City from the highest outdoor sky deck in the Western Hemisphere.",
@@ -220,7 +220,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 32000,
     price: 18,
     imageUrl:
-      "https://www.baldhiker.com/wp-content/uploads/2013/05/view-of-the-Forum-in-Rome.jpg",
+      "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
     description:
       "Explore the ruins of the central hub of ancient Rome and the hill where the city was founded.",
@@ -246,7 +246,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 21000,
     price: 15,
     imageUrl:
-      "https://aws-tiqets-cdn.imgix.net/images/content/a2e1f4dcaa1a4d4d81be637a4e62224a.jpg?auto=format%2Ccompress&dpr=2&fit=clip&h=695.2000122070312&q=85&s=041b2b1bbec8bd81e2144884a3e7032a&w=null",
+      "https://images.unsplash.com/photo-1543429776-2782fc8e1acd?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
     description:
       "Visit Hadrian's mausoleum, transformed into a fortress and Papal residence over the centuries.",
@@ -273,7 +273,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     price: 28,
     discountPrice: 22,
     imageUrl:
-      "https://images.visititaly.eu/uploads/articoli/evidenza/20200120164846Creazione%20di%20Adamo,%20musei%20vaticani%20Visit%20Italy.jpg",
+      "https://images.unsplash.com/photo-1548625361-165c71d05370?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
     description:
       "Walk through the breathtaking exhibitions of the Vatican Museums and stand in awe under Michelangelo's legendary frescoes in the Sistine Chapel.",
@@ -303,7 +303,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 18500,
     price: 30,
     imageUrl:
-      "https://media1.thrillophilia.com/filestore/c6pgzmy1dqfpn668t4ksm8d4wvew_Basilica_Cistern_after_restoration_2022_(11).jpg?w=400&dpr=2",
+      "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
     description:
       "Descend beneath the streets of Istanbul to discover the magical Basilica Cistern, the largest of several hundred ancient cisterns.",
@@ -355,7 +355,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 15600,
     price: 30,
     imageUrl:
-      "https://cdn.istanbultouristpass.com/banner/doc/c1bf7675959df6b6d6f4d1e1a089fad8-649050b6411fe.jpg",
+      "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
     description:
       "Explore the lavish and grandiose 19th-century palace that served as the primary residence of Ottoman Sultans.",
@@ -381,7 +381,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 38000,
     price: 45,
     imageUrl:
-      "https://anascreccatravel.com/wp-content/uploads/2018/06/Topkapi-Palace-Istanbul-Touristic-Places.webp",
+      "https://images.unsplash.com/photo-1570939274717-7eda259b50ed?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
     description:
       "Step into the Ottoman Empire's court at Topkapi Palace, featuring opulent courtyards, sacred relics, and magnificent views.",
@@ -441,7 +441,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 42000,
     price: 57,
     imageUrl:
-      "https://ik.imagekit.io/tvlk/blog/2023/12/shutterstock_476270212.jpg",
+      "https://images.unsplash.com/photo-1565967511849-76a60a516170?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
     description:
       "Experience cutting-edge rides, shows, and attractions based on your favorite blockbuster films and television series.",
@@ -467,7 +467,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 28500,
     price: 23,
     imageUrl:
-      "https://arquitecturaviva.com/assets/uploads/articulos/78785/av_239877.webp?h=0f6a4a4e",
+      "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
     description:
       "Dive into a body-immersive digital art museum where you walk through water and become one with the flowers.",
@@ -1360,7 +1360,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 9800,
     price: 24,
     imageUrl:
-      "https://media1.thrillophilia.com/filestore/nfkvecfczbso18qu73ubc0sdor8w_shutterstock_1917972083.jpg?w=400&dpr=2",
+      "https://images.unsplash.com/photo-1518998053901-5348d3961a04?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
   },
   {
@@ -1609,7 +1609,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     rating: 4.7,
     reviewsCount: 9200,
     price: 12.5,
-    imageUrl: "https://www.historyhit.com/app/uploads/2020/11/Royal-Palace.jpg",
+    imageUrl: "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
   },
   {
@@ -1624,7 +1624,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 45000,
     price: 16,
     imageUrl:
-      "https://media.cntraveler.com/photos/55e0aedcf073f4db6484912a/16:9/w_2560%2Cc_limit/anne-frank-house-cr-alamy.jpg",
+      "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
   },
   {
@@ -2525,7 +2525,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 3800,
     price: 12.0,
     imageUrl:
-      "https://media1.thrillophilia.com/filestore/o0xhzt5tx5x3p7tr3crgqx0swdej_shutterstock_439625365.jpg?w=400&h=300",
+      "https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&q=85&w=1200",
     isPopular: false,
     description:
       "Marvel at the giant three-headed elephant statue housing a fascinating museum of antiquities.",
@@ -2550,7 +2550,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 6100,
     price: 25.0,
     imageUrl:
-      "https://ik.imagekit.io/travalot/development/resources/attachments/2025/7/21/36431010-7e55-11f0-bffc-6921f123467e.png?tr=w-1260,h-800",
+      "https://images.unsplash.com/photo-1513889961551-628c1e5e2ee9?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
     description:
       "Enjoy a fun-filled day at one of Southeast Asia's largest theme and water parks.",
@@ -2575,7 +2575,7 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     reviewsCount: 2900,
     price: 26.0,
     imageUrl:
-      "https://ik.imagekit.io/travalot/development/resources/attachments/2025/8/12/d5968dd0-8fbd-11f0-a466-ab60b3329400.jpg?tr=w-1600,h-1067,c-at_max:f-webp:q-85",
+      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=85&w=1200",
     isPopular: false,
     description:
       "Discover the wonders of the ocean at the largest aquarium in Thailand.",

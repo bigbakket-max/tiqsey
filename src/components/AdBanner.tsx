@@ -99,8 +99,8 @@ export default function AdBanner({ onSelectDestination, onNavigate }: AdBannerPr
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-5 sm:mb-6 gap-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-[#ff0018] font-bold text-xs mb-1.5 uppercase tracking-wider border border-red-500/20">
-              <Sparkles className="w-3 h-3 text-[#ff0018]" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-[#e3000f] font-bold text-xs mb-1.5 uppercase tracking-wider border border-red-500/20">
+              <Sparkles className="w-3 h-3 text-[#e3000f]" />
               <span>{t('exclusiveOffersDeals', 'Exclusive Offers & Best Deals')}</span>
             </div>
             
@@ -159,7 +159,7 @@ export default function AdBanner({ onSelectDestination, onNavigate }: AdBannerPr
                   el?.scrollIntoView({ behavior: 'smooth' });
                 }
               }}
-              className="inline-flex items-center gap-1 text-xs font-bold text-[#ff0018] hover:text-[#e00015] transition-colors group cursor-pointer"
+              className="inline-flex items-center gap-1 text-xs font-bold text-[#e3000f] hover:text-[#e00015] transition-colors group cursor-pointer"
             >
               <span>{t('viewAllOffers', 'View all deals')}</span>
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
