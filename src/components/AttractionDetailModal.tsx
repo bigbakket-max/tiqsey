@@ -1529,42 +1529,9 @@ export default function AttractionDetailModal({
       </div>
 
       {!bookingSuccess && !bookingFormStep && (
-        <>
-          {/* Prominent Attraction Title & Metadata Header - Above Gallery */}
-          <div id="booking-title-section" className="max-w-7xl mx-auto px-4 md:px-6 pt-3 pb-3">
-            <div className="space-y-2">
-              <h1 className="text-2xl sm:text-3.5xl lg:text-[34px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
-                {attraction.name}
-              </h1>
-
-              {/* Location & Product ID & Rating Line */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-400 font-semibold">
-                <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                  <MapPin className="w-3.5 h-3.5 text-[#e3000f] shrink-0" />
-                  <span>{attraction.location || `${attraction.city}, ${attraction.region || 'Europe'}`}</span>
-                </span>
-                <span className="text-slate-300 dark:text-slate-700 font-normal">|</span>
-                <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-mono">
-                  <Ticket className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span>Product ID: {getDisplayProductId(attraction)}</span>
-                </span>
-                <span className="text-slate-300 dark:text-slate-700 font-normal">|</span>
-                <div className="flex items-center gap-1.5">
-                  <Star className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />
-                  <span className="font-extrabold text-slate-900 dark:text-white text-sm">
-                    {attraction.id === 'ams-canal' ? '4.3' : averageRating}
-                  </span>
-                  <span className="text-slate-500 dark:text-slate-400 font-medium">
-                    ({(attraction.reviewsCount || 1245).toLocaleString()} Reviews)
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <div id="gallery-hero-section" className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-4 pb-2 sm:pb-4 select-none">
           {/* 5-Photo Mosaic Gallery Grid matching reference layout */}
-          <div id="gallery-hero-section" className="w-full max-w-7xl mx-auto px-4 md:px-6 pb-4 select-none">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3.5 h-[280px] sm:h-[360px] md:h-[400px] lg:h-[430px] max-h-[430px] overflow-hidden rounded-2xl">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3.5 h-[280px] sm:h-[360px] md:h-[400px] lg:h-[430px] max-h-[430px] overflow-hidden rounded-2xl">
               
               {/* COLUMN 1: Large Main Photo (Left, 7 cols on lg+) */}
               <div 
@@ -1728,8 +1695,7 @@ export default function AttractionDetailModal({
 
             </div>
           </div>
-        </>
-      )}
+        )}
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 lg:py-6">
         {!bookingSuccess ? (
@@ -2553,9 +2519,39 @@ export default function AttractionDetailModal({
               
               {/* LEFT COLUMN: Details, alert, accordion lists (8 columns) */}
               <div className="lg:col-span-8 space-y-6">
-            
-            {/* Highlights Panel matching reference image */}
-            <div id="highlights-section" className="space-y-3 pt-1">
+                
+                {/* Title & Metadata Header - Below the images */}
+                <div id="booking-title-section" className="space-y-2 mb-6">
+                  <h1 className="text-2xl sm:text-3.5xl lg:text-[34px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+                    {attraction.name}
+                  </h1>
+
+                  {/* Location & Product ID line */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-600 dark:text-slate-400 font-semibold">
+                    <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                      <MapPin className="w-3.5 h-3.5 text-[#e3000f] shrink-0" />
+                      <span>{attraction.location || `${attraction.city}, ${attraction.region || 'Europe'}`}</span>
+                    </span>
+                    <span className="text-slate-300 dark:text-slate-700 font-normal">|</span>
+                    <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-mono">
+                      <Ticket className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span>Product ID: {getDisplayProductId(attraction)}</span>
+                    </span>
+                    <span className="text-slate-300 dark:text-slate-700 font-normal">|</span>
+                    <div className="flex items-center gap-1.5">
+                      <Star className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />
+                      <span className="font-extrabold text-slate-900 dark:text-white text-sm">
+                        {attraction.id === 'ams-canal' ? '4.3' : averageRating}
+                      </span>
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">
+                        ({(attraction.reviewsCount || 1245).toLocaleString()} Reviews)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Highlights Panel matching reference image */}
+                <div id="highlights-section" className="space-y-3 pt-1">
               <div className="flex items-center gap-2 select-none">
                 <div className="w-1.5 h-5 bg-[#e3000f] rounded-xs shrink-0" />
                 <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
