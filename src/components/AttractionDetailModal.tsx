@@ -2721,6 +2721,13 @@ export default function AttractionDetailModal({
                           </span>
                         </div>
 
+                        {/* Dual Currency Parity Note */}
+                        {currency.code !== 'EUR' && (
+                          <div className="text-[10.5px] text-slate-400 dark:text-slate-500 font-medium tracking-tight">
+                            <span>Base: €{(pricePerItem || attraction.price).toFixed(2)} · Live ECB rate</span>
+                          </div>
+                        )}
+
                         {/* Line 3: Discount % Off badge */}
                         {discountPercent > 0 && (
                           <div className="pt-1">

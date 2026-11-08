@@ -31,6 +31,8 @@ import AboutPage from "./components/AboutPage";
 import PrivacyPolicyPage from "./components/PrivacyPolicyPage";
 import CookiePolicyPage from "./components/CookiePolicyPage";
 import TermsAndConditionsPage from "./components/TermsAndConditionsPage";
+import LanguageDetectionBanner from "./components/LanguageDetectionBanner";
+import CurrencyDetectionToast from "./components/CurrencyDetectionToast";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -577,6 +579,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen max-w-full overflow-x-clip bg-[#f0f4f8] dark:bg-slate-950 font-sans selection:bg-brand/10 selection:text-brand transition-colors duration-300">
+        <LanguageDetectionBanner />
         <Header
           activePage={currentPage}
           activeDestination={selectedDestination}
@@ -597,6 +600,7 @@ export default function App() {
           }}
           onSearch={handleGlobalSearch}
         />
+        <CurrencyDetectionToast />
         {mainContent()}
         <Footer
           onExplore={() => {

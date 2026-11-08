@@ -164,12 +164,26 @@ export interface Destination {
   imageUrl: string;
 }
 
+export type WorldRegion = 'popular' | 'europe' | 'americas' | 'asia_pacific' | 'middle_east_africa';
+
 export type Currency = {
   code: string;
   name: string;
   symbol: string;
   rate: number; // Rate relative to EUR (base)
+  region?: WorldRegion;
 };
+
+export interface DualPrice {
+  convertedAmount: number;
+  formattedConverted: string;
+  baseAmount: number;
+  formattedBase: string;
+  rate: number;
+  currencyCode: string;
+  baseCurrencyCode: string;
+  isForeignCurrency: boolean;
+}
 
 export type Language = {
   code: string;

@@ -11,6 +11,9 @@ import { ro } from './ro';
 import { ar } from './ar';
 import { ja } from './ja';
 import { th } from './th';
+import { hi } from './hi';
+import { ko } from './ko';
+import { pt } from './pt';
 
 export const allTranslations: Record<string, Record<string, string>> = {
   en,
@@ -26,6 +29,9 @@ export const allTranslations: Record<string, Record<string, string>> = {
   ar,
   ja,
   th,
+  hi,
+  ko,
+  pt,
 };
 
 // Category mapping helper

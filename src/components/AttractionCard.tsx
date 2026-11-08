@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
-  const { formatPrice } = useSettings();
+  const { formatPrice, getDualPrice } = useSettings();
   const { toggleWishlist, isWishlisted } = useWishlist();
   const [imgSrc, setImgSrc] = React.useState(attr.imageUrl);
   const isSm = size === 'sm';
@@ -155,11 +155,41 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
                   <span className="text-sm sm:text-base font-black text-[#e3000f] dark:text-red-400 leading-none">
                     {formatPrice(attr.discountPrice, attr.currency)}
                   </span>
+                  {(() => {
+                    const dual = getDualPrice(attr.discountPrice, attr.currency);
+                    if (dual.isForeignCurrency) {
+                      return (
+                        <span
+                          className="text-[9.5px] text-slate-400 dark:text-slate-500 font-medium tracking-tight mt-0.5"
+                          title={`Base rate: ${dual.formattedBase}`}
+                        >
+                          (~{dual.formattedBase})
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               ) : (
-                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 leading-none">
-                  {formatPrice(attr.price, attr.currency)}
-                </span>
+                <div className="flex flex-col items-end gap-0.5 select-none">
+                  <span className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 leading-none">
+                    {formatPrice(attr.price, attr.currency)}
+                  </span>
+                  {(() => {
+                    const dual = getDualPrice(attr.price, attr.currency);
+                    if (dual.isForeignCurrency) {
+                      return (
+                        <span
+                          className="text-[9.5px] text-slate-400 dark:text-slate-500 font-medium tracking-tight mt-0.5"
+                          title={`Base rate: ${dual.formattedBase}`}
+                        >
+                          (~{dual.formattedBase})
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
               )}
             </div>
           )}

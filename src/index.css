@@ -69,6 +69,18 @@ html, body {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  [dir="rtl"] .rtl-flip {
+    transform: scaleX(-1);
+  }
+}
+
+[dir="rtl"] {
+  font-family:
+    "Plus Jakarta Sans",
+    "Segoe UI",
+    Tahoma,
+    Arial,
+    sans-serif;
 }
 
 ::selection {

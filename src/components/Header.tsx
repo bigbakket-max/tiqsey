@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   User,
   X,
@@ -18,11 +18,15 @@ import {
   BookOpen,
   ShieldCheck,
   ChevronRight,
+  Check,
+  Globe,
+  Coins,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { useSettings } from "../contexts/SettingsContext";
+import { useSettings, CURRENCIES } from "../contexts/SettingsContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useWishlist } from "../contexts/WishlistContext";
+import { Currency, Language } from "../types";
 import SettingsModal from "./SettingsModal";
 import SearchBar from "./SearchBar";
 import { POPULAR_ATTRACTIONS } from "../data/mockData";
@@ -187,10 +191,27 @@ export default function Header({
   const [mobileDestinationsOpen, setMobileDestinationsOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [settingsDefaultTab, setSettingsDefaultTab] = useState<'language' | 'currency'>('language');
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const [currDropdownOpen, setCurrDropdownOpen] = useState(false);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
+  const currDropdownRef = useRef<HTMLDivElement>(null);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  const { currency, t, language } = useSettings();
+  const { currency, t, language, setCurrency, setLanguage, languages } = useSettings();
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (langDropdownRef.current && !langDropdownRef.current.contains(e.target as Node)) {
+        setLangDropdownOpen(false);
+      }
+      if (currDropdownRef.current && !currDropdownRef.current.contains(e.target as Node)) {
+        setCurrDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const [scrolled, setScrolled] = useState(false);
   const pageName = activePage as
@@ -461,63 +482,226 @@ export default function Header({
                 <span className="font-semibold text-slate-700 dark:text-slate-200 text-xs whitespace-nowrap">My Favourite</span>
               </motion.button>
 
-              {/* Language Trigger */}
-              <button
-                onClick={() => {
-                  setSettingsDefaultTab('language');
-                  setSettingsModalOpen(true);
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 select-none cursor-pointer shrink-0 font-sans"
-                title={`${language.nativeName} (${language.code.toUpperCase()})`}
-                id="header-language-button"
-              >
-                <div className="flex items-center gap-1.5">
-                  <div className="w-5 h-3.5 select-none shrink-0 border border-slate-150 dark:border-slate-850 rounded-[2px] overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-                    <SafeFlag
-                      src={`https://flagcdn.com/w40/${language.countryCode}.png`}
-                      alt={language.name}
-                      fallbackEmoji={language.flag}
-                      className="w-full h-full object-cover"
-                    />
+              {/* Language Trigger & Quick Dropdown */}
+              <div className="relative" ref={langDropdownRef}>
+                <button
+                  onClick={() => {
+                    setLangDropdownOpen(!langDropdownOpen);
+                    setCurrDropdownOpen(false);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-full bg-white dark:bg-slate-900 border transition-all active:scale-95 select-none cursor-pointer shrink-0 font-sans ${
+                    langDropdownOpen
+                      ? "border-[#e3000f] ring-2 ring-[#e3000f]/15"
+                      : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  }`}
+                  title={`${language.nativeName} (${language.code.toUpperCase()})`}
+                  id="header-language-button"
+                  aria-expanded={langDropdownOpen}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-3.5 select-none shrink-0 border border-slate-150 dark:border-slate-850 rounded-[2px] overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+                      <SafeFlag
+                        src={`https://flagcdn.com/w40/${language.countryCode}.png`}
+                        alt={language.name}
+                        fallbackEmoji={language.flag}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-tight">
+                      {language.code}
+                    </span>
                   </div>
-                  <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-tight">
-                    {language.code}
-                  </span>
-                </div>
-                <ChevronDown
-                  className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400"
-                  strokeWidth={2}
-                />
-              </button>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 transition-transform duration-200 ${
+                      langDropdownOpen ? "rotate-180 text-[#e3000f]" : ""
+                    }`}
+                    strokeWidth={2}
+                  />
+                </button>
 
-              {/* Currency Trigger */}
-              <button
-                onClick={() => {
-                  setSettingsDefaultTab('currency');
-                  setSettingsModalOpen(true);
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 select-none cursor-pointer shrink-0 font-sans"
-                title={`${currency.code.toUpperCase()} (${currency.symbol})`}
-                id="header-currency-button"
-              >
-                <div className="flex items-center gap-1.5">
-                  <div className="w-5 h-3.5 select-none shrink-0 border border-slate-150 dark:border-slate-850 rounded-[2px] overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-                    <SafeFlag
-                      src={`https://flagcdn.com/w40/${getCurrencyCountryCode(currency.code)}.png`}
-                      alt={`${currency.code} flag`}
-                      fallbackEmoji={getCurrencyFlag(currency.code)}
-                      className="w-full h-full object-cover"
-                    />
+                {/* Quick Language Dropdown Flyout */}
+                <AnimatePresence>
+                  {langDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 p-2 z-50 font-sans"
+                    >
+                      <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800/80 mb-1 flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          {t("language", "Language")}
+                        </span>
+                        <span className="text-[10px] text-slate-400">Quick switch</span>
+                      </div>
+                      <div className="max-h-60 overflow-y-auto space-y-0.5">
+                        {languages.slice(0, 8).map((l) => {
+                          const isSelected = l.code === language.code;
+                          return (
+                            <button
+                              key={`quick-lang-${l.code}`}
+                              onClick={() => {
+                                setLanguage(l);
+                                setLangDropdownOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-left ${
+                                isSelected
+                                  ? "bg-red-50 dark:bg-red-950/40 text-[#e3000f] font-bold"
+                                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="text-base select-none shrink-0" role="img" aria-label={l.name}>
+                                  {l.flag}
+                                </span>
+                                <div className="truncate">
+                                  <span className="block truncate">{l.nativeName}</span>
+                                  {l.nativeName !== l.name && (
+                                    <span className="text-[10px] text-slate-400 font-normal block truncate">
+                                      {l.name}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {isSelected && (
+                                <Check className="w-4 h-4 text-[#e3000f] shrink-0 ml-1.5" strokeWidth={2.5} />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800/80">
+                        <button
+                          onClick={() => {
+                            setSettingsDefaultTab("language");
+                            setSettingsModalOpen(true);
+                            setLangDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-center transition-colors cursor-pointer"
+                        >
+                          <Globe className="w-3.5 h-3.5 text-[#e3000f]" />
+                          <span>All {languages.length} Languages...</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Currency Trigger & Quick Dropdown */}
+              <div className="relative" ref={currDropdownRef}>
+                <button
+                  onClick={() => {
+                    setCurrDropdownOpen(!currDropdownOpen);
+                    setLangDropdownOpen(false);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-full bg-white dark:bg-slate-900 border transition-all active:scale-95 select-none cursor-pointer shrink-0 font-sans ${
+                    currDropdownOpen
+                      ? "border-[#e3000f] ring-2 ring-[#e3000f]/15"
+                      : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  }`}
+                  title={`${currency.code.toUpperCase()} (${currency.symbol})`}
+                  id="header-currency-button"
+                  aria-expanded={currDropdownOpen}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-3.5 select-none shrink-0 border border-slate-150 dark:border-slate-850 rounded-[2px] overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+                      <SafeFlag
+                        src={`https://flagcdn.com/w40/${getCurrencyCountryCode(currency.code)}.png`}
+                        alt={`${currency.code} flag`}
+                        fallbackEmoji={getCurrencyFlag(currency.code)}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 tracking-tight pr-0.5">
+                      {currency.code}
+                    </span>
                   </div>
-                  <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 tracking-tight pr-0.5">
-                    {currency.code}
-                  </span>
-                </div>
-                <ChevronDown
-                  className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400"
-                  strokeWidth={2}
-                />
-              </button>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 transition-transform duration-200 ${
+                      currDropdownOpen ? "rotate-180 text-[#e3000f]" : ""
+                    }`}
+                    strokeWidth={2}
+                  />
+                </button>
+
+                {/* Quick Currency Dropdown Flyout */}
+                <AnimatePresence>
+                  {currDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-68 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 p-2 z-50 font-sans"
+                    >
+                      <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800/80 mb-1 flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          {t("currency", "Currency")}
+                        </span>
+                        <span className="text-[10px] text-slate-400">Popular</span>
+                      </div>
+                      <div className="max-h-60 overflow-y-auto space-y-0.5">
+                        {["EUR", "USD", "GBP", "INR", "AED", "SGD", "JPY", "AUD"]
+                          .map((code) => CURRENCIES.find((c) => c.code === code))
+                          .filter((c): c is Currency => !!c)
+                          .map((c) => {
+                            const isSelected = c.code === currency.code;
+                            const flag = getCurrencyFlag(c.code);
+                            return (
+                              <button
+                                key={`quick-curr-${c.code}`}
+                                onClick={() => {
+                                  setCurrency(c);
+                                  setCurrDropdownOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-left ${
+                                  isSelected
+                                    ? "bg-red-50 dark:bg-red-950/40 text-[#e3000f] font-bold"
+                                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <span className="text-base select-none shrink-0" role="img" aria-label={c.code}>
+                                    {flag}
+                                  </span>
+                                  <div className="truncate">
+                                    <span className="font-bold text-slate-900 dark:text-white mr-1.5">
+                                      {c.code}
+                                    </span>
+                                    <span className="text-slate-500 dark:text-slate-400">
+                                      ({c.symbol})
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-normal block truncate">
+                                      {c.name}
+                                    </span>
+                                  </div>
+                                </div>
+                                {isSelected && (
+                                  <Check className="w-4 h-4 text-[#e3000f] shrink-0 ml-1.5" strokeWidth={2.5} />
+                                )}
+                              </button>
+                            );
+                          })}
+                      </div>
+                      <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800/80">
+                        <button
+                          onClick={() => {
+                            setSettingsDefaultTab("currency");
+                            setSettingsModalOpen(true);
+                            setCurrDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-center transition-colors cursor-pointer"
+                        >
+                          <Coins className="w-3.5 h-3.5 text-[#e3000f]" />
+                          <span>All {CURRENCIES.length} Currencies & Regions...</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               {user ? (
                 <div className="relative">
