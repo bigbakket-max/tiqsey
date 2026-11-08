@@ -475,7 +475,20 @@ export default function TrustBar() {
           {/* Left-Aligned Title */}
           <div className="text-left w-full">
             <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              <span>{t('whyBook')} <span className="text-brand">Tiqsey</span>?</span>
+              {(() => {
+                const text = t('whyBook', 'Why book with Tiqsey?');
+                if (text.includes('Tiqsey')) {
+                  const parts = text.split('Tiqsey');
+                  return (
+                    <span>
+                      {parts[0]}
+                      <span className="text-brand">Tiqsey</span>
+                      {parts.slice(1).join('Tiqsey')}
+                    </span>
+                  );
+                }
+                return <span>{text}</span>;
+              })()}
             </h2>
           </div>
 

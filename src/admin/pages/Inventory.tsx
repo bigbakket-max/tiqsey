@@ -1111,23 +1111,65 @@ export default function Inventory() {
     setNewUrlInput("");
   };
 
-  const handleGalleryFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const [isGalleryDragging, setIsGalleryDragging] = useState(false);
+  const [draggedGalleryIndex, setDraggedGalleryIndex] = useState<number | null>(null);
+  const [showGalleryUrlInput, setShowGalleryUrlInput] = useState(false);
+
+  const handleMultipleGalleryFiles = async (files: FileList | File[]) => {
+    const fileList = Array.from(files);
+    if (fileList.length === 0) return;
 
     try {
       showLoader();
-      const uploadedUrl = await uploadAndOptimizeImage(file);
-      if (uploadedUrl) {
-        setGalleryUrls((prev) => [uploadedUrl, ...prev.filter((u) => u !== uploadedUrl)]);
-        setImageUrl(uploadedUrl);
+      const uploadPromises = fileList.map((f) => uploadAndOptimizeImage(f));
+      const uploadedUrls = await Promise.all(uploadPromises);
+      const valid = uploadedUrls.filter((u): u is string => Boolean(u));
+      if (valid.length > 0) {
+        setGalleryUrls((prev) => [...valid, ...prev.filter((u) => !valid.includes(u))]);
+        if (!imageUrl || imageUrl.trim() === "") {
+          setImageUrl(valid[0]);
+        }
       }
     } catch (err) {
-      console.error("Error uploading image in inventory:", err);
+      console.error("Error uploading images in inventory:", err);
     } finally {
       hideLoader();
+    }
+  };
+
+  const handleGalleryFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      await handleMultipleGalleryFiles(e.target.files);
       e.target.value = "";
     }
+  };
+
+  const handleGalleryDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsGalleryDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await handleMultipleGalleryFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleCardDragStart = (index: number) => {
+    setDraggedGalleryIndex(index);
+  };
+
+  const handleCardDragOver = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedGalleryIndex === null || draggedGalleryIndex === targetIndex) return;
+    setGalleryUrls((prev) => {
+      const copy = [...prev];
+      const movedItem = copy.splice(draggedGalleryIndex, 1)[0];
+      copy.splice(targetIndex, 0, movedItem);
+      return copy;
+    });
+    setDraggedGalleryIndex(targetIndex);
+  };
+
+  const handleCardDragEnd = () => {
+    setDraggedGalleryIndex(null);
   };
 
   const moveLeft = (index: number) => {
@@ -5363,198 +5405,225 @@ export default function Inventory() {
                     <div className="space-y-6 animate-in fade-in duration-300">
                       
                       {/* PRODUCT GALLERY CARD */}
-                      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-                        <div className="px-4 py-3 bg-slate-50 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                            <Image className="w-4 h-4 text-[#5fa6d9]" />
-                            Product Gallery
-                          </h3>
-                        </div>
+                      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xs">
+                        <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-6">
+                          Product Gallery
+                        </h3>
                         
-                        <div className="p-6">
-                          <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-8 flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-950/20 hover:bg-slate-50 dark:hover:bg-slate-950/40 transition-colors">
-                            <div className="w-12 h-12 rounded-full bg-[#5fa6d9]/10 flex items-center justify-center mb-3">
-                              <Image className="w-6 h-6 text-[#5fa6d9]" />
-                            </div>
-                            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                              Add Media for this product
-                            </h4>
-                            <p className="text-xs text-slate-400 mt-1 mb-4">
-                              Upload images from your device or add via URL
-                            </p>
-                            
-                            <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-lg">
-                              <label className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-md text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors bg-white dark:bg-slate-900 shrink-0">
-                                <Upload className="w-4 h-4 text-[#5fa6d9]" />
-                                <span>Upload Media</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleGalleryFileChange}
-                                  className="hidden"
-                                />
-                              </label>
+                        {/* Drag & Drop Area */}
+                        <div
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            setIsGalleryDragging(true);
+                          }}
+                          onDragLeave={() => setIsGalleryDragging(false)}
+                          onDrop={handleGalleryDrop}
+                          className={`rounded-2xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-200 ${
+                            isGalleryDragging
+                              ? "bg-sky-50 dark:bg-sky-950/30 border-2 border-dashed border-sky-400"
+                              : "bg-slate-50/50 dark:bg-slate-950/20 hover:bg-slate-50 dark:hover:bg-slate-950/40"
+                          }`}
+                        >
+                          {/* Overlapping Photos Icon */}
+                          <div className="mb-3 text-slate-700 dark:text-slate-300">
+                            <svg className="w-9 h-9 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                              <rect width="13" height="13" x="8" y="8" rx="2" />
+                              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                              <circle cx="12.5" cy="12.5" r="1" />
+                              <path d="m20 18-3.5-3.5a1 1 0 0 0-1.4 0L9 20" />
+                            </svg>
+                          </div>
 
-                              <div className="flex w-full items-center gap-2">
+                          <h4 className="text-base font-semibold text-slate-900 dark:text-white mb-1">
+                            Drag & Drop Images Here
+                          </h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
+                            Upload JPG, PNG, WEBP · Maximum 10 MB per image
+                          </p>
+
+                          <div className="flex flex-col items-center gap-2">
+                            <label className="inline-flex items-center justify-center px-6 py-2 rounded-full text-xs font-semibold bg-[#e0f2fe] text-[#0284c7] hover:bg-[#bae6fd] dark:bg-sky-950/50 dark:text-sky-400 dark:hover:bg-sky-900/60 cursor-pointer transition-colors shadow-2xs">
+                              <span>Upload Media</span>
+                              <input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                onChange={handleGalleryFileChange}
+                                className="hidden"
+                              />
+                            </label>
+
+                            <button
+                              type="button"
+                              onClick={() => setShowGalleryUrlInput(!showGalleryUrlInput)}
+                              className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors mt-1 underline cursor-pointer"
+                            >
+                              {showGalleryUrlInput ? "Hide URL input" : "Or paste image link"}
+                            </button>
+
+                            {showGalleryUrlInput && (
+                              <div className="flex items-center gap-2 mt-2 w-full max-w-md">
                                 <input
                                   type="text"
                                   value={newUrlInput}
                                   onChange={(e) => setNewUrlInput(e.target.value)}
-                                  placeholder="Or paste direct image URL..."
+                                  placeholder="https://example.com/image.jpg"
                                   onKeyDown={(e) => {
                                     if (e.key === "Enter") {
                                       e.preventDefault();
                                       handleAddUrlToGallery();
                                     }
                                   }}
-                                  className="flex-1 min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-2.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-[#5fa6d9]"
+                                  className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-sky-500"
                                 />
                                 <button
                                   type="button"
                                   onClick={handleAddUrlToGallery}
-                                  className="px-3 py-2.5 bg-[#5fa6d9] hover:bg-[#4b8fb8] text-white rounded-md text-xs font-bold transition-colors shrink-0"
+                                  className="px-3 py-1.5 bg-[#0284c7] hover:bg-[#0369a1] text-white rounded-lg text-xs font-semibold transition-colors"
                                 >
                                   Add
                                 </button>
                               </div>
-                            </div>
-
-
-
+                            )}
                           </div>
                         </div>
-                      </div>
 
-                      {/* HORIZONTAL SEPARATOR */}
-                      <hr className="border-slate-200 dark:border-slate-800 my-4" />
-
-                      {/* GALLERY ITEMS ROW & HEADER */}
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between pb-1">
-                          <div className="flex flex-col">
-                            <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                              Media for this Product
-                            </h3>
-                            <p className="text-[11px] text-slate-400">
-                              Manage order, set the primary cover image, or delete items
-                            </p>
-                          </div>
-                          
-                          <button
-                            type="button"
-                            onClick={() => setIsReordering(!isReordering)}
-                            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors border flex items-center gap-1.5 ${
-                              isReordering 
-                                ? "bg-amber-500/10 border-amber-500 text-amber-500 hover:bg-amber-500/20" 
-                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                            }`}
-                          >
-                            <ArrowUpDown className="w-3.5 h-3.5" />
-                            <span>{isReordering ? "Exit Reorder Mode" : "Reorder Media"}</span>
-                          </button>
+                        {/* Product Images Header */}
+                        <div className="flex items-center justify-between mt-8 mb-5">
+                          <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                            Product Images ({galleryUrls.length})
+                          </h3>
+                          <span className="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-[#eafaf1] text-[#1e824c] border border-[#c3edd7] dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60">
+                            1 Cover Image
+                          </span>
                         </div>
 
                         {galleryUrls.length === 0 ? (
-                          <div className="border border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center bg-slate-50/20 dark:bg-slate-950/5">
+                          <div className="border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center bg-slate-50/20 dark:bg-slate-950/5">
                             <Image className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
                             <p className="text-xs text-slate-500 font-medium">No media uploaded yet for this product.</p>
-                            <p className="text-[10px] text-slate-400 mt-1">Upload a photo above to populate the product showcase.</p>
+                            <p className="text-[11px] text-slate-400 mt-1">Upload photos using the area above.</p>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                             {galleryUrls.map((url, index) => {
-                              const isCover = url === imageUrl;
+                              const isCover = (url === imageUrl) || (!imageUrl && index === 0);
                               return (
-                                <div 
+                                <div
                                   key={`${url}-${index}`}
-                                  className={`relative group bg-white dark:bg-slate-900 rounded-xl border overflow-hidden shadow-sm hover:shadow transition-all duration-200 ${
-                                    isCover ? "border-[#5fa6d9] ring-1 ring-[#5fa6d9]/40" : "border-slate-200 dark:border-slate-800"
+                                  draggable
+                                  onDragStart={() => handleCardDragStart(index)}
+                                  onDragOver={(e) => handleCardDragOver(e, index)}
+                                  onDragEnd={handleCardDragEnd}
+                                  className={`space-y-2.5 group transition-all duration-200 ${
+                                    draggedGalleryIndex === index ? "opacity-50 scale-98" : ""
                                   }`}
                                 >
-                                  {/* Aspect ratio frame */}
-                                  <div className="relative aspect-video w-full bg-slate-100 dark:bg-slate-950 overflow-hidden">
-                                    <img 
-                                      src={url} 
-                                      alt={`Gallery visual ${index + 1}`} 
-                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  {/* Aspect Ratio 4:3 Image Container with Rounded Corners */}
+                                  <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-2xs border border-slate-200/70 dark:border-slate-800 cursor-grab active:cursor-grabbing">
+                                    <img
+                                      src={url}
+                                      alt={`Product image ${index + 1}`}
+                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-102 select-none"
                                       referrerPolicy="no-referrer"
                                     />
-                                    {isCover && (
-                                      <div className="absolute top-2 left-2 px-2 py-0.5 bg-[#5fa6d9] text-white text-[9px] font-black uppercase tracking-wider rounded shadow-sm">
-                                        Cover Image
-                                      </div>
-                                    )}
-                                    <div className="absolute top-2 right-2 flex gap-1">
+                                    
+                                    {/* Action overlay on hover */}
+                                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <button
                                         type="button"
                                         onClick={() => deleteGalleryItem(index)}
-                                        className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded shadow transition-colors"
+                                        className="p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-full backdrop-blur-xs transition-colors cursor-pointer"
                                         title="Delete image"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
                                       </button>
                                     </div>
-                                    
-                                    {/* Position Index Badge */}
-                                    <div className="absolute bottom-2 left-2 px-1.5 py-0.5 bg-black/60 text-white text-[9px] font-mono rounded">
-                                      #{index + 1}
-                                    </div>
                                   </div>
 
-                                  {/* Footer with action bar / layout controls */}
-                                  <div className="p-3 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => setImageUrl(url)}
-                                      className={`px-2 py-1 rounded text-[10px] font-bold transition-all flex items-center gap-1 ${
-                                        isCover 
-                                          ? "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20"
-                                          : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
-                                      }`}
-                                    >
-                                      {isCover ? <Check className="w-3 h-3" /> : null}
-                                      <span>{isCover ? "Active Cover" : "Make Cover"}</span>
-                                    </button>
-
-                                    {/* Navigation arrows for shifting/sorting */}
-                                    <div className="flex items-center gap-1">
+                                  {/* Caption Row Beneath Image */}
+                                  {isCover ? (
+                                    <div className="pt-0.5">
+                                      <span className="inline-flex items-center px-3.5 py-0.5 rounded-full text-xs font-semibold bg-[#eafaf1] text-[#1e824c] border border-[#c3edd7] dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60">
+                                        Cover Image
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-between pt-0.5 px-0.5">
+                                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                                        Image {String(index + 1).padStart(2, "0")}
+                                      </span>
                                       <button
                                         type="button"
-                                        disabled={index === 0}
-                                        onClick={() => moveLeft(index)}
-                                        className="p-1 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                                        title="Move left"
+                                        onClick={() => setImageUrl(url)}
+                                        className="text-xs text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 font-medium hover:underline cursor-pointer"
                                       >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
-                                        </svg>
-                                      </button>
-                                      <button
-                                        type="button"
-                                        disabled={index === galleryUrls.length - 1}
-                                        onClick={() => moveRight(index)}
-                                        className="p-1 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                                        title="Move right"
-                                      >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-                                        </svg>
+                                        Set as cover
                                       </button>
                                     </div>
-                                  </div>
+                                  )}
 
+                                  {/* Shift controls when reordering expanded */}
+                                  {isReordering && (
+                                    <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800">
+                                      <span>Move:</span>
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          type="button"
+                                          disabled={index === 0}
+                                          onClick={() => moveLeft(index)}
+                                          className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 disabled:opacity-30 disabled:pointer-events-none"
+                                        >
+                                          ←
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={index === galleryUrls.length - 1}
+                                          onClick={() => moveRight(index)}
+                                          className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 disabled:opacity-30 disabled:pointer-events-none"
+                                        >
+                                          →
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
                           </div>
                         )}
+
+                        {/* Bottom reorder helper bar */}
+                        <div className="flex items-center justify-between pt-6 mt-4 border-t border-slate-100 dark:border-slate-800">
+                          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                            Drag images to reorder. Set any image as the cover image...
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setIsReordering(!isReordering)}
+                            className="w-8 h-8 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-2xs shrink-0 cursor-pointer"
+                            title="Toggle order nudgers"
+                          >
+                            <svg
+                              className={`w-4 h-4 transition-transform duration-200 ${isReordering ? "rotate-180" : ""}`}
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M12 5v14M19 12l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
 
                       {/* Tab Save Button */}
-                      <div className="flex justify-end pt-4 mt-6 border-t border-slate-100 dark:border-slate-800/50">
+                      <div className="flex justify-end pt-2">
                         <button
                           type="submit"
-                          className="flex items-center gap-1.5 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white px-4 py-2 rounded-md font-bold transition-colors shadow-sm text-xs cursor-pointer"
+                          className="flex items-center gap-1.5 bg-[#e3000f] hover:bg-[#c9000d] text-white px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm text-xs cursor-pointer"
                         >
                           <Save className="w-3.5 h-3.5" />
                           Save Changes
