@@ -304,6 +304,106 @@ function VaultBuddyCharacter() {
   );
 }
 
+// Character 4: Cute Sky Blue Ball Support Agent with headset, microphone, and 24/7 chat bubble
+function SupportBuddyCharacter() {
+  return (
+    <motion.div 
+      className="relative w-11 h-11 flex items-center justify-center shrink-0 select-none cursor-pointer"
+      whileHover={{ 
+        y: -2.5,
+        rotate: -1.5,
+        transition: { duration: 0.25 }
+      }}
+    >
+      <div className="absolute inset-0 bg-sky-500/20 blur-md rounded-full" />
+      <svg viewBox="0 0 100 100" className="w-9.5 h-9.5 drop-shadow-md z-10 overflow-visible">
+        <defs>
+          <radialGradient id="skyBallGrad" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stopColor="#38bdf8" />
+            <stop offset="60%" stopColor="#0284c7" />
+            <stop offset="100%" stopColor="#0369a1" />
+          </radialGradient>
+          <linearGradient id="headsetBandGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#64748b" />
+            <stop offset="50%" stopColor="#334155" />
+            <stop offset="100%" stopColor="#1e293b" />
+          </linearGradient>
+        </defs>
+
+        {/* 1. Chat bubble floating on top-left with 24/7 */}
+        <g id="chat-bubble" transform="translate(4, 9)">
+          <path 
+            d="M 3,2 C 18,2 24,2 24,12 C 24,20 18,21 11,21 L 5,26 L 6,21 C 1,20 1,14 1,10 C 1,4 2,2 3,2 Z" 
+            fill="#ffffff" 
+            stroke="#cbd5e1" 
+            strokeWidth="1.2" 
+          />
+          <text x="12.5" y="14" textAnchor="middle" fill="#0284c7" fontSize="7.5" fontWeight="900" fontFamily="sans-serif">24/7</text>
+        </g>
+
+        {/* 2. Limbs - standing cheerfully */}
+        <g stroke="#4b5563" strokeWidth="4.5" strokeLinecap="round" fill="none">
+          <path d="M 43,62 L 40,82 L 34,84" />
+          <path d="M 57,62 L 60,82 L 66,84" />
+        </g>
+
+        {/* 3. Sky Blue Body Sphere */}
+        <circle cx="50" cy="42" r="21" fill="url(#skyBallGrad)" stroke="#0284c7" strokeWidth="1.5" />
+
+        {/* 4. Left Arm holding friendly thumbs-up or help pad */}
+        <g stroke="#4b5563" strokeWidth="4.5" strokeLinecap="round" fill="none">
+          <path d="M 31,44 C 24,49 26,59 34,58" />
+        </g>
+
+        {/* 5. Right Arm - welcoming waving pose */}
+        <motion.path 
+          d="M 69,44 C 77,41 83,31 80,24" 
+          fill="none" 
+          stroke="#4b5563" 
+          strokeWidth="4.5" 
+          strokeLinecap="round"
+          style={{ originX: '69px', originY: '44px' }}
+        />
+
+        {/* 6. Headset Over Head */}
+        <g id="headset">
+          {/* Headband arching over top */}
+          <path d="M 29,40 C 27,18 73,18 71,40" fill="none" stroke="url(#headsetBandGrad)" strokeWidth="3.2" strokeLinecap="round" />
+          {/* Left Earpad */}
+          <rect x="25.5" y="34" width="6" height="12" rx="3" fill="#1e293b" stroke="#0f172a" strokeWidth="1" />
+          <ellipse cx="28.5" cy="40" rx="1.5" ry="3.5" fill="#38bdf8" />
+          {/* Right Earpad */}
+          <rect x="68.5" y="34" width="6" height="12" rx="3" fill="#1e293b" stroke="#0f172a" strokeWidth="1" />
+          <ellipse cx="71.5" cy="40" rx="1.5" ry="3.5" fill="#38bdf8" />
+          {/* Microphone boom extending to mouth */}
+          <path d="M 28,42 Q 33,56 46,54" fill="none" stroke="#1e293b" strokeWidth="1.8" strokeLinecap="round" />
+          <rect x="45" y="52" width="4.5" height="4.5" rx="2" fill="#e11d48" stroke="#9f1239" strokeWidth="0.8" />
+        </g>
+
+        {/* 7. Cute Expressive Face */}
+        <g id="support-face">
+          <circle cx="43" cy="39" r="4.2" fill="white" stroke="#0369a1" strokeWidth="0.8" />
+          <circle cx="57" cy="39" r="4.2" fill="white" stroke="#0369a1" strokeWidth="0.8" />
+          
+          <circle cx="44.5" cy="39" r="2.2" fill="#111827" />
+          <circle cx="58.5" cy="39" r="2.2" fill="#111827" />
+
+          {/* Catchlight sparkle in eyes */}
+          <circle cx="45.5" cy="38" r="0.8" fill="white" />
+          <circle cx="59.5" cy="38" r="0.8" fill="white" />
+
+          {/* Blushing cheeks */}
+          <circle cx="36" cy="44" r="2.5" fill="#f43f5e" opacity="0.4" />
+          <circle cx="64" cy="44" r="2.5" fill="#f43f5e" opacity="0.4" />
+
+          {/* Happy Open Smile */}
+          <path d="M 46,46 Q 50,51 54,46 Z" fill="#b91c1c" stroke="#991b1b" strokeWidth="0.8" />
+        </g>
+      </svg>
+    </motion.div>
+  );
+}
+
 export default function TrustBar() {
   const { t } = useSettings();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -312,16 +412,20 @@ export default function TrustBar() {
   const trustItems = [
     {
       isTrustpilot: true,
-      title: t('mobileTickets'),
-      subtitle: t('mobileTicketsSub'),
+      title: t('mobileTickets', 'Trusted by thousands'),
+      subtitle: t('mobileTicketsSub', 'Over 12M+ happy customers'),
     },
     {
-      title: t('unbeatableValue'),
-      subtitle: t('unbeatableValueSub'),
+      title: t('unbeatableValue', 'Unbeatable Value'),
+      subtitle: t('unbeatableValueSub', 'Price guarantee'),
     },
     {
-      title: t('securePayments'),
-      subtitle: t('securePaymentsSub'),
+      title: t('securePayments', 'Secure Payments'),
+      subtitle: t('securePaymentsSub', '100% Protection'),
+    },
+    {
+      title: t('support247', '24/7 Support'),
+      subtitle: t('support247Desc', 'Dedicated help anytime'),
     },
   ];
 
@@ -375,19 +479,21 @@ export default function TrustBar() {
             </h2>
           </div>
 
-          {/* Trust Items Columns (Slideable horizontally on mobile, Grid on desktop) */}
+          {/* 4 Trust Items Columns (Responsive 4-column layout on desktop, 2-col on tablet, slideable on mobile) */}
           <div 
             ref={scrollContainerRef}
             onScroll={handleScroll}
-            className="w-full flex md:grid md:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 snap-x snap-mandatory no-scrollbar scroll-smooth"
+            className="w-full flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 snap-x snap-mandatory no-scrollbar scroll-smooth"
           >
             {trustItems.map((item, index) => {
               const characterElement = index === 0 ? (
                 <StarTravelerCharacter />
               ) : index === 1 ? (
                 <SightseeingOwlCharacter />
-              ) : (
+              ) : index === 2 ? (
                 <VaultBuddyCharacter />
+              ) : (
+                <SupportBuddyCharacter />
               );
 
               return (
@@ -397,7 +503,7 @@ export default function TrustBar() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.08, duration: 0.35 }}
-                  className="flex flex-col items-start gap-3.5 p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl w-[80vw] sm:w-[280px] md:w-auto shrink-0 snap-center hover:-translate-y-1 hover:shadow-md shadow-xs transition-all duration-300"
+                  className="flex flex-col items-start gap-3.5 p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl w-[80vw] sm:w-auto shrink-0 snap-center hover:-translate-y-1 hover:shadow-md shadow-xs transition-all duration-300"
                 >
                   <div className="flex items-start justify-start w-full pointer-events-none">
                     {characterElement}
@@ -432,7 +538,7 @@ export default function TrustBar() {
           </div>
 
           {/* Interactive Page Dot Indicators (Mobile Only) */}
-          <div className="flex md:hidden items-center justify-center -gap-1 mt-1 w-full">
+          <div className="flex sm:hidden items-center justify-center -gap-1 mt-1 w-full">
             {trustItems.map((_, idx) => (
               <button
                 key={idx}

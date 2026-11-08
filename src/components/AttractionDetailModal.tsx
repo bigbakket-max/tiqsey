@@ -1020,10 +1020,10 @@ export default function AttractionDetailModal({
     const categoryPool: Record<string, string[]> = {
       'Theme Parks': [
         'https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1200',
-        'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1000',
-        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1000',
-        'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=1000',
-        'https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1586790170083-2f9ceadc732d?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1575429198097-0414ec08e8cd?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1520255870062-bd79d3865de7?auto=format&fit=crop&q=80&w=1000',
+        'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&q=80&w=1000',
       ],
       Adventure: [
         'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=1200',
@@ -1529,123 +1529,87 @@ export default function AttractionDetailModal({
       </div>
 
       {!bookingSuccess && !bookingFormStep && (
-        <div id="gallery-hero-section" className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-5 sm:pt-6 pb-2 select-none">
-          {/* 5-Photo Mosaic Gallery Grid matching reference image layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3.5 h-[280px] sm:h-[360px] md:h-[400px] lg:h-[430px]">
-            
-            {/* COLUMN 1: Large Main Photo (Left, 7 cols on lg+) */}
-            <div 
-              onClick={() => openLightbox(0)}
-              className="relative lg:col-span-7 h-full rounded-2xl overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800 shadow-xs"
-            >
-              <img
-                id="main-hero-img"
-                src={galleryImages[0] || mainImage}
-                alt={`${attraction.name} - View 1`}
-                onError={(e) => {
-                  const target = e.currentTarget;
-                  if (!target.src.includes('photo-1512470876302')) {
-                    target.src = 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=1200';
-                  }
-                }}
-                className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+        <>
+          {/* Prominent Attraction Title & Metadata Header - Above Gallery */}
+          <div id="booking-title-section" className="max-w-7xl mx-auto px-4 md:px-6 pt-3 pb-3">
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3.5xl lg:text-[34px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+                {attraction.name}
+              </h1>
 
-              {/* Bestseller Badge */}
-              <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 pointer-events-none">
-                <span className="bg-[#e3000f] text-white text-[11px] sm:text-xs font-black uppercase px-3 py-1 rounded-full shadow-md flex items-center gap-1.5 leading-none select-none tracking-wide">
-                  <Star className="w-3 h-3 fill-white text-white" />
-                  BESTSELLER
+              {/* Location & Product ID & Rating Line */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-400 font-semibold">
+                <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                  <MapPin className="w-3.5 h-3.5 text-[#e3000f] shrink-0" />
+                  <span>{attraction.location || `${attraction.city}, ${attraction.region || 'Europe'}`}</span>
                 </span>
-              </div>
-
-              {/* Mobile-only Action Buttons */}
-              <div className="flex lg:hidden items-center gap-2 absolute top-3 right-3 z-20">
-                <motion.button
-                  whileTap={{ scale: 0.85 }}
-                  whileHover={{ scale: 1.05 }}
-                  onClick={(e) => { e.stopPropagation(); handleShare(); }}
-                  className="flex items-center justify-center w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs cursor-pointer"
-                  title="Share Activity"
-                  aria-label="Share Activity"
-                >
-                  <Share2 className="w-4 h-4 text-slate-700 dark:text-slate-300" />
-                </motion.button>
-
-                <motion.button
-                  whileTap={{ scale: 0.85 }}
-                  whileHover={{ scale: 1.05 }}
-                  onClick={(e) => { e.stopPropagation(); toggleWishlist(attraction); }}
-                  className="flex items-center justify-center w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs cursor-pointer"
-                  title={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
-                  aria-label={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
-                >
-                  <Heart 
-                    className={`w-4.5 h-4.5 transition-colors ${
-                      isWishlisted(attraction.id) 
-                        ? 'fill-[#e3000f] text-[#e3000f]' 
-                        : 'text-slate-700 dark:text-slate-300'
-                    }`} 
-                  />
-                </motion.button>
+                <span className="text-slate-300 dark:text-slate-700 font-normal">|</span>
+                <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-mono">
+                  <Ticket className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span>Product ID: {getDisplayProductId(attraction)}</span>
+                </span>
+                <span className="text-slate-300 dark:text-slate-700 font-normal">|</span>
+                <div className="flex items-center gap-1.5">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />
+                  <span className="font-extrabold text-slate-900 dark:text-white text-sm">
+                    {attraction.id === 'ams-canal' ? '4.3' : averageRating}
+                  </span>
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">
+                    ({(attraction.reviewsCount || 1245).toLocaleString()} Reviews)
+                  </span>
+                </div>
               </div>
             </div>
+          </div>
 
-            {/* COLUMN 2: 2x2 Grid of 4 Photos (Right, 5 cols on lg+) */}
-            <div className="hidden lg:grid lg:col-span-5 grid-cols-2 grid-rows-2 gap-2.5 sm:gap-3.5 h-full">
-              {/* Photo 1: Top-Left (Canal Houses Reflection) */}
-              <div
-                onClick={() => openLightbox(1)}
-                className="relative h-full rounded-2xl overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800 shadow-xs"
+          {/* 5-Photo Mosaic Gallery Grid matching reference layout */}
+          <div id="gallery-hero-section" className="w-full max-w-7xl mx-auto px-4 md:px-6 pb-4 select-none">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3.5 h-[280px] sm:h-[360px] md:h-[400px] lg:h-[430px] max-h-[430px] overflow-hidden rounded-2xl">
+              
+              {/* COLUMN 1: Large Main Photo (Left, 7 cols on lg+) */}
+              <div 
+                onClick={() => openLightbox(0)}
+                className="relative lg:col-span-7 h-full w-full rounded-2xl overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800 shadow-xs"
               >
                 <img
-                  src={galleryImages[1]}
-                  alt={`${attraction.name} - View 2`}
+                  id="main-hero-img"
+                  src={galleryImages[0] || mainImage}
+                  alt={`${attraction.name} - View 1`}
                   onError={(e) => {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?auto=format&fit=crop&q=80&w=800';
-                  }}
-                  className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
-              </div>
-
-              {/* Photo 2: Top-Right (Church Tower with Share & Heart buttons) */}
-              <div
-                onClick={() => openLightbox(2)}
-                className="relative h-full rounded-2xl overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800 shadow-xs"
-              >
-                <img
-                  src={galleryImages[2]}
-                  alt={`${attraction.name} - View 3`}
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1584003564941-616f20f48f53?auto=format&fit=crop&q=80&w=800';
+                    const target = e.currentTarget;
+                    target.src = attraction?.imageUrl || 'https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1200';
                   }}
                   className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
 
-                {/* Floating Share & Wishlist in top-right of the 2x2 grid (matching screenshot exactly) */}
-                <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+                {/* Bestseller Badge */}
+                <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 pointer-events-none">
+                  <span className="bg-[#e3000f] text-white text-[11px] sm:text-xs font-black uppercase px-3 py-1 rounded-full shadow-md flex items-center gap-1.5 leading-none select-none tracking-wide">
+                    <Star className="w-3 h-3 fill-white text-white" />
+                    BESTSELLER
+                  </span>
+                </div>
+
+                {/* Mobile-only Action Buttons */}
+                <div className="flex lg:hidden items-center gap-2 absolute top-3 right-3 z-20">
                   <motion.button
                     whileTap={{ scale: 0.85 }}
                     whileHover={{ scale: 1.05 }}
                     onClick={(e) => { e.stopPropagation(); handleShare(); }}
-                    className="flex items-center justify-center w-9 h-9 rounded-full bg-white shadow-md border border-slate-100/60 backdrop-blur-xs transition-colors cursor-pointer text-slate-700 hover:text-[#e3000f]"
+                    className="flex items-center justify-center w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs cursor-pointer"
                     title="Share Activity"
                     aria-label="Share Activity"
                   >
-                    <Share2 className="w-4 h-4" />
+                    <Share2 className="w-4 h-4 text-slate-700 dark:text-slate-300" />
                   </motion.button>
 
                   <motion.button
                     whileTap={{ scale: 0.85 }}
                     whileHover={{ scale: 1.05 }}
                     onClick={(e) => { e.stopPropagation(); toggleWishlist(attraction); }}
-                    className="flex items-center justify-center w-9 h-9 rounded-full bg-white shadow-md border border-slate-100/60 backdrop-blur-xs transition-colors cursor-pointer"
+                    className="flex items-center justify-center w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs cursor-pointer"
                     title={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
                     aria-label={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
                   >
@@ -1653,53 +1617,121 @@ export default function AttractionDetailModal({
                       className={`w-4.5 h-4.5 transition-colors ${
                         isWishlisted(attraction.id) 
                           ? 'fill-[#e3000f] text-[#e3000f]' 
-                          : 'text-slate-700 hover:text-[#e3000f]'
+                          : 'text-slate-700 dark:text-slate-300'
                       }`} 
                     />
                   </motion.button>
                 </div>
               </div>
 
-              {/* Photo 3: Bottom-Left (Windmill with Tulips) */}
-              <div
-                onClick={() => openLightbox(3)}
-                className="relative h-full rounded-2xl overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800 shadow-xs"
-              >
-                <img
-                  src={galleryImages[3]}
-                  alt={`${attraction.name} - View 4`}
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1588698948796-031fbf1051fa?auto=format&fit=crop&q=80&w=800';
-                  }}
-                  className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+              {/* COLUMN 2: 2x2 Grid of 4 Photos (Right, 5 cols on lg+) */}
+              <div className="hidden lg:grid lg:col-span-5 grid-cols-2 grid-rows-2 gap-2.5 sm:gap-3.5 h-full overflow-hidden">
+                {/* Photo 1: Top-Left */}
+                <div
+                  onClick={() => openLightbox(1)}
+                  className="relative h-full w-full rounded-2xl overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800 shadow-xs"
+                >
+                  <img
+                    src={galleryImages[1] || galleryImages[0]}
+                    alt={`${attraction.name} - View 2`}
+                    onError={(e) => {
+                      e.currentTarget.src = attraction?.imageUrl || 'https://images.unsplash.com/photo-1586790170083-2f9ceadc732d?auto=format&fit=crop&q=80&w=800';
+                    }}
+                    className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+                </div>
+
+                {/* Photo 2: Top-Right (with Share & Heart buttons) */}
+                <div
+                  onClick={() => openLightbox(2)}
+                  className="relative h-full w-full rounded-2xl overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800 shadow-xs"
+                >
+                  <img
+                    src={galleryImages[2] || galleryImages[0]}
+                    alt={`${attraction.name} - View 3`}
+                    onError={(e) => {
+                      e.currentTarget.src = attraction?.imageUrl || 'https://images.unsplash.com/photo-1575429198097-0414ec08e8cd?auto=format&fit=crop&q=80&w=800';
+                    }}
+                    className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+
+                  {/* Floating Share & Wishlist in top-right of the 2x2 grid */}
+                  <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
+                      whileHover={{ scale: 1.05 }}
+                      onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                      className="flex items-center justify-center w-9 h-9 rounded-full bg-white shadow-md border border-slate-100/60 backdrop-blur-xs transition-colors cursor-pointer text-slate-700 hover:text-[#e3000f]"
+                      title="Share Activity"
+                      aria-label="Share Activity"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </motion.button>
+
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
+                      whileHover={{ scale: 1.05 }}
+                      onClick={(e) => { e.stopPropagation(); toggleWishlist(attraction); }}
+                      className="flex items-center justify-center w-9 h-9 rounded-full bg-white shadow-md border border-slate-100/60 backdrop-blur-xs transition-colors cursor-pointer"
+                      title={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
+                      aria-label={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
+                    >
+                      <Heart 
+                        className={`w-4.5 h-4.5 transition-colors ${
+                          isWishlisted(attraction.id) 
+                            ? 'fill-[#e3000f] text-[#e3000f]' 
+                            : 'text-slate-700 hover:text-[#e3000f]'
+                        }`} 
+                      />
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Photo 3: Bottom-Left */}
+                <div
+                  onClick={() => openLightbox(3)}
+                  className="relative h-full w-full rounded-2xl overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800 shadow-xs"
+                >
+                  <img
+                    src={galleryImages[3] || galleryImages[0]}
+                    alt={`${attraction.name} - View 4`}
+                    onError={(e) => {
+                      e.currentTarget.src = attraction?.imageUrl || 'https://images.unsplash.com/photo-1520255870062-bd79d3865de7?auto=format&fit=crop&q=80&w=800';
+                    }}
+                    className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+                </div>
+
+                {/* Photo 4: Bottom-Right */}
+                <div
+                  onClick={() => openLightbox(4)}
+                  className="relative h-full w-full rounded-2xl overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800 shadow-xs"
+                >
+                  <img
+                    src={galleryImages[4] || galleryImages[0]}
+                    alt={`${attraction.name} - View 5`}
+                    onError={(e) => {
+                      e.currentTarget.src = attraction?.imageUrl || 'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&q=80&w=800';
+                    }}
+                    className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+                </div>
               </div>
 
-              {/* Photo 4: Bottom-Right (Canal Cruise Boat) */}
-              <div
-                onClick={() => openLightbox(4)}
-                className="relative h-full rounded-2xl overflow-hidden group cursor-pointer bg-slate-200 dark:bg-slate-800 shadow-xs"
-              >
-                <img
-                  src={galleryImages[4] || galleryImages[0]}
-                  alt={`${attraction.name} - View 5`}
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1583037189850-1921ae7c6c22?auto=format&fit=crop&q=80&w=800';
-                  }}
-                  className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
-              </div>
             </div>
-
           </div>
-        </div>
+        </>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 lg:py-10">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 lg:py-6">
         {!bookingSuccess ? (
           <div>
             {bookingFormStep ? (
@@ -2522,37 +2554,6 @@ export default function AttractionDetailModal({
               {/* LEFT COLUMN: Details, alert, accordion lists (8 columns) */}
               <div className="lg:col-span-8 space-y-6">
             
-            {/* Title & Metadata Left Column matching reference image */}
-            <div id="booking-title-section" className="space-y-2 mb-6">
-              <h1 className="text-2xl sm:text-3.5xl lg:text-[34px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
-                {attraction.name}
-              </h1>
-
-              {/* Location & Product ID line */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-400 font-semibold">
-                <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                  <MapPin className="w-3.5 h-3.5 text-[#e3000f] shrink-0" />
-                  <span>{attraction.location || `${attraction.city}, ${attraction.region || 'Europe'}`}</span>
-                </span>
-                <span className="text-slate-300 dark:text-slate-700 font-normal">|</span>
-                <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-mono">
-                  <Ticket className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span>Product ID: {getDisplayProductId(attraction)}</span>
-                </span>
-              </div>
-
-              {/* Star Rating Line */}
-              <div className="flex items-center gap-1.5 text-xs pt-0.5">
-                <Star className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />
-                <span className="font-extrabold text-slate-900 dark:text-white text-sm">
-                  {attraction.id === 'ams-canal' ? '4.3' : averageRating}
-                </span>
-                <span className="text-slate-500 dark:text-slate-400 font-medium">
-                  ({(attraction.reviewsCount || 1245).toLocaleString()} Reviews)
-                </span>
-              </div>
-            </div>
-
             {/* Highlights Panel matching reference image */}
             <div id="highlights-section" className="space-y-3 pt-1">
               <div className="flex items-center gap-2 select-none">

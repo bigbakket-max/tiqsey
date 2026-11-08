@@ -2171,10 +2171,10 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
       "https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1200",
     galleryUrls: [
       "https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1200",
-      "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=80&w=800",
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800",
-      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=800",
-      "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&q=80&w=800"
+      "https://images.unsplash.com/photo-1586790170083-2f9ceadc732d?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1575429198097-0414ec08e8cd?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1520255870062-bd79d3865de7?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&q=80&w=800"
     ],
     isPopular: true,
     description:
@@ -2201,7 +2201,14 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     price: 42.0,
     discountPrice: 35.0,
     imageUrl:
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1080",
+      "https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1200",
+    galleryUrls: [
+      "https://images.unsplash.com/photo-1582650625119-3a31f841807d?auto=format&fit=crop&q=80&w=1200",
+      "https://images.unsplash.com/photo-1586790170083-2f9ceadc732d?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1575429198097-0414ec08e8cd?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1520255870062-bd79d3865de7?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&q=80&w=800"
+    ],
     isPopular: true,
     description:
       "Cool off at Thailand's biggest and best water park with dozens of premium water slides and attractions.",
