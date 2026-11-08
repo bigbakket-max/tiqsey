@@ -129,8 +129,6 @@ interface SettingsContextType {
   showLanguagePrompt: boolean;
   dismissLanguagePrompt: () => void;
   applyDetectedLanguage: () => void;
-  showCurrencyToast: boolean;
-  dismissCurrencyToast: () => void;
   setCurrency: (curr: Currency) => void;
   setLanguage: (lang: Language) => void;
   setTheme: (theme: Theme) => void;
@@ -184,7 +182,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const [detectedBrowserLanguage, setDetectedBrowserLanguage] = useState<Language | null>(null);
   const [showLanguagePrompt, setShowLanguagePrompt] = useState<boolean>(false);
-  const [showCurrencyToast, setShowCurrencyToast] = useState<boolean>(false);
 
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('tiqsey_theme') as Theme;
@@ -210,17 +207,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [language.code]);
 
-  // Currency detection & toast initialization
-  useEffect(() => {
-    const hasSeenCurrencyPrompt = localStorage.getItem('tiqsey_currency_toast_seen');
-    if (!hasSeenCurrencyPrompt) {
-      const timer = setTimeout(() => {
-        setShowCurrencyToast(true);
-      }, 1200);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
   const dismissLanguagePrompt = () => {
     setShowLanguagePrompt(false);
     localStorage.setItem('tiqsey_lang_auto_prompt_dismissed', 'true');
@@ -231,11 +217,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       handleSetLanguage(detectedBrowserLanguage);
     }
     dismissLanguagePrompt();
-  };
-
-  const dismissCurrencyToast = () => {
-    setShowCurrencyToast(false);
-    localStorage.setItem('tiqsey_currency_toast_seen', 'true');
   };
 
   // Geolocation detection fallback
@@ -332,7 +313,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setCurrency(curr);
     localStorage.setItem('tiqsey_curr', curr.code);
     localStorage.setItem('tiqsey_curr_overridden', 'true');
-    dismissCurrencyToast();
   };
 
   const handleSetLanguage = (lang: Language) => {
@@ -489,8 +469,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       showLanguagePrompt,
       dismissLanguagePrompt,
       applyDetectedLanguage,
-      showCurrencyToast,
-      dismissCurrencyToast,
       setCurrency: handleSetCurrency,
       setLanguage: handleSetLanguage,
       setTheme: handleSetTheme,

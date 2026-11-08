@@ -32,7 +32,6 @@ import PrivacyPolicyPage from "./components/PrivacyPolicyPage";
 import CookiePolicyPage from "./components/CookiePolicyPage";
 import TermsAndConditionsPage from "./components/TermsAndConditionsPage";
 import LanguageDetectionBanner from "./components/LanguageDetectionBanner";
-import CurrencyDetectionToast from "./components/CurrencyDetectionToast";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -600,7 +599,6 @@ export default function App() {
           }}
           onSearch={handleGlobalSearch}
         />
-        <CurrencyDetectionToast />
         {mainContent()}
         <Footer
           onExplore={() => {
