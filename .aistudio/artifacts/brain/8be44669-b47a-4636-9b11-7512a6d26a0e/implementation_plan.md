@@ -1,45 +1,74 @@
-# Implementation Plan: Fix Website Browsing, Search, Filters & Image Loading Errors
+# Implementation Plan: Enhanced Search Bar & Visitor Search Results
 
-## User Issue Summary
-During website browsing, search, and filtering, users encounter elements failing to load, broken links/routing, and missing or broken images.
-
-## Identified Root Causes
-1. **Component Rendering / Undefined Icon Errors in Browsing (`ActivitiesPage.tsx`)**:
-   - `getCategoryMeta` references `Palette` icon before its definition (inline SVG placed after usage) instead of importing `Palette` from `lucide-react`, causing potential component initialization and rendering errors when navigating categories like Museums & Art.
-   - Unhandled category edge-cases when filtering destinations or categories that don't match standard category keys.
-2. **Broken Image URLs & Missing Image Fallbacks (`mockData.ts` and UI cards)**:
-   - Several attraction and destination image links in `src/data/mockData.ts` rely on third-party blog and travel domains subject to hotlink protection, 403 Forbidden, or broken links.
-   - Banners and gallery components (`ActivitiesPage.tsx`, `FeaturedDestinations.tsx`, `AttractionDetailModal.tsx`) lack reliable placeholder image fallbacks, causing broken image icons and blank spaces.
-3. **Search & Navigation Routing Inconsistencies (`App.tsx`, `Hero.tsx`, `FeaturedDestinations.tsx`)**:
-   - Hero search handler matches attraction titles or keywords and sets `selectedDestination = matchingAttraction.city` or query string, trapping users in an invalid destination view (e.g. searching for "Museum" or an attraction name displays an empty "No activities found in Museum").
-   - Destination cards in `FeaturedDestinations.tsx` update internal state without synchronizing with browser routing history or deep-linking properly.
-4. **Filter & Sort Edge Cases**:
-   - Safe parsing for pricing ranges, ratings, and operating dates to prevent filters from crashing when custom inventory attractions or filtered items lack optional fields.
+Upgrade the search experience across Tiqsey with instant live search, category filtering tabs, typo-tolerant fuzzy matching, rich item previews (thumbnails, ratings, live converted prices), user search history, trending chips, and full search results page navigation.
 
 ---
 
-## Proposed Changes
+## 1. Feature Specifications
 
-### Phase 1: Fix Component Loading & Category Filtering (`ActivitiesPage.tsx`)
-- Import `Palette` directly from `lucide-react` alongside other icons (`Landmark`, `Compass`, `Sparkles`, `Camera`, `Trees`, `UtensilsCrossed`).
-- Remove redundant inline SVG declaration to prevent TDZ/initialization errors.
-- Ensure all category filter buttons safely fall back to default metadata if an unexpected category string is encountered.
-- Add an `onError` image handler to the destination hero banner in `ActivitiesPage.tsx` with a reliable high-res travel fallback.
+### A. Live Instant Dropdown with Rich Previews
+- **Thumbnail Previews**: High-resolution, optimized thumbnails with smooth image error fallbacks.
+- **Attraction Cards**:
+  - Attraction Name with matched search terms subtly highlighted.
+  - Location badge (City, Country) and Category pill (e.g. Theme Parks, History).
+  - Star rating with total review count (e.g. `★ 4.7 (6,500)`).
+  - Live converted price in the visitor's selected currency (`formatPrice`), showing discount % when on sale.
+- **Destination & City Cards**:
+  - City photo thumbnail, country flag/name, and available experience count.
+  - Direct routing to city activities.
 
-### Phase 2: Image Resilience & Fallbacks (`mockData.ts` and Components)
-- Audit image URLs in `src/data/mockData.ts` to replace volatile external blog URLs with stable, high-resolution Unsplash travel imagery.
-- Ensure all image tags across `AttractionCard.tsx`, `FeaturedDestinations.tsx`, `AttractionsAndMuseumsPage.tsx`, and `AttractionDetailModal.tsx` have uniform `onError` fallback handling using verified Unsplash fallback URLs.
+### B. Category Filter Tabs in Dropdown
+- Interactive tab switcher at the top of the search dropdown:
+  - **All** (Top mixed results)
+  - **Attractions** (Tickets, Landmarks, Waterparks, Theme parks)
+  - **Cities** (Destinations, regions)
+  - **Activities** (Tours, Day trips, Cruises, Outdoor)
+- Instant filtering without reloading or losing the search term.
+- Category badge counts displaying match counts.
 
-### Phase 3: Fix Search & Navigation Routing (`App.tsx` & `Hero.tsx`)
-- Update `Hero.tsx` search submission handler:
-  - If a specific attraction is found by name, trigger `handleViewAttraction(id)` directly, opening its full details and booking modal.
-  - If a city/destination is found, navigate to `ActivitiesPage` for that destination.
-  - If a category or keyword is found, navigate to `AttractionsAndMuseumsPage` with the search/category filter pre-applied.
-- Synchronize destination card clicks with browser URL parameters (`/destinations/:id`) for smooth back/forward navigation.
+### C. Typo-Tolerant Fuzzy Search
+- Resilient fuzzy matching algorithm supporting:
+  - Levenshtein distance matching (e.g., "Acroplis" -> "Acropolis", "Puket" -> "Phuket", "Amsterdm" -> "Amsterdam").
+  - Word-order independence (e.g., "ticket acropolis fast track" -> "Acropolis of Athens: Fast Track Ticket").
+  - Substring & prefix matching on names, locations, categories, and 8-digit product IDs.
 
-### Phase 4: Verification & Testing
-- Compile and lint the applet (`compile_applet` & `lint_applet`).
-- Verify browsing each destination (e.g. Paris, Tokyo, New York, Rome, London, Dubai) renders without component errors.
-- Test category filters (Museums, Landmarks, Tours, Nature, Entertainment, Food).
-- Verify search functionality for attraction titles, cities, and categories.
-- Confirm all images load cleanly with no broken image placeholders.
+### D. Empty State: Recent Searches & Trending Chips
+- When search input is focused with no query entered:
+  - **Recent Searches**: Display visitor's recent searches from `localStorage` with timestamp icon, single-click to search, delete button per item, and a "Clear all" button.
+  - **Trending Searches**: Top queried experiences (e.g., "Andamanda Waterpark", "Acropolis Fast Track", "Eiffel Tower", "Amsterdam Canal").
+  - **Popular Destinations**: Quick-filter destination chips (Tokyo, Paris, Phuket, Rome, London).
+
+### E. Search Results Navigation & Full Results Page
+- Pressing **Enter** or clicking **"View all results for '[query]' →"**:
+  - Routes directly to the full results page (`/attractions-and-museums`) with the query applied.
+  - Pre-configures filter counts, category tabs, and sorting options (Popularity, Price Low to High, Rating).
+- Clicking a specific attraction or destination from the dropdown smoothly opens the full results or details view.
+
+---
+
+## 2. Technical Architecture & File Changes
+
+| File | Proposed Changes |
+| :--- | :--- |
+| `src/utils/fuzzySearch.ts` | **New Utility**: Lightweight, performant fuzzy matching & Levenshtein distance algorithm for attraction and destination data. |
+| `src/components/SearchBar.tsx` | Upgrade search component: add category tabs (`All`, `Attractions`, `Cities`, `Activities`), rich result cards with prices and ratings, recent search storage, trending chips, and keyboard navigation. |
+| `src/components/Header.tsx` | Ensure desktop and mobile search bars pass the search callback and handle dropdown positioning smoothly across viewports. |
+| `src/components/AttractionsAndMuseumsPage.tsx` | Enhance full search results page to display query header, match counts, active filter badges, and clear search button. |
+| `src/App.tsx` | Ensure `handleGlobalSearch` properly carries search terms and filters into the search results page. |
+
+---
+
+## 3. Verification & Testing
+
+1. **Fuzzy Search Verification**:
+   - Test typing typos ("Acroplis", "Phukett", "Amsterdm") and verify accurate suggestions appear.
+2. **Category Tabs**:
+   - Verify clicking "Attractions", "Cities", and "Activities" filters the live dropdown list instantly.
+3. **Recent Search History**:
+   - Test searching queries, reloading the page, verifying recent searches persist, and deleting individual items or clearing all.
+4. **Trending & Popular Chips**:
+   - Click trending chips and confirm the search input updates and displays results immediately.
+5. **Full Results Routing**:
+   - Press Enter on a search query and verify it opens `/attractions-and-museums` with the search term and filters applied.
+6. **Build & Lint**:
+   - Co-execute `compile_applet` and `lint_applet` to confirm zero TypeScript and syntax errors.

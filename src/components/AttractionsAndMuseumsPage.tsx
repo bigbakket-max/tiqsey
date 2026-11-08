@@ -17,6 +17,7 @@ import {
 import { useSettings } from "../contexts/SettingsContext";
 import { POPULAR_ATTRACTIONS, deduplicateAttractions } from "../data/mockData";
 import { getDisplayProductId } from "../utils/productIdGenerator";
+import { calculateMatchScore } from "../utils/fuzzySearch";
 import AttractionCard from "./AttractionCard";
 import AttractionCardSkeleton from "./AttractionCardSkeleton";
 import { motion, AnimatePresence } from "motion/react";
@@ -105,18 +106,31 @@ export default function AttractionsAndMuseumsPage({
   const filteredAndSortedAttractions = useMemo(() => {
     let result = deduplicateAttractions(POPULAR_ATTRACTIONS);
 
-    // Search query filter
+    // Map match scores if query is present
+    const scoresMap = new Map<string, number>();
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      result = result.filter(
-        (a) =>
-          a.name.toLowerCase().includes(q) ||
-          (a.description || "").toLowerCase().includes(q) ||
-          a.city.toLowerCase().includes(q) ||
-          a.category.toLowerCase().includes(q) ||
-          getDisplayProductId(a).toLowerCase().includes(q) ||
-          a.id.toLowerCase().includes(q),
-      );
+      result = result.filter((a) => {
+        const prodId = getDisplayProductId(a);
+        const nameScore = calculateMatchScore(q, a.name, `${a.city} ${a.location}`);
+        const categoryScore = calculateMatchScore(q, a.category);
+        const descMatch = (a.description || "").toLowerCase().includes(q);
+        const idMatch = a.id.toLowerCase().includes(q) || prodId.includes(q);
+
+        const bestScore = Math.max(
+          nameScore.score,
+          categoryScore.score,
+          idMatch ? 90 : 0,
+          descMatch ? 60 : 0
+        );
+
+        const isMatch = nameScore.matched || categoryScore.matched || idMatch || descMatch;
+        if (isMatch) {
+          scoresMap.set(a.id, bestScore);
+        }
+        return isMatch;
+      });
     }
 
     // Category filter
@@ -148,6 +162,13 @@ export default function AttractionsAndMuseumsPage({
           return priceB - priceA;
         case "popularity":
         default:
+          if (searchQuery.trim()) {
+            const scoreA = scoresMap.get(a.id) || 0;
+            const scoreB = scoresMap.get(b.id) || 0;
+            if (scoreB !== scoreA) {
+              return scoreB - scoreA;
+            }
+          }
           return (
             (b.isPopular ? 1 : 0) - (a.isPopular ? 1 : 0) ||
             b.reviewsCount - a.reviewsCount
