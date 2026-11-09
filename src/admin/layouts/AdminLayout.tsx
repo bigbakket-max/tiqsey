@@ -22,8 +22,7 @@ import {
   Loader2,
   Sparkles,
   Layers,
-  Image as ImageIcon,
-  Instagram
+  Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAdminLoader } from '../contexts/AdminLoaderContext';
@@ -58,8 +57,6 @@ export default function AdminLayout() {
       navigate(`/promotional-banners`);
     } else if (query.toLowerCase().includes('favicon') || query.toLowerCase().includes('icon')) {
       navigate(`/favicon`);
-    } else if (query.toLowerCase().includes('instagram') || query.toLowerCase().includes('insta') || query.toLowerCase().includes('social')) {
-      navigate(`/instagram`);
     } else if (query.toLowerCase().includes('blog') || query.toLowerCase().includes('post')) {
       navigate(`/blog`);
     } else {
@@ -112,12 +109,7 @@ export default function AdminLayout() {
         }
       } else if (path.includes('/favicon')) {
         crumbs.push({ name: 'Favicon', icon: undefined, path: '/favicon' });
-      } else if (path.includes('/instagram')) {
-        crumbs.push({ name: 'Instagram (@tiqsey_official)', icon: undefined, path: '/instagram' });
       }
-    } else if (path.includes('/instagram')) {
-      crumbs.push({ name: 'Marketing', icon: undefined, path: '/instagram' });
-      crumbs.push({ name: 'Instagram (@tiqsey_official)', icon: undefined, path: '/instagram' });
     }
     return crumbs;
   };
@@ -334,26 +326,6 @@ export default function AdminLayout() {
               >
                 <ImageIcon className="w-4 h-4 shrink-0 text-sky-400 group-hover:scale-105 transition-transform" />
                 Favicon
-              </NavLink>
-
-              <NavLink
-                to="/instagram"
-                onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13.5px] transition-colors group ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-pink-500/25 to-rose-600/15 text-white font-bold border-l-2 border-pink-500' 
-                      : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
-                  }`
-                }
-              >
-                <Instagram className="w-4 h-4 shrink-0 text-pink-400 group-hover:scale-105 transition-transform" />
-                <span className="flex items-center gap-1.5">
-                  Instagram
-                  <span className="text-[10px] bg-pink-500/20 text-pink-300 border border-pink-500/40 px-1.5 py-0.2 rounded font-bold">
-                    @tiqsey
-                  </span>
-                </span>
               </NavLink>
             </div>
           )}

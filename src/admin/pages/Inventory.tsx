@@ -48,8 +48,7 @@ import {
   Link,
   Activity,
   RefreshCw,
-  ArrowUpRight,
-  Instagram
+  ArrowUpRight
 } from "lucide-react";
 import { POPULAR_ATTRACTIONS, syncCustomAttractions, deduplicateAttractions } from "../../data/mockData";
 import { uploadAndOptimizeImage } from "../../utils/imageUpload";
@@ -1964,13 +1963,6 @@ export default function Inventory() {
                           title="Edit Highlights"
                         >
                           <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/instagram?attractionId=${attr.id}`)}
-                          className="p-2 text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 hover:bg-pink-50 dark:hover:bg-pink-950/40 rounded-lg transition-colors group cursor-pointer"
-                          title="Post to Instagram (@tiqsey_official)"
-                        >
-                          <Instagram className="w-4 h-4 group-hover:scale-110 transition-transform" />
                         </button>
                         <button
                           onClick={() => handleEditClick(attr)}
@@ -4196,18 +4188,6 @@ export default function Inventory() {
                 >
                   <Copy className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                   <span>Duplicate</span>
-                </button>
-              )}
-
-              {editingAttraction && (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/instagram?attractionId=${editingAttraction.id}`)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-pink-700 dark:text-pink-300 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800 hover:bg-pink-100 dark:hover:bg-pink-900/50 rounded-lg transition-colors shadow-2xs cursor-pointer"
-                  title="Create Instagram post for this product"
-                >
-                  <Instagram className="w-3.5 h-3.5 text-pink-600 dark:text-pink-400" />
-                  <span>Instagram</span>
                 </button>
               )}
 
