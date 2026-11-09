@@ -46,10 +46,6 @@ export interface Attraction {
   otherDetails?: string;
   bookingMode?: BookingMode;
   affiliateConfig?: AffiliateConfig;
-  status?: 'active' | 'paused' | 'draft';
-  seoTitle?: string;
-  seoDescription?: string;
-  customSlug?: string;
 }
 
 export type BookingMode = 'manual' | 'affiliate';
