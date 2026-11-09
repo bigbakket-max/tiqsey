@@ -4071,16 +4071,16 @@ export default function Inventory() {
       {inventoryTable}
         </>
       ) : (
-        <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
-          {/* Sticky Top Action Header */}
-          <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-md p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all">
+        <div className="animate-in slide-in-from-bottom-4 duration-300">
+          {/* Top Sticky Toolbar - Full Bleed Edge-to-Edge with solid background */}
+          <div className="-mt-4 lg:-mt-5 -mx-4 lg:-mx-8 px-4 lg:px-8 py-3.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
             {/* Left Column: Breadcrumbs, Title, Product ID & Status */}
-            <div className="space-y-2">
+            <div className="space-y-1.5 min-w-0">
               <div className="flex items-center flex-wrap gap-2 text-xs">
                 <button
                   type="button"
                   onClick={() => navigate("/inventory")}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-md transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Inventory</span>
@@ -4112,7 +4112,7 @@ export default function Inventory() {
               </div>
 
               <div className="flex items-center flex-wrap gap-3">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight truncate max-w-2xl">
                   {name || (editingAttraction ? editingAttraction.name : "New Product")}
                 </h1>
 
