@@ -4168,7 +4168,7 @@ export default function Inventory() {
             <div className="flex items-center flex-wrap gap-2.5 shrink-0">
               {editingAttraction && (
                 <a
-                  href={`/#/attraction/${editingAttraction.id}`}
+                  href={`/activities/${encodeURIComponent(editingAttraction.id)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 rounded-lg transition-colors shadow-2xs"

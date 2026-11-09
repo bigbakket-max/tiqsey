@@ -55,15 +55,47 @@ function parseInitialRoute(): { page: AppPage; destination: string | null; attra
     return { page: "home", destination: null, attractionId: null };
   }
   const path = window.location.pathname;
+  const hash = window.location.hash || "";
   const params = new URLSearchParams(window.location.search);
-  let attrId = params.get("attraction");
+  let attrId = params.get("attraction") || params.get("activity") || params.get("productId");
 
-  if (path.startsWith("/activities/")) {
-    attrId = path.split("/activities/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim() || null;
+  // 1. Check path (/activities/, /attraction/, /attractions/)
+  if (!attrId) {
+    if (path.startsWith("/activities/")) {
+      attrId = path.split("/activities/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim() || null;
+    } else if (path.startsWith("/attraction/")) {
+      attrId = path.split("/attraction/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim() || null;
+    } else if (path.startsWith("/attractions/")) {
+      attrId = path.split("/attractions/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim() || null;
+    }
+  }
+
+  // 2. Check hash (e.g. #/attraction/ams-canal or #/activities/ams-canal)
+  if (!attrId && hash) {
+    const cleanHash = hash.replace(/^#\/?/, "");
+    if (cleanHash.startsWith("attraction/")) {
+      attrId = cleanHash.split("attraction/")[1]?.split("/")[0]?.split("?")[0]?.trim() || null;
+    } else if (cleanHash.startsWith("attractions/")) {
+      attrId = cleanHash.split("attractions/")[1]?.split("/")[0]?.split("?")[0]?.trim() || null;
+    } else if (cleanHash.startsWith("activities/")) {
+      attrId = cleanHash.split("activities/")[1]?.split("/")[0]?.split("?")[0]?.trim() || null;
+    } else if (cleanHash.startsWith("activity/")) {
+      attrId = cleanHash.split("activity/")[1]?.split("/")[0]?.split("?")[0]?.trim() || null;
+    }
   }
 
   if (attrId) {
-    return { page: "home", destination: null, attractionId: attrId };
+    const rawAttrId = decodeURIComponent(attrId).trim();
+    // Resolve matching attraction ID if given slug or numeric product ID
+    const matched = POPULAR_ATTRACTIONS.find(
+      (a) =>
+        a.id === rawAttrId ||
+        a.productId === rawAttrId ||
+        getDisplayProductId(a) === rawAttrId ||
+        a.id.toLowerCase() === rawAttrId.toLowerCase()
+    );
+    const resolvedId = matched ? matched.id : rawAttrId;
+    return { page: "home", destination: null, attractionId: resolvedId };
   }
 
   let dest: string | null = null;
@@ -145,7 +177,11 @@ export default function App() {
     };
 
     window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    window.addEventListener("hashchange", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("hashchange", handlePopState);
+    };
   }, []);
 
   // Ensure that if the user is on the home page view, the URL is always clean '/'
