@@ -489,6 +489,16 @@ export default function Inventory() {
   const [variants, setVariants] = useState<Variant[]>([]);
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
 
+  // Enhanced Edit Product states
+  const [productStatus, setProductStatus] = useState<"active" | "paused" | "draft">("active");
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+  const [customSlug, setCustomSlug] = useState("");
+  const [isCopiedId, setIsCopiedId] = useState(false);
+  const [activeSectionAnchor, setActiveSectionAnchor] = useState("sec-basic");
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const [duplicateSuccessToast, setDuplicateSuccessToast] = useState(false);
+
   // Bulk Generator States
   const [isBulkGenOpen, setIsBulkGenOpen] = useState(false);
   const [bulkStartDate, setBulkStartDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -864,6 +874,17 @@ export default function Inventory() {
         setIsPopular(attr.isPopular ?? false);
         setFastTrack(attr.fastTrack ?? false);
         setIsAvailable(attr.isAvailable !== false);
+        setProductStatus(attr.status || (attr.isAvailable !== false ? "active" : "paused"));
+        setSeoTitle(attr.seoTitle || attr.name || "");
+        setSeoDescription(attr.seoDescription || (attr.description ? attr.description.slice(0, 160) : ""));
+        setCustomSlug(
+          attr.customSlug ||
+          (attr.name || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)+/g, "")
+        );
+        setIsFormDirty(false);
         setLeadTimeEnabled(attr.leadTimeEnabled ?? false);
         setLeadTimeValue(attr.leadTimeValue ?? 24);
         setLeadTimeUnit(attr.leadTimeUnit ?? 'hours');
@@ -1027,8 +1048,43 @@ export default function Inventory() {
       setGalleryUrls([]);
       setIsReordering(false);
       setVariants([]);
+      setProductStatus("active");
+      setSeoTitle("");
+      setSeoDescription("");
+      setCustomSlug("");
+      setIsFormDirty(false);
     }
   }, [id, isEditRoute, isNewRoute, attractions]);
+
+  const handleCopyProductId = (idToCopy: string) => {
+    if (!idToCopy) return;
+    navigator.clipboard.writeText(idToCopy);
+    setIsCopiedId(true);
+    setTimeout(() => setIsCopiedId(false), 2000);
+  };
+
+  const handleDuplicateProduct = () => {
+    if (!editingAttraction) return;
+    const newId = `attr-${Date.now()}`;
+    const newProdId = generateUniqueProductId(attractions);
+    const duplicatedAttraction: Attraction = {
+      ...editingAttraction,
+      id: newId,
+      productId: newProdId,
+      name: `${editingAttraction.name} (Copy)`,
+      isAvailable: false,
+      status: "draft"
+    };
+    registerUsedProductId(newProdId);
+    const updated = [duplicatedAttraction, ...attractions];
+    const cleaned = deduplicateAttractions(updated);
+    setAttractions(cleaned);
+    syncCustomAttractions(cleaned);
+    setDuplicateSuccessToast(true);
+    setTimeout(() => setDuplicateSuccessToast(false), 3500);
+    navigate(`/inventory/edit/${newId}`);
+  };
+
 
   const updateGlobalHoursString = (months: string[], days: string[], mHours: Record<string, string>, dHours: Record<string, string>) => {
     const parts = [];
@@ -1367,8 +1423,8 @@ export default function Inventory() {
   };
 
   // Handle saving changes
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = (e?: React.FormEvent | React.MouseEvent) => {
+    if (e && e.preventDefault) e.preventDefault();
 
     if (!name.trim()) return alert("Activity Name is required");
     if (!city.trim()) return alert("City is required");
@@ -1479,7 +1535,11 @@ export default function Inventory() {
       imageUrl: effectiveImageUrl,
       isPopular,
       fastTrack,
-      isAvailable,
+      isAvailable: productStatus === "active",
+      status: productStatus,
+      seoTitle: seoTitle.trim(),
+      seoDescription: seoDescription.trim(),
+      customSlug: customSlug.trim(),
       description: description.trim(),
       highlights,
       included,
@@ -1502,6 +1562,8 @@ export default function Inventory() {
       affiliateConfig: firstAffiliate?.affiliateConfig ? { ...firstAffiliate.affiliateConfig } : undefined,
     };
 
+    setIsFormDirty(false);
+
     let updatedList: Attraction[];
     if (editingAttraction) {
       updatedList = attractions.map((a) => (a.id === editingAttraction.id ? attractionData : a));
@@ -1521,6 +1583,19 @@ export default function Inventory() {
     hideLoader();
     navigate("/inventory");
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        if (isModalOpen) {
+          e.preventDefault();
+          handleSave();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isModalOpen, handleSave]);
 
   // Change sort configuration
   const handleSort = (field: "name" | "price" | "capacity" | "rating") => {
@@ -4022,67 +4097,203 @@ export default function Inventory() {
       {inventoryTable}
         </>
       ) : (
-        <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
-          {/* Header Card */}
-          <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-md p-6 flex justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-[#5fa6d9]/10 text-[#5fa6d9] rounded-lg shrink-0">
-                <Layers className="w-6 h-6" />
+        <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300 relative">
+          {/* STICKY TOP ACTION HEADER */}
+          <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Left: Breadcrumbs + Title + Product ID + Status */}
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex items-center flex-wrap gap-2 text-xs text-slate-400 font-medium">
+                <button
+                  type="button"
+                  onClick={() => navigate("/inventory")}
+                  className="hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Inventory</span>
+                </button>
+                <span>/</span>
+                <span>{editingAttraction ? "Edit Product" : "New Product"}</span>
+                <span>/</span>
+                <span className="text-slate-700 dark:text-slate-200 font-semibold truncate max-w-[200px] sm:max-w-xs">
+                  {name || (editingAttraction ? editingAttraction.name : "Untitled")}
+                </span>
               </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center flex-wrap gap-2">
-                  {editingAttraction ? (
-                    <>
-                      <span>Edit Product</span>
-                      <span className="text-slate-300 dark:text-slate-700 font-normal">—</span>
-                      <span className="text-slate-900 dark:text-white">{name || editingAttraction.name}</span>
-                    </>
-                  ) : (
-                    "Add New Product"
-                  )}
+
+              <div className="flex items-center flex-wrap gap-2.5 pt-0.5">
+                <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight truncate max-w-md">
+                  {editingAttraction ? (name || editingAttraction.name) : "Create New Product"}
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                  {editingAttraction ? "Update the details, pricing, and variants for this product." : "Create a new bookable product or experience to add to your inventory."}
-                </p>
+
+                {/* Product ID Pill with Copy */}
+                <button
+                  type="button"
+                  onClick={() => handleCopyProductId(editingAttraction ? (editingAttraction.productId || getDisplayProductId(editingAttraction)) : assignedProductId)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer group"
+                  title="Click to copy 8-digit Product ID"
+                >
+                  <Copy className="w-3 h-3 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200" />
+                  <span>ID: {editingAttraction ? (editingAttraction.productId || getDisplayProductId(editingAttraction)) : assignedProductId}</span>
+                  {isCopiedId && (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold animate-in fade-in">
+                      Copied!
+                    </span>
+                  )}
+                </button>
+
+                {/* Status Selector */}
+                <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-bold border border-slate-200 dark:border-slate-700">
+                  {(["active", "paused", "draft"] as const).map((st) => {
+                    const isCurrent = productStatus === st;
+                    return (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => {
+                          setProductStatus(st);
+                          setIsAvailable(st === "active");
+                          setIsFormDirty(true);
+                        }}
+                        className={`px-2.5 py-1 rounded-md capitalize transition-all flex items-center gap-1.5 cursor-pointer ${
+                          isCurrent
+                            ? st === "active"
+                              ? "bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 shadow-2xs font-black"
+                              : st === "paused"
+                              ? "bg-amber-50 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 shadow-2xs font-black"
+                              : "bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 shadow-2xs font-black"
+                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          st === "active" ? "bg-emerald-500" : st === "paused" ? "bg-amber-500" : "bg-slate-400"
+                        }`} />
+                        <span>{st}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+            </div>
+
+            {/* Right: Action Buttons Group */}
+            <div className="flex items-center flex-wrap gap-2 shrink-0">
+              {editingAttraction && (
+                <>
+                  {/* Duplicate Button */}
+                  <button
+                    type="button"
+                    onClick={handleDuplicateProduct}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    title="Clone as new product draft"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Duplicate</span>
+                  </button>
+
+                  {/* View Live Storefront Button */}
+                  <a
+                    href={`/#/attraction/${editingAttraction.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    title="Open customer booking page in new tab"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">View Live</span>
+                  </a>
+                </>
+              )}
+
+              {/* Cancel / Discard */}
+              <button
+                type="button"
+                onClick={() => navigate("/inventory")}
+                className="px-3 py-2 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              {/* Primary Save Changes */}
+              <button
+                type="button"
+                onClick={handleSave}
+                className="inline-flex items-center gap-1.5 bg-[#e3000f] hover:bg-[#c9000d] text-white px-5 py-2 rounded-lg text-xs font-black transition-all shadow-sm active:scale-98 cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save Changes</span>
+              </button>
             </div>
           </div>
 
           {/* Form Content Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col">
-            {/* Scrollable Container with form and real-time preview stacked vertically */}
-            <div className="flex-1 overflow-y-auto flex flex-col gap-0 bg-slate-50 dark:bg-slate-950/20">
-              
-              {/* Form Input Section */}
-              <form id="attraction-form" onSubmit={handleSave} className="w-full flex flex-col sm:flex-row border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
-                {/* Vertical Tabs Sidebar */}
-                <div className="flex flex-row sm:flex-col sm:w-52 bg-slate-50 dark:bg-slate-950/40 border-b sm:border-b-0 sm:border-r border-slate-200 dark:border-slate-800/80 p-4 gap-1.5 text-sm font-bold text-slate-400 shrink-0 overflow-x-auto sm:overflow-x-visible">
-                  {(() => {
-                    const tabIcons: Record<string, React.ReactNode> = {
-                      "Primary": <Home className="w-4 h-4" />,
-                      "Variants": <Layers className="w-4 h-4" />,
-                      "Gallary": <Image className="w-4 h-4" />,
-                      "Live Ticket Preview": <Compass className="w-4 h-4" />
-                    };
-                    return ["Primary", "Variants", "Gallary", "Live Ticket Preview"].map(tab => (
-                      <button
-                        key={tab}
-                        type="button"
-                        onClick={() => setActiveTab(tab)}
-                        className={`py-2.5 px-3.5 rounded-lg text-left transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-2.5 ${
-                          activeTab === tab
-                            ? "bg-[#5fa6d9]/15 text-[#5fa6d9] font-black"
-                            : "hover:bg-slate-100/80 dark:hover:bg-slate-900/60 hover:text-slate-600 dark:hover:text-slate-300"
-                        }`}
-                      >
-                        {tabIcons[tab] || <Home className="w-4 h-4" />}
-                        <span>{tab}</span>
-                      </button>
-                    ));
-                  })()}
-                </div>
-                
-                <div className="flex-1 p-6 lg:p-10 space-y-8">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col">
+            
+            {/* Horizontal Segmented Tab Bar */}
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 px-4 sm:px-6 py-2.5 gap-2 overflow-x-auto">
+              <div className="flex items-center gap-1.5">
+                {[
+                  { id: "Primary", label: "Primary Details", icon: <Home className="w-4 h-4" /> },
+                  { id: "Variants", label: `Variants (${variants.length})`, icon: <Layers className="w-4 h-4" /> },
+                  { id: "Gallary", label: `Gallery (${galleryUrls.length})`, icon: <Image className="w-4 h-4" /> },
+                  { id: "Live Ticket Preview", label: "Live Ticket Preview", icon: <Compass className="w-4 h-4" /> },
+                ].map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`py-2 px-3.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+                        isActive
+                          ? "bg-white dark:bg-slate-900 text-[#e3000f] shadow-xs border border-slate-200/80 dark:border-slate-800"
+                          : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-900/40"
+                      }`}
+                    >
+                      {tab.icon}
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Status Indicator */}
+              <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-slate-400">
+                <span>Status:</span>
+                <span className={`capitalize font-bold ${
+                  productStatus === "active" ? "text-emerald-600 dark:text-emerald-400" : productStatus === "paused" ? "text-amber-500" : "text-slate-400"
+                }`}>
+                  {productStatus}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Jump Sub-Bar (when on Primary tab) */}
+            {activeTab === "Primary" && (
+              <div className="bg-slate-100/60 dark:bg-slate-900/80 border-b border-slate-200/70 dark:border-slate-800 px-4 sm:px-6 py-2 flex items-center gap-1.5 overflow-x-auto text-[11px] font-semibold text-slate-500">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider shrink-0 mr-1">Jump to:</span>
+                {[
+                  { href: "#sec-basic", label: "Basic Info" },
+                  { href: "#sec-highlights", label: "Highlights" },
+                  { href: "#sec-geo", label: "Geographics" },
+                  { href: "#sec-class", label: "Classification" },
+                  { href: "#sec-features", label: "Badges" },
+                  { href: "#sec-pricing", label: "Pricing & Currency" },
+                  { href: "#sec-logistics", label: "Logistics" },
+                  { href: "#sec-seo", label: "SEO & SERP" },
+                ].map((anchor) => (
+                  <a
+                    key={anchor.href}
+                    href={anchor.href}
+                    className="px-2.5 py-1 rounded-md hover:bg-white dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap shrink-0"
+                  >
+                    {anchor.label}
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {/* Form Input Section */}
+            <form id="attraction-form" onSubmit={handleSave} className="w-full bg-white dark:bg-slate-900">
+              <div className="p-6 lg:p-10 space-y-8">
                   {/* TAB 1: Primary */}
                   {activeTab === "Primary" && (
                     <div className="space-y-6 animate-in fade-in duration-300">
@@ -4148,7 +4359,7 @@ export default function Inventory() {
                       </div>
 
                       {/* Section 1: Basic Information */}
-                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
+                      <div id="sec-basic" className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs space-y-4">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <MapPin className="w-4 h-4 text-[#5fa6d9]" />
                           <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Basic Information</h3>
@@ -4182,7 +4393,10 @@ export default function Inventory() {
                                 type="text"
                                 required
                                 value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                onChange={(e) => {
+                                  setName(e.target.value);
+                                  setIsFormDirty(true);
+                                }}
                                 placeholder="e.g. Skip-the-line Eiffel Tower Summit Access"
                                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-800 dark:text-white"
                               />
@@ -4195,7 +4409,10 @@ export default function Inventory() {
                                 </label>
                                 <select
                                   value={region}
-                                  onChange={(e) => handleRegionChange(e.target.value)}
+                                  onChange={(e) => {
+                                    handleRegionChange(e.target.value);
+                                    setIsFormDirty(true);
+                                  }}
                                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] font-bold text-slate-700 dark:text-slate-300"
                                 >
                                   {Object.keys(GEOGRAPHY_DATA).map((r) => (
@@ -4210,7 +4427,10 @@ export default function Inventory() {
                                 </label>
                                 <select
                                   value={country}
-                                  onChange={(e) => handleCountryChange(e.target.value)}
+                                  onChange={(e) => {
+                                    handleCountryChange(e.target.value);
+                                    setIsFormDirty(true);
+                                  }}
                                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] font-semibold text-slate-700 dark:text-slate-300"
                                 >
                                   {getCountriesForRegion(region).map((c) => (
@@ -4227,7 +4447,10 @@ export default function Inventory() {
                                 <select
                                   required
                                   value={city}
-                                  onChange={(e) => handleCityChange(e.target.value)}
+                                  onChange={(e) => {
+                                    handleCityChange(e.target.value);
+                                    setIsFormDirty(true);
+                                  }}
                                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] font-bold text-slate-800 dark:text-white"
                                 >
                                   {getCitiesForCountry(region, country).map((ct) => (
@@ -4245,7 +4468,10 @@ export default function Inventory() {
                               <input
                                 type="text"
                                 value={location}
-                                onChange={(e) => setLocation(e.target.value)}
+                                onChange={(e) => {
+                                  setLocation(e.target.value);
+                                  setIsFormDirty(true);
+                                }}
                                 placeholder="e.g. Champ de Mars, 5 Avenue Anatole France, 75007 Paris"
                                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-[#5fa6d9] text-slate-700 dark:text-slate-300"
                               />
@@ -4254,7 +4480,7 @@ export default function Inventory() {
                         </div>
 
                       {/* Section 2: Experience Highlights (Customer Detail Page) */}
-                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-5">
+                      <div id="sec-highlights" className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs space-y-5">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/60 gap-3">
                           <div className="flex items-center gap-2.5">
                             <div className="w-1.5 h-5 bg-[#e3000f] rounded-sm shrink-0" />
@@ -4476,7 +4702,7 @@ export default function Inventory() {
                       </div>
 
                       {/* Section 3: Geographical Settings */}
-                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
+                      <div id="sec-geo" className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs space-y-4">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <Globe className="w-4 h-4 text-[#5fa6d9]" />
                           <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Geographical Time Zone & Currency</h3>
@@ -4526,7 +4752,7 @@ export default function Inventory() {
                         </div>
 
                       {/* Section 4: Classification & Supplier */}
-                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
+                      <div id="sec-class" className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs space-y-4">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <Layers className="w-4 h-4 text-[#5fa6d9]" />
                           <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Classification & Supplier</h3>
@@ -4606,7 +4832,7 @@ export default function Inventory() {
                         </div>
 
                       {/* Section 5: Features & Badges */}
-                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
+                      <div id="sec-features" className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs space-y-4">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <Sparkles className="w-4 h-4 text-[#5fa6d9]" />
                           <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Features & Badges</h3>
@@ -4643,10 +4869,13 @@ export default function Inventory() {
                         </div>
 
                       {/* Section 6: Pricing Configuration & Limits */}
-                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-4">
-                        <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
-                          <DollarSign className="w-4 h-4 text-[#5fa6d9]" />
-                          <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Pricing Configuration & Limits</h3>
+                      <div id="sec-pricing" className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs space-y-4">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/60">
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-[#5fa6d9]" />
+                            <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Pricing Configuration & Limits</h3>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-semibold">Base Currency: {selectedCurrencyObj.code}</span>
                         </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -4669,6 +4898,7 @@ export default function Inventory() {
                                       if (val === '') val = '0';
                                     }
                                     setPrice(val);
+                                    setIsFormDirty(true);
                                   }}
                                   placeholder="85.00"
                                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md pl-12 pr-3 py-2.5 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:border-[#5fa6d9] font-mono"
@@ -4694,6 +4924,7 @@ export default function Inventory() {
                                       if (val === '') val = '0';
                                     }
                                     setDiscountPrice(val);
+                                    setIsFormDirty(true);
                                   }}
                                   placeholder="e.g. 65.00"
                                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md pl-12 pr-3 py-2.5 text-sm font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:border-emerald-500 font-mono"
@@ -4708,7 +4939,10 @@ export default function Inventory() {
                               <div className="flex items-center gap-2">
                                 <select
                                   value={capacityType}
-                                  onChange={(e) => setCapacityType(e.target.value as "custom" | "no-limit")}
+                                  onChange={(e) => {
+                                    setCapacityType(e.target.value as "custom" | "no-limit");
+                                    setIsFormDirty(true);
+                                  }}
                                   className="w-1/2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:border-[#5fa6d9]"
                                 >
                                   <option value="custom">Custom Limit</option>
@@ -4727,6 +4961,7 @@ export default function Inventory() {
                                         if (val === '') val = '0';
                                       }
                                       setCapacity(val);
+                                      setIsFormDirty(true);
                                     }}
                                     placeholder="500"
                                     className="w-1/2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2.5 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:border-[#5fa6d9] animate-in fade-in zoom-in-95 duration-200"
@@ -4741,10 +4976,67 @@ export default function Inventory() {
                               </div>
                             </div>
                           </div>
+
+                          {/* Live Multi-Currency Conversion Matrix */}
+                          {Number(price) > 0 && (
+                            <div className="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Coins className="w-4 h-4 text-[#5fa6d9]" />
+                                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                    Live Multi-Currency Storefront Conversion Rates
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  Auto-calculated via interbank rates
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                                {[
+                                  { code: 'EUR', symbol: '€', rate: 1 },
+                                  { code: 'USD', symbol: '$', rate: 1.08 },
+                                  { code: 'GBP', symbol: '£', rate: 0.86 },
+                                  { code: 'INR', symbol: '₹', rate: 90.00 },
+                                  { code: 'AED', symbol: 'د.إ', rate: 3.97 },
+                                  { code: 'AUD', symbol: 'A$', rate: 1.62 },
+                                ].map((curr) => {
+                                  const baseVal = Number(price);
+                                  const converted = (baseVal * curr.rate).toLocaleString(undefined, {
+                                    minimumFractionDigits: curr.code === 'INR' ? 0 : 2,
+                                    maximumFractionDigits: curr.code === 'INR' ? 0 : 2,
+                                  });
+                                  const hasDiscount = Number(discountPrice) > 0;
+                                  const convertedDiscount = hasDiscount
+                                    ? (Number(discountPrice) * curr.rate).toLocaleString(undefined, {
+                                        minimumFractionDigits: curr.code === 'INR' ? 0 : 2,
+                                        maximumFractionDigits: curr.code === 'INR' ? 0 : 2,
+                                      })
+                                    : null;
+
+                                  return (
+                                    <div key={curr.code} className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800/70 flex flex-col justify-between">
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase">{curr.code} ({curr.symbol})</span>
+                                      <div className="mt-1">
+                                        <p className="text-xs font-mono font-bold text-slate-900 dark:text-white">
+                                          {curr.symbol} {converted}
+                                        </p>
+                                        {convertedDiscount && (
+                                          <p className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                                            Promo: {curr.symbol} {convertedDiscount}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                       {/* Section 7: Logistics & Operational Hours */}
-                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-6">
+                      <div id="sec-logistics" className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs space-y-6">
                         <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                           <Clock className="w-4 h-4 text-[#5fa6d9]" />
                           <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Logistics & Operational Hours</h3>
@@ -5155,7 +5447,10 @@ export default function Inventory() {
                               <input
                                 type="checkbox"
                                 checked={allowLastMinuteBooking}
-                                onChange={(e) => setAllowLastMinuteBooking(e.target.checked)}
+                                onChange={(e) => {
+                                  setAllowLastMinuteBooking(e.target.checked);
+                                  setIsFormDirty(true);
+                                }}
                                 className="w-4 h-4 rounded text-[#5fa6d9] focus:ring-[#5fa6d9] border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 transition-colors"
                               />
                               <div>
@@ -5171,11 +5466,129 @@ export default function Inventory() {
                         </div>
                       </div>
 
+                      {/* Section 8: Search Engine Optimization (SEO) & Google SERP */}
+                      <div id="sec-seo" className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs space-y-5">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/60">
+                          <div className="flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-[#5fa6d9]" />
+                            <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                              Search Engine Optimization (SEO) & Google SERP
+                            </h3>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-semibold">
+                            Google Indexing Simulator
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            {/* URL Slug */}
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Custom URL Slug
+                              </label>
+                              <div className="flex items-center bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden focus-within:border-[#5fa6d9]">
+                                <span className="px-3 py-2 text-xs text-slate-400 font-mono bg-slate-100 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 select-none">
+                                  /attraction/
+                                </span>
+                                <input
+                                  type="text"
+                                  value={customSlug}
+                                  onChange={(e) => {
+                                    setCustomSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"));
+                                    setIsFormDirty(true);
+                                  }}
+                                  placeholder="e.g. acropolis-fast-track-ticket"
+                                  className="flex-1 bg-transparent px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none"
+                                />
+                              </div>
+                            </div>
+
+                            {/* SEO Title */}
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                  SEO Page Title
+                                </label>
+                                <span className={`text-[10px] font-mono font-bold ${
+                                  (seoTitle || name).length <= 60 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-500"
+                                }`}>
+                                  {(seoTitle || name).length} / 60 chars
+                                </span>
+                              </div>
+                              <input
+                                type="text"
+                                value={seoTitle}
+                                onChange={(e) => {
+                                  setSeoTitle(e.target.value);
+                                  setIsFormDirty(true);
+                                }}
+                                placeholder={name || "Activity Page Title"}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-4 py-2 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-[#5fa6d9]"
+                              />
+                            </div>
+
+                            {/* Meta Description */}
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                  Meta Description
+                                </label>
+                                <span className={`text-[10px] font-mono font-bold ${
+                                  (seoDescription || description).slice(0, 160).length >= 80 && (seoDescription || description).slice(0, 160).length <= 160
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : "text-slate-400"
+                                }`}>
+                                  {(seoDescription || description).slice(0, 160).length} / 160 chars
+                                </span>
+                              </div>
+                              <textarea
+                                rows={3}
+                                value={seoDescription}
+                                onChange={(e) => {
+                                  setSeoDescription(e.target.value);
+                                  setIsFormDirty(true);
+                                }}
+                                placeholder={description?.slice(0, 160) || "Official skip-the-line entrance tickets, instant mobile voucher, and live confirmation."}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md p-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#5fa6d9] leading-relaxed"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Google SERP Live Simulation Box */}
+                          <div className="space-y-2">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              Google Search Engine Result Preview
+                            </span>
+                            <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1.5">
+                              <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 truncate">
+                                <span className="text-[11px] font-medium text-slate-500">https://tiqsey.com</span>
+                                <span className="text-slate-300">›</span>
+                                <span className="text-[11px] font-medium text-slate-500">attraction</span>
+                                <span className="text-slate-300">›</span>
+                                <span className="text-[11px] text-slate-400 font-mono truncate">{customSlug || "product-slug"}</span>
+                              </div>
+                              <h4 className="text-sm font-medium text-[#1a0dab] dark:text-[#8ab4f8] hover:underline cursor-pointer line-clamp-1">
+                                {seoTitle || name || "Activity Name"} | Tiqsey Official Tickets
+                              </h4>
+                              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                                {seoDescription || description || "Book official tickets and skip-the-line entrance with instant confirmation, digital mobile vouchers, and guaranteed access."}
+                              </p>
+                              <div className="pt-2 flex items-center gap-3 text-[11px] text-slate-400">
+                                <span>Rating: 4.8 ★ · 12 reviews</span>
+                                <span>·</span>
+                                <span>From {selectedCurrencyObj.symbol}{Number(price) || 20}.00</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Tab Save Button */}
                       <div className="flex justify-end pt-4 mt-6 border-t border-slate-100 dark:border-slate-800/50">
                         <button
                           type="submit"
-                          className="flex items-center gap-1.5 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white px-4 py-2 rounded-md font-bold transition-colors shadow-sm text-xs cursor-pointer"
+                          className="flex items-center gap-1.5 bg-[#e3000f] hover:bg-[#c9000d] text-white px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm text-xs cursor-pointer"
                         >
                           <Save className="w-3.5 h-3.5" />
                           Save Changes
@@ -5742,27 +6155,80 @@ export default function Inventory() {
 
               </form>
 
-            </div>
-
             {/* Modal Footer */}
-            <div className="flex justify-end items-center px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 gap-3">
-              <button
-                type="button"
-                onClick={() => navigate("/inventory")}
-                className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-md text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="attraction-form"
-                className="flex items-center gap-1.5 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white px-4 py-2 rounded-md font-bold transition-colors shadow-sm text-xs cursor-pointer"
-              >
-                <Save className="w-3.5 h-3.5" />
-                Save Changes
-              </button>
+            <div className="flex justify-between items-center px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 gap-3">
+              <div className="text-xs text-slate-400 font-medium">
+                {isFormDirty ? (
+                  <span className="text-amber-500 font-semibold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    Unsaved edits detected
+                  </span>
+                ) : (
+                  <span>All modifications synchronized</span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate("/inventory")}
+                  className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="attraction-form"
+                  className="flex items-center gap-1.5 bg-[#e3000f] hover:bg-[#c9000d] text-white px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm text-xs cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* FLOATING UNSAVED CHANGES BAR */}
+          {isFormDirty && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center gap-4 animate-in slide-in-from-bottom-5 duration-200">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-xs font-bold text-slate-200">
+                  Careful — you have unsaved changes on this product
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (editingAttraction) {
+                      setName(editingAttraction.name || "");
+                      setPrice(editingAttraction.price ?? "");
+                      setDiscountPrice(editingAttraction.discountPrice ?? "");
+                      setIsFormDirty(false);
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                >
+                  Revert
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="px-4 py-1.5 rounded-lg text-xs font-black bg-[#e3000f] hover:bg-[#c9000d] text-white transition-colors cursor-pointer shadow-sm"
+                >
+                  Save Now (⌘S)
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* DUPLICATE SUCCESS TOAST */}
+          {duplicateSuccessToast && (
+            <div className="fixed top-6 right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 text-xs font-bold animate-in slide-in-from-top-3 duration-200">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Product duplicated successfully as a new draft!</span>
+            </div>
+          )}
         </div>
       )}
 
