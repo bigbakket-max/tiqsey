@@ -4099,7 +4099,8 @@ export default function Inventory() {
       ) : (
         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300 relative">
           {/* STICKY TOP ACTION HEADER */}
-          <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm -mt-4 lg:-mt-5 -mx-4 lg:-mx-8 px-4 lg:px-8 py-3.5 transition-all">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
             {/* Left: Breadcrumbs + Title + Product ID + Status */}
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center flex-wrap gap-2 text-xs text-slate-400 font-medium">
@@ -4221,6 +4222,7 @@ export default function Inventory() {
                 <Save className="w-3.5 h-3.5" />
                 <span>Save Changes</span>
               </button>
+            </div>
             </div>
           </div>
 
