@@ -25,6 +25,7 @@ import {
   AlertCircle,
   Sparkles,
   CheckCircle2,
+  Loader2,
   ArrowUpDown,
   Compass,
   MapPin,
@@ -471,6 +472,7 @@ export default function Inventory() {
 
   // Modal state
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [isSavingConfirm, setIsSavingConfirm] = useState(false);
   const [editingAttraction, setEditingAttraction] = useState<Attraction | null>(null);
   const [activeTab, setActiveTab] = useState("Primary");
   const loadedIdRef = useRef<string | null>(null);
@@ -1458,8 +1460,10 @@ export default function Inventory() {
   };
 
   const executeSave = async () => {
+    setIsSavingConfirm(true);
     showLoader();
-    await new Promise(resolve => setTimeout(resolve, 600));
+    try {
+      await new Promise(resolve => setTimeout(resolve, 600));
     const highlights = highlightsInput
       .split("\n")
       .map((line) => line.trim())
@@ -1569,6 +1573,9 @@ export default function Inventory() {
     setShowSaveConfirm(false);
     hideLoader();
     navigate("/inventory");
+    } finally {
+      setIsSavingConfirm(false);
+    }
   };
 
   // Change sort configuration
@@ -6255,36 +6262,130 @@ export default function Inventory() {
 
       {/* Save Confirmation Modal */}
       {showSaveConfirm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden p-6 text-center space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
-              <AlertCircle className="w-6 h-6" />
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                Do you want to save the changes ?
-              </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Are you sure you want to save the changes for <strong className="text-slate-800 dark:text-white">"{name || "this attraction"}"</strong>? This will update the inventory on the website catalog.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center gap-3 pt-2">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div 
+            className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col"
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Modal Header */}
+            <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800/80 flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-[#e3000f]/10 dark:bg-[#e3000f]/20 text-[#e3000f] flex items-center justify-center shrink-0 border border-[#e3000f]/20 shadow-xs">
+                  <Save className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                    Save changes to product?
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Review summary details before updating the live catalog.
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
+                disabled={isSavingConfirm}
                 onClick={() => setShowSaveConfirm(false)}
-                className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                aria-label="Close"
               >
-                No, Cancel
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body - Product Summary Card */}
+            <div className="p-6 space-y-4">
+              {/* Product Preview Card */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center gap-3.5">
+                <img
+                  src={imageUrl.trim() || (galleryUrls && galleryUrls[0]) || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=400&q=80"}
+                  alt={name || "Product preview"}
+                  className="w-14 h-14 rounded-lg object-cover border border-slate-200/80 dark:border-slate-800 shrink-0 bg-slate-100 dark:bg-slate-800"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800">
+                      ID: {editingAttraction ? (editingAttraction.productId || getDisplayProductId(editingAttraction)) : assignedProductId}
+                    </span>
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      productStatus === 'active' 
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/50' 
+                        : productStatus === 'paused'
+                        ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/50'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${productStatus === 'active' ? 'bg-emerald-500 animate-pulse' : productStatus === 'paused' ? 'bg-amber-500' : 'bg-slate-400'}`}></span>
+                      <span className="capitalize">{productStatus}</span>
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white truncate">
+                    {name || "Untitled Activity"}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                    {category || "Attraction"} · {city || "Destination"}{country ? `, ${country}` : ""}
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Details Stats Grid */}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Base Price</p>
+                  <p className="text-sm font-mono font-black text-slate-900 dark:text-white mt-0.5">
+                    {selectedCurrencyObj?.code || "EUR"} {price ? Number(price).toFixed(2) : "0.00"}
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Variants</p>
+                  <p className="text-sm font-mono font-black text-slate-900 dark:text-white mt-0.5">
+                    {variants.length} {variants.length === 1 ? "Option" : "Options"}
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Media Gallery</p>
+                  <p className="text-sm font-mono font-black text-slate-900 dark:text-white mt-0.5">
+                    {galleryUrls.length} {galleryUrls.length === 1 ? "Photo" : "Photos"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Sync Notice */}
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/40 text-xs text-blue-900 dark:text-blue-200">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                <p className="leading-relaxed text-[11.5px]">
+                  Saving will immediately synchronize all pricing, availability rules, and highlights across the live website catalog and search fields.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="p-4 bg-slate-50/80 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={isSavingConfirm}
+                onClick={() => setShowSaveConfirm(false)}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+              >
+                No, Keep Editing
               </button>
               <button
                 type="button"
+                disabled={isSavingConfirm}
                 onClick={executeSave}
-                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+                className="px-5 py-2 bg-[#e3000f] hover:bg-[#c9000d] text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow-[#e3000f]/20 active:scale-98 cursor-pointer flex items-center gap-2 disabled:opacity-75"
               >
-                <Save className="w-4 h-4" />
-                Yes, Save
+                {isSavingConfirm ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Yes, Save Changes</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
