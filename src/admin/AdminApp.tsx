@@ -14,6 +14,7 @@ import PromotionalBanners from './pages/PromotionalBanners';
 import PromotionalBannerForm from './pages/PromotionalBannerForm';
 import GeminiLogoShowcase from './pages/GeminiLogoShowcase';
 import FaviconManagement from './pages/FaviconManagement';
+import InstagramManagement from './pages/InstagramManagement';
 
 function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -51,6 +52,7 @@ export default function AdminApp() {
             <Route path="promotional-banners/new" element={<PromotionalBannerForm />} />
             <Route path="promotional-banners/edit/:id" element={<PromotionalBannerForm />} />
             <Route path="favicon" element={<FaviconManagement />} />
+            <Route path="instagram" element={<InstagramManagement />} />
             <Route path="custom-domain" element={<Navigate to="/" replace />} />
             <Route path="website/domain" element={<Navigate to="/" replace />} />
             <Route path="gemini-logo" element={<GeminiLogoShowcase />} />

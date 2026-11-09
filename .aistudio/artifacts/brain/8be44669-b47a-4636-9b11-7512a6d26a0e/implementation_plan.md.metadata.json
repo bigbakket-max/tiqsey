@@ -1,6 +1,6 @@
 {
-  "summary":  "Comprehensive redesign plan for the Admin Edit Product page. Includes sticky top action bar, breadcrumb navigation with one-click Product ID copy, live customer product preview link, status toggle (Active/Paused/Draft), modernized tab navigation with dynamic item counters, floating unsaved changes bar, reorganized accordion sections, quick-jump anchor menu, live multi-currency price preview, 1-click product cloning, and Google SERP SEO/meta preview.",
-  "updatedAt":  "2026-11-09T06:35:53.317264806Z",
+  "summary":  "Implementation plan for connecting Tiqsey with Instagram (@tiqsey_official) and building an automated social publishing system. Features an Instagram Management dashboard in the admin panel, AI caption and hashtag generation via Gemini, single-image and carousel post formats, scheduling, live preview mockup, Meta Graph API integration, performance analytics, and automated draft triggers on product creation.",
+  "updatedAt":  "2026-11-09T11:16:01.754276583Z",
   "requestFeedback":  true,
   "userFacing":  true
 }
