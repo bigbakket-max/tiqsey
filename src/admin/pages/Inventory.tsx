@@ -4072,8 +4072,8 @@ export default function Inventory() {
         </>
       ) : (
         <div className="animate-in slide-in-from-bottom-4 duration-300">
-          {/* Top Sticky Toolbar - Full Bleed Edge-to-Edge with solid background */}
-          <div className="-mt-4 lg:-mt-5 -mx-4 lg:-mx-8 px-4 lg:px-8 py-3.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+          {/* Top Sticky Toolbar - Aligned to scroll container top */}
+          <div className="-mt-5 -mx-4 lg:-mx-8 px-4 lg:px-8 py-3.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky -top-5 lg:-top-5 z-30 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
             {/* Left Column: Breadcrumbs, Title, Product ID & Status */}
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center flex-wrap gap-2 text-xs">
