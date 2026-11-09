@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAdminLoader } from "../contexts/AdminLoaderContext";
 import { WysiwygEditor, TabbedWysiwygEditor } from "../components/WysiwygEditor";
@@ -473,6 +473,12 @@ export default function Inventory() {
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [editingAttraction, setEditingAttraction] = useState<Attraction | null>(null);
   const [activeTab, setActiveTab] = useState("Primary");
+  const loadedIdRef = useRef<string | null>(null);
+  const [isCopiedId, setIsCopiedId] = useState(false);
+  const [productStatus, setProductStatus] = useState<"active" | "paused" | "draft">("active");
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+  const [customSlug, setCustomSlug] = useState("");
 
   // Form states
   const [assignedProductId, setAssignedProductId] = useState<string>("");
@@ -744,9 +750,15 @@ export default function Inventory() {
 
   useEffect(() => {
     if (isEditRoute && id) {
+      if (loadedIdRef.current === id) return;
       const attr = attractions.find(a => a.id === id);
       if (attr) {
+        loadedIdRef.current = id;
         setEditingAttraction(attr);
+        setProductStatus(attr.isAvailable ? "active" : "paused");
+        setSeoTitle(attr.name || "");
+        setSeoDescription(attr.description || "");
+        setCustomSlug(attr.id || "");
         setActiveTab("Primary");
         setName(attr.name || "");
         setLocation(attr.location || "");
@@ -965,7 +977,13 @@ export default function Inventory() {
         }
       }
     } else if (isNewRoute) {
+      if (loadedIdRef.current === "__new__") return;
+      loadedIdRef.current = "__new__";
       setEditingAttraction(null);
+      setProductStatus("active");
+      setSeoTitle("");
+      setSeoDescription("");
+      setCustomSlug("");
       setActiveTab("Primary");
       setAssignedProductId(generateUniqueProductId(attractions));
       setName("");
@@ -1027,6 +1045,8 @@ export default function Inventory() {
       setGalleryUrls([]);
       setIsReordering(false);
       setVariants([]);
+    } else {
+      loadedIdRef.current = null;
     }
   }, [id, isEditRoute, isNewRoute, attractions]);
 
@@ -1264,6 +1284,34 @@ export default function Inventory() {
     navigate(`/inventory/edit/${attr.id}`);
   };
 
+  // Duplicate an existing product as a new draft
+  const handleDuplicateProduct = () => {
+    if (!editingAttraction) return;
+    const newId = generateUniqueProductId(attractions);
+    const clonedName = `${name || editingAttraction.name} (Copy)`;
+    const cloned: Attraction = {
+      ...editingAttraction,
+      id: newId,
+      productId: newId,
+      name: clonedName,
+      isAvailable: false,
+      rating: 5.0,
+      reviewsCount: 0,
+      galleryUrls: [...galleryUrls],
+      variants: [...variants],
+    };
+    const updated = [cloned, ...attractions];
+    setAttractions(updated);
+    syncCustomAttractions(updated);
+    fetch("/api/inventory/attractions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cloned)
+    }).catch(() => {});
+    loadedIdRef.current = null;
+    navigate(`/inventory/edit/${newId}`);
+  };
+
   // Handle opening quick highlights editor directly from catalogue table
   const handleOpenQuickHighlights = (attr: Attraction) => {
     setQuickHighlightsAttr(attr);
@@ -1479,7 +1527,7 @@ export default function Inventory() {
       imageUrl: effectiveImageUrl,
       isPopular,
       fastTrack,
-      isAvailable,
+      isAvailable: productStatus === "active",
       description: description.trim(),
       highlights,
       included,
@@ -1517,6 +1565,7 @@ export default function Inventory() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(attractionData)
     }).catch(() => {});
+    loadedIdRef.current = null;
     setShowSaveConfirm(false);
     hideLoader();
     navigate("/inventory");
@@ -4023,63 +4072,185 @@ export default function Inventory() {
         </>
       ) : (
         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
-          {/* Header Card */}
-          <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-md p-6 flex justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-[#5fa6d9]/10 text-[#5fa6d9] rounded-lg shrink-0">
-                <Layers className="w-6 h-6" />
+          {/* Sticky Top Action Header */}
+          <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-md p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all">
+            {/* Left Column: Breadcrumbs, Title, Product ID & Status */}
+            <div className="space-y-2">
+              <div className="flex items-center flex-wrap gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => navigate("/inventory")}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Inventory</span>
+                </button>
+                <span className="text-slate-300 dark:text-slate-700">/</span>
+                <span className="font-semibold text-slate-500 dark:text-slate-400">
+                  {editingAttraction ? "Edit Product" : "New Product"}
+                </span>
+                <span className="text-slate-300 dark:text-slate-700">/</span>
+                
+                {/* 1-Click Copy Product ID Badge */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const idToCopy = editingAttraction
+                      ? (editingAttraction.productId || getDisplayProductId(editingAttraction))
+                      : assignedProductId;
+                    navigator.clipboard.writeText(idToCopy);
+                    setIsCopiedId(true);
+                    setTimeout(() => setIsCopiedId(false), 2000);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                  title="Click to copy Product ID"
+                >
+                  <span>Product ID: {editingAttraction ? (editingAttraction.productId || getDisplayProductId(editingAttraction)) : assignedProductId}</span>
+                  {isCopiedId ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                  {isCopiedId && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-sans font-bold">Copied!</span>}
+                </button>
               </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center flex-wrap gap-2">
-                  {editingAttraction ? (
-                    <>
-                      <span>Edit Product</span>
-                      <span className="text-slate-300 dark:text-slate-700 font-normal">—</span>
-                      <span className="text-slate-900 dark:text-white">{name || editingAttraction.name}</span>
-                    </>
-                  ) : (
-                    "Add New Product"
-                  )}
+
+              <div className="flex items-center flex-wrap gap-3">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {name || (editingAttraction ? editingAttraction.name : "New Product")}
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                  {editingAttraction ? "Update the details, pricing, and variants for this product." : "Create a new bookable product or experience to add to your inventory."}
-                </p>
+
+                {/* Status Segmented Control */}
+                <div className="inline-flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => { setProductStatus("active"); setIsAvailable(true); }}
+                    className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
+                      productStatus === "active"
+                        ? "bg-emerald-600 text-white shadow-2xs"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
+                    <span>Active</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setProductStatus("paused"); setIsAvailable(false); }}
+                    className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
+                      productStatus === "paused"
+                        ? "bg-amber-600 text-white shadow-2xs"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                  >
+                    <Pause className="w-3 h-3" />
+                    <span>Paused</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setProductStatus("draft"); setIsAvailable(false); }}
+                    className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
+                      productStatus === "draft"
+                        ? "bg-slate-700 text-white shadow-2xs"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                  >
+                    <span>Draft</span>
+                  </button>
+                </div>
               </div>
+            </div>
+
+            {/* Right Column: Actions (Live Storefront Link, Duplicate, Discard, Save) */}
+            <div className="flex items-center flex-wrap gap-2.5 shrink-0">
+              {editingAttraction && (
+                <a
+                  href={`/#/attraction/${editingAttraction.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 rounded-lg transition-colors shadow-2xs"
+                  title="View this product on the public customer storefront"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                  <span>View Live Product</span>
+                </a>
+              )}
+
+              {editingAttraction && (
+                <button
+                  type="button"
+                  onClick={handleDuplicateProduct}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                  title="Clone this attraction as a new draft"
+                >
+                  <Copy className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>Duplicate</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("Discard unsaved changes and return to Inventory?")) {
+                    loadedIdRef.current = null;
+                    navigate("/inventory");
+                  }
+                }}
+                className="px-3.5 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                Discard
+              </button>
+
+              <button
+                type="submit"
+                form="attraction-form"
+                className="flex items-center gap-1.5 bg-[#e3000f] hover:bg-[#c9000d] text-white px-5 py-2 rounded-lg font-bold transition-all shadow-sm hover:shadow-[#e3000f]/20 active:scale-98 text-xs cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save Changes</span>
+              </button>
             </div>
           </div>
 
           {/* Form Content Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-md overflow-hidden flex flex-col">
             {/* Scrollable Container with form and real-time preview stacked vertically */}
             <div className="flex-1 overflow-y-auto flex flex-col gap-0 bg-slate-50 dark:bg-slate-950/20">
               
               {/* Form Input Section */}
               <form id="attraction-form" onSubmit={handleSave} className="w-full flex flex-col sm:flex-row border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
                 {/* Vertical Tabs Sidebar */}
-                <div className="flex flex-row sm:flex-col sm:w-52 bg-slate-50 dark:bg-slate-950/40 border-b sm:border-b-0 sm:border-r border-slate-200 dark:border-slate-800/80 p-4 gap-1.5 text-sm font-bold text-slate-400 shrink-0 overflow-x-auto sm:overflow-x-visible">
-                  {(() => {
-                    const tabIcons: Record<string, React.ReactNode> = {
-                      "Primary": <Home className="w-4 h-4" />,
-                      "Variants": <Layers className="w-4 h-4" />,
-                      "Gallary": <Image className="w-4 h-4" />,
-                      "Live Ticket Preview": <Compass className="w-4 h-4" />
-                    };
-                    return ["Primary", "Variants", "Gallary", "Live Ticket Preview"].map(tab => (
+                <div className="flex flex-row sm:flex-col sm:w-60 bg-slate-50 dark:bg-slate-950/40 border-b sm:border-b-0 sm:border-r border-slate-200 dark:border-slate-800/80 p-4 gap-1.5 text-sm font-bold text-slate-400 shrink-0 overflow-x-auto sm:overflow-x-visible">
+                  {[
+                    { key: "Primary", label: "Primary Details", icon: <Home className="w-4 h-4" /> },
+                    { key: "Variants", label: "Ticket Variants", count: variants.length, icon: <Layers className="w-4 h-4" /> },
+                    { key: "Gallary", label: "Gallery", count: galleryUrls.length, icon: <Image className="w-4 h-4" /> },
+                    { key: "Live Ticket Preview", label: "Live Ticket Preview", icon: <Compass className="w-4 h-4" /> }
+                  ].map(tab => {
+                    const isActive = activeTab === tab.key;
+                    return (
                       <button
-                        key={tab}
+                        key={tab.key}
                         type="button"
-                        onClick={() => setActiveTab(tab)}
-                        className={`py-2.5 px-3.5 rounded-lg text-left transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-2.5 ${
-                          activeTab === tab
-                            ? "bg-[#5fa6d9]/15 text-[#5fa6d9] font-black"
-                            : "hover:bg-slate-100/80 dark:hover:bg-slate-900/60 hover:text-slate-600 dark:hover:text-slate-300"
+                        onClick={() => setActiveTab(tab.key)}
+                        className={`py-2.5 px-3.5 rounded-xl text-left transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center justify-between gap-2.5 ${
+                          isActive
+                            ? "bg-[#e3000f]/10 text-[#e3000f] font-black border border-[#e3000f]/20 dark:bg-[#e3000f]/20"
+                            : "hover:bg-slate-100/80 dark:hover:bg-slate-900/60 hover:text-slate-700 dark:hover:text-slate-200"
                         }`}
                       >
-                        {tabIcons[tab] || <Home className="w-4 h-4" />}
-                        <span>{tab}</span>
+                        <div className="flex items-center gap-2.5">
+                          <span className={isActive ? "text-[#e3000f]" : "text-slate-400"}>{tab.icon}</span>
+                          <span>{tab.label}</span>
+                        </div>
+                        {tab.count !== undefined && (
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                            isActive
+                              ? "bg-[#e3000f] text-white"
+                              : "bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                          }`}>
+                            {tab.count}
+                          </span>
+                        )}
                       </button>
-                    ));
-                  })()}
+                    );
+                  })}
                 </div>
                 
                 <div className="flex-1 p-6 lg:p-10 space-y-8">
@@ -4741,6 +4912,38 @@ export default function Inventory() {
                               </div>
                             </div>
                           </div>
+
+                          {/* Multi-Currency Live Conversion Matrix */}
+                          <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <Coins className="w-3.5 h-3.5 text-amber-500" />
+                                Live Multi-Currency Preview (Interbank Conversion)
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium">Auto-computed for international visitors</span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                              {[
+                                { code: "EUR", symbol: "€", rate: 1 },
+                                { code: "USD", symbol: "$", rate: 1.08 },
+                                { code: "GBP", symbol: "£", rate: 0.85 },
+                                { code: "INR", symbol: "₹", rate: 90.0 },
+                                { code: "AED", symbol: "AED", rate: 3.97 },
+                                { code: "AUD", symbol: "A$", rate: 1.64 }
+                              ].map((curr) => {
+                                const baseNum = Number(price) || 0;
+                                const converted = (baseNum * curr.rate).toFixed(curr.code === "INR" ? 0 : 2);
+                                return (
+                                  <div key={curr.code} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 text-center">
+                                    <span className="block text-[10px] font-bold text-slate-400">{curr.code} ({curr.symbol})</span>
+                                    <span className="block text-xs font-mono font-bold text-slate-900 dark:text-white mt-0.5">
+                                      {curr.symbol} {converted}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </div>
 
                       {/* Section 7: Logistics & Operational Hours */}
@@ -5171,11 +5374,95 @@ export default function Inventory() {
                         </div>
                       </div>
 
+                      {/* Section 9: Search Engine Optimization (SEO) & SERP Preview */}
+                      <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl shadow-sm space-y-5">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/60">
+                          <div className="flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-[#e3000f]" />
+                            <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                              Search Engine Optimization (SEO) & URL Slug
+                            </h3>
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                            Google SERP Preview
+                          </span>
+                        </div>
+
+                        {/* Interactive Google SERP Card Preview */}
+                        <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200/70 dark:border-slate-800/80 space-y-1.5">
+                          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                            <div className="w-4 h-4 rounded-full bg-[#e3000f] text-white flex items-center justify-center text-[9px] font-black">T</div>
+                            <span className="font-medium text-slate-700 dark:text-slate-300">Tiqsey</span>
+                            <span className="text-slate-400">https://tiqsey.com › attraction › {customSlug || (editingAttraction ? editingAttraction.id : "ticket")}</span>
+                          </div>
+                          <h4 className="text-sm font-semibold text-[#1a0dab] dark:text-[#8ab4f8] hover:underline cursor-pointer">
+                            {(seoTitle || name || "Activity Name")} | Official Tickets & Tours | Tiqsey
+                          </h4>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                            {seoDescription || description || "Book official tickets and skip-the-line passes with instant mobile confirmation, flexible cancellation, and 24/7 customer support on Tiqsey."}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                Custom URL Slug
+                              </label>
+                              <span className="text-[9px] text-slate-400 font-mono">/attraction/{customSlug || (editingAttraction ? editingAttraction.id : "")}</span>
+                            </div>
+                            <input
+                              type="text"
+                              value={customSlug}
+                              onChange={(e) => setCustomSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                              placeholder="e.g. acropolis-fast-track-ticket"
+                              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-3.5 py-2 text-xs font-mono font-bold text-slate-800 dark:text-white focus:outline-none focus:border-[#e3000f]"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                SEO Meta Title
+                              </label>
+                              <span className={`text-[9px] font-mono font-bold ${(seoTitle.length > 60) ? "text-amber-500" : "text-emerald-500"}`}>
+                                {seoTitle.length}/60 chars
+                              </span>
+                            </div>
+                            <input
+                              type="text"
+                              value={seoTitle}
+                              onChange={(e) => setSeoTitle(e.target.value)}
+                              placeholder="e.g. Skip-the-Line Louvre Museum Tickets"
+                              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md px-3.5 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-[#e3000f]"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              SEO Meta Description
+                            </label>
+                            <span className={`text-[9px] font-mono font-bold ${(seoDescription.length > 160) ? "text-amber-500" : "text-emerald-500"}`}>
+                              {seoDescription.length}/160 chars
+                            </span>
+                          </div>
+                          <textarea
+                            rows={2}
+                            value={seoDescription}
+                            onChange={(e) => setSeoDescription(e.target.value)}
+                            placeholder="Enter 1-2 concise summary sentences that will appear under the title in Google search results..."
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md p-3 text-xs font-medium text-slate-800 dark:text-white focus:outline-none focus:border-[#e3000f] leading-relaxed"
+                          />
+                        </div>
+                      </div>
+
                       {/* Tab Save Button */}
                       <div className="flex justify-end pt-4 mt-6 border-t border-slate-100 dark:border-slate-800/50">
                         <button
                           type="submit"
-                          className="flex items-center gap-1.5 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white px-4 py-2 rounded-md font-bold transition-colors shadow-sm text-xs cursor-pointer"
+                          className="flex items-center gap-1.5 bg-[#e3000f] hover:bg-[#c9000d] text-white px-5 py-2.5 rounded-lg font-bold transition-all shadow-sm text-xs cursor-pointer"
                         >
                           <Save className="w-3.5 h-3.5" />
                           Save Changes
@@ -5729,7 +6016,7 @@ export default function Inventory() {
                       <div className="flex justify-end pt-4 mt-6 border-t border-slate-100 dark:border-slate-800/50 w-full">
                         <button
                           type="submit"
-                          className="flex items-center gap-1.5 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white px-4 py-2 rounded-md font-bold transition-colors shadow-sm text-xs cursor-pointer"
+                          className="flex items-center gap-1.5 bg-[#e3000f] hover:bg-[#c9000d] text-white px-5 py-2.5 rounded-lg font-bold transition-all shadow-sm text-xs cursor-pointer"
                         >
                           <Save className="w-3.5 h-3.5" />
                           Save Changes
@@ -5748,15 +6035,18 @@ export default function Inventory() {
             <div className="flex justify-end items-center px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 gap-3">
               <button
                 type="button"
-                onClick={() => navigate("/inventory")}
-                className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-md text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                onClick={() => {
+                  loadedIdRef.current = null;
+                  navigate("/inventory");
+                }}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 form="attraction-form"
-                className="flex items-center gap-1.5 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white px-4 py-2 rounded-md font-bold transition-colors shadow-sm text-xs cursor-pointer"
+                className="flex items-center gap-1.5 bg-[#e3000f] hover:bg-[#c9000d] text-white px-5 py-2.5 rounded-lg font-bold transition-all shadow-sm hover:shadow-[#e3000f]/20 active:scale-98 text-xs cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5" />
                 Save Changes
