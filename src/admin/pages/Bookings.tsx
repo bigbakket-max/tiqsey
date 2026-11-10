@@ -642,9 +642,9 @@ export default function Bookings() {
     setBookings(finalBookings);
 
     // Keep selectedBooking in sync in real-time if it is currently open
-    if (selectedBooking) {
-      const updatedSelected = finalBookings.find(b => b.id === selectedBooking.id);
-      if (updatedSelected && JSON.stringify(updatedSelected) !== JSON.stringify(selectedBooking)) {
+    if (selectedBookingRef.current) {
+      const updatedSelected = finalBookings.find(b => b.id === selectedBookingRef.current?.id);
+      if (updatedSelected && JSON.stringify(updatedSelected) !== JSON.stringify(selectedBookingRef.current)) {
         setSelectedBooking(updatedSelected);
       }
     }
@@ -652,16 +652,23 @@ export default function Bookings() {
     setIsRefreshing(false);
   };
 
-  // Load bookings on mount and set up automatic real-time updates (polling)
+  const selectedBookingRef = useRef<AdminBooking | null>(null);
+  useEffect(() => {
+    selectedBookingRef.current = selectedBooking;
+  }, [selectedBooking]);
+
+  // Load bookings on mount and set up automatic real-time updates (efficient polling)
   useEffect(() => {
     loadBookings();
 
     const interval = setInterval(() => {
-      loadBookings();
-    }, 3000); // Poll database every 3 seconds for real-time automatic refreshes
+      if (document.visibilityState === 'visible') {
+        loadBookings();
+      }
+    }, 8000); // Poll every 8s when tab is active for smooth performance
 
     return () => clearInterval(interval);
-  }, [selectedBooking]);
+  }, []);
 
   // Sync state back to individual customer's bookings in localStorage if applicable
   const syncToCustomerStorage = (updatedBooking: AdminBooking) => {

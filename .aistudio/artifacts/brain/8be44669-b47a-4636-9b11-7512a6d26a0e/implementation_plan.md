@@ -1,158 +1,105 @@
-# Instagram Integration & Automated Publishing System
+# Tiqsey Admin Panel UI, Animations & Performance Redesign
 
-Connect the official Tiqsey Instagram Business account (`@tiqsey_official`) with the Tiqsey travel marketplace, introducing an automated Instagram publishing suite with AI caption generation, visual carousels, scheduling, and analytics.
-
----
+A comprehensive architectural plan to elevate the Tiqsey Admin Panel into a high-performance, enterprise-grade command center featuring subtle 150–250ms motion transitions, crisp modern white styling, animated accordion navigation, skeleton loaders, and interactive analytics.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following architectural decisions were confirmed based on your preferences:
+> The following architectural parameters have been established based on user selections:
 
-- **Confirmed Publishing Workflow**: Semi-automated mode by default—when new products or activities are added or edited, the system automatically prepares an optimized draft with AI-crafted captions, hashtags, and images. Admins can preview in an interactive phone mockup, tweak copy, and publish in one click, or toggle **Auto-Publish New Products** for instant hands-off publishing.
-- **Confirmed Meta Graph API Setup**: Dedicated Settings in the Admin panel to configure Meta App ID, App Secret, and long-lived Access Token. Includes a **Test Connection** validator, live Instagram Business account verification, token health monitoring, and a sandbox/simulator mode for immediate testing prior to Meta App production review.
-- **Confirmed Post Formats**: Full support for both **Single Photo** showcase cards and **Multi-Image Carousels** (showcasing attraction highlights, ticket options, and photo galleries).
+- **Confirmed Motion Profile**: Subtle and swift animations (150–250ms duration, cubic-bezier timing `[0.16, 1, 0.3, 1]`) ensuring zero layout flicker or UI hesitation.
+- **Confirmed Visual Identity**: Crisp Modern White aesthetic with neutral slate-50 backgrounds, pure white `#FFFFFF` cards, refined 1px border dividers (`border-slate-200/80`), subtle single-elevation shadows (`shadow-xs`), and high-contrast typography.
+- **Confirmed Dashboard Suite**: Full interactive suite featuring time-range trend toggles (7D / 30D / 90D), animated skeleton loading cards, live conversion metrics, and instant search feedback.
+- **Functional Integrity Guarantee**: All existing administrative workflows (Product inventory management, highlights editor, booking voucher downloads, banner scheduling, blog publishing, and favicon tools) will remain completely intact with zero database or API schema alterations.
 
 ---
 
 ## 1. Overview & Core Concept
 
-- **What It Does**: Bridges Tiqsey's catalog of tours, museum tickets, and experiences directly to Instagram (`@tiqsey_official`). Generates high-converting social media posts using product imagery and Gemini-powered travel captions, schedules them for optimal engagement times, tracks likes/comments/reach analytics, and publishes directly via Meta's official Instagram Graph API.
-- **Target Audience / Persona**: Tiqsey administrators, marketing managers, and content creators running promotional social campaigns for European travel activities.
-- **Key Value**: Eliminates tedious manual copywriting and graphic exports. Ensures every new tour or ticket added to Tiqsey immediately benefits from promotional visibility on Instagram with zero friction.
+- **What It Delivers**: Transforms the Tiqsey administrative console into a sleek, responsive, and tactile web workspace with smooth micro-interactions, silky sidebar collapse/expand animations, animated accordion submenus, smooth route transitions, and responsive mobile drawers.
+- **Target Persona**: Tiqsey store operators, inventory administrators, and customer support agents who need rapid, friction-free access to daily bookings, ticket inventory, and website marketing assets.
+- **Key Value**: Eliminates visual abruptness, avoids layout shifts during data loading or navigation, and accelerates administrative workflows with clear typographic hierarchy and responsive feedback.
 
 ---
 
 ## 2. User Experience & Visual Design
 
-### Key User Flows
-
-1. **Instagram Account Connection & Health**:
-   - Admin navigates to **Marketing > Instagram** in the `/secure-panel` sidebar.
-   - Connected account card displays `@tiqsey_official`, profile avatar, account ID, token status, and a **Test Connection** action.
-   - Settings tab allows entering or updating Meta App credentials and toggling **Auto-Publish New Products**.
-
-2. **Automated New Product Publishing Flow**:
-   - When an admin saves a new attraction in **Inventory**, an Instagram draft is automatically synthesized in the background.
-   - Admin receives a banner alert with a direct link to review the generated post in the Instagram Management panel.
-
-3. **Post Creator & Live Feed Mockup**:
-   - Admin selects any product from Tiqsey inventory (or clicks **Generate Post** on any tour card).
-   - Generates instant travel hooks, descriptions, and optimized hashtags using Gemini (`gemini-2.5-flash`).
-   - Admin can choose post format: **Single Photo** or **Carousel Album** (multi-image selector with drag-and-drop order).
-   - Realistic mobile phone preview displays live Instagram feed rendering (profile header, image carousel with dots, like/comment counts, and formatted caption with collapsible `#hashtags`).
-   - Action bar provides: **Publish to Instagram Now**, **Schedule for Later**, or **Save as Draft**.
-
-4. **Post History, Scheduling Queue & Analytics**:
-   - Tabbed queue: **Published Posts**, **Scheduled Queue**, **Drafts**, and **Failed / Retry**.
-   - Published cards display post thumbnail, publication timestamp, direct link to live Instagram post (`https://www.instagram.com/p/...`), and performance metrics (Likes, Comments, Reach, Impressions).
-   - Failed posts display descriptive Meta API error logs and a **Retry Publish** button.
-
 ### Visual Identity & Theme
-- **Theme & Accents**: Consistent with Tiqsey's enterprise admin console (`slate-900` dark mode, `#e3000f` brand red primary buttons, and Instagram gradient accents `#833ab4` `#fd1d1d` `#fcb045` on badges and connection headers).
-- **Typography & Metrics**: High-contrast tabular numbers (`font-mono`) for reach, likes, impressions, and engagement rates. Clean unboxed metadata labels adhering to zero-pill discipline.
-- **Interactive Feedback**: Instant preview updates as caption text is typed, animated loading spinners during API calls, copy-to-clipboard actions for hashtags, and responsive status indicators.
+- **Surface & Depth**: Clean white palette with soft canvas grounding (`bg-slate-50/70`), crisp card surfaces (`bg-white`), single-elevation borders (`border-slate-200/80`), and muted dark mode equivalents (`dark:bg-slate-950`, `dark:border-slate-800`).
+- **Typography & Tabular Numerals**: Strict enforcement of `font-variant-numeric: tabular-nums` (`font-mono` on numbers, timestamps, prices, and PNR identifiers) to prevent metric shifting during live updates and table sorting.
+- **Zero-Pill Discipline**: Metadata displayed as unboxed typographic clusters with subtle separators (`·`, `/`) instead of loud candy badges. Interactive filters implemented as segmented tabs with smooth active background indicators.
+
+### Motion & Micro-Interactions (150ms – 250ms)
+- **Route Transitions**: Page container animates with lightweight opacity fade and 6px vertical slide (`opacity: 0 -> 1`, `y: 6 -> 0`) across 200ms with cubic-bezier easing.
+- **Accordion Navigation**: Submenu expansions in the sidebar use dynamic height and opacity interpolation (`height: 0 -> auto`, `opacity: 0 -> 1`), preventing abrupt pop-ins.
+- **Sidebar Collapse/Expand**: Sidebar width animates smoothly with `transition-[width] duration-250 ease-out`, while navigation labels fade gracefully with `overflow-hidden whitespace-nowrap` to prevent awkward text clipping.
+- **Action Buttons & Cards**: Subtle hover scale and shadow lift (`hover:-translate-y-0.5 hover:shadow-md transition-all duration-200`), accompanied by tactile active press states (`active:scale-[0.98]`).
+- **Skeleton Loaders**: Custom pulsating pulse placeholders matching exact card and table row dimensions, eliminating blank flash states during data retrieval.
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Server-Side Token Security & Meta Proxy**:
-  - *Chosen Approach*: All Meta App Secrets and long-lived Access Tokens are stored server-side in SQLite (`server.ts`) and never exposed to the client. Frontend receives only masked tokens and connection booleans.
-  - *Why*: Strict adherence to Meta security guidelines and platform integrity rules; prevents client token leakage.
-  - *Alternatives Considered*: Client-side SDK calls were rejected because Instagram Graph API strictly forbids exposing user/page tokens in client bundles.
+- **Decision 1: Motion Implementation via Lightweight Motion Components**
+  - *Chosen Approach*: Use `motion/react` with hardware-accelerated transforms (`transform: translate3d`, `opacity`) and strict 150–250ms boundaries.
+  - *Why*: Delivers 60fps animations without repainting the document layout or causing CPU thrashing.
+  - *Alternatives Considered*: CSS-only class toggles were evaluated, but dynamic accordion heights and exit animations require JavaScript measurement for smooth expansion without hardcoded heights.
 
-- **Decision 2: Dual Mode (Live Meta Graph API + Test Sandbox Simulator)**:
-  - *Chosen Approach*: When Meta API credentials are provided, the backend connects directly to Meta's endpoints (`graph.facebook.com/v21.0`). If credentials are empty or pending developer app review, the system automatically runs in high-fidelity Sandbox Mode, allowing the admin to test complete caption generation, scheduling, and queue management without blocking work.
-  - *Why*: Allows immediate testing and verification of the full publishing lifecycle without waiting for Meta's App Review process.
+- **Decision 2: Topbar Header & Breadcrumbs Optimization**
+  - *Chosen Approach*: Refine the top bar into a crisp, streamlined executive navigation bar with clear breadcrumbs, an animated search field with quick keyboard hints, and an accessible mobile toggle.
+  - *Why*: Reduces visual noise while keeping critical administrative shortcuts within single-click reach.
 
-- **Decision 3: Gemini-Powered Multi-Tone Caption Generation**:
-  - *Chosen Approach*: Uses `@google/genai` on the server (`gemini-2.5-flash`) with preset tone selectors: *Engaging Travel Hook*, *Promotional Discount Offer*, *Storytelling & History*, or *Short & Punchy*.
-  - *Why*: Gives admins creative flexibility to match different social media campaigns while keeping brand voice consistent.
+- **Decision 3: Non-Destructive Layered Refactor**
+  - *Chosen Approach*: Upgrade the layout shell, dashboard cards, navigation state machines, and view wrappers while preserving all form hooks, validation refs, and local storage synchronizers in `Inventory.tsx`, `Bookings.tsx`, and `PromotionalBanners.tsx`.
+  - *Why*: Prevents regressions in complex product editing, pricing tiers, and ticket generation workflows.
 
 ---
 
 ## 4. Technical Architecture & Data Strategy
 
-### System Architecture Diagram
+### System & Component Hierarchy
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        Tiqsey Admin Panel                              │
-│                                                                        │
-│   ┌────────────────────┐    ┌──────────────────────────────────────┐   │
-│   │  Inventory / Edit  │    │      Instagram Management Suite      │   │
-│   │   Product Save     │    │  (Connect, Feed Mockup, Analytics)   │   │
-│   └─────────┬──────────┘    └──────────────────┬───────────────────┘   │
-└─────────────┼──────────────────────────────────┼───────────────────────┘
-              │ Trigger New Draft                │ API Operations
-              ▼                                  ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        Backend Server (server.ts)                      │
-│                                                                        │
-│   ┌───────────────────────────┐    ┌───────────────────────────────┐   │
-│   │   Gemini AI Generator     │    │   Instagram Publishing Engine │   │
-│   │ (@google/genai 2.5-flash) │    │   - Container Creator         │   │
-│   └─────────┬─────────────────┘    │   - Carousel Builder          │   │
-│             │                      │   - Media Publisher           │   │
-│             ▼                      │   - Insights & Analytics      │   │
-│   ┌───────────────────────────┐    └───────────────┬───────────────┘   │
-│   │    SQLite Database        │                    │                   │
-│   │  - instagram_settings     │                    │                   │
-│   │  - instagram_posts        │                    │                   │
-│   └───────────────────────────┘                    │                   │
-└────────────────────────────────────────────────────┼───────────────────┘
-                                                     │ Secure HTTPS Calls
-                                                     ▼
-                                      ┌──────────────────────────────┐
-                                      │   Meta Instagram Graph API   │
-                                      │   (@tiqsey_official Account) │
-                                      └──────────────────────────────┘
+│                          AdminLayout Shell                             │
+│  ┌───────────────────────┬──────────────────────────────────────────┐  │
+│  │    Smooth Sidebar     │           Administrative Topbar          │  │
+│  │  - Animated Accordion │  - Global Instant Search & Keyboard Hints│  │
+│  │  - Smooth Width Rail  │  - Breadcrumb Trail with Quick Links     │  │
+│  │  - Active Rail Glow   │  - System Notifications Dropdown         │  │
+│  └───────────┬───────────┴────────────────────┬─────────────────────┘  │
+│              │                                │                        │
+│              ▼                                ▼                        │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                     Smooth Page Transition                       │  │
+│  │                  (AnimatePresence & motion.div)                  │  │
+│  │                                                                  │  │
+│  │   ┌─────────────────────┐               ┌─────────────────────┐  │  │
+│  │   │      Dashboard      │               │     Inventory &     │  │  │
+│  │   │  - Skeleton Cards   │               │      Bookings       │  │  │
+│  │   │  - Interactive 7D/  │               │  - Sticky Toolbar   │  │  │
+│  │   │    30D/90D Trend    │               │  - Tabular Figures  │  │  │
+│  │   │  - Quick Launch Pad │               │  - Clean Filters    │  │  │
+│  │   └─────────────────────┘               └─────────────────────┘  │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Data Models (SQLite)
+### Interactive State & Component Mapping
 
-- **`instagram_settings`**:
-  - `id` (TEXT PRIMARY KEY, 'default')
-  - `account_id` (TEXT)
-  - `username` (TEXT, default 'tiqsey_official')
-  - `profile_picture_url` (TEXT)
-  - `app_id` (TEXT)
-  - `app_secret` (TEXT, encrypted/server-only)
-  - `access_token` (TEXT, server-only)
-  - `is_connected` (INTEGER: 0/1)
-  - `auto_post_new_products` (INTEGER: 0/1)
-  - `default_post_format` (TEXT: 'single' | 'carousel')
-  - `updated_at` (TEXT)
+1. **`AdminLayout`**:
+   - `expandedMenus` animated via `AnimatePresence` with auto-height transitions.
+   - `sidebarCollapsed` state transitions sidebar width cleanly with tooltips when in rail mode.
+   - Mobile menu rendered via an animated sliding drawer with backdrop blur.
+   - Top progress bar synchronized with route changes via `AdminLoaderContext`.
 
-- **`instagram_posts`**:
-  - `id` (TEXT PRIMARY KEY)
-  - `attraction_id` (TEXT)
-  - `attraction_name` (TEXT)
-  - `caption` (TEXT)
-  - `media_type` (TEXT: 'IMAGE' | 'CAROUSEL_ALBUM')
-  - `media_urls` (TEXT: JSON array of image URLs)
-  - `status` (TEXT: 'published' | 'scheduled' | 'draft' | 'failed')
-  - `scheduled_at` (TEXT)
-  - `published_at` (TEXT)
-  - `instagram_post_id` (TEXT)
-  - `permalink` (TEXT)
-  - `likes_count` (INTEGER)
-  - `comments_count` (INTEGER)
-  - `reach_count` (INTEGER)
-  - `impressions_count` (INTEGER)
-  - `error_message` (TEXT)
-  - `created_at` (TEXT)
+2. **`Dashboard`**:
+   - Time-range selector (`7 Days`, `30 Days`, `90 Days`) with smooth sliding pill highlight.
+   - Responsive analytics charts rendered with clean tooltips and gradient area fills.
+   - Quick launch cards with colored icon badges, subtle borders, and directional hover cues.
+   - Skeleton fallback state displaying structured placeholders during data hydration.
 
-### Server Proxy API Routes
-
-- `GET /api/admin/instagram/settings` - Retrieve masked account settings and connection status.
-- `POST /api/admin/instagram/settings` - Save Meta credentials and toggle auto-publishing.
-- `POST /api/admin/instagram/test-connection` - Validate token with Meta Graph API and retrieve profile stats.
-- `GET /api/admin/instagram/posts` - List posts filtered by status (published, scheduled, drafts, failed).
-- `POST /api/admin/instagram/generate-caption` - Call Gemini API with attraction metadata to generate captions, hooks, and hashtags.
-- `POST /api/admin/instagram/publish` - Execute single or carousel container creation and publish to Instagram.
-- `POST /api/admin/instagram/schedule` - Queue post for future automated publication.
-- `POST /api/admin/instagram/retry/:id` - Retry a failed publication.
-- `DELETE /api/admin/instagram/posts/:id` - Delete or cancel a scheduled post.
-- `GET /api/admin/instagram/analytics` - Fetch live engagement metrics and historical reach across published posts.
+3. **Global Styling & Touch Targets**:
+   - Minimum 40px touch targets for mobile accessibility.
+   - High-contrast text compliance across all controls.
+   - Tabular alignment on all monetary amounts, booking counts, and dates.

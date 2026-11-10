@@ -128,8 +128,8 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
   }, [booking.status]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[1px]">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-[640px] max-h-[calc(100vh-32px)] md:max-h-[85vh] flex flex-col overflow-hidden border border-slate-200/80 dark:border-slate-800">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-[640px] max-h-[calc(100vh-32px)] md:max-h-[85vh] flex flex-col overflow-hidden border border-slate-200/80 dark:border-slate-800 animate-in zoom-in-95 duration-150">
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
