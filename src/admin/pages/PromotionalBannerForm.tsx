@@ -467,27 +467,71 @@ export default function PromotionalBannerForm() {
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/promotional-banners')}
+            className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs"
+            title="Back to Promotional Banners"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
           <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
             <Megaphone className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {isEditing ? 'Edit Promotional Banner' : 'Create Promotional Banner'}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                {isEditing ? 'Edit Promotional Banner' : 'Create Promotional Banner'}
+              </h1>
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                isActive 
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40' 
+                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+              }`}>
+                {isActive ? '● Live Active' : '○ Draft Inactive'}
+              </span>
+            </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Upload ready-made banners or design custom promotional cards with coupon codes.
+              Configure activity cards, discount promo codes, or full-width ready-made banners.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center flex-wrap gap-2.5">
+          {/* Live Storefront Preview */}
+          <a
+            href="/#/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-2xs"
+            title="Open customer storefront in a new tab"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span>Storefront Live</span>
+          </a>
+
+          {/* Quick Active Switcher */}
+          <button
+            type="button"
+            onClick={() => setIsActive(!isActive)}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+              isActive
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+            }`}
+            title="Toggle banner live status"
+          >
+            <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+            <span>{isActive ? 'Active' : 'Draft'}</span>
+          </button>
+
           {isEditing && (
             <button
               type="button"
               onClick={handleDelete}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border border-red-200 dark:border-red-900/40 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border border-red-200 dark:border-red-900/40 transition-colors cursor-pointer"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
               <span>Delete</span>
             </button>
           )}
@@ -495,7 +539,7 @@ export default function PromotionalBannerForm() {
           <button
             type="button"
             onClick={() => navigate('/promotional-banners')}
-            className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-2xs cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-2xs cursor-pointer"
           >
             Cancel
           </button>
@@ -503,10 +547,10 @@ export default function PromotionalBannerForm() {
           <button
             type="button"
             onClick={() => handleSave()}
-            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm cursor-pointer hover:shadow-md"
+            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer hover:shadow-md"
           >
             <Save className="w-4 h-4" />
-            <span>Save & Publish Banner</span>
+            <span>Save & Publish</span>
           </button>
         </div>
       </div>

@@ -225,6 +225,24 @@ export default function LargeBannerManager() {
     showToast('Slide order updated');
   };
 
+  const handleDuplicateSlide = (slide: LargeHeroBannerSlide) => {
+    addLargeBannerSlide({
+      title: `${slide.title} (Copy)`,
+      subtitle: slide.subtitle || '',
+      badgeText: slide.badgeText || '',
+      partnerLogosText: slide.partnerLogosText || '',
+      imageUrl: slide.imageUrl || '',
+      ctaText: slide.ctaText || 'EXPLORE NOW',
+      destinationUrl: slide.destinationUrl || 'Dubai',
+      destinationType: slide.destinationType || 'destination',
+      textStyle: slide.textStyle || 'golden-glow',
+      isActive: false,
+      order: config.slides.length + 1,
+      highlightOffer: slide.highlightOffer || ''
+    });
+    showToast('Slide cloned as a new draft');
+  };
+
   const handleResetDefaults = () => {
     if (window.confirm('Reset the large homepage banner to reference design presets (including South Korea, Japan, Dubai, Bali)?')) {
       resetLargeHeroBannerConfig();
@@ -319,7 +337,18 @@ export default function LargeBannerManager() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <a
+            href="/#/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors shadow-2xs"
+            title="Open customer storefront to see live hero banner"
+          >
+            <ExternalLink className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+            <span>View Live Banner</span>
+          </a>
+
           <button
             type="button"
             onClick={() => setShowLivePreview(!showLivePreview)}
@@ -513,38 +542,58 @@ export default function LargeBannerManager() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 self-end md:self-center shrink-0">
-                {/* Active Toggle */}
+              <div className="flex items-center gap-2.5 self-end md:self-center shrink-0">
+                {/* Active Toggle Switch */}
+                <div className="flex items-center gap-1.5 select-none">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleActive(slide.id)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      slide.isActive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
+                    }`}
+                    aria-label={`Toggle active for ${slide.title}`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out ${
+                        slide.isActive ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                  <span className={`text-[10px] font-black uppercase tracking-wider w-12 text-left ${
+                    slide.isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
+                  }`}>
+                    {slide.isActive ? 'ACTIVE' : 'DRAFT'}
+                  </span>
+                </div>
+
+                {/* Duplicate Button */}
                 <button
                   type="button"
-                  onClick={() => handleToggleActive(slide.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
-                    slide.isActive 
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800' 
-                      : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
-                  }`}
+                  onClick={() => handleDuplicateSlide(slide)}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer group"
+                  title="Duplicate Slide"
                 >
-                  {slide.isActive ? 'Active' : 'Disabled'}
+                  <Copy className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                 </button>
 
                 {/* Edit Button */}
                 <button
                   type="button"
                   onClick={() => handleOpenEditModal(slide)}
-                  className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer group"
                   title="Edit Slide"
                 >
-                  <Edit3 className="w-4 h-4" />
+                  <Edit3 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                 </button>
 
                 {/* Delete Button */}
                 <button
                   type="button"
                   onClick={() => handleDeleteSlide(slide.id)}
-                  className="p-2 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer group"
                   title="Delete Slide"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                 </button>
               </div>
             </div>

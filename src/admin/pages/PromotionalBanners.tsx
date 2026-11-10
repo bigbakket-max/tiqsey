@@ -28,8 +28,11 @@ import {
   ChevronRight,
   Monitor,
   Tablet,
-  Smartphone
+  Smartphone,
+  Check,
+  X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AdminPagination } from '../components/AdminPagination';
 import { PromotionalBanner } from '../../types';
@@ -61,6 +64,24 @@ export default function PromotionalBanners() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [selectedBannerIds, setSelectedBannerIds] = useState<string[]>([]);
+  const [copiedBannerId, setCopiedBannerId] = useState<string | null>(null);
+
+  const stats = React.useMemo(() => {
+    const now = new Date().toISOString().substring(0, 10);
+    const total = banners.length;
+    const active = banners.filter(b => b.isActive && (!b.startDate || b.startDate <= now) && (!b.endDate || b.endDate >= now)).length;
+    const inactive = banners.filter(b => !b.isActive).length;
+    const scheduled = banners.filter(b => b.isActive && !!b.startDate && b.startDate > now).length;
+    const expired = banners.filter(b => b.isActive && !!b.endDate && b.endDate < now).length;
+    return { total, active, inactive, scheduled, expired };
+  }, [banners]);
+
+  const handleCopyBannerId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopiedBannerId(id);
+    setTimeout(() => setCopiedBannerId(null), 2000);
+  };
 
   // Drag and drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -208,6 +229,46 @@ export default function PromotionalBanners() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  const isAllSelected = paginatedBanners.length > 0 && paginatedBanners.every(b => selectedBannerIds.includes(b.id));
+  const isSomeSelected = selectedBannerIds.length > 0;
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedBannerIds(paginatedBanners.map(b => b.id));
+    } else {
+      setSelectedBannerIds([]);
+    }
+  };
+
+  const handleToggleRowSelection = (id: string) => {
+    setSelectedBannerIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkSetStatus = (activate: boolean) => {
+    if (selectedBannerIds.length === 0) return;
+    selectedBannerIds.forEach(id => {
+      const banner = banners.find(b => b.id === id);
+      if (banner && banner.isActive !== activate) {
+        toggleBannerStatus(id);
+      }
+    });
+    loadData();
+    setSelectedBannerIds([]);
+    showToast(`${selectedBannerIds.length} banners ${activate ? 'activated' : 'disabled'}`);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedBannerIds.length === 0) return;
+    if (window.confirm(`Delete ${selectedBannerIds.length} selected promotional banners? This cannot be undone.`)) {
+      selectedBannerIds.forEach(id => deleteBanner(id));
+      loadData();
+      setSelectedBannerIds([]);
+      showToast(`${selectedBannerIds.length} banners deleted`);
+    }
+  };
 
   const getTemplateBadge = (template: string) => {
     switch (template) {
@@ -578,7 +639,46 @@ export default function PromotionalBanners() {
       )}
 
       {/* Main Table & Management Section */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs relative">
+        {/* Status Tabs Bar */}
+        <div className="px-6 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
+            {[
+              { id: 'all', label: 'All Banners', count: stats.total },
+              { id: 'active', label: 'Active', count: stats.active },
+              { id: 'inactive', label: 'Disabled', count: stats.inactive },
+              { id: 'scheduled', label: 'Scheduled', count: stats.scheduled },
+              { id: 'expired', label: 'Expired', count: stats.expired }
+            ].map(tab => {
+              const isActive = statusFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter(tab.id);
+                    setCurrentPage(1);
+                  }}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap ${
+                    isActive 
+                      ? 'bg-blue-600 text-white shadow-xs' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+                    isActive 
+                      ? 'bg-blue-700/80 text-white' 
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Search & Filters Bar */}
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row gap-3 justify-between items-center bg-white dark:bg-slate-900">
           <div className="relative w-full md:w-80">
@@ -593,28 +693,29 @@ export default function PromotionalBanners() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9.5 pr-3.5 py-2 text-xs font-medium focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder-slate-400 text-slate-800 dark:text-slate-200" 
+              className="w-full bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl pl-9.5 pr-8 py-2 text-xs font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors placeholder-slate-400 text-slate-800 dark:text-slate-200" 
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto justify-end flex-wrap">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors shadow-2xs cursor-pointer"
-            >
-              <Sliders className="w-3.5 h-3.5 text-slate-500" />
-              <span>Filter</span>
-            </button>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Template:</span>
+          <div className="flex items-center gap-2.5 w-full md:w-auto justify-end flex-wrap">
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs">
+              <Sliders className="w-3.5 h-3.5 text-slate-400" />
               <select 
                 value={templateFilter}
                 onChange={(e) => {
                   setTemplateFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 transition-colors text-slate-700 dark:text-slate-200 cursor-pointer shadow-2xs"
+                className="bg-transparent border-none text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer pr-2"
               >
                 <option value="all">All Templates</option>
                 <option value="play-passes">Play Passes</option>
@@ -626,39 +727,56 @@ export default function PromotionalBanners() {
               </select>
             </div>
 
-            <select 
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 transition-colors text-slate-700 dark:text-slate-200 cursor-pointer shadow-2xs"
-            >
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Disabled</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="expired">Expired</option>
-            </select>
+            {(searchTerm !== "" || templateFilter !== "all" || statusFilter !== "all") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm("");
+                  setTemplateFilter("all");
+                  setStatusFilter("all");
+                  setCurrentPage(1);
+                }}
+                className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-sky-400 px-2 py-1.5 transition-colors cursor-pointer shrink-0"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Table Content */}
+        {/* High-Density Table Content */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm min-w-[950px]">
-            <thead className="bg-white dark:bg-slate-900 text-slate-400 font-bold text-[10px] tracking-wider uppercase border-b border-slate-100 dark:border-slate-800">
+          <table className="w-full text-left text-sm min-w-[1000px]">
+            <colgroup>
+              <col className="w-[4%]" />
+              <col className="w-[8%]" />
+              <col className="w-[36%]" />
+              <col className="w-[14%]" />
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
+              <col className="w-[14%]" />
+            </colgroup>
+            <thead className="bg-slate-50 dark:bg-slate-950/60 text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="px-4 py-2.5 w-16 text-center">ORDER</th>
-                <th className="px-4 py-2.5">BANNER PREVIEW & CONTENT</th>
-                <th className="px-4 py-2.5 text-center">TEMPLATE</th>
-                <th className="px-4 py-2.5 text-center">PROMO CODE</th>
-                <th className="px-4 py-2.5 text-center">TARGET ACTION</th>
-                <th className="px-4 py-2.5 text-center">STATUS</th>
-                <th className="px-5 py-2.5 text-right">ACTIONS</th>
+                <th className="px-4 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer"
+                    title="Select all on this page"
+                  />
+                </th>
+                <th className="px-4 py-3 text-center">ORDER</th>
+                <th className="px-4 py-3">BANNER & ID</th>
+                <th className="px-4 py-3 text-center">TEMPLATE</th>
+                <th className="px-4 py-3 text-center">PROMO CODE</th>
+                <th className="px-4 py-3 text-center">STATUS</th>
+                <th className="px-5 py-3 text-right">ACTIONS</th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
               {paginatedBanners.length > 0 ? (
                 paginatedBanners.map((banner, index) => {
                   const globalIndex = banners.findIndex(b => b.id === banner.id);
@@ -666,6 +784,8 @@ export default function PromotionalBanners() {
                   const isLast = globalIndex === banners.length - 1;
                   const isDragged = globalIndex === draggedIndex;
                   const isDragOver = globalIndex === dragOverIndex;
+                  const isSelected = selectedBannerIds.includes(banner.id);
+                  const isCopied = copiedBannerId === banner.id;
 
                   return (
                     <tr 
@@ -677,32 +797,40 @@ export default function PromotionalBanners() {
                       onDragEnter={() => handleDragEnter(globalIndex)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, globalIndex)}
-                      className={`transition-all duration-200 group border-b border-slate-100 dark:border-slate-800/80 ${
-                        isDragged 
+                      className={`transition-colors duration-150 ${
+                        isSelected 
+                          ? 'bg-blue-50/50 dark:bg-blue-950/25' 
+                          : isDragged 
                           ? 'opacity-40 bg-slate-50 dark:bg-slate-800/50 cursor-grabbing' 
                           : isDragOver 
-                          ? 'bg-indigo-50/50 dark:bg-indigo-950/20 border-t-2 border-t-indigo-500' 
-                          : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30'
+                          ? 'bg-blue-50/50 dark:bg-blue-950/20 border-t-2 border-t-blue-500' 
+                          : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/30'
                       }`}
                     >
+                      {/* Checkbox */}
+                      <td className="px-4 py-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleRowSelection(banner.id)}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer"
+                        />
+                      </td>
+
                       {/* Order Column */}
-                      <td className="px-4 py-3 align-middle">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6.5 h-6.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center font-bold text-slate-800 dark:text-slate-200 text-[11px] shadow-2xs shrink-0">
-                            {banner.order}
-                          </div>
-                          <GripVertical className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 shrink-0 cursor-grab group-hover:text-slate-400 dark:group-hover:text-slate-400 active:cursor-grabbing transition-colors" />
-                          <div className="flex flex-col gap-0">
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 tabular-nums">
+                            #{banner.order}
+                          </span>
+                          <GripVertical className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 cursor-grab active:cursor-grabbing hover:text-slate-500" />
+                          <div className="flex flex-col gap-0.5">
                             <button
                               type="button"
                               onClick={(e) => handleMove(globalIndex, 'up', e)}
                               disabled={isFirst}
                               title="Move Up"
-                              className={`p-0.5 rounded transition-all ${
-                                isFirst 
-                                  ? 'text-slate-100 dark:text-slate-850 cursor-not-allowed' 
-                                  : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer'
-                              }`}
+                              className={`p-0.5 rounded ${isFirst ? 'text-slate-200 dark:text-slate-800 cursor-not-allowed' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer'}`}
                             >
                               <ArrowUp className="w-2.5 h-2.5" />
                             </button>
@@ -711,11 +839,7 @@ export default function PromotionalBanners() {
                               onClick={(e) => handleMove(globalIndex, 'down', e)}
                               disabled={isLast}
                               title="Move Down"
-                              className={`p-0.5 rounded transition-all ${
-                                isLast 
-                                  ? 'text-slate-100 dark:text-slate-850 cursor-not-allowed' 
-                                  : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer'
-                              }`}
+                              className={`p-0.5 rounded ${isLast ? 'text-slate-200 dark:text-slate-800 cursor-not-allowed' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer'}`}
                             >
                               <ArrowDown className="w-2.5 h-2.5" />
                             </button>
@@ -723,155 +847,212 @@ export default function PromotionalBanners() {
                         </div>
                       </td>
 
-                    {/* Banner Preview & Content */}
-                    <td className="px-4 py-3 align-middle">
-                      <div className="flex items-center gap-3">
-                        <div className="w-20 aspect-[16/10] shrink-0 rounded-lg overflow-hidden shadow-xs border border-slate-200/80 dark:border-slate-800 relative bg-slate-950">
-                          {/* Scaled BannerCard */}
-                          <div className="absolute top-0 left-0 w-[240px] origin-top-left transform scale-[0.3333]">
-                            <BannerCard banner={banner} mode="preview" />
+                      {/* Banner Preview & Content & ID */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-20 aspect-[16/10] shrink-0 rounded-lg overflow-hidden shadow-2xs border border-slate-200/80 dark:border-slate-800 relative bg-slate-950">
+                            <div className="absolute top-0 left-0 w-[240px] origin-top-left transform scale-[0.3333]">
+                              <BannerCard banner={banner} mode="preview" />
+                            </div>
+                          </div>
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-bold text-slate-900 dark:text-white text-xs truncate max-w-[240px]" title={banner.title}>
+                                {banner.title || <span className="text-slate-400 font-normal italic">Untitled Banner</span>}
+                              </p>
+                              <a
+                                href="/#/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-slate-400 hover:text-blue-600 dark:hover:text-sky-400 transition-colors shrink-0"
+                                title="View live promo cards on homepage"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => handleCopyBannerId(banner.id)}
+                                className="inline-flex items-center gap-1 font-mono text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                                title="Click to copy Banner ID"
+                              >
+                                {isCopied ? (
+                                  <Check className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                                ) : (
+                                  <Copy className="w-2.5 h-2.5" />
+                                )}
+                                <span className="truncate max-w-[120px]">{banner.id}</span>
+                              </button>
+                              {banner.subtitle && (
+                                <span className="text-[10px] text-slate-400 truncate max-w-[140px]">
+                                  {banner.subtitle}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <div className="space-y-0 min-w-0 max-w-xs">
-                          {banner.subtitle && (
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">
-                              {banner.subtitle}
-                            </p>
-                          )}
-                          <p className="font-extrabold text-slate-900 dark:text-white text-xs truncate">
-                            {banner.title || <span className="text-slate-400 font-normal italic text-xs">Untitled Banner</span>}
-                          </p>
-                          {banner.highlightText && (
-                            <p className="text-[11px] font-bold text-blue-600 dark:text-sky-400 truncate inline-flex items-center gap-1">
-                              <span>{banner.highlightText}</span>
-                              <ExternalLink className="w-2.5 h-2.5 inline" />
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Template Badge */}
-                    <td className="px-4 py-3 align-middle text-center">
-                      {getTemplateBadge(banner.template)}
-                    </td>
+                      {/* Template */}
+                      <td className="px-4 py-3 text-center">
+                        {getTemplateBadge(banner.template)}
+                      </td>
 
-                    {/* Promo Code */}
-                    <td className="px-4 py-3 align-middle text-center">
-                      {banner.promoCode ? (
-                        <div className="inline-block px-2 py-0.5 rounded-lg bg-[#fef3c7]/60 dark:bg-amber-950/30 border border-[#fde68a] dark:border-amber-900/40 text-[#92400e] dark:text-amber-300 font-mono text-[10px] font-bold">
-                          {banner.promoCode}
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 dark:text-slate-500 text-xs font-medium">—</span>
-                      )}
-                    </td>
-
-                    {/* Target Action */}
-                    <td className="px-4 py-3 align-middle text-center">
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                          banner.destinationType === 'destination'
-                            ? 'bg-sky-50 text-sky-600 dark:bg-sky-950/60 dark:text-sky-300'
-                            : banner.destinationType === 'activity'
-                            ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-300'
-                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
-                        }`}>
-                          {banner.destinationType === 'destination' ? 'DEST' : banner.destinationType === 'activity' ? 'ACT' : 'SECT'}
-                        </span>
-                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate max-w-[130px]" title={banner.destinationUrl || '#'}>
-                          {banner.destinationUrl || 'deals'}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Status & Custom Toggle */}
-                    <td className="px-4 py-3 align-middle text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={(e) => handleToggleActive(banner.id, e)}
-                          title={banner.isActive ? 'Click to disable' : 'Click to activate'}
-                          className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                            banner.isActive ? 'bg-[#10b981]' : 'bg-slate-200 dark:bg-slate-700'
-                          }`}
-                        >
-                          <div 
-                            className={`w-3.5 h-3.5 rounded-full bg-white shadow-xs absolute top-0.75 left-0.75 transform transition-transform duration-200 ease-in-out ${
-                              banner.isActive ? 'translate-x-4' : 'translate-x-0'
-                            }`} 
-                          />
-                        </button>
-                        <div>{getCampaignStatusBadge(banner)}</div>
-                      </div>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-5 py-3 align-middle text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/promotional-banners/edit/${banner.id}`)}
-                          title="Edit Banner"
-                          className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => handleDuplicate(banner.id, e)}
-                          title="Duplicate Banner"
-                          className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
-
-                        {deleteConfirmId === banner.id ? (
-                          <div className="flex items-center gap-1 ml-1 bg-red-50 dark:bg-red-950/40 p-0.5 rounded-md border border-red-200 dark:border-red-800">
-                            <span className="text-[10px] text-red-600 dark:text-red-400 font-bold px-0.5">Del?</span>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(banner.id)}
-                              className="px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
-                            >
-                              Yes
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeleteConfirmId(null)}
-                              className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-[10px] font-bold transition-colors cursor-pointer"
-                            >
-                              No
-                            </button>
-                          </div>
+                      {/* Promo Code */}
+                      <td className="px-4 py-3 text-center">
+                        {banner.promoCode ? (
+                          <span className="font-mono text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded border border-amber-200/60 dark:border-amber-800/40">
+                            {banner.promoCode}
+                          </span>
                         ) : (
+                          <span className="text-slate-400 text-xs font-medium">—</span>
+                        )}
+                      </td>
+
+                      {/* Status Toggle Switch */}
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1.5 select-none">
                           <button
                             type="button"
-                            onClick={() => setDeleteConfirmId(banner.id)}
-                            title="Delete Banner"
-                            className="p-1 text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                            onClick={(e) => handleToggleActive(banner.id, e)}
+                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                              banner.isActive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
+                            }`}
+                            aria-label={`Toggle active for ${banner.title}`}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <span
+                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out ${
+                                banner.isActive ? 'translate-x-4' : 'translate-x-0'
+                              }`}
+                            />
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
+                          <span className={`text-[10px] font-black uppercase tracking-wider w-14 text-left ${
+                            banner.isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
+                          }`}>
+                            {banner.isActive ? 'ACTIVE' : 'OFF'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-5 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/promotional-banners/edit/${banner.id}`)}
+                            title="Edit Banner"
+                            className="p-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer group"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleDuplicate(banner.id, e)}
+                            title="Duplicate Banner"
+                            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer group"
+                          >
+                            <Copy className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                          </button>
+
+                          {deleteConfirmId === banner.id ? (
+                            <div className="flex items-center gap-1 ml-1 bg-red-50 dark:bg-red-950/40 p-0.5 rounded-md border border-red-200 dark:border-red-800">
+                              <span className="text-[10px] text-red-600 dark:text-red-400 font-bold px-0.5">Del?</span>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(banner.id)}
+                                className="px-1.5 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
+                              >
+                                Yes
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-[10px] font-bold transition-colors cursor-pointer"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirmId(banner.id)}
+                              title="Delete Banner"
+                              className="p-1.5 text-red-500 dark:text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer group"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
-                    <Layers className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                  <td colSpan={7} className="px-6 py-16 text-center text-slate-500 dark:text-slate-400">
+                    <Layers className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2 animate-bounce" />
                     <p className="font-bold text-slate-700 dark:text-slate-300">No promotional banners found</p>
-                    <p className="text-xs text-slate-400 mt-1">Try adjusting your search query or template filter.</p>
+                    <p className="text-xs text-slate-400 mt-1">Try relaxing search terms or selecting another status tab.</p>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Floating Bulk Actions Bar */}
+        <AnimatePresence>
+          {isSomeSelected && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 15 }}
+              transition={{ duration: 0.18 }}
+              className="m-4 p-3 bg-slate-900 dark:bg-slate-950 text-white rounded-xl shadow-xl border border-slate-800 flex items-center justify-between gap-4 flex-wrap"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                  {selectedBannerIds.length}
+                </span>
+                <span className="text-xs font-semibold text-slate-200">
+                  banners selected on this page
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => handleBulkSetStatus(true)}
+                  className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Check className="w-3.5 h-3.5" /> Bulk Activate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkSetStatus(false)}
+                  className="px-3 py-1.5 text-xs font-bold bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  Bulk Disable
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkDelete}
+                  className="px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Delete Selected
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedBannerIds([])}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Deselect All
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Footer & Pagination */}
         {filteredBanners.length > 0 && (
@@ -881,7 +1062,7 @@ export default function PromotionalBanners() {
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={setItemsPerPage}
-            itemUnitName="items"
+            itemUnitName="banners"
           />
         )}
       </div>
