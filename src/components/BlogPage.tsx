@@ -67,7 +67,23 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
   const { t } = useSettings();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const postFromSearch = searchParams.get("post") || searchParams.get("postId") || searchParams.get("id");
+      if (postFromSearch) return postFromSearch;
+
+      const hash = window.location.hash || "";
+      if (hash.includes("?")) {
+        const hashParams = new URLSearchParams(hash.split("?")[1]);
+        const postFromHash = hashParams.get("post") || hashParams.get("postId") || hashParams.get("id");
+        if (postFromHash) return postFromHash;
+      }
+    } catch {
+      // Fallback
+    }
+    return null;
+  });
   const selectedPost = selectedPostId ? posts.find(p => p.id === selectedPostId) || null : null;
   const [likedPosts, setLikedPosts] = useState<string[]>(() => {
     try {

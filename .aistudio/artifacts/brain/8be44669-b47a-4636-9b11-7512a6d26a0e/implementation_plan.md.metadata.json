@@ -1,6 +1,6 @@
 {
-  "summary":  "Comprehensive implementation plan for improving the Products page in the Tiqsey admin panel with a high-density catalog table, instant category and status tabs, bulk actions bar, inline availability toggles, 1-click copy IDs, and an enhanced sticky edit screen with streamlined tabs.",
-  "updatedAt":  "2026-11-10T10:04:50.256861018Z",
+  "summary":  "Comprehensive architecture and implementation plan to improve the complete Blog Posts, Edit Blog Post, and Create New Blog Post pages in the Tiqsey Admin Panel. Introduces a high-density catalog table with segmented status tabs, multi-select bulk actions, interactive inline status switches, and 1-click copyable post IDs. In the post editor, introduces an interactive side-by-side split view with real-time live preview, storefront links, and refined typographic styling.",
+  "updatedAt":  "2026-11-10T10:43:03.503169651Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

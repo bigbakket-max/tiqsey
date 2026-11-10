@@ -1,123 +1,167 @@
-# Products Page Redesign & Performance Optimization
+# Blog Suite Redesign & Side-by-Side Live Editor Plan
 
-A comprehensive plan to improve both the product catalog listing table and the product editing workspace in the Tiqsey Admin Panel (`/inventory`), introducing a high-density table layout, instant category/status tabs, bulk selection actions, and an enhanced tabbed product editor.
+A comprehensive architectural plan to overhaul the complete Blog management suite in the Tiqsey Admin Panel (`/blog`, `/blog/new`, and `/blog/:id`). Introduces a high-density data grid with segmented status tabs, floating bulk actions, interactive publication switches, and an interactive side-by-side split workspace featuring real-time live storefront preview.
 
-## User Review & Critical Decisions
+---
+
+## 1. User Review & Critical Decisions
 
 > [!IMPORTANT]
 > The following parameters have been confirmed based on user selections:
 
-- **Confirmed Scope**: Both the product catalog table view (`/inventory`) and the product edit/create screens (`/inventory/edit/:id` and `/inventory/new`) will be comprehensively upgraded.
-- **Confirmed Catalog Layout**: High-density data table with compact rows, live availability toggles, 1-click copyable product IDs, instant status pills, and quick action tooltips.
-- **Confirmed Primary Feature**: Instant filter bar with segmented category and status tabs (`All`, `Active`, `Unavailable`, `Drafts`), plus a floating multi-select bulk actions bar (Bulk Active, Bulk Pause, Bulk Delete).
-- **Zero Business Logic Degradation**: All existing product fields (variants, pricing tiers, highlight bullet points, gallery images, cancellation policies, affiliate URL tokens, and Supabase/localStorage sync) remain 100% operational.
+- **Confirmed Catalog Layout**: High-density table with compact row height ($48\text{px}$–$52\text{px}$), segmented status tabs (`All Posts`, `Published`, `Drafts`, `Scheduled`), search input, and multi-select checkboxes.
+- **Confirmed Editor Workspace**: Side-by-side split view with a real-time live preview panel that instantly mirrors content, formatting, images, and meta changes as the author types. Includes quick view-mode toggle buttons (`Edit Only`, `Split Preview`, `Full Preview`).
+- **Confirmed Priority Features**: Direct storefront preview link (`/#/blog?post=:id`), 1-click publication status toggle in both the table and the editor header, 1-click copyable post ID/slug badges, and a floating multi-select bulk actions bar.
+- **Zero Business Logic Degradation**: Retains all existing TipTap rich text extensions, markdown serialization, image upload pipelines, category tagging, author assignment, and localStorage / event synchronization.
 
 ---
 
-## 1. Overview & Core Concept
+## 2. Overview & Core Concept
 
-- **What It Delivers**: Transforms the product management center into a high-throughput, enterprise-grade inventory console. Store managers can quickly search, filter, bulk-manage, and edit tour activities with zero layout jumping, crisp tabular numerals, and instant feedback.
-- **Target Persona**: Store operators, inventory managers, and support agents handling dozens of international tour activities, pricing variants, and marketing campaigns.
-- **Key Value**: Drastically reduces the time needed to review catalog items, toggle product availability, perform bulk updates, and edit multi-variant tour packages.
-
----
-
-## 2. User Experience & Visual Design
-
-### A. High-Density Product Catalog Table
-- **Segmented Status Tabs**: Top-level quick tabs (`All [N]`, `Active [N]`, `Unavailable [N]`, `Manual Booking [N]`, `Affiliate [N]`) with live count badges and smooth active indicators.
-- **Instant Search & Geography Filters**: Search box with clear button (`✕`), filter dropdowns for Region, City, Category, and Booking Mode, and an instant "Clear All Filters" chip.
-- **Multi-Select Bulk Action Bar**: Checkbox on table header and rows. Selecting items slides up a floating bulk bar:
-  - Selected count badge (`N items selected`)
-  - "Mark Available" button
-  - "Mark Unavailable" button
-  - "Duplicate Selected" button
-  - "Delete Selected" button with confirmation
-  - "Deselect All" button
-- **High-Density Row Design**:
-  - Compact row height ($48\text{px}$–$54\text{px}$) with hover highlight.
-  - Image thumbnail with subtle zoom on hover.
-  - Product ID badge with 1-click clipboard copy and green checkmark toast.
-  - Inline availability switch (Active / Inactive) with instant state transition.
-  - Formatted tabular pricing (`font-mono`) with clear discount percentage chips.
-  - Supplier name and booking mode tag (Manual vs. Affiliate).
-  - Quick action cluster: View Live (`↗`), Quick Highlights (`✦`), Edit (`✎`), Duplicate (`⧉`), and Delete (`🗑`).
-
-### B. Streamlined Product Editor Screen
-- **Full-Bleed Sticky Action Header**: Solid, opaque background with zero content bleed-through during scroll, containing:
-  - `← Back to Inventory` button
-  - Product title and status switcher (`Active` / `Paused` / `Draft`)
-  - Permanent product ID pill with copy button
-  - Primary action buttons: `View Live Product`, `Duplicate`, `Discard`, and high-visibility `Save Changes` button.
-- **Segmented Editor Navigation**: Tab bar with clear count badges and icons:
-  - `Primary Details` (Activity Name, Geography, Description, Categories, Highlights)
-  - `Ticket Variants` (Pricing tiers, booking mode, vendor rules, capacity)
-  - `Gallery & Media` (Cover photo, multi-photo reordering, upload manager)
-  - `SEO & Metadata` (Search titles, meta descriptions, canonical URLs)
-  - `Live Ticket Preview` (Interactive customer checkout ticket preview)
-- **Save Confirmation Dialog**: Summary card with cover photo, price, variant count, and confirmation spinner.
+- **What It Delivers**: Transforms blog management into a high-throughput, enterprise-grade content publishing console. Travel writers, editors, and administrators can quickly scan and organize travel articles, manage post lifecycles, and write articles in an ergonomic side-by-side split layout with immediate visual feedback.
+- **Target Persona**: Content managers, travel editors, and marketing specialists responsible for publishing destination guides, hidden gems, and travel tips.
+- **Key Value**: Eliminates the guesswork of modal-based previewing by providing a continuous, real-time live preview alongside the rich text editor, coupled with rapid bulk operations and instant status toggling from the main catalog table.
 
 ---
 
-## 3. Key Product Decisions & Trade-Offs
+## 3. User Experience & Visual Design
 
-- **Decision 1: High-Density Table with Responsive Horizontal Scroll**
-  - *Chosen Approach*: Clean fixed-column table with a minimum container width ($1080\text{px}$) inside an `overflow-x-auto` wrapper, ensuring columns never wrap awkwardly on smaller laptop screens or tablets.
-  - *Why*: Guarantees predictable alignment for financial figures, checkboxes, and toggle buttons.
-  - *Alternatives Considered*: Responsive cards that drop columns on mobile were tested, but table density was explicitly chosen by the user for inventory oversight.
+### A. Blog Posts Catalog (`src/admin/pages/Blog.tsx`)
+- **Segmented Status Tabs Bar**:
+  - Horizontal status tabs at the top of the table: `All Posts`, `Published`, `Drafts`, and `Scheduled`.
+  - Dynamic count badges (`All [N]`, `Published [N]`, `Drafts [N]`, `Scheduled [N]`) updating dynamically with state.
+- **Search & Category Filter Bar**:
+  - Search field with clear button (`✕`) for rapid search across post titles, excerpts, authors, and city tags.
+  - Category selector (`All Categories`, `Travel Tips`, `Destination Guides`, `Food & Culture`, `Hidden Gems`).
+  - "Clear Filters" quick-action button appearing when search or category filters are active.
+- **High-Density Table Layout**:
+  - Column 1: Checkbox for row selection with "Select All" in header.
+  - Column 2: Post & Cover — compact 48px rounded cover thumbnail with subtle hover zoom, title, 1-click copyable ID badge, and live storefront link (`↗`).
+  - Column 3: Category — unboxed typographic category label adhering to zero-pill discipline.
+  - Column 4: Author & Destination — author name, avatar, and linked city.
+  - Column 5: Date & Read Time — formatted publication timestamp and reading time.
+  - Column 6: Live Status Toggle — smooth interactive switch between `Published` (emerald) and `Draft` (slate).
+  - Column 7: Actions — `View Live` (`↗`), `Duplicate` (`⧉`), `Edit` (`✎`), and `Delete` (`🗑`).
+- **Floating Multi-Select Bulk Actions Bar**:
+  - Slides up with a smooth spring animation (`AnimatePresence`) when $\ge 1$ post is selected:
+  - Selected count badge (`N posts selected`).
+  - "Bulk Publish" button (`Check`).
+  - "Bulk Set to Draft" button (`Bookmark`).
+  - "Delete Selected" button (`Trash2`) with confirmation dialog.
+  - "Deselect All" button.
 
-- **Decision 2: Floating Multi-Select Bulk Action Toolbar**
-  - *Chosen Approach*: An animated bottom floating bar (`AnimatePresence` with slide-up `y: 20 -> 0`) when $\ge 1$ item is selected.
-  - *Why*: Keeps bulk operations easily accessible without occupying vertical screen space when browsing.
-
-- **Decision 3: Non-Destructive Form State Preservation**
-  - *Chosen Approach*: Retain the existing `loadedIdRef` guard and modular form hooks in `Inventory.tsx` so user edits are never overwritten by external re-renders or catalog syncs.
+### B. Blog Post Editor (`src/admin/pages/BlogPostForm.tsx`)
+- **Solid Sticky Action Header**:
+  - `← Back to Blog` button.
+  - Title indicator (`Edit Blog Post` or `Create New Blog Post`) with post slug badge.
+  - **Segmented View Mode Switcher**:
+    - `[✎ Edit Only]`
+    - `[◫ Split Live Preview]` (Default)
+    - `[👁 Full Preview]`
+  - Storefront Preview button: `View Live Post ↗` opening `/#/blog?post=:id` in a new tab.
+  - Status switcher: Quick toggle between `Draft`, `Published`, and `Scheduled`.
+  - Save buttons: `Save Draft` and `Publish Post`.
+- **Side-by-Side Split Workspace**:
+  - **Left Column (Editor Pane)**: Full TipTap WYSIWYG toolbar, title input, excerpt field, metadata controls (category, city, author, tags, cover image upload), and body editor.
+  - **Right Column (Live Preview Pane)**:
+    - Live-rendered storefront article view with hero cover image, publication metadata, reading time, author card, and formatted HTML/markdown prose.
+    - Synchronized live updates without page reloads or modal curtains.
+    - Toggle between Desktop View and Mobile Card View.
 
 ---
 
-## 4. Technical Architecture & Component Mapping
+## 4. Key Product Decisions & Trade-Offs
 
-### Component & Data Hierarchy
+- **Decision 1: Side-by-Side Split View as Default on Desktop**
+  - *Chosen Approach*: Two equal 50/50 flex columns on desktop ($w \ge 1024\text{px}$) with dedicated scroll containers, collapsible to full-width on mobile/tablets or via the view switcher.
+  - *Why*: Authors can see real typography, image placements, and formatting as they type without opening/closing preview modals.
+  - *Trade-Off*: Requires horizontal viewport presence; handled cleanly by collapsing to stacked or single-mode on narrower viewports.
+- **Decision 2: Direct Storefront Hash Route Binding (`/#/blog?post=:id`)**
+  - *Chosen Approach*: Update `BlogPage.tsx` to read `?post=:id` from URL search and hash parameters on load, opening the full post view immediately.
+  - *Why*: Allows the admin panel "View Live Post" button to reliably take the editor directly to the published article on the customer-facing storefront.
+- **Decision 3: Non-Destructive Storage Integration**
+  - *Chosen Approach*: Leverage existing `BlogContext` with `localStorage`, custom window events (`tiqsey_blog_updated`), and schedule checker.
+  - *Why*: Guarantees zero data loss, instant updates across tabs, and full compatibility with existing mock and user-generated posts.
+
+---
+
+## 5. Technical Architecture & Component Mapping
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        Products Inventory Page                         │
+│                        Blog Posts Management Page                      │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │ Status & Mode Tabs: All (34) · Active (31) · Paused (3) · Deals  │  │
+│  │ Status Tabs: All Posts · Published · Drafts · Scheduled          │  │
 │  ├──────────────────────────────────────────────────────────────────┤  │
-│  │ Filter Bar: Instant Search · Region · City · Category · Clear    │  │
+│  │ Filter Bar: Search Posts · Category Filter · Clear Filters       │  │
 │  ├──────────────────────────────────────────────────────────────────┤  │
-│  │ High-Density Catalog Table:                                      │  │
-│  │  [☑] Select All  │ Activity & ID │ Pricing │ Status │ Actions   │  │
-│  │  [☐] Row 1       │ Amsterdam...  │ €28.00  │ [ON]   │ ↗ ✦ ✎ 🗑   │  │
-│  │  [☐] Row 2       │ Rijksmuseum.. │ €45.00  │ [ON]   │ ↗ ✦ ✎ 🗑   │  │
-│  ├──────────────────────────────────────────────────────────────────┤  │
-│  │ Pagination Controls & Page Size Selector                         │  │
+│  │ High-Density Table:                                              │  │
+│  │  [☑] Select  │ Post & ID   │ Category │ Author │ Status │ Actions │  │
+│  │  [☐] Row 1   │ Paris...    │ Hidden.. │ Camille│ [ON]   │ ↗ ⧉ ✎ 🗑 │  │
+│  │  [☐] Row 2   │ Tokyo...    │ Guides   │ Kenji  │ [ON]   │ ↗ ⧉ ✎ 🗑 │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
-│                                                                        │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │ Floating Bulk Bar (When items selected):                         │  │
-│  │ "3 products selected"  │ [Mark Available] [Mark Paused] [Delete] │  │
+│  │ Floating Bulk Bar (When selected): [Publish] [Draft] [Delete]    │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────┐
+│                     Blog Post Editor (Split View)                      │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │ Sticky Top Header: ← Back · [Edit|Split|Preview] · Live ↗ · Save │  │
+│  ├──────────────────────────────────┬───────────────────────────────┤  │
+│  │ Left: Rich Editor                │ Right: Live Storefront Preview│  │
+│  │ - Title & Excerpt                │ - Storefront Hero Header      │  │
+│  │ - Cover Image Drag & Drop        │ - Author Meta Bar             │  │
+│  │ - Category, City, Author, Tags   │ - Formatted Body Prose        │  │
+│  │ - TipTap WYSIWYG Toolbar & Prose │ - Destination Cards & Links   │  │
+│  └──────────────────────────────────┴───────────────────────────────┘  │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### State Store & Interactive Handlers
+### Files to Modify
 
-1. **`selectedProductIds`**: `Set<string>` or `string[]` tracking checked items across the table.
-2. **`statusFilter`**: Segmented filter (`all` | `active` | `unavailable` | `deal`).
-3. **`handleBulkAvailability(status: boolean)`**: Batch updates selected items in state, `localStorage`, and Supabase.
-4. **`handleBulkDelete()`**: Batch deletes selected items with confirmation dialog.
-5. **`handleCopyId(id: string)`**: Copies product ID to clipboard with 2-second visual feedback.
-6. **`activeTab`**: Retains active tab in product editor (`Primary`, `Variants`, `Gallery`, `SEO`, `Preview`).
+1. **`src/admin/pages/Blog.tsx`**:
+   - Rebuild into a high-density, multi-select data grid.
+   - Add status tabs (`all`, `published`, `draft`, `scheduled`) with live count chips.
+   - Add live toggle switch for publication state.
+   - Add 1-click copyable post ID badge and direct storefront preview button (`↗`).
+   - Add duplicate post action (`handleDuplicatePost`).
+   - Add floating animated bulk action bar (`AnimatePresence`).
+2. **`src/admin/pages/BlogPostForm.tsx`**:
+   - Wire up `editorMode` (`'split' | 'edit' | 'preview'`).
+   - Implement side-by-side desktop layout with responsive live preview pane.
+   - Add sticky header controls: direct `View Live Post` button, view mode switchers, draft saver, and publication dropdown.
+   - Clean up toolbar dropdowns and ensure smooth scrolling in both panes.
+3. **`src/components/BlogPage.tsx`**:
+   - Initialize `selectedPostId` from URL query parameter (`?post=...`) or hash route (`/#/blog?post=...`).
+   - Ensure direct live links from the admin panel land directly on the selected post.
 
 ---
 
-## 5. Verification & Completed Features
+## 6. Step-by-Step Implementation Sequence
 
-- [x] **Segmented Status Tabs**: `All Products`, `Active`, `Unavailable`, `Hot Deals`, `Manual Checkout`, and `Affiliate Partner` tabs with live count chips.
-- [x] **High-Density Catalog Table**: Compact row layout, 1-click copyable product IDs, instant live availability toggles, thumbnail zoom, and direct `/#/attraction/:id` storefront link (`↗`).
-- [x] **Floating Bulk Actions Bar**: Appears smoothly when rows are selected (`Mark Active`, `Mark Paused`, `Delete Selected`, `Deselect All`).
-- [x] **Product Editor Sticky Toolbar**: `View Live Product` link mapped to `/#/attraction/:id`, direct `Duplicate`, and `Save Changes`.
-- [x] **Zero Regressions**: All existing variant models, pricing rules, highlights editors, and database synchronization remain fully operational.
-- [x] **Build & Lint Verification**: Co-executed `compile_applet` and `lint_applet` with zero TypeScript or build errors.
+1. **Storefront Route Binding**: Update `src/components/BlogPage.tsx` so `selectedPostId` recognizes `post` query parameter on mount.
+2. **Blog Catalog Overhaul (`src/admin/pages/Blog.tsx`)**:
+   - Add status filter state, bulk selection state, copied ID state.
+   - Implement segmented status tabs with live count indicators.
+   - Build high-density table rows with interactive switches, 1-click copy IDs, and action buttons.
+   - Add duplicate post handler and floating multi-select bulk actions bar.
+3. **Editor Split View Overhaul (`src/admin/pages/BlogPostForm.tsx`)**:
+   - Update sticky top bar with segmented view toggle (`Edit`, `Split`, `Preview`) and `View Live Post` external link.
+   - Implement side-by-side split layout: editor on left, formatted live article preview on right.
+   - Sync real-time updates as the user edits title, excerpt, cover image, tags, and rich content.
+4. **Verification & Testing**:
+   - Co-execute `compile_applet` and `lint_applet` to ensure zero compilation and typing errors.
+   - Restart dev server and verify HTTP 200 on `/blog`, `/blog/new`, and storefront routes.
+
+---
+
+## 7. Verification & Completed Features
+
+- [x] **Storefront Query Binding**: `BlogPage.tsx` now reads `?post=:id` from URL query and hash routes on load.
+- [x] **High-Density Blog Catalog**: `Blog.tsx` features segmented status tabs (`All Posts`, `Published`, `Drafts`, `Scheduled`) with live counts, search and category filters with 1-click clear, compact table layout, and inline publication switches (`LIVE` / `DRAFT`).
+- [x] **Multi-Select Bulk Actions**: Checkboxes with page-level select-all, floating action toolbar (`Bulk Publish`, `Set as Draft`, `Delete Selected`, `Deselect All`).
+- [x] **Interactive Side-by-Side Live Editor**: `BlogPostForm.tsx` offers three layout modes (`Editor`, `Split Live`, `Preview`). The right-hand preview panel renders real-time typography, cover image, metadata, and HTML prose as the author types.
+- [x] **Storefront Linkage**: Added direct `View Live Post` external links on both table rows and the editor header.
+- [x] **Compilation & Lint Verification**: Both `compile_applet` and `lint_applet` passed with zero errors. All routes verified via HTTP 200 smoke tests.

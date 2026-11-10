@@ -34,6 +34,7 @@ import {
   Eye,
   Edit3,
   Columns,
+  ExternalLink,
   X,
   Check,
   Upload,
@@ -1046,34 +1047,82 @@ export default function BlogPostForm() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <button 
-            type="button"
-            onClick={() => handleSave('Draft')}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
-          >
-            <Bookmark className="w-4 h-4 text-slate-400" />
-            Save Draft
-          </button>
+        <div className="flex items-center flex-wrap gap-2.5">
+          {/* View Mode Switcher */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setEditorMode('edit')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                editorMode === 'edit'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Edit Canvas (Full Width)"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Editor</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditorMode('split')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                editorMode === 'split'
+                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-sky-400 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Split View (Real-time Live Preview)"
+            >
+              <Columns className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Split Live</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditorMode('preview')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                editorMode === 'preview'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Full Preview Canvas"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Preview</span>
+            </button>
+          </div>
+
+          {/* Storefront Live Link */}
+          {isEditing && (
+            <a
+              href={`/#/blog?post=${encodeURIComponent(id || '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 rounded-xl transition-colors shadow-2xs"
+              title="View this post live on the storefront"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+              <span className="hidden md:inline">View Live Post</span>
+            </a>
+          )}
 
           <button 
             type="button"
-            onClick={() => setIsPreviewModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
+            onClick={() => handleSave('Draft')}
+            className="flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
           >
-            <Eye className="w-4 h-4 text-slate-400" />
-            Preview
+            <Bookmark className="w-3.5 h-3.5 text-slate-400" />
+            Save Draft
           </button>
 
           <div ref={publishDropdownRef} className="relative">
             <button 
               type="button"
               onClick={() => setIsPublishDropdownOpen(!isPublishDropdownOpen)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer active:scale-95"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-3.5 h-3.5" />
               <span>Publish Post</span>
-              <ChevronDown className="w-4 h-4 opacity-80" />
+              <ChevronDown className="w-3.5 h-3.5 opacity-80" />
             </button>
 
             {isPublishDropdownOpen && (
@@ -1084,9 +1133,9 @@ export default function BlogPostForm() {
                     setIsPublishDropdownOpen(false);
                     handleSave('Published');
                   }}
-                  className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-violet-50 dark:hover:bg-violet-950/40 hover:text-violet-600 dark:hover:text-violet-400 transition-colors flex items-center gap-2 cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2 cursor-pointer"
                 >
-                  <Globe className="w-4 h-4 text-indigo-500" />
+                  <Globe className="w-4 h-4 text-blue-500" />
                   Publish Now
                 </button>
                 <button
@@ -1095,7 +1144,7 @@ export default function BlogPostForm() {
                     setIsPublishDropdownOpen(false);
                     handleSave('Scheduled');
                   }}
-                  className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-violet-50 dark:hover:bg-violet-950/40 hover:text-violet-600 dark:hover:text-violet-400 transition-colors flex items-center gap-2 cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2 cursor-pointer"
                 >
                   <CalendarClock className="w-4 h-4 text-indigo-500" />
                   Schedule for Later
@@ -1106,7 +1155,10 @@ export default function BlogPostForm() {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className={editorMode === 'split' ? "grid grid-cols-1 xl:grid-cols-12 gap-6 items-start" : "space-y-6"}>
+        {/* Left Column: Form & TipTap Editor */}
+        {editorMode !== 'preview' && (
+          <div className={editorMode === 'split' ? "xl:col-span-7 space-y-6" : "space-y-6"}>
         {/* Top 2 Cards Grid: Post Details & Featured Image */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Post Details Card */}
@@ -2133,6 +2185,91 @@ export default function BlogPostForm() {
             </div>
           )}
         </div>
+        )}
+
+        {/* Right Column: Live Real-Time Storefront Preview Pane */}
+        {editorMode !== 'edit' && (
+          <div className={editorMode === 'split' ? "xl:col-span-5 sticky top-20 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden flex flex-col max-h-[calc(100vh-6rem)]" : "max-w-4xl mx-auto bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden flex flex-col"}>
+            {/* Live Preview Header */}
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">
+                  Live Storefront Preview
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+                <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-600 dark:text-slate-400 font-bold">
+                  {status}
+                </span>
+                <span>Real-time</span>
+              </div>
+            </div>
+
+            {/* Scrollable Article Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 hide-scrollbar">
+              {/* Category, City, Author */}
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span className="font-bold text-blue-600 dark:text-sky-400">
+                  {category || "Travel Guide"}
+                </span>
+                {city && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>📍 {city}</span>
+                  </>
+                )}
+                <span aria-hidden="true">·</span>
+                <span>By {authorName || 'Editorial Team'}</span>
+                <span aria-hidden="true">·</span>
+                <span>{publishedAt ? new Date(publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Draft'}</span>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-snug">
+                {title || 'Untitled Travel Article'}
+              </h1>
+
+              {/* Excerpt */}
+              {excerpt && (
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 text-xs sm:text-sm text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                  {excerpt}
+                </div>
+              )}
+
+              {/* Cover Image */}
+              {imageUrl && (
+                <div className="rounded-xl overflow-hidden aspect-video border border-slate-200/80 dark:border-slate-800 bg-slate-100">
+                  <img
+                    src={imageUrl}
+                    alt={title || 'Featured'}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              )}
+
+              {/* Content Body */}
+              <div 
+                className="prose dark:prose-invert prose-sm max-w-none text-slate-800 dark:text-slate-200 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: editor ? editor.getHTML() : '' }}
+              />
+
+              {/* Tags */}
+              {tags.length > 0 && (
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] text-slate-400 font-semibold mr-1">Tags:</span>
+                  {tags.map((t, i) => (
+                    <span key={i} className="text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md">
+                      #{t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       <AnimatePresence>
         {showToast && (
