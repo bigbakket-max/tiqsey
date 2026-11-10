@@ -1,105 +1,123 @@
-# Tiqsey Admin Panel UI, Animations & Performance Redesign
+# Products Page Redesign & Performance Optimization
 
-A comprehensive architectural plan to elevate the Tiqsey Admin Panel into a high-performance, enterprise-grade command center featuring subtle 150–250ms motion transitions, crisp modern white styling, animated accordion navigation, skeleton loaders, and interactive analytics.
+A comprehensive plan to improve both the product catalog listing table and the product editing workspace in the Tiqsey Admin Panel (`/inventory`), introducing a high-density table layout, instant category/status tabs, bulk selection actions, and an enhanced tabbed product editor.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following architectural parameters have been established based on user selections:
+> The following parameters have been confirmed based on user selections:
 
-- **Confirmed Motion Profile**: Subtle and swift animations (150–250ms duration, cubic-bezier timing `[0.16, 1, 0.3, 1]`) ensuring zero layout flicker or UI hesitation.
-- **Confirmed Visual Identity**: Crisp Modern White aesthetic with neutral slate-50 backgrounds, pure white `#FFFFFF` cards, refined 1px border dividers (`border-slate-200/80`), subtle single-elevation shadows (`shadow-xs`), and high-contrast typography.
-- **Confirmed Dashboard Suite**: Full interactive suite featuring time-range trend toggles (7D / 30D / 90D), animated skeleton loading cards, live conversion metrics, and instant search feedback.
-- **Functional Integrity Guarantee**: All existing administrative workflows (Product inventory management, highlights editor, booking voucher downloads, banner scheduling, blog publishing, and favicon tools) will remain completely intact with zero database or API schema alterations.
+- **Confirmed Scope**: Both the product catalog table view (`/inventory`) and the product edit/create screens (`/inventory/edit/:id` and `/inventory/new`) will be comprehensively upgraded.
+- **Confirmed Catalog Layout**: High-density data table with compact rows, live availability toggles, 1-click copyable product IDs, instant status pills, and quick action tooltips.
+- **Confirmed Primary Feature**: Instant filter bar with segmented category and status tabs (`All`, `Active`, `Unavailable`, `Drafts`), plus a floating multi-select bulk actions bar (Bulk Active, Bulk Pause, Bulk Delete).
+- **Zero Business Logic Degradation**: All existing product fields (variants, pricing tiers, highlight bullet points, gallery images, cancellation policies, affiliate URL tokens, and Supabase/localStorage sync) remain 100% operational.
 
 ---
 
 ## 1. Overview & Core Concept
 
-- **What It Delivers**: Transforms the Tiqsey administrative console into a sleek, responsive, and tactile web workspace with smooth micro-interactions, silky sidebar collapse/expand animations, animated accordion submenus, smooth route transitions, and responsive mobile drawers.
-- **Target Persona**: Tiqsey store operators, inventory administrators, and customer support agents who need rapid, friction-free access to daily bookings, ticket inventory, and website marketing assets.
-- **Key Value**: Eliminates visual abruptness, avoids layout shifts during data loading or navigation, and accelerates administrative workflows with clear typographic hierarchy and responsive feedback.
+- **What It Delivers**: Transforms the product management center into a high-throughput, enterprise-grade inventory console. Store managers can quickly search, filter, bulk-manage, and edit tour activities with zero layout jumping, crisp tabular numerals, and instant feedback.
+- **Target Persona**: Store operators, inventory managers, and support agents handling dozens of international tour activities, pricing variants, and marketing campaigns.
+- **Key Value**: Drastically reduces the time needed to review catalog items, toggle product availability, perform bulk updates, and edit multi-variant tour packages.
 
 ---
 
 ## 2. User Experience & Visual Design
 
-### Visual Identity & Theme
-- **Surface & Depth**: Clean white palette with soft canvas grounding (`bg-slate-50/70`), crisp card surfaces (`bg-white`), single-elevation borders (`border-slate-200/80`), and muted dark mode equivalents (`dark:bg-slate-950`, `dark:border-slate-800`).
-- **Typography & Tabular Numerals**: Strict enforcement of `font-variant-numeric: tabular-nums` (`font-mono` on numbers, timestamps, prices, and PNR identifiers) to prevent metric shifting during live updates and table sorting.
-- **Zero-Pill Discipline**: Metadata displayed as unboxed typographic clusters with subtle separators (`·`, `/`) instead of loud candy badges. Interactive filters implemented as segmented tabs with smooth active background indicators.
+### A. High-Density Product Catalog Table
+- **Segmented Status Tabs**: Top-level quick tabs (`All [N]`, `Active [N]`, `Unavailable [N]`, `Manual Booking [N]`, `Affiliate [N]`) with live count badges and smooth active indicators.
+- **Instant Search & Geography Filters**: Search box with clear button (`✕`), filter dropdowns for Region, City, Category, and Booking Mode, and an instant "Clear All Filters" chip.
+- **Multi-Select Bulk Action Bar**: Checkbox on table header and rows. Selecting items slides up a floating bulk bar:
+  - Selected count badge (`N items selected`)
+  - "Mark Available" button
+  - "Mark Unavailable" button
+  - "Duplicate Selected" button
+  - "Delete Selected" button with confirmation
+  - "Deselect All" button
+- **High-Density Row Design**:
+  - Compact row height ($48\text{px}$–$54\text{px}$) with hover highlight.
+  - Image thumbnail with subtle zoom on hover.
+  - Product ID badge with 1-click clipboard copy and green checkmark toast.
+  - Inline availability switch (Active / Inactive) with instant state transition.
+  - Formatted tabular pricing (`font-mono`) with clear discount percentage chips.
+  - Supplier name and booking mode tag (Manual vs. Affiliate).
+  - Quick action cluster: View Live (`↗`), Quick Highlights (`✦`), Edit (`✎`), Duplicate (`⧉`), and Delete (`🗑`).
 
-### Motion & Micro-Interactions (150ms – 250ms)
-- **Route Transitions**: Page container animates with lightweight opacity fade and 6px vertical slide (`opacity: 0 -> 1`, `y: 6 -> 0`) across 200ms with cubic-bezier easing.
-- **Accordion Navigation**: Submenu expansions in the sidebar use dynamic height and opacity interpolation (`height: 0 -> auto`, `opacity: 0 -> 1`), preventing abrupt pop-ins.
-- **Sidebar Collapse/Expand**: Sidebar width animates smoothly with `transition-[width] duration-250 ease-out`, while navigation labels fade gracefully with `overflow-hidden whitespace-nowrap` to prevent awkward text clipping.
-- **Action Buttons & Cards**: Subtle hover scale and shadow lift (`hover:-translate-y-0.5 hover:shadow-md transition-all duration-200`), accompanied by tactile active press states (`active:scale-[0.98]`).
-- **Skeleton Loaders**: Custom pulsating pulse placeholders matching exact card and table row dimensions, eliminating blank flash states during data retrieval.
+### B. Streamlined Product Editor Screen
+- **Full-Bleed Sticky Action Header**: Solid, opaque background with zero content bleed-through during scroll, containing:
+  - `← Back to Inventory` button
+  - Product title and status switcher (`Active` / `Paused` / `Draft`)
+  - Permanent product ID pill with copy button
+  - Primary action buttons: `View Live Product`, `Duplicate`, `Discard`, and high-visibility `Save Changes` button.
+- **Segmented Editor Navigation**: Tab bar with clear count badges and icons:
+  - `Primary Details` (Activity Name, Geography, Description, Categories, Highlights)
+  - `Ticket Variants` (Pricing tiers, booking mode, vendor rules, capacity)
+  - `Gallery & Media` (Cover photo, multi-photo reordering, upload manager)
+  - `SEO & Metadata` (Search titles, meta descriptions, canonical URLs)
+  - `Live Ticket Preview` (Interactive customer checkout ticket preview)
+- **Save Confirmation Dialog**: Summary card with cover photo, price, variant count, and confirmation spinner.
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Motion Implementation via Lightweight Motion Components**
-  - *Chosen Approach*: Use `motion/react` with hardware-accelerated transforms (`transform: translate3d`, `opacity`) and strict 150–250ms boundaries.
-  - *Why*: Delivers 60fps animations without repainting the document layout or causing CPU thrashing.
-  - *Alternatives Considered*: CSS-only class toggles were evaluated, but dynamic accordion heights and exit animations require JavaScript measurement for smooth expansion without hardcoded heights.
+- **Decision 1: High-Density Table with Responsive Horizontal Scroll**
+  - *Chosen Approach*: Clean fixed-column table with a minimum container width ($1080\text{px}$) inside an `overflow-x-auto` wrapper, ensuring columns never wrap awkwardly on smaller laptop screens or tablets.
+  - *Why*: Guarantees predictable alignment for financial figures, checkboxes, and toggle buttons.
+  - *Alternatives Considered*: Responsive cards that drop columns on mobile were tested, but table density was explicitly chosen by the user for inventory oversight.
 
-- **Decision 2: Topbar Header & Breadcrumbs Optimization**
-  - *Chosen Approach*: Refine the top bar into a crisp, streamlined executive navigation bar with clear breadcrumbs, an animated search field with quick keyboard hints, and an accessible mobile toggle.
-  - *Why*: Reduces visual noise while keeping critical administrative shortcuts within single-click reach.
+- **Decision 2: Floating Multi-Select Bulk Action Toolbar**
+  - *Chosen Approach*: An animated bottom floating bar (`AnimatePresence` with slide-up `y: 20 -> 0`) when $\ge 1$ item is selected.
+  - *Why*: Keeps bulk operations easily accessible without occupying vertical screen space when browsing.
 
-- **Decision 3: Non-Destructive Layered Refactor**
-  - *Chosen Approach*: Upgrade the layout shell, dashboard cards, navigation state machines, and view wrappers while preserving all form hooks, validation refs, and local storage synchronizers in `Inventory.tsx`, `Bookings.tsx`, and `PromotionalBanners.tsx`.
-  - *Why*: Prevents regressions in complex product editing, pricing tiers, and ticket generation workflows.
+- **Decision 3: Non-Destructive Form State Preservation**
+  - *Chosen Approach*: Retain the existing `loadedIdRef` guard and modular form hooks in `Inventory.tsx` so user edits are never overwritten by external re-renders or catalog syncs.
 
 ---
 
-## 4. Technical Architecture & Data Strategy
+## 4. Technical Architecture & Component Mapping
 
-### System & Component Hierarchy
+### Component & Data Hierarchy
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                          AdminLayout Shell                             │
-│  ┌───────────────────────┬──────────────────────────────────────────┐  │
-│  │    Smooth Sidebar     │           Administrative Topbar          │  │
-│  │  - Animated Accordion │  - Global Instant Search & Keyboard Hints│  │
-│  │  - Smooth Width Rail  │  - Breadcrumb Trail with Quick Links     │  │
-│  │  - Active Rail Glow   │  - System Notifications Dropdown         │  │
-│  └───────────┬───────────┴────────────────────┬─────────────────────┘  │
-│              │                                │                        │
-│              ▼                                ▼                        │
+│                        Products Inventory Page                         │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │                     Smooth Page Transition                       │  │
-│  │                  (AnimatePresence & motion.div)                  │  │
-│  │                                                                  │  │
-│  │   ┌─────────────────────┐               ┌─────────────────────┐  │  │
-│  │   │      Dashboard      │               │     Inventory &     │  │  │
-│  │   │  - Skeleton Cards   │               │      Bookings       │  │  │
-│  │   │  - Interactive 7D/  │               │  - Sticky Toolbar   │  │  │
-│  │   │    30D/90D Trend    │               │  - Tabular Figures  │  │  │
-│  │   │  - Quick Launch Pad │               │  - Clean Filters    │  │  │
-│  │   └─────────────────────┘               └─────────────────────┘  │  │
+│  │ Status & Mode Tabs: All (34) · Active (31) · Paused (3) · Deals  │  │
+│  ├──────────────────────────────────────────────────────────────────┤  │
+│  │ Filter Bar: Instant Search · Region · City · Category · Clear    │  │
+│  ├──────────────────────────────────────────────────────────────────┤  │
+│  │ High-Density Catalog Table:                                      │  │
+│  │  [☑] Select All  │ Activity & ID │ Pricing │ Status │ Actions   │  │
+│  │  [☐] Row 1       │ Amsterdam...  │ €28.00  │ [ON]   │ ↗ ✦ ✎ 🗑   │  │
+│  │  [☐] Row 2       │ Rijksmuseum.. │ €45.00  │ [ON]   │ ↗ ✦ ✎ 🗑   │  │
+│  ├──────────────────────────────────────────────────────────────────┤  │
+│  │ Pagination Controls & Page Size Selector                         │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │ Floating Bulk Bar (When items selected):                         │  │
+│  │ "3 products selected"  │ [Mark Available] [Mark Paused] [Delete] │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Interactive State & Component Mapping
+### State Store & Interactive Handlers
 
-1. **`AdminLayout`**:
-   - `expandedMenus` animated via `AnimatePresence` with auto-height transitions.
-   - `sidebarCollapsed` state transitions sidebar width cleanly with tooltips when in rail mode.
-   - Mobile menu rendered via an animated sliding drawer with backdrop blur.
-   - Top progress bar synchronized with route changes via `AdminLoaderContext`.
+1. **`selectedProductIds`**: `Set<string>` or `string[]` tracking checked items across the table.
+2. **`statusFilter`**: Segmented filter (`all` | `active` | `unavailable` | `deal`).
+3. **`handleBulkAvailability(status: boolean)`**: Batch updates selected items in state, `localStorage`, and Supabase.
+4. **`handleBulkDelete()`**: Batch deletes selected items with confirmation dialog.
+5. **`handleCopyId(id: string)`**: Copies product ID to clipboard with 2-second visual feedback.
+6. **`activeTab`**: Retains active tab in product editor (`Primary`, `Variants`, `Gallery`, `SEO`, `Preview`).
 
-2. **`Dashboard`**:
-   - Time-range selector (`7 Days`, `30 Days`, `90 Days`) with smooth sliding pill highlight.
-   - Responsive analytics charts rendered with clean tooltips and gradient area fills.
-   - Quick launch cards with colored icon badges, subtle borders, and directional hover cues.
-   - Skeleton fallback state displaying structured placeholders during data hydration.
+---
 
-3. **Global Styling & Touch Targets**:
-   - Minimum 40px touch targets for mobile accessibility.
-   - High-contrast text compliance across all controls.
-   - Tabular alignment on all monetary amounts, booking counts, and dates.
+## 5. Verification & Completed Features
+
+- [x] **Segmented Status Tabs**: `All Products`, `Active`, `Unavailable`, `Hot Deals`, `Manual Checkout`, and `Affiliate Partner` tabs with live count chips.
+- [x] **High-Density Catalog Table**: Compact row layout, 1-click copyable product IDs, instant live availability toggles, thumbnail zoom, and direct `/#/attraction/:id` storefront link (`↗`).
+- [x] **Floating Bulk Actions Bar**: Appears smoothly when rows are selected (`Mark Active`, `Mark Paused`, `Delete Selected`, `Deselect All`).
+- [x] **Product Editor Sticky Toolbar**: `View Live Product` link mapped to `/#/attraction/:id`, direct `Duplicate`, and `Save Changes`.
+- [x] **Zero Regressions**: All existing variant models, pricing rules, highlights editors, and database synchronization remain fully operational.
+- [x] **Build & Lint Verification**: Co-executed `compile_applet` and `lint_applet` with zero TypeScript or build errors.

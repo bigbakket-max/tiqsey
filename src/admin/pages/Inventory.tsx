@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "motion/react";
 import { useAdminLoader } from "../contexts/AdminLoaderContext";
 import { WysiwygEditor, TabbedWysiwygEditor } from "../components/WysiwygEditor";
 import { AdminPagination } from "../components/AdminPagination";
@@ -461,6 +462,9 @@ export default function Inventory() {
   const [selectedLocation, setSelectedLocation] = useState("All");
   const [sortBy, setSortBy] = useState<"name" | "price" | "capacity" | "rating">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [statusTab, setStatusTab] = useState<'all' | 'active' | 'unavailable' | 'deals' | 'manual' | 'affiliate'>('all');
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [copiedTableId, setCopiedTableId] = useState<string | null>(null);
   
   // Pagination logic
   const [currentPage, setCurrentPage] = useState(1);
@@ -1244,8 +1248,13 @@ export default function Inventory() {
       return sum + topClicks + variantClicks;
     }, 0);
 
+    const activeCount = attractions.filter(a => a.isAvailable !== false).length;
+    const unavailableCount = attractions.filter(a => a.isAvailable === false).length;
+
     return {
       total,
+      activeCount,
+      unavailableCount,
       avgPrice,
       promotions,
       lowCapacity,
@@ -1616,7 +1625,24 @@ export default function Inventory() {
             : (attr.bookingMode === "affiliate")
         ));
 
-      return matchesSearch && matchesCategory && matchesRegion && matchesLocation && matchesBookingMode;
+      let matchesStatus = true;
+      if (statusTab === 'active') {
+        matchesStatus = attr.isAvailable !== false;
+      } else if (statusTab === 'unavailable') {
+        matchesStatus = attr.isAvailable === false;
+      } else if (statusTab === 'deals') {
+        matchesStatus = Boolean(attr.discountPrice && attr.discountPrice > 0);
+      } else if (statusTab === 'manual') {
+        matchesStatus = (attr.variants && attr.variants.length > 0)
+          ? attr.variants.some(v => v?.bookingMode !== "affiliate")
+          : (attr.bookingMode === "manual" || !attr.bookingMode);
+      } else if (statusTab === 'affiliate') {
+        matchesStatus = (attr.variants && attr.variants.length > 0)
+          ? attr.variants.some(v => v?.bookingMode === "affiliate")
+          : (attr.bookingMode === "affiliate");
+      }
+
+      return matchesSearch && matchesCategory && matchesRegion && matchesLocation && matchesBookingMode && matchesStatus;
     });
 
     // Sort result
@@ -1640,12 +1666,12 @@ export default function Inventory() {
     });
 
     return result;
-  }, [attractions, searchQuery, selectedCategory, selectedRegion, selectedLocation, bookingModeFilter, sortBy, sortOrder]);
+  }, [attractions, searchQuery, selectedCategory, selectedRegion, selectedLocation, bookingModeFilter, statusTab, sortBy, sortOrder]);
 
   // Reset page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedCategory, selectedRegion, selectedLocation, bookingModeFilter, sortBy, sortOrder]);
+  }, [searchQuery, selectedCategory, selectedRegion, selectedLocation, bookingModeFilter, statusTab, sortBy, sortOrder]);
 
   // Derived Pagination
   const totalPages = Math.ceil(filteredAndSortedAttractions.length / itemsPerPage);
@@ -1654,42 +1680,154 @@ export default function Inventory() {
     currentPage * itemsPerPage
   );
 
-  const inventoryTable = useMemo(() => (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden shadow-sm">
-      {/* Advanced Filters Toolbar */}
-      <div className="p-6 border-b border-slate-200 dark:border-slate-800 space-y-4">
-        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-          {/* Search Input */}
+  // Bulk selection and action handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedProductIds(paginatedAttractions.map(a => a.id));
+    } else {
+      setSelectedProductIds([]);
+    }
+  };
+
+  const handleToggleRowSelection = (id: string) => {
+    setSelectedProductIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkSetAvailability = (available: boolean) => {
+    if (selectedProductIds.length === 0) return;
+    const updated = attractions.map(a => {
+      if (selectedProductIds.includes(a.id)) {
+        return { ...a, isAvailable: available };
+      }
+      return a;
+    });
+    setAttractions(updated);
+    syncCustomAttractions(updated);
+    setSelectedProductIds([]);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedProductIds.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedProductIds.length} selected activities? This cannot be undone.`)) {
+      const updated = attractions.filter(a => !selectedProductIds.includes(a.id));
+      setAttractions(updated);
+      syncCustomAttractions(updated);
+      setSelectedProductIds([]);
+    }
+  };
+
+  const handleCopyTableId = (displayId: string) => {
+    navigator.clipboard.writeText(displayId);
+    setCopiedTableId(displayId);
+    setTimeout(() => setCopiedTableId(null), 2000);
+  };
+
+  const handleDuplicateFromTable = (attr: Attraction) => {
+    const newId = generateUniqueProductId(attractions);
+    const cloned: Attraction = {
+      ...attr,
+      id: newId,
+      productId: newId,
+      name: `${attr.name} (Copy)`,
+      isAvailable: false,
+      rating: 5.0,
+      reviewsCount: 0,
+      galleryUrls: [...(attr.galleryUrls || [])],
+      variants: [...(attr.variants || [])],
+    };
+    const updated = [cloned, ...attractions];
+    setAttractions(updated);
+    syncCustomAttractions(updated);
+    fetch("/api/inventory/attractions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cloned)
+    }).catch(() => {});
+  };
+
+  const inventoryTable = useMemo(() => {
+    const isAllSelected = paginatedAttractions.length > 0 && paginatedAttractions.every(a => selectedProductIds.includes(a.id));
+    const isSomeSelected = selectedProductIds.length > 0;
+
+    return (
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs relative">
+        {/* Status Tabs Bar */}
+        <div className="px-6 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
+            {[
+              { id: 'all', label: 'All Products', count: stats.total },
+              { id: 'active', label: 'Active', count: stats.activeCount },
+              { id: 'unavailable', label: 'Unavailable', count: stats.unavailableCount },
+              { id: 'deals', label: 'Hot Deals', count: stats.promotions },
+              { id: 'manual', label: 'Manual Checkout', count: stats.manualCount },
+              { id: 'affiliate', label: 'Affiliate Partner', count: stats.affiliateCount }
+            ].map(tab => {
+              const isActive = statusTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setStatusTab(tab.id as any)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap ${
+                    isActive 
+                      ? 'bg-blue-600 text-white shadow-xs' 
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200/80 dark:border-slate-800'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    isActive ? 'bg-white/20 text-white font-black' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Filter and Search Bar */}
+        <div className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-slate-800 flex flex-col lg:flex-row gap-3.5 items-stretch lg:items-center justify-between">
+          {/* Search Input with Clear Button */}
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 pointer-events-none" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search Product"
+              placeholder="Search product name, ID, city, or category..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md pl-11 pr-4 py-3 text-sm font-semibold focus:outline-none focus:border-[#5fa6d9] focus:ring-1 focus:ring-[#5fa6d9] transition-colors text-slate-700 dark:text-slate-300"
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-xl pl-10 pr-9 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 dark:text-slate-200 placeholder-slate-400"
             />
+            {searchQuery && (
+              <button 
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          {/* Quick Filters */}
-          <div className="flex items-center gap-3 overflow-x-auto pb-2 lg:pb-0 hide-scrollbar">
-            <div className="flex items-center gap-2 border-r border-slate-200 dark:border-slate-800 pr-3 mr-1">
-              <Layers className="w-4 h-4 text-slate-400" />
-              <select
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-                className="bg-transparent text-sm font-bold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer hover:text-[#5fa6d9] transition-colors"
-              >
-                {regions.map((reg) => (
-                  <option key={reg} value={reg}>{reg}</option>
-                ))}
-              </select>
-            </div>
+          {/* Geography & Category Filters */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 hide-scrollbar">
+            <select
+              value={selectedRegion}
+              onChange={(e) => setSelectedRegion(e.target.value)}
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
+            >
+              <option value="All">All Regions</option>
+              {regions.filter(r => r !== "All").map((reg) => (
+                <option key={reg} value={reg}>{reg}</option>
+              ))}
+            </select>
 
             <select
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-2 rounded-lg focus:outline-none focus:border-[#5fa6d9] cursor-pointer"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="All">All Cities</option>
               {locations.filter(l => l !== "All").map((loc) => (
@@ -1700,7 +1838,7 @@ export default function Inventory() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-2 rounded-lg focus:outline-none focus:border-[#5fa6d9] cursor-pointer"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="All">All Categories</option>
               {categories.filter(c => c !== "All").map((cat) => (
@@ -1708,97 +1846,116 @@ export default function Inventory() {
               ))}
             </select>
 
-            <select
-              value={bookingModeFilter}
-              onChange={(e) => setBookingModeFilter(e.target.value as any)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-2 rounded-lg focus:outline-none focus:border-[#5fa6d9] cursor-pointer"
-            >
-              <option value="all">All Modes</option>
-              <option value="manual">Manual Booking</option>
-              <option value="affiliate">Affiliate Booking</option>
-            </select>
-
-            {(selectedCategory !== "All" || selectedRegion !== "All" || selectedLocation !== "All" || bookingModeFilter !== "all" || searchQuery) && (
+            {(selectedCategory !== "All" || selectedRegion !== "All" || selectedLocation !== "All" || statusTab !== "all" || searchQuery) && (
               <button
+                type="button"
                 onClick={() => {
                   setSelectedCategory("All");
                   setSelectedRegion("All");
                   setSelectedLocation("All");
-                  setBookingModeFilter("all");
+                  setStatusTab("all");
                   setSearchQuery("");
                 }}
-                className="text-sm font-semibold text-[#5fa6d9] hover:text-[#4b95cc] transition-colors px-2 cursor-pointer"
+                className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-sky-400 px-2 py-1.5 transition-colors cursor-pointer shrink-0"
               >
                 Clear Filters
               </button>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Responsive Real-Time Catalogue Table */}
+      {/* Responsive Real-Time High-Density Catalogue Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[1000px] table-fixed">
+        <table className="w-full text-left text-sm min-w-[1050px] table-fixed">
           <colgroup>
+            <col className="w-[4%]" />
             <col className="w-[30%]" />
             <col className="w-[12%]" />
-            <col className="w-[12%]" />
+            <col className="w-[13%]" />
             <col className="w-[14%]" />
+            <col className="w-[13%]" />
             <col className="w-[14%]" />
-            <col className="w-[10%]" />
-            <col className="w-[8%]" />
           </colgroup>
           <thead className="bg-slate-50 dark:bg-slate-950/60 text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
             <tr>
-              <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-950 transition-colors" onClick={() => handleSort("name")}>
+              <th className="px-4 py-3.5 text-center">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer"
+                  title="Select all on this page"
+                />
+              </th>
+              <th className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors" onClick={() => handleSort("name")}>
                 <div className="flex items-center gap-1.5">
                   Activity & ID
                   <ArrowUpDown className="w-3.5 h-3.5" />
                 </div>
               </th>
-              <th className="px-6 py-4">Location</th>
-              <th className="px-6 py-4">Category</th>
-              <th className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-950 transition-colors" onClick={() => handleSort("price")}>
+              <th className="px-4 py-3.5">Location</th>
+              <th className="px-4 py-3.5">Category & Type</th>
+              <th className="px-4 py-3.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors" onClick={() => handleSort("price")}>
                 <div className="flex items-center gap-1.5">
                   Price Configuration
                   <ArrowUpDown className="w-3.5 h-3.5" />
                 </div>
               </th>
-              <th className="px-6 py-4">Availability</th>
-              <th className="px-6 py-4">Supplier</th>
-              <th className="px-6 py-4 text-right">Actions</th>
+              <th className="px-4 py-3.5">Live Availability</th>
+              <th className="px-4 py-3.5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
             {filteredAndSortedAttractions.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-20 bg-slate-50/20 dark:bg-slate-950/10">
+                <td colSpan={7} className="text-center py-20 bg-slate-50/20 dark:bg-slate-950/10">
                   <div className="max-w-md mx-auto space-y-3">
                     <Compass className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto animate-bounce" />
                     <p className="text-base font-black text-slate-800 dark:text-white">No Activities Match Filters</p>
                     <p className="text-xs text-slate-400">
-                      Try clearing or relaxing your search query and filters to review other operational inventory items.
+                      Try relaxing your search query or switching tabs to review other operational inventory items.
                     </p>
                   </div>
                 </td>
               </tr>
             ) : (
               paginatedAttractions.map((attr) => {
+                const isSelected = selectedProductIds.includes(attr.id);
                 const hasDiscount = attr.discountPrice !== undefined && attr.discountPrice > 0;
                 const discountPercent = hasDiscount
                   ? Math.round(((attr.price - attr.discountPrice!) / attr.price) * 100)
                   : 0;
+                const displayId = getDisplayProductId(attr);
+                const isCopied = copiedTableId === displayId;
+                const liveUrl = `${window.location.origin}/#/attraction/${attr.customSlug || attr.id}`;
 
                 return (
-                  <tr key={attr.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
-                    {/* Name / ID / Image */}
-                    <td className="px-6 py-4">
+                  <tr 
+                    key={attr.id} 
+                    className={`transition-colors duration-150 ${
+                      isSelected 
+                        ? "bg-blue-50/50 dark:bg-blue-950/25" 
+                        : "hover:bg-slate-50/70 dark:hover:bg-slate-800/30"
+                    }`}
+                  >
+                    {/* Checkbox */}
+                    <td className="px-4 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleRowSelection(attr.id)}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer"
+                      />
+                    </td>
+
+                    {/* Activity & ID & Image */}
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="relative w-12 h-12 rounded-md overflow-hidden bg-slate-100 border border-slate-200 dark:border-slate-800 flex-shrink-0 group">
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 dark:border-slate-800 shrink-0 group">
                           <img
                             src={attr.imageUrl}
                             alt={attr.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
                             referrerPolicy="no-referrer"
                           />
                           {hasDiscount && (
@@ -1807,14 +1964,35 @@ export default function Inventory() {
                             </div>
                           )}
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-slate-900 dark:text-white font-black text-sm truncate" title={attr.name}>
-                            {attr.name}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="font-mono text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-950 px-1.5 py-0.5 rounded">
-                              ID: {getDisplayProductId(attr)}
-                            </span>
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-slate-900 dark:text-white font-bold text-sm truncate max-w-[280px]" title={attr.name}>
+                              {attr.name}
+                            </p>
+                            <a
+                              href={liveUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-slate-400 hover:text-blue-600 dark:hover:text-sky-400 transition-colors shrink-0"
+                              title="View Live Product in new tab"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyTableId(displayId)}
+                              className="inline-flex items-center gap-1 font-mono text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                              title="Click to copy Product ID"
+                            >
+                              {isCopied ? (
+                                <Check className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                              ) : (
+                                <Copy className="w-2.5 h-2.5" />
+                              )}
+                              <span>ID: {displayId}</span>
+                            </button>
                             <span className="flex items-center text-[10px] text-amber-500 font-bold gap-0.5">
                               <Star className="w-3 h-3 fill-amber-500 stroke-amber-500" />
                               {attr.rating || 4.8}
@@ -1825,7 +2003,7 @@ export default function Inventory() {
                     </td>
 
                     {/* Location details */}
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div className="text-xs space-y-0.5">
                         <p className="text-slate-900 dark:text-slate-200 font-bold truncate">{attr.city}</p>
                         <p className="text-slate-400 font-medium truncate text-[11px]">{attr.region}</p>
@@ -1833,9 +2011,9 @@ export default function Inventory() {
                     </td>
 
                     {/* Category & Booking Mode */}
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div className="space-y-1.5">
-                        <span className="inline-block whitespace-nowrap bg-[#f0f7fc] dark:bg-[#102738]/30 text-[#5fa6d9] dark:text-[#5fa6d9] text-[11px] font-bold px-2.5 py-0.5 rounded-md border border-[#e0f0fa]/50 dark:border-[#1e4663]/30">
+                        <span className="inline-block whitespace-nowrap bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-sky-300 text-[11px] font-bold px-2.5 py-0.5 rounded-md border border-blue-100 dark:border-blue-900/40">
                           {attr.category}
                         </span>
                         <div>
@@ -1898,7 +2076,7 @@ export default function Inventory() {
                     </td>
 
                     {/* Price configurations with smart badges */}
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div className="space-y-0.5">
                         {hasDiscount ? (
                           <div className="space-y-0.5">
@@ -1922,15 +2100,15 @@ export default function Inventory() {
                       </div>
                     </td>
 
-                    {/* Availability toggle switch */}
-                    <td className="px-6 py-4">
+                    {/* Live Availability toggle switch */}
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2 select-none">
                         <button
                           type="button"
                           onClick={() => handleToggleAvailability(attr.id)}
                           className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                             attr.isAvailable !== false
-                              ? "bg-[#5fa6d9]"
+                              ? "bg-emerald-500"
                               : "bg-slate-300 dark:bg-slate-700"
                           }`}
                           aria-label={`Toggle availability for ${attr.name}`}
@@ -1941,39 +2119,39 @@ export default function Inventory() {
                             }`}
                           />
                         </button>
-                        <span className={`text-[11px] font-black uppercase tracking-wider ${attr.isAvailable !== false ? "text-[#5fa6d9]" : "text-slate-400"}`}>
-                          {attr.isAvailable !== false ? "AVAILABLE" : "UNAVAILABLE"}
+                        <span className={`text-[11px] font-black uppercase tracking-wider ${attr.isAvailable !== false ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
+                          {attr.isAvailable !== false ? "ACTIVE" : "PAUSED"}
                         </span>
                       </div>
                     </td>
 
-                    {/* Supplier brand */}
-                    <td className="px-6 py-4">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-semibold" title={attr.provider}>
-                        {attr.provider || "Local Operator"}
-                      </p>
-                    </td>
-
                     {/* Action Tools */}
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleOpenQuickHighlights(attr)}
-                          className="p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors group cursor-pointer"
+                          className="p-1.5 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg transition-colors group cursor-pointer"
                           title="Edit Highlights"
                         >
                           <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
                         </button>
                         <button
+                          onClick={() => handleDuplicateFromTable(attr)}
+                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors group cursor-pointer"
+                          title="Duplicate Activity"
+                        >
+                          <Copy className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                        </button>
+                        <button
                           onClick={() => handleEditClick(attr)}
-                          className="p-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors group"
+                          className="p-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors group cursor-pointer"
                           title="Edit Activity"
                         >
                           <Edit className="w-4 h-4 group-hover:scale-110 transition-transform" />
                         </button>
                         <button
                           onClick={() => handleDeleteClick(attr.id)}
-                          className="p-2 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors group"
+                          className="p-1.5 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors group cursor-pointer"
                           title="Delete Activity"
                         >
                           <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -1988,6 +2166,58 @@ export default function Inventory() {
         </table>
       </div>
 
+      {/* Floating Bulk Actions Bar */}
+      <AnimatePresence>
+        {isSomeSelected && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 15 }}
+            transition={{ duration: 0.18 }}
+            className="m-4 p-3 bg-slate-900 dark:bg-slate-950 text-white rounded-xl shadow-xl border border-slate-800 flex items-center justify-between gap-4 flex-wrap"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                {selectedProductIds.length}
+              </span>
+              <span className="text-xs font-semibold text-slate-200">
+                items selected on this page
+              </span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => handleBulkSetAvailability(true)}
+                className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Check className="w-3.5 h-3.5" /> Mark Active
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBulkSetAvailability(false)}
+                className="px-3 py-1.5 text-xs font-bold bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                Mark Paused
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                className="px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Delete Selected
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedProductIds([])}
+                className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                Deselect All
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Pagination Footer */}
       {filteredAndSortedAttractions.length > 0 && (
         <AdminPagination
@@ -2000,7 +2230,8 @@ export default function Inventory() {
         />
       )}
     </div>
-  ), [
+    );
+  }, [
     paginatedAttractions, 
     searchQuery, 
     selectedCategory, 
@@ -2015,7 +2246,11 @@ export default function Inventory() {
     categories,
     regions,
     locations,
-    bookingModeFilter
+    bookingModeFilter,
+    statusTab,
+    selectedProductIds,
+    copiedTableId,
+    stats
   ]);
 
   const selectedCurrencyObj = CURRENCIES.find(c => c.code === currencyCode) || { symbol: "€", code: "EUR" };
@@ -4168,10 +4403,10 @@ export default function Inventory() {
             <div className="flex items-center flex-wrap gap-2.5 shrink-0">
               {editingAttraction && (
                 <a
-                  href={`/activities/${encodeURIComponent(editingAttraction.id)}`}
+                  href={`/#/attraction/${encodeURIComponent(editingAttraction.customSlug || editingAttraction.id)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 rounded-lg transition-colors shadow-2xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 rounded-lg transition-colors shadow-2xs cursor-pointer"
                   title="View this product on the public customer storefront"
                 >
                   <ExternalLink className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
