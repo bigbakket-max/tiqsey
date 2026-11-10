@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Ticket, DollarSign, Activity, Users, Plus, ArrowUpRight, Box, Sparkles, FileText, Globe, ArrowRight, Instagram } from 'lucide-react';
+import { Ticket, DollarSign, Activity, Users, Plus, ArrowUpRight, Box, Sparkles, FileText, Globe, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { 
   LineChart, 
@@ -151,17 +151,17 @@ export default function Dashboard() {
         </div>
 
         <div 
-          onClick={() => navigate('/instagram')}
+          onClick={() => navigate('/blog')}
           className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow-md transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="p-2.5 rounded-lg bg-pink-50 dark:bg-pink-900/30 text-pink-600">
-              <Instagram className="w-5 h-5" />
+            <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600">
+              <FileText className="w-5 h-5" />
             </div>
-            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-pink-600 group-hover:translate-x-1 transition-all" />
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
           </div>
-          <h3 className="font-bold text-slate-800 dark:text-white group-hover:text-pink-600 transition-colors">Instagram Automation</h3>
-          <p className="text-xs text-slate-500 mt-1">Auto-post @tiqsey_official, AI captions, carousel albums & schedule queue.</p>
+          <h3 className="font-bold text-slate-800 dark:text-white group-hover:text-emerald-600 transition-colors">Travel Blog & Guides</h3>
+          <p className="text-xs text-slate-500 mt-1">Publish destination travel stories, itineraries, tips, and SEO articles.</p>
         </div>
       </div>
 
