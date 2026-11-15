@@ -11,7 +11,6 @@ import {
   Shield,
   Cookie,
   Scale,
-  Compass,
   Mail,
 } from "lucide-react";
 
@@ -35,98 +34,6 @@ export interface LegalHighlight {
   detail: string;
 }
 
-interface TrustCrossNavProps {
-  activePage: TrustPageKey;
-  onBackToHome: () => void;
-  onNavigate?: (page: TrustPageKey) => void;
-  rightAction?: React.ReactNode;
-}
-
-const TRUST_NAV_ITEMS: Array<{
-  key: TrustPageKey;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}> = [
-  { key: "about", label: "About Tiqsey", icon: Compass },
-  { key: "privacy-policy", label: "Privacy Policy", icon: Shield },
-  { key: "cookie-policy", label: "Cookie Policy", icon: Cookie },
-  { key: "terms-and-conditions", label: "Terms & Conditions", icon: Scale },
-];
-
-export function TrustCrossNav({
-  activePage,
-  onBackToHome,
-  onNavigate,
-  rightAction,
-}: TrustCrossNavProps) {
-  const handleSwitch = (key: TrustPageKey) => {
-    if (key === activePage) return;
-    if (onNavigate) {
-      onNavigate(key);
-    } else {
-      window.history.pushState({}, "", `/${key}`);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  return (
-    <div className="w-full border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md print:hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-          <button
-            type="button"
-            onClick={onBackToHome}
-            className="min-h-[40px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4 shrink-0" />
-            <span>Home</span>
-          </button>
-
-          <span
-            className="h-4 w-px bg-slate-200 dark:bg-slate-700 shrink-0"
-            aria-hidden="true"
-          />
-
-          <nav
-            aria-label="About and legal documents"
-            className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-0.5 min-w-0"
-          >
-            {TRUST_NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = activePage === item.key;
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => handleSwitch(item.key)}
-                  aria-current={isActive ? "page" : undefined}
-                  className={`min-h-[38px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer border-b-2 ${
-                    isActive
-                      ? "border-[#e3000f] text-slate-950 dark:text-white font-bold bg-slate-100/80 dark:bg-slate-800/80"
-                      : "border-transparent text-slate-600 dark:text-slate-400 font-medium hover:text-slate-950 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-slate-800/50"
-                  }`}
-                >
-                  <Icon
-                    className={`w-3.5 h-3.5 shrink-0 ${
-                      isActive
-                        ? "text-[#e3000f]"
-                        : "text-slate-400 dark:text-slate-500"
-                    }`}
-                  />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {rightAction && <div className="shrink-0">{rightAction}</div>}
-      </div>
-    </div>
-  );
-}
-
 interface LegalDocumentLayoutProps {
   activePage: Exclude<TrustPageKey, "about">;
   eyebrow: string;
@@ -140,7 +47,6 @@ interface LegalDocumentLayoutProps {
   sections: LegalSectionItem[];
   onBackToHome: () => void;
   onNavigate?: (page: TrustPageKey) => void;
-  sidebarTitle?: string;
   sidebarSupportHeading?: string;
   sidebarSupportDescription?: string;
   sidebarExtra?: React.ReactNode;
@@ -162,7 +68,6 @@ export default function LegalDocumentLayout({
   highlights,
   sections,
   onBackToHome,
-  onNavigate,
   sidebarSupportHeading = "Legal & Privacy Support",
   sidebarSupportDescription = "Have a question about any clause in this policy?",
   sidebarExtra,
@@ -188,7 +93,6 @@ export default function LegalDocumentLayout({
     );
   }, [sections, normalizedQuery]);
 
-  // Keep active section aligned when filtering narrows sections
   useEffect(() => {
     if (
       filteredSections.length > 0 &&
@@ -198,7 +102,6 @@ export default function LegalDocumentLayout({
     }
   }, [filteredSections, activeSection]);
 
-  // Scroll to initial section hash if URL points directly to a clause ID (e.g. #your-rights)
   useEffect(() => {
     const rawHash = window.location.hash.replace(/^#/, "");
     if (rawHash && !rawHash.startsWith("/")) {
@@ -216,7 +119,6 @@ export default function LegalDocumentLayout({
     }
   }, [sections]);
 
-  // IntersectionObserver scroll-spy across visible document sections
   useEffect(() => {
     if (filteredSections.length === 0) return;
 
@@ -287,23 +189,6 @@ export default function LegalDocumentLayout({
 
   return (
     <div className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 lg:pb-20 overflow-x-clip transition-colors duration-200 print:bg-white print:text-black print:pb-0">
-      {/* Shared Trust & Policy Cross-Navigation */}
-      <TrustCrossNav
-        activePage={activePage}
-        onBackToHome={onBackToHome}
-        onNavigate={onNavigate}
-        rightAction={
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="min-h-[38px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-            <span>Print</span>
-          </button>
-        }
-      />
-
       {/* Deep-Link Copy Feedback Toast */}
       {copiedSectionId && (
         <div
@@ -317,8 +202,29 @@ export default function LegalDocumentLayout({
       )}
 
       {/* Editorial Hero Header */}
-      <header className="bg-slate-900 dark:bg-slate-900/95 text-white pt-8 sm:pt-12 pb-10 sm:pb-14 px-4 sm:px-6 lg:px-8 border-b border-slate-800 print:bg-white print:text-black print:border-slate-200 print:pt-4 print:pb-6">
+      <header className="bg-slate-900 dark:bg-slate-900/95 text-white pt-8 sm:pt-12 pb-10 sm:pb-14 px-4 sm:px-6 lg:px-8 border-b border-slate-800 print:bg-white print:text-black print:border-slate-200 print:pt-4 print:pb-6 relative">
         <div className="max-w-7xl mx-auto">
+          {/* Top navigation actions inside header */}
+          <div className="flex items-center justify-between gap-4 mb-6 print:hidden">
+            <button
+              type="button"
+              onClick={onBackToHome}
+              className="min-h-[40px] inline-flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3.5 py-2 rounded-lg transition-colors border border-slate-700/60 cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4 shrink-0" />
+              <span>Back to Home</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="min-h-[40px] inline-flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3.5 py-2 rounded-lg transition-colors border border-slate-700/60 cursor-pointer"
+            >
+              <Printer className="w-4 h-4 shrink-0" />
+              <span>Print Document</span>
+            </button>
+          </div>
+
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-rose-400 print:text-slate-600 mb-3">
               {heroIcon}

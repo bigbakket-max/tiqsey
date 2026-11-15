@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Search, Globe, Coins, Check, Clock, TrendingUp } from 'lucide-react';
 import { useSettings, CURRENCIES } from '../contexts/SettingsContext';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, LayoutGroup } from 'motion/react';
 import { getCurrencyFlag } from '../utils/currencyFlags';
 import { Currency, Language, WorldRegion } from '../types';
 
@@ -155,7 +155,8 @@ export default function SettingsModal({
               <div className="sticky top-0 bg-white dark:bg-slate-900 z-20 shrink-0 flex flex-col border-b border-slate-100 dark:border-slate-800/80 transition-colors duration-300">
                 {/* Tab Switcher & Close */}
                 <div className="flex items-center justify-between px-4 sm:px-8 pt-4 sm:pt-5 gap-2">
-                  <div className="flex gap-4 sm:gap-8 overflow-x-auto no-scrollbar" id="modal-title">
+                  <LayoutGroup id="settings-modal-tabs">
+                    <div className="flex gap-4 sm:gap-8 overflow-x-auto no-scrollbar" id="modal-title">
                     {/* Language Tab */}
                     <button
                       type="button"
@@ -212,6 +213,7 @@ export default function SettingsModal({
                       )}
                     </button>
                   </div>
+                  </LayoutGroup>
 
                   {/* Close button */}
                   <button

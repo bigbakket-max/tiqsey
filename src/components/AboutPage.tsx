@@ -10,6 +10,7 @@ import {
   Star,
   Lock,
   ArrowRight,
+  ArrowLeft,
   Plane,
   MapPin,
   Cookie,
@@ -18,7 +19,7 @@ import {
 } from "lucide-react";
 import { ScrollReveal } from "./ScrollReveal";
 import { useSettings } from "../contexts/SettingsContext";
-import { TrustCrossNav, TrustPageKey } from "./LegalDocumentLayout";
+import { TrustPageKey } from "./LegalDocumentLayout";
 
 interface AboutPageProps {
   onBackToHome: () => void;
@@ -192,12 +193,17 @@ export default function AboutPage({
       id="about-us-page-root"
       className="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-[100dvh] font-sans pb-24 lg:pb-20 overflow-x-clip transition-colors duration-200"
     >
-      {/* Unified Trust Cross-Navigation */}
-      <TrustCrossNav
-        activePage="about"
-        onBackToHome={onBackToHome}
-        onNavigate={onNavigate}
-      />
+      {/* Top Back Navigation Bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+        <button
+          type="button"
+          onClick={onBackToHome}
+          className="min-h-[40px] inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4 shrink-0" />
+          <span>{t("backToHome", "Back to Home")}</span>
+        </button>
+      </div>
 
       {/* ================= HERO SECTION ================= */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
@@ -237,13 +243,6 @@ export default function AboutPage({
               >
                 <span>{t("exploreNow", "Explore Experiences")}</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNavToPolicy("terms-and-conditions")}
-                className="min-h-[44px] inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold text-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                <span>Our Service Guarantee</span>
               </button>
             </div>
 
@@ -626,77 +625,13 @@ export default function AboutPage({
         </section>
       </ScrollReveal>
 
-      {/* ================= TRUST & GOVERNANCE LINKS ================= */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
-                Transparency, Privacy & Service Policies
-              </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Review how we protect your personal data, manage cookies, and guarantee every booking.
-              </p>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              type="button"
-              onClick={() => handleNavToPolicy("privacy-policy")}
-              className="text-left p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#e3000f]/60 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100/70 dark:hover:bg-slate-800 transition-colors flex items-start gap-3 cursor-pointer"
-            >
-              <Shield className="w-5 h-5 text-[#e3000f] mt-0.5 shrink-0" />
-              <div className="min-w-0">
-                <span className="font-bold text-sm text-slate-900 dark:text-white block">
-                  Privacy Policy
-                </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 block leading-relaxed">
-                  Zero data sale commitment, encrypted checkouts, and GDPR/CCPA rights.
-                </span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleNavToPolicy("cookie-policy")}
-              className="text-left p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#e3000f]/60 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100/70 dark:hover:bg-slate-800 transition-colors flex items-start gap-3 cursor-pointer"
-            >
-              <Cookie className="w-5 h-5 text-[#e3000f] mt-0.5 shrink-0" />
-              <div className="min-w-0">
-                <span className="font-bold text-sm text-slate-900 dark:text-white block">
-                  Cookie Policy & Controls
-                </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 block leading-relaxed">
-                  Manage browser preferences and inspect storage keys anytime.
-                </span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleNavToPolicy("terms-and-conditions")}
-              className="text-left p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#e3000f]/60 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100/70 dark:hover:bg-slate-800 transition-colors flex items-start gap-3 cursor-pointer"
-            >
-              <Scale className="w-5 h-5 text-[#e3000f] mt-0.5 shrink-0" />
-              <div className="min-w-0">
-                <span className="font-bold text-sm text-slate-900 dark:text-white block">
-                  Terms & Conditions
-                </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 block leading-relaxed">
-                  E-ticket delivery, 24-hour free cancellation rules, and traveler protections.
-                </span>
-              </div>
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* ================= CTA BANNER SECTION ================= */}
       <ScrollReveal>
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <div className="relative bg-slate-900 text-white rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-800 flex flex-col md:flex-row items-stretch min-h-[260px]">
-            <div className="relative w-full md:w-[58%] bg-[#e3000f] p-6 sm:p-10 lg:p-12 z-10 flex flex-col justify-center md:rounded-tr-[80px] lg:rounded-tr-[100px] shrink-0">
+          <div className="relative bg-[#e3000f] text-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-md flex flex-col md:flex-row items-stretch min-h-[260px]">
+            <div className="relative w-full md:w-[58%] p-6 sm:p-10 lg:p-12 z-10 flex flex-col justify-center shrink-0">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight mb-3 sm:mb-4 text-white [text-wrap:balance]">
                 {t("readyToExploreWorld", "Ready to explore the world?")}
               </h2>
