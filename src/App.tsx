@@ -55,33 +55,40 @@ function parseInitialRoute(): { page: AppPage; destination: string | null; attra
   if (typeof window === "undefined") {
     return { page: "home", destination: null, attractionId: null };
   }
-  const path = window.location.pathname;
+  const path = window.location.pathname || "/";
   const hash = window.location.hash || "";
-  const params = new URLSearchParams(window.location.search);
-  let attrId = params.get("attraction") || params.get("activity") || params.get("productId");
+  const hashBody = hash.startsWith("#") ? hash.slice(1) : hash;
+  const [hashPathRaw = "", hashQueryRaw = ""] = hashBody.split("?");
 
-  // 1. Check path (/activities/, /attraction/, /attractions/)
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(hashQueryRaw);
+  const getParam = (key: string): string | null =>
+    searchParams.get(key) || hashParams.get(key);
+  const hasParam = (key: string): boolean =>
+    searchParams.has(key) || hashParams.has(key);
+
+  const normalizeRoutePath = (raw: string): string => {
+    if (!raw) return "/";
+    const withLeading = raw.startsWith("/") ? raw : `/${raw}`;
+    return withLeading.length > 1 ? withLeading.replace(/\/+$/, "") : withLeading;
+  };
+
+  const normalizedPath = normalizeRoutePath(path);
+  const normalizedHashPath = hashPathRaw ? normalizeRoutePath(hashPathRaw) : "";
+  const effectivePath =
+    normalizedPath !== "/"
+      ? normalizedPath
+      : normalizedHashPath && normalizedHashPath !== "/"
+        ? normalizedHashPath
+        : "/";
+
+  let attrId = getParam("attraction") || getParam("activity") || getParam("productId");
+
+  // 1. Check path & hash for attraction detail routes (/activities/, /attraction/, /attractions/, /activity/)
   if (!attrId) {
-    if (path.startsWith("/activities/")) {
-      attrId = path.split("/activities/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim() || null;
-    } else if (path.startsWith("/attraction/")) {
-      attrId = path.split("/attraction/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim() || null;
-    } else if (path.startsWith("/attractions/")) {
-      attrId = path.split("/attractions/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim() || null;
-    }
-  }
-
-  // 2. Check hash (e.g. #/attraction/ams-canal or #/activities/ams-canal)
-  if (!attrId && hash) {
-    const cleanHash = hash.replace(/^#\/?/, "");
-    if (cleanHash.startsWith("attraction/")) {
-      attrId = cleanHash.split("attraction/")[1]?.split("/")[0]?.split("?")[0]?.trim() || null;
-    } else if (cleanHash.startsWith("attractions/")) {
-      attrId = cleanHash.split("attractions/")[1]?.split("/")[0]?.split("?")[0]?.trim() || null;
-    } else if (cleanHash.startsWith("activities/")) {
-      attrId = cleanHash.split("activities/")[1]?.split("/")[0]?.split("?")[0]?.trim() || null;
-    } else if (cleanHash.startsWith("activity/")) {
-      attrId = cleanHash.split("activity/")[1]?.split("/")[0]?.split("?")[0]?.trim() || null;
+    const attrMatch = effectivePath.match(/^\/(?:activities|activity|attraction|attractions)\/([^/?#]+)/i);
+    if (attrMatch?.[1]) {
+      attrId = attrMatch[1].trim();
     }
   }
 
@@ -100,10 +107,10 @@ function parseInitialRoute(): { page: AppPage; destination: string | null; attra
   }
 
   let dest: string | null = null;
-  if (path.startsWith("/destinations/")) {
-    const destId = path.split("/destinations/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim();
+  if (effectivePath.startsWith("/destinations/")) {
+    const destId = effectivePath.split("/destinations/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim();
     if (destId) {
-      dest = destId
+      dest = decodeURIComponent(destId)
         .split("-")
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
@@ -115,27 +122,30 @@ function parseInitialRoute(): { page: AppPage; destination: string | null; attra
   }
 
   let page: AppPage = "home";
-  if (path === "/blog" || path.startsWith("/blog/") || params.has("post")) {
+  const lowerPath = effectivePath.toLowerCase();
+  if (lowerPath === "/blog" || lowerPath.startsWith("/blog/") || hasParam("post") || hasParam("postId")) {
     page = "blog";
-  } else if (path === "/about") {
+  } else if (lowerPath === "/about") {
     page = "about";
-  } else if (path === "/privacy" || path === "/privacy-policy") {
+  } else if (lowerPath === "/privacy" || lowerPath === "/privacy-policy") {
     page = "privacy-policy";
-  } else if (path === "/cookies" || path === "/cookie-policy") {
+  } else if (lowerPath === "/cookies" || lowerPath === "/cookie-policy") {
     page = "cookie-policy";
-  } else if (path === "/terms" || path === "/terms-and-conditions") {
+  } else if (lowerPath === "/terms" || lowerPath === "/terms-and-conditions") {
     page = "terms-and-conditions";
-  } else if (path === "/wishlist" || params.has("items")) {
+  } else if (lowerPath === "/wishlist" || hasParam("items")) {
     page = "wishlist";
-  } else if (path === "/my-bookings") {
+  } else if (lowerPath === "/my-bookings") {
     page = "my-bookings";
-  } else if (path === "/profile") {
+  } else if (lowerPath === "/profile") {
     page = "profile";
-  } else if (path === "/login" || path === "/sign-in") {
+  } else if (lowerPath === "/login" || lowerPath === "/sign-in") {
     page = "sign-in";
-  } else if (path === "/hot-deals") {
+  } else if (lowerPath === "/register" || lowerPath === "/sign-up") {
+    page = "register";
+  } else if (lowerPath === "/hot-deals") {
     page = "hot-deals";
-  } else if (path === "/attractions-and-museums" || path === "/things-to-do") {
+  } else if (lowerPath === "/attractions-and-museums" || lowerPath === "/things-to-do") {
     page = "attractions-and-museums";
   }
 
@@ -280,7 +290,10 @@ export default function App() {
     setActiveCategoryFilter(null);
     setGlobalSearchQuery("");
     setCurrentPage("home");
-    if (typeof window !== "undefined" && window.location.pathname !== "/") {
+    if (
+      typeof window !== "undefined" &&
+      (window.location.pathname !== "/" || window.location.hash || window.location.search)
+    ) {
       window.history.pushState({}, "", "/");
     }
     window.scrollTo(0, 0);

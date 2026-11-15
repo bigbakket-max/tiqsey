@@ -67,7 +67,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
   const { t } = useSettings();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(() => {
+  const getRequestedPostParam = (): string | null => {
     try {
       const searchParams = new URLSearchParams(window.location.search);
       const postFromSearch = searchParams.get("post") || searchParams.get("postId") || searchParams.get("id");
@@ -79,12 +79,23 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
         const postFromHash = hashParams.get("post") || hashParams.get("postId") || hashParams.get("id");
         if (postFromHash) return postFromHash;
       }
+
+      const pathMatch = window.location.pathname.match(/^\/blog\/([^/?#]+)/i);
+      if (pathMatch?.[1]) return decodeURIComponent(pathMatch[1]);
+
+      const hashPath = hash.replace(/^#\/?/, "").split("?")[0];
+      const hashMatch = hashPath.match(/^blog\/([^/?#]+)/i);
+      if (hashMatch?.[1]) return decodeURIComponent(hashMatch[1]);
     } catch {
       // Fallback
     }
     return null;
-  });
-  const selectedPost = selectedPostId ? posts.find(p => p.id === selectedPostId) || null : null;
+  };
+
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(() => getRequestedPostParam());
+  const selectedPost = selectedPostId
+    ? posts.find((p) => p.id === selectedPostId || p.slug === selectedPostId) || null
+    : null;
   const [likedPosts, setLikedPosts] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem("blog_liked_posts");
@@ -127,7 +138,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
   // Handle Share link copy
   const handleShare = async (e: React.MouseEvent, post: BlogPost) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/blog?post=${post.id}`;
+    const url = `${window.location.origin}/#/blog?post=${encodeURIComponent(post.id)}`;
     
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -220,26 +231,44 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
     ).slice(0, 3);
   };
 
-  // Check if a URL query parameter specifies a post on load
+  // Synchronize selected post with query params, hash params, or path slug on load & browser navigation
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const postQuery = params.get("post");
-    if (postQuery) {
-      const post = posts.find((p) => p.id === postQuery && (!p.status || p.status === 'Published'));
-      if (post) {
-        setSelectedPostId(post.id);
-        window.scrollTo(0, 0);
+    const syncPostFromUrl = () => {
+      const requested = getRequestedPostParam();
+      if (requested) {
+        const post = posts.find(
+          (p) => (p.id === requested || p.slug === requested) && (!p.status || p.status === 'Published')
+        );
+        if (post) {
+          setSelectedPostId(post.id);
+          window.scrollTo(0, 0);
+          return;
+        }
       }
-    }
+      setSelectedPostId(null);
+    };
+
+    syncPostFromUrl();
+    window.addEventListener("popstate", syncPostFromUrl);
+    window.addEventListener("hashchange", syncPostFromUrl);
+    return () => {
+      window.removeEventListener("popstate", syncPostFromUrl);
+      window.removeEventListener("hashchange", syncPostFromUrl);
+    };
   }, [posts]);
 
-  // Update history states
+  // Update history states cleanly (supports both /#/blog and /blog modes)
   const viewPostDetails = (post: BlogPost) => {
     setSelectedPostId(post.id);
     try {
-      const url = new URL(window.location.href);
-      url.searchParams.set("post", post.id);
-      window.history.pushState({}, "", url.toString());
+      if (window.location.hash.startsWith("#/")) {
+        window.history.pushState({}, "", `/#/blog?post=${encodeURIComponent(post.id)}`);
+      } else {
+        const url = new URL(window.location.href);
+        url.pathname = "/blog";
+        url.searchParams.set("post", post.id);
+        window.history.pushState({}, "", url.toString());
+      }
     } catch (e) {
       console.error(e);
     }
@@ -249,9 +278,16 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
   const closePostDetails = () => {
     setSelectedPostId(null);
     try {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("post");
-      window.history.pushState({}, "", url.toString());
+      if (window.location.hash.startsWith("#/")) {
+        window.history.pushState({}, "", "/#/blog");
+      } else {
+        const url = new URL(window.location.href);
+        url.pathname = "/blog";
+        url.searchParams.delete("post");
+        url.searchParams.delete("postId");
+        url.searchParams.delete("id");
+        window.history.pushState({}, "", url.toString());
+      }
     } catch (e) {
       console.error(e);
     }
