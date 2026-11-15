@@ -91,6 +91,11 @@ export default function BookingDetailsView({
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [adminNotes, setAdminNotes] = useState(booking.notes || '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<Array<{ id: string; title: string; time: string; color: string }>>([
+    { id: '1', title: 'Booking Created & Confirmed', time: booking.createdAt || '25 Jul 2026 02:45 PM', color: 'bg-emerald-500' },
+    { id: '2', title: `Status synced: ${booking.status.toUpperCase()}`, time: 'Just now', color: 'bg-blue-500' }
+  ]);
+  const [showAllHistory, setShowAllHistory] = useState(true);
 
   const triggerToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToastMessage(message);
@@ -1776,11 +1781,20 @@ export default function BookingDetailsView({
             <button
               type="button"
               onClick={() => {
+                if (!adminNotes.trim()) {
+                  triggerToast("Please enter note text before saving.", "error");
+                  return;
+                }
                 setIsSavingNotes(true);
                 setTimeout(() => {
                   onUpdateBooking({ ...booking, notes: adminNotes });
+                  const summaryText = adminNotes.length > 40 ? adminNotes.substring(0, 40) + '...' : adminNotes;
+                  setAuditLogs(prev => [
+                    { id: Date.now().toString(), title: `Note added: "${summaryText}"`, time: 'Just now', color: 'bg-amber-500' },
+                    ...prev
+                  ]);
                   setIsSavingNotes(false);
-                  triggerToast("Internal admin notes saved successfully!", "success");
+                  triggerToast("Internal admin notes saved & recorded in audit history!", "success");
                 }, 300);
               }}
               disabled={isSavingNotes}
@@ -1792,69 +1806,147 @@ export default function BookingDetailsView({
           </div>
         </div>
 
-        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-          <p className="text-[11px] font-bold uppercase text-slate-400">Action History & Audit Log</p>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between p-2.5 rounded-md bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span className="font-semibold text-slate-700 dark:text-slate-300">Booking Created & Confirmed</span>
-              </div>
-              <span className="text-[11px] text-slate-400 font-mono">{booking.createdAt || 'Recent'}</span>
-            </div>
-            <div className="flex items-center justify-between p-2.5 rounded-md bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                <span className="font-semibold text-slate-700 dark:text-slate-300">Status synced: <strong className="uppercase">{booking.status}</strong></span>
-              </div>
-              <span className="text-[11px] text-slate-400 font-mono">Just now</span>
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <p className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Action History & Audit Log</p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                {auditLogs.length} Events recorded
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowAllHistory(!showAllHistory)}
+                className="text-xs font-bold text-brand hover:underline cursor-pointer bg-brand/10 hover:bg-brand/20 px-3 py-1 rounded-lg transition-all"
+              >
+                {showAllHistory ? 'Hide History' : 'View All History'}
+              </button>
             </div>
           </div>
+
+          <AnimatePresence>
+            {showAllHistory && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <div className="max-h-[280px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full pt-1">
+                  <div className="space-y-2.5 text-xs relative before:absolute before:left-3 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800 pl-1">
+                    <AnimatePresence initial={false}>
+                      {auditLogs.map((log, idx) => (
+                        <motion.div
+                          key={log.id}
+                          initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ duration: 0.25, delay: idx * 0.03 }}
+                          className="relative pl-7 flex items-center justify-between p-3 rounded-xl bg-slate-50/90 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800/80 hover:border-brand/40 transition-all group shadow-xs"
+                        >
+                          {/* Timeline dot / icon */}
+                          <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full ${log.color} ring-4 ring-white dark:ring-slate-900 shadow-xs z-10`}></span>
+
+                          <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                            <span className="font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-brand transition-colors">
+                              {log.title}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-400 font-mono shrink-0 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-800">
+                            {log.time}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
       {/* 14. RESELLER INFORMATION COLLAPSIBLE CARD */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-sm transition-all hover:shadow-md">
         <button
           type="button"
           onClick={() => toggleCollapse('resellerInfo')}
-          className="w-full flex items-center justify-between p-4 font-extrabold text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-between p-5 font-extrabold text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors cursor-pointer"
         >
-          <span>Reseller Information</span>
-          {sectionsCollapsed.resellerInfo ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <Globe className="w-4 h-4" />
+            </span>
+            <span>Reseller Information</span>
+          </div>
+          {sectionsCollapsed.resellerInfo ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
         </button>
 
-        {!sectionsCollapsed.resellerInfo && (
-          <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 space-y-6">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-5">
-              <div className="flex flex-col leading-tight min-w-0">
-                <span className="text-[11px] font-medium text-[#94a3b8] mb-1">Reseller Name</span>
-                <span className="text-[13px] font-bold text-slate-800 dark:text-slate-300">Tiqsey</span>
-              </div>
-              <div className="flex flex-col leading-tight min-w-0">
-                <span className="text-[11px] font-medium text-[#94a3b8] mb-1">Reseller Email</span>
-                <span className="text-[13px] font-bold text-slate-800 dark:text-slate-300 break-all">info@tiqsey.com</span>
-              </div>
-              <div className="flex flex-col leading-tight min-w-0">
-                <span className="text-[11px] font-medium text-[#94a3b8] mb-1">Reseller Phone</span>
-                <span className="text-[13px] font-bold text-slate-800 dark:text-slate-300 tabular-nums">9916134180</span>
-              </div>
-              <div className="flex flex-col leading-tight min-w-0">
-                <span className="text-[11px] font-medium text-[#94a3b8] mb-1">Invoice Ref</span>
-                <span className="text-[13px] font-bold text-slate-500 dark:text-slate-400">--</span>
-              </div>
-            </div>
+        <AnimatePresence>
+          {!sectionsCollapsed.resellerInfo && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="overflow-hidden border-t border-slate-100 dark:border-slate-800"
+            >
+              <div className="p-5 sm:p-6 bg-white dark:bg-slate-900 space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                  <div 
+                    onClick={() => copyToClipboard('Tiqsey', 'Reseller Name')}
+                    className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between hover:border-brand/40 transition-all cursor-pointer group"
+                    title="Click to copy"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Reseller Name</span>
+                      <Copy className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-brand transition-colors" />
+                    </div>
+                    <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate select-all">Tiqsey</span>
+                  </div>
 
-            {/* Note box */}
-            <div className="bg-sky-50 dark:bg-sky-950/25 border border-sky-200 dark:border-sky-800/60 rounded-md p-4 flex items-start gap-3">
-              <Info className="w-5 h-5 text-sky-600 dark:text-sky-400 mt-0.5 shrink-0" />
-              <div className="flex flex-col">
-                <span className="text-[13px] font-bold text-sky-800 dark:text-sky-300 mb-0.5">Please Note</span>
-                <span className="text-[12px] text-sky-700 dark:text-sky-400">This booking was sold by the reseller "Tiqsey".</span>
+                  <div 
+                    onClick={() => copyToClipboard('info@tiqsey.com', 'Reseller Email')}
+                    className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between hover:border-brand/40 transition-all cursor-pointer group"
+                    title="Click to copy"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Reseller Email</span>
+                      <Copy className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-brand transition-colors" />
+                    </div>
+                    <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate select-all">info@tiqsey.com</span>
+                  </div>
+
+                  <div 
+                    onClick={() => copyToClipboard('+91 8058532840', 'Reseller Phone')}
+                    className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between hover:border-brand/40 transition-all cursor-pointer group"
+                    title="Click to copy"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Reseller Phone</span>
+                      <Copy className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-brand transition-colors" />
+                    </div>
+                    <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate select-all tabular-nums">+91 8058532840</span>
+                  </div>
+
+                  <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-wider">Invoice Ref</span>
+                    <span className="font-extrabold text-slate-400 dark:text-slate-500">--</span>
+                  </div>
+                </div>
+
+                {/* Note box */}
+                <div className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 rounded-xl p-4 flex items-start gap-3">
+                  <Info className="w-4 h-4 text-sky-600 dark:text-sky-400 mt-0.5 shrink-0" />
+                  <div className="flex flex-col text-xs">
+                    <span className="font-extrabold text-sky-900 dark:text-sky-200 mb-0.5">Please Note</span>
+                    <span className="text-sky-800 dark:text-sky-300">This booking was sold by the reseller "Tiqsey".</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Cancel Confirmation Modal (replaces window.confirm) */}
