@@ -660,60 +660,101 @@ export default function ActivitiesPage({
         {/* Unified Search, Filter & Sorting Control Center */}
         <div className="flex flex-col gap-6 w-full">
           <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[28px] p-4 sm:p-6 border border-slate-200/50 dark:border-slate-800/60 shadow-xs select-none">
-            {/* Row 1: Search Input + Sorting */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 pb-3">
-              <div className="w-full md:flex-1">
-                <SearchBar
-                  isCompact={true}
-                  realTime={true}
-                  isPageFilter={true}
-                  currentDestination={destination}
-                  onSearch={(q) => setSearchQuery(q)}
-                  onSelectAttraction={onViewAttraction}
-                  placeholder={`Search tickets, tours, cruises in ${destination}...`}
-                />
-              </div>
+        {/* Clean Modern Inline Filters Bar matching screenshot style */}
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mb-6 sm:mb-8 pb-1">
+          <button
+            type="button"
+            onClick={handleClearAll}
+            className="flex items-center gap-2 px-4 sm:px-5 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer select-none active:scale-95 shrink-0 shadow-xs"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-slate-400" />
+            <span>Filters</span>
+            {hasActiveFilters && (
+              <span className="w-2 h-2 rounded-full bg-[#E51937]" />
+            )}
+          </button>
 
-              <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto justify-between md:justify-end">
-                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 dark:text-slate-500">
-                  {t('sortBy', 'SORT BY')}:
-                </span>
-                <div className="relative flex items-center bg-slate-50/50 dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl px-3 h-11 sm:h-10 flex-1 md:flex-initial shadow-xs transition-all focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10">
-                  <select
-                    value={selectedSort}
-                    onChange={(e) => setSelectedSort(e.target.value as any)}
-                    aria-label="Sort activities"
-                    className="appearance-none bg-transparent text-xs font-black text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer pr-6 h-full w-full select-none"
-                  >
-                    <option
-                      value="recommended"
-                      className="dark:bg-slate-900 font-bold"
-                    >
-                      {t('recommendedMatches', 'Recommended Matches')}
-                    </option>
-                    <option
-                      value="priceAsc"
-                      className="dark:bg-slate-900 font-bold"
-                    >
-                      {t('priceLowHigh', 'Price: Low to High')}
-                    </option>
-                    <option
-                      value="priceDesc"
-                      className="dark:bg-slate-900 font-bold"
-                    >
-                      {t('priceHighLow', 'Price: High to Low')}
-                    </option>
-                    <option
-                      value="ratingDesc"
-                      className="dark:bg-slate-900 font-bold"
-                    >
-                      {t('topGuestRatingsFirst', 'Top Guest Ratings First')}
-                    </option>
-                  </select>
-                  <ChevronDown className="absolute right-3 w-3.5 h-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
-                </div>
-              </div>
+          {/* Regions Filter */}
+          <div className="relative flex-1 min-w-[130px] sm:flex-initial sm:min-w-0">
+            <select
+              value={selectedRegion || "All"}
+              onChange={(e) => setSelectedRegion(e.target.value === "All" ? null : e.target.value)}
+              aria-label="Filter by region"
+              className="appearance-none w-full sm:w-auto pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+            >
+              <option value="All">Regions</option>
+              {regionsInDestination.map((reg) => (
+                <option key={reg} value={reg}>
+                  {reg}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* Destinations Filter */}
+          <div className="relative flex-1 min-w-[135px] sm:flex-initial sm:min-w-0">
+            <select
+              value={destination}
+              disabled
+              aria-label="Filter by destination"
+              className="appearance-none w-full sm:w-auto pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+            >
+              <option value={destination}>Destinations: {destination}</option>
+            </select>
+            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* Categories Filter */}
+          <div className="relative flex-1 min-w-[135px] sm:flex-initial sm:min-w-0">
+            <select
+              value={selectedCategory || "All"}
+              onChange={(e) => setSelectedCategory(e.target.value === "All" ? null : e.target.value)}
+              aria-label="Filter by category"
+              className="appearance-none w-full sm:w-auto pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+            >
+              <option value="All">Categories</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* Active Reset helper */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="flex items-center gap-1.5 text-xs font-bold text-[#E51937] hover:underline cursor-pointer select-none px-2 min-h-[40px] shrink-0"
+            >
+              <span>Reset</span>
+            </button>
+          )}
+
+          {/* Sort By Aligned Right */}
+          <div className="flex items-center gap-2 sm:ml-auto ml-0 mt-1 sm:mt-0 w-full sm:w-auto shrink-0 justify-between sm:justify-start">
+            <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">
+              SORT BY:
+            </span>
+            <div className="relative flex-1 sm:flex-initial">
+              <select
+                value={selectedSort}
+                onChange={(e: any) => setSelectedSort(e.target.value)}
+                aria-label="Sort activities"
+                className="appearance-none pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs w-full sm:w-auto"
+              >
+                <option value="recommended">Recommended</option>
+                <option value="ratingDesc">Top Guest Ratings First</option>
+                <option value="priceAsc">Price: Low to High</option>
+                <option value="priceDesc">Price: High to Low</option>
+              </select>
+              <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
+          </div>
+        </div>
 
             {/* Active Chips Nested inside the Unified Card */}
             {hasActiveFilters && (

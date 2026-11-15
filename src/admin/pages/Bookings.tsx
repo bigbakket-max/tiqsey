@@ -1155,27 +1155,34 @@ export default function Bookings() {
         );
       })()}
 
-      {/* Tabs list with all 5 booking statuses plus ORDERS tab with exact badge layout */}
+      {/* Tabs list with all booking statuses */}
       <div className="border-b border-slate-200 dark:border-slate-800 mb-6 overflow-x-auto scrollbar-none">
         <div className="flex gap-6 min-w-max -mb-px">
-          {/* ORDERS tab */}
-          <button
-            onClick={() => setSelectedStatusTab('all')}
-            className={`pb-3 text-[11px] font-black tracking-wider uppercase border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
-              selectedStatusTab === 'all'
-                ? 'border-[#5fa6d9] text-[#5fa6d9]'
-                : 'border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-600'
-            }`}
-          >
-            ORDERS
-            <span className={`px-2 py-0.5 rounded text-[10px] font-black transition-colors ${
-              selectedStatusTab === 'all'
-                ? 'bg-[#5fa6d9]/10 text-[#5fa6d9]'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-            }`}>
-              {filteredBookings.length}
-            </span>
-          </button>
+          {['all', 'pending', 'confirmed', 'completed', 'cancelled', 'rejected'].map((tab) => {
+            const label = tab === 'all' ? 'ALL ORDERS' : tab.toUpperCase();
+            const count = tab === 'all' ? bookings.length : bookings.filter(b => b.status === tab).length;
+            const isActive = selectedStatusTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setSelectedStatusTab(tab as any)}
+                className={`pb-3 text-[11px] font-black tracking-wider uppercase border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                  isActive
+                    ? 'border-[#5fa6d9] text-[#5fa6d9]'
+                    : 'border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-600'
+                }`}
+              >
+                {label}
+                <span className={`px-2 py-0.5 rounded text-[10px] font-black transition-colors ${
+                  isActive
+                    ? 'bg-[#5fa6d9]/10 text-[#5fa6d9]'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -1306,37 +1313,26 @@ export default function Bookings() {
                         </div>
                       </div>
 
-                      {/* Status Badge & External Icon Link */}
-                      <div className="flex items-center justify-start lg:justify-end gap-2 sm:min-w-[140px]">
-                      {booking.status === 'pending' && (
-                        <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-orange-500/10 text-orange-600 border border-orange-200/50 uppercase tracking-wider">
-                          PENDING
-                        </span>
-                      )}
-
-                      {booking.status === 'confirmed' && (
-                        <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-emerald-500/10 text-emerald-600 border border-emerald-200/50 uppercase tracking-wider">
-                          CONFIRMED
-                        </span>
-                      )}
-
-                      {booking.status === 'completed' && (
-                        <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-sky-500/10 text-sky-600 border border-sky-200/50 uppercase tracking-wider">
-                          COMPLETED
-                        </span>
-                      )}
-
-                      {booking.status === 'cancelled' && (
-                        <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-red-500/10 text-red-600 border border-red-200/50 uppercase tracking-wider">
-                          CANCELLED
-                        </span>
-                      )}
-
-                      {booking.status === 'rejected' && (
-                        <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-slate-500/10 text-slate-500 border border-slate-200/50 uppercase tracking-wider">
-                          REJECTED
-                        </span>
-                      )}
+                       {/* Status Select Dropdown for Quick Status Updates */}
+                       <div className="flex items-center gap-1.5">
+                         <select
+                           value={booking.status}
+                           onChange={(e) => updateBookingStatus(booking.id, e.target.value)}
+                           aria-label="Update booking status"
+                           className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#5fa6d9]/30 transition-all ${
+                             booking.status === 'pending' ? 'bg-orange-500/10 text-orange-600 border border-orange-200/50' :
+                             booking.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-200/50' :
+                             booking.status === 'completed' ? 'bg-sky-500/10 text-sky-600 border border-sky-200/50' :
+                             booking.status === 'cancelled' ? 'bg-red-500/10 text-red-600 border border-red-200/50' :
+                             'bg-slate-500/10 text-slate-500 border border-slate-200/50'
+                           }`}
+                         >
+                           <option value="pending">Pending</option>
+                           <option value="confirmed">Confirmed</option>
+                           <option value="completed">Completed</option>
+                           <option value="cancelled">Cancelled</option>
+                           <option value="rejected">Rejected</option>
+                         </select>
 
                       {/* Small external link indicator to open booking details in a new tab */}
                       <a 
