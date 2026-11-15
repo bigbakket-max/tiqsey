@@ -5,59 +5,65 @@ import {
   CheckCircle2,
   Lock,
   Eye,
-  FileText,
-  Mail,
-  ArrowLeft,
-  ChevronRight,
   Settings,
   Info,
   Sliders,
-  Check,
-  X,
-  HelpCircle,
   Globe,
-  Database
+  Database,
+  RotateCcw,
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
+import LegalDocumentLayout, {
+  LegalSectionItem,
+  TrustPageKey,
+} from "./LegalDocumentLayout";
 
 interface CookiePolicyPageProps {
   onBackToHome: () => void;
+  onNavigate?: (page: TrustPageKey) => void;
 }
 
-const SECTIONS = [
-  { id: "what-are-cookies", title: "1. What Are Cookies?" },
-  { id: "how-we-use-cookies", title: "2. How Tiqsey Uses Cookies" },
-  { id: "cookie-categories", title: "3. Categories of Cookies" },
-  { id: "manage-preferences", title: "4. Manage Cookie Preferences" },
-  { id: "third-party-cookies", title: "5. Third-Party & Social Media" },
-  { id: "browser-settings", title: "6. Managing Cookies in Browser" },
-  { id: "policy-updates", title: "7. Updates to This Policy" },
-  { id: "contact-us", title: "8. Contact Information" },
-];
+interface CookiePreferencesState {
+  essential: true;
+  functional: boolean;
+  analytics: boolean;
+  marketing: boolean;
+}
 
-export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps) {
-  const { t } = useSettings();
-  const [activeSection, setActiveSection] = useState("what-are-cookies");
+const DEFAULT_PREFERENCES: CookiePreferencesState = {
+  essential: true,
+  functional: true,
+  analytics: true,
+  marketing: false,
+};
 
-  // Cookie preference toggles (Interactive)
-  const [preferences, setPreferences] = useState(() => {
+function loadCookiePreferences(): CookiePreferencesState {
+  try {
     const saved = localStorage.getItem("tiqsey_cookie_preferences");
     if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // Fallback
-      }
+      const parsed = JSON.parse(saved);
+      return {
+        essential: true,
+        functional: Boolean(parsed.functional ?? true),
+        analytics: Boolean(parsed.analytics ?? true),
+        marketing: Boolean(parsed.marketing ?? false),
+      };
     }
-    return {
-      essential: true, // Always true & disabled
-      functional: true,
-      analytics: true,
-      marketing: false,
-    };
-  });
+  } catch {
+    // Use defaults
+  }
+  return DEFAULT_PREFERENCES;
+}
 
-  const [savedSuccess, setSavedSuccess] = useState(false);
+export default function CookiePolicyPage({
+  onBackToHome,
+  onNavigate,
+}: CookiePolicyPageProps) {
+  const { t } = useSettings();
+  const [preferences, setPreferences] = useState<CookiePreferencesState>(() =>
+    loadCookiePreferences()
+  );
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const originalTitle = document.title;
@@ -67,487 +73,687 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
     };
   }, []);
 
+  const persistPreferences = (
+    next: CookiePreferencesState,
+    feedback: string
+  ) => {
+    setPreferences(next);
+    try {
+      localStorage.setItem("tiqsey_cookie_preferences", JSON.stringify(next));
+      window.dispatchEvent(new Event("tiqsey_cookie_preferences_updated"));
+    } catch {
+      // Ignore storage errors in private mode
+    }
+    setStatusMessage(feedback);
+    setTimeout(() => {
+      setStatusMessage((curr) => (curr === feedback ? null : curr));
+    }, 3000);
+  };
+
   const handleToggle = (key: "functional" | "analytics" | "marketing") => {
-    setPreferences((prev: typeof preferences) => ({
+    setPreferences((prev) => ({
       ...prev,
       [key]: !prev[key],
     }));
-    setSavedSuccess(false);
+    setStatusMessage(null);
   };
 
-  const handleSavePreferences = () => {
-    localStorage.setItem("tiqsey_cookie_preferences", JSON.stringify(preferences));
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+  const handleAcceptAll = () => {
+    persistPreferences(
+      {
+        essential: true,
+        functional: true,
+        analytics: true,
+        marketing: true,
+      },
+      "All cookie categories accepted and saved."
+    );
   };
 
-  const scrollToSection = (id: string) => {
-    setActiveSection(id);
-    const element = document.getElementById(id);
-    if (element) {
-      const yOffset = -100;
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: "smooth" });
-    }
+  const handleEssentialOnly = () => {
+    persistPreferences(
+      {
+        essential: true,
+        functional: false,
+        analytics: false,
+        marketing: false,
+      },
+      "Updated to Essential Cookies Only."
+    );
   };
 
-  return (
-    <div className="min-h-[100dvh] bg-gray-50 text-gray-900 pb-24 lg:pb-20 overflow-x-clip">
-      {/* Hero Header */}
-      <div className="bg-slate-900 text-white pt-8 sm:pt-12 pb-10 sm:pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-slate-950 pointer-events-none" />
-        <div className="max-w-7xl mx-auto relative z-10">
-          <button
-            onClick={onBackToHome}
-            className="min-h-[44px] inline-flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3.5 py-2 rounded-lg transition-all mb-6 sm:mb-8 border border-slate-700/60 cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {t('backToHome', 'Back to Home')}
-          </button>
+  const handleResetDefaults = () => {
+    persistPreferences(
+      DEFAULT_PREFERENCES,
+      "Cookie preferences restored to recommended defaults."
+    );
+  };
 
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-semibold tracking-wide uppercase mb-4 border border-amber-500/30">
-              <Cookie className="w-3.5 h-3.5" />
-              Cookie Transparency & Control
-            </div>
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4">
-              {t('cookiePolicy', 'Cookie Policy')}
-            </h1>
-            <p className="text-base sm:text-lg text-gray-300 leading-relaxed mb-6">
-              This policy explains how Tiqsey uses cookies and similar storage technologies to recognize you, remember your trip preferences, secure your ticket bookings, and deliver a seamless experience.
-            </p>
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-gray-400 border-t border-slate-800 pt-4">
-              <span><strong>Last Updated:</strong> July 29, 2026</span>
-              <span className="hidden sm:inline">•</span>
-              <span><strong>Effective Date:</strong> January 1, 2026</span>
-              <span className="hidden sm:inline">•</span>
-              <span className="text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> ePrivacy & GDPR Compliant
-              </span>
-            </div>
-          </div>
+  const handleSaveCustom = () => {
+    persistPreferences(preferences, "Custom cookie preferences saved.");
+  };
+
+  const activeCategoryCount =
+    1 +
+    (preferences.functional ? 1 : 0) +
+    (preferences.analytics ? 1 : 0) +
+    (preferences.marketing ? 1 : 0);
+
+  const cookieInventory = [
+    {
+      name: "tiqsey_cookie_preferences",
+      category: "Strictly Necessary",
+      purpose: "Stores your selected cookie and privacy consent choices.",
+      retention: "12 months",
+      active: true,
+    },
+    {
+      name: "tiqsey_auth_session",
+      category: "Strictly Necessary",
+      purpose: "Keeps your account and ticket checkout session authenticated.",
+      retention: "Session / 30 days",
+      active: true,
+    },
+    {
+      name: "tiqsey_settings",
+      category: "Functional",
+      purpose: "Remembers selected display currency, language, and Dark Mode.",
+      retention: "Persistent",
+      active: preferences.functional,
+    },
+    {
+      name: "wishlist & recentlyViewed",
+      category: "Functional",
+      purpose: "Preserves favorite attractions and recently browsed tours.",
+      retention: "Persistent",
+      active: preferences.functional,
+    },
+    {
+      name: "tiqsey_perf_metrics",
+      category: "Analytics",
+      purpose: "Measures anonymous page load performance and search responsiveness.",
+      retention: "90 days",
+      active: preferences.analytics,
+    },
+    {
+      name: "tiqsey_campaign_ref",
+      category: "Marketing",
+      purpose: "Attributes promotional offers and seasonal deal referrals.",
+      retention: "30 days",
+      active: preferences.marketing,
+    },
+  ];
+
+  // Live consent summary bar placed cleanly above the TOC & main document
+  const liveConsentBanner = (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <Sliders className="w-4 h-4 text-[#e3000f] shrink-0" />
+          <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+            Your Current Cookie Status:{" "}
+            <span className="text-[#e3000f] tabular-nums">
+              {activeCategoryCount} of 4 Categories Enabled
+            </span>
+          </h2>
         </div>
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
+          {statusMessage ? (
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold inline-flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{statusMessage}</span>
+            </span>
+          ) : (
+            "Apply quick presets below or customize individual toggles in Section 4."
+          )}
+        </p>
       </div>
 
-      {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-
-          {/* Sticky Sidebar Navigation */}
-          <div className="lg:col-span-4 xl:col-span-3">
-            <div className="lg:sticky lg:top-24 bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-sm space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 px-2">
-                Table of Contents
-              </h3>
-              <nav className="space-y-1">
-                {SECTIONS.map((sec) => (
-                  <button
-                    key={sec.id}
-                    onClick={() => scrollToSection(sec.id)}
-                    className={`w-full min-h-[42px] text-left px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 cursor-pointer ${
-                      activeSection === sec.id
-                        ? "bg-brand text-white shadow-sm font-semibold"
-                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                  >
-                    <span className="truncate">{sec.title}</span>
-                    <ChevronRight className={`w-4 h-4 shrink-0 opacity-70 ${activeSection === sec.id ? "text-white" : "text-gray-400"}`} />
-                  </button>
-                ))}
-              </nav>
-
-              <div className="pt-4 mt-4 border-t border-gray-100 px-2">
-                <div className="bg-amber-50/80 p-3.5 rounded-xl border border-amber-200/80">
-                  <p className="text-xs font-semibold text-amber-900 mb-1 flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5 text-amber-700" /> Preference Control
-                  </p>
-                  <p className="text-xs text-amber-800 mb-2">You can customize non-essential cookies anytime on this page.</p>
-                  <button
-                    onClick={() => scrollToSection("manage-preferences")}
-                    className="text-xs font-bold text-brand hover:underline block"
-                  >
-                    Manage Preferences ↓
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Policy Content */}
-          <div className="lg:col-span-8 xl:col-span-9 space-y-8 sm:space-y-10 min-w-0">
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-10 shadow-sm space-y-10 sm:space-y-12 break-words">
-
-              {/* Section 1 */}
-              <section id="what-are-cookies" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600">
-                    <Cookie className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">1. What Are Cookies?</h2>
-                </div>
-                <div className="prose prose-slate max-w-none text-gray-600 space-y-4 leading-relaxed">
-                  <p>
-                    Cookies are small text files containing bits of data that are stored on your computer, tablet, or smartphone when you visit a website. They are widely used across the web to enable websites to function properly, remember user choices, and provide analytical insight to site operators.
-                  </p>
-                  <p>
-                    In addition to cookies, Tiqsey may use local storage, session storage, or web beacons. Throughout this policy, we refer to all of these technologies collectively as <strong>"Cookies"</strong>.
-                  </p>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 2 */}
-              <section id="how-we-use-cookies" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
-                    <Database className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">2. How Tiqsey Uses Cookies</h2>
-                </div>
-                <div className="space-y-4 text-gray-600 leading-relaxed">
-                  <p>
-                    When you explore tickets, compare attraction prices, or save items to your wishlist on Tiqsey, cookies help us deliver a fast, personal, and reliable experience:
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-brand" /> Instant Preference Memory
-                      </h4>
-                      <p className="text-xs text-gray-600">
-                        Remembers your selected currency (e.g., USD, EUR, GBP) and preferred display language across sessions.
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-brand" /> Wishlist Persistence
-                      </h4>
-                      <p className="text-xs text-gray-600">
-                        Saves your favorited destinations and ticket wishlist so you never lose track of planned activities.
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-brand" /> Secure Authentication
-                      </h4>
-                      <p className="text-xs text-gray-600">
-                        Keeps you securely logged into your Tiqsey account while completing bookings or viewing past e-tickets.
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
-                      <h4 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-brand" /> Platform Performance
-                      </h4>
-                      <p className="text-xs text-gray-600">
-                        Optimizes image loading speeds and search filter caching so pages render instantly.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 3 */}
-              <section id="cookie-categories" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600">
-                    <Info className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">3. Categories of Cookies We Use</h2>
-                </div>
-                <div className="space-y-6 text-gray-600 leading-relaxed">
-
-                  {/* Cat 1 */}
-                  <div className="border border-gray-200 rounded-xl p-4 sm:p-5 bg-white shadow-2xs space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                        <Lock className="w-4.5 h-4.5 text-emerald-600 shrink-0" /> Strictly Necessary Cookies
-                      </h3>
-                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold text-xs rounded-full shrink-0">
-                        Always Active
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 leading-normal">
-                      These cookies are essential for you to browse the Tiqsey platform and use its features, such as accessing secure booking pages and holding ticket selections during checkout. Without these cookies, the core service cannot function.
-                    </p>
-                  </div>
-
-                  {/* Cat 2 */}
-                  <div className="border border-gray-200 rounded-xl p-4 sm:p-5 bg-white shadow-2xs space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                        <Sliders className="w-4.5 h-4.5 text-brand shrink-0" /> Functional & Preference Cookies
-                      </h3>
-                      <span className="px-2.5 py-1 bg-blue-100 text-blue-800 font-bold text-xs rounded-full shrink-0">
-                        Optional
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 leading-normal">
-                      Functional cookies allow Tiqsey to remember choices you make (such as currency conversion or country location) to provide an enhanced, personal trip planning experience.
-                    </p>
-                  </div>
-
-                  {/* Cat 3 */}
-                  <div className="border border-gray-200 rounded-xl p-4 sm:p-5 bg-white shadow-2xs space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                        <Eye className="w-4.5 h-4.5 text-amber-600 shrink-0" /> Performance & Analytics Cookies
-                      </h3>
-                      <span className="px-2.5 py-1 bg-blue-100 text-blue-800 font-bold text-xs rounded-full shrink-0">
-                        Optional
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 leading-normal">
-                      These cookies collect anonymous information about how visitors navigate Tiqsey—such as which attraction pages are visited most frequently. This data helps us improve load times and fix technical errors.
-                    </p>
-                  </div>
-
-                  {/* Cat 4 */}
-                  <div className="border border-gray-200 rounded-xl p-4 sm:p-5 bg-white shadow-2xs space-y-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                        <Globe className="w-4.5 h-4.5 text-indigo-600 shrink-0" /> Marketing & Social Media Cookies
-                      </h3>
-                      <span className="px-2.5 py-1 bg-gray-100 text-gray-700 font-bold text-xs rounded-full shrink-0">
-                        Optional
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 leading-normal">
-                      These cookies are set by embedded social media services (like Facebook or Instagram social links) or marketing partners to track visitors across websites and display relevant travel deals.
-                    </p>
-                  </div>
-
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 4 - Interactive Preference Control */}
-              <section id="manage-preferences" className="scroll-mt-28 bg-slate-900 text-white p-6 sm:p-8 rounded-2xl">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-300">
-                    <Settings className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-white">4. Manage Your Cookie Preferences</h2>
-                    <p className="text-xs text-gray-300 mt-1">
-                      Customize your cookie settings below. Your preferences will be saved immediately for this browser.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-4 mt-6 bg-slate-950/80 p-4 sm:p-5 rounded-xl border border-slate-800">
-                  {/* Essential */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
-                    <div className="pr-2 min-w-0 flex-1">
-                      <p className="font-bold text-sm text-white flex flex-wrap items-center gap-2">
-                        Essential & Security Cookies <span className="text-[10px] uppercase font-extrabold bg-slate-800 text-emerald-400 px-2 py-0.5 rounded-full">Required</span>
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">Required for ticket search, currency conversion, and checkout security.</p>
-                    </div>
-                    <div className="shrink-0 bg-slate-800 border border-slate-700 text-emerald-400 px-3 py-1 rounded-lg text-xs font-bold">
-                      Always On
-                    </div>
-                  </div>
-
-                  {/* Functional */}
-                  <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-800/80">
-                    <div className="pr-2 min-w-0 flex-1">
-                      <p className="font-bold text-sm text-white">Functional Preferences</p>
-                      <p className="text-xs text-gray-400">Remembers your wishlist items, preferred language, and recent searches.</p>
-                    </div>
-                    <button
-                      onClick={() => handleToggle("functional")}
-                      aria-label="Toggle Functional Preferences cookies"
-                      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        preferences.functional ? "bg-brand" : "bg-slate-700"
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          preferences.functional ? "translate-x-5" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Analytics */}
-                  <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-800/80">
-                    <div className="pr-2 min-w-0 flex-1">
-                      <p className="font-bold text-sm text-white">Analytics & Performance</p>
-                      <p className="text-xs text-gray-400">Helps us analyze traffic patterns to optimize booking speed and reliability.</p>
-                    </div>
-                    <button
-                      onClick={() => handleToggle("analytics")}
-                      aria-label="Toggle Analytics and Performance cookies"
-                      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        preferences.analytics ? "bg-brand" : "bg-slate-700"
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          preferences.analytics ? "translate-x-5" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Marketing */}
-                  <div className="flex items-center justify-between gap-3 pt-2">
-                    <div className="pr-2 min-w-0 flex-1">
-                      <p className="font-bold text-sm text-white">Marketing & Social Media</p>
-                      <p className="text-xs text-gray-400">Allows social media integrations (e.g. Facebook/Instagram) and tailored travel deals.</p>
-                    </div>
-                    <button
-                      onClick={() => handleToggle("marketing")}
-                      aria-label="Toggle Marketing and Social Media cookies"
-                      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        preferences.marketing ? "bg-brand" : "bg-slate-700"
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          preferences.marketing ? "translate-x-5" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-                  <button
-                    onClick={handleSavePreferences}
-                    className="min-h-[44px] px-6 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all text-sm shadow-md cursor-pointer"
-                  >
-                    Save Preferences
-                  </button>
-
-                  {savedSuccess && (
-                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 animate-fade-in">
-                      <CheckCircle2 className="w-4 h-4" /> Preferences saved successfully!
-                    </span>
-                  )}
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 5 */}
-              <section id="third-party-cookies" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
-                    <Globe className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">5. Third-Party & Social Media Services</h2>
-                </div>
-                <div className="space-y-3 text-gray-600 leading-relaxed text-sm">
-                  <p>
-                    Tiqsey features official links to social media platforms such as our <strong>Facebook</strong> and <strong>Instagram</strong> pages.
-                  </p>
-                  <p>
-                    When interacting with social links or embedded payment services (like Stripe or PayPal), these third parties may set their own cookies according to their respective privacy and cookie policies. We encourage you to review their policies directly:
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-gray-800 font-medium pt-1">
-                    <li><a href="https://www.facebook.com/policies/cookies/" target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">Meta / Facebook Cookie Policy</a></li>
-                    <li><a href="https://help.instagram.com/1896641480634370" target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">Instagram Cookie Policy</a></li>
-                  </ul>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 6 */}
-              <section id="browser-settings" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600">
-                    <Shield className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">6. How to Control Cookies in Your Browser</h2>
-                </div>
-                <div className="space-y-3 text-gray-600 leading-relaxed text-sm">
-                  <p>
-                    Most modern web browsers allow you to manage, block, or delete cookies via their settings menus:
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                    <a
-                      href="https://support.google.com/chrome/answer/95647"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-center text-xs font-bold text-gray-800 hover:bg-gray-100 transition-colors block"
-                    >
-                      Google Chrome
-                    </a>
-                    <a
-                      href="https://support.apple.com/guide/safari/manage-cookies-sfri11471/mac"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-center text-xs font-bold text-gray-800 hover:bg-gray-100 transition-colors block"
-                    >
-                      Apple Safari
-                    </a>
-                    <a
-                      href="https://support.mozilla.org/en-US/kb/enhanced-tracking-protection-firefox-desktop"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-center text-xs font-bold text-gray-800 hover:bg-gray-100 transition-colors block"
-                    >
-                      Mozilla Firefox
-                    </a>
-                    <a
-                      href="https://support.microsoft.com/en-us/microsoft-edge/delete-cookies-in-microsoft-edge-63947406-400c-23f2-4402-d0da8e561d37"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-center text-xs font-bold text-gray-800 hover:bg-gray-100 transition-colors block"
-                    >
-                      Microsoft Edge
-                    </a>
-                  </div>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 7 & 8 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <section id="policy-updates" className="scroll-mt-28 p-5 bg-gray-50 border border-gray-200 rounded-xl">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">7. Policy Updates</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    We may update this Cookie Policy periodically to reflect technological changes or legal requirements. Updated versions will be posted here with a revised effective date.
-                  </p>
-                </section>
-
-                <section id="contact-us" className="scroll-mt-28 p-5 bg-gray-50 border border-gray-200 rounded-xl">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">8. Questions & Contact</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed mb-2">
-                    For questions regarding our use of cookies or privacy practices, reach out to our team at:
-                  </p>
-                  <a href="mailto:support@tiqsey.com" className="text-xs font-bold text-brand hover:underline">
-                    support@tiqsey.com
-                  </a>
-                </section>
-              </div>
-
-              {/* Back to Home CTA */}
-              <div className="pt-4 sm:pt-6 text-center">
-                <button
-                  onClick={onBackToHome}
-                  className="min-h-[44px] inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 transition-all text-sm shadow-sm cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Return to Tiqsey Home
-                </button>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
+        <button
+          type="button"
+          onClick={handleEssentialOnly}
+          className="min-h-[40px] px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+        >
+          Essential Only
+        </button>
+        <button
+          type="button"
+          onClick={handleAcceptAll}
+          className="min-h-[40px] px-4 py-2 rounded-xl bg-[#e3000f] hover:bg-[#c7000d] text-white text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+        >
+          Accept All Cookies
+        </button>
       </div>
     </div>
+  );
+
+  const sections: LegalSectionItem[] = [
+    {
+      id: "what-are-cookies",
+      title: "1. What Are Cookies?",
+      icon: <Cookie className="w-5 h-5" />,
+      searchText:
+        "what are cookies small text files browser storage local storage session storage web beacons",
+      content: (
+        <>
+          <p className="text-sm sm:text-base">
+            Cookies are small text files placed on your computer, tablet, or smartphone when you visit a website. They help websites function reliably, remember your trip settings, and measure site performance.
+          </p>
+          <p className="text-sm sm:text-base">
+            In addition to browser cookies, Tiqsey uses standard browser <strong className="text-slate-900 dark:text-white">localStorage</strong> and <strong className="text-slate-900 dark:text-white">sessionStorage</strong> to preserve theme, currency, and wishlist state safely inside your device. Throughout this policy, we refer to these mechanisms collectively as <strong className="text-slate-900 dark:text-white">"Cookies"</strong>.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "how-we-use-cookies",
+      title: "2. How Tiqsey Uses Cookies",
+      icon: <Database className="w-5 h-5" />,
+      searchText:
+        "how tiqsey uses cookies instant preference memory currency wishlist persistence authentication security performance speed",
+      content: (
+        <>
+          <p className="text-sm sm:text-base">
+            When you compare ticket prices or save tours to your wishlist on Tiqsey, cookies support four core capabilities:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-xl space-y-1.5">
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#e3000f] shrink-0" />
+                <span>Preference Memory</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Remembers your preferred currency (USD, EUR, GBP), display language, and Light/Dark theme across visits.
+              </p>
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-xl space-y-1.5">
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#e3000f] shrink-0" />
+                <span>Wishlist Continuity</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Keeps your bookmarked attractions and recently viewed activities intact as you compare dates.
+              </p>
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-xl space-y-1.5">
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#e3000f] shrink-0" />
+                <span>Checkout Integrity</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Protects authenticated account sessions and maintains ticket reservations cleanly through checkout.
+              </p>
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-xl space-y-1.5">
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#e3000f] shrink-0" />
+                <span>Platform Reliability</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Identifies slow attraction pages or layout errors so we can keep browsing instant on mobile and desktop.
+              </p>
+            </div>
+          </div>
+        </>
+      ),
+    },
+    {
+      id: "cookie-categories",
+      title: "3. Cookie Categories & Breakdown Table",
+      icon: <Info className="w-5 h-5" />,
+      searchText:
+        "categories strictly necessary functional analytics performance marketing breakdown table retention status keys",
+      content: (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50/70 dark:bg-slate-800/40 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Strictly Necessary</span>
+                </h3>
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 shrink-0">
+                  Always Active
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Essential for secure checkout sessions, CSRF protection, and persisting your cookie consent choice.
+              </p>
+            </div>
+
+            <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50/70 dark:bg-slate-800/40 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-[#e3000f] shrink-0" />
+                  <span>Functional Preferences</span>
+                </h3>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 shrink-0">
+                  {preferences.functional ? "Enabled" : "Paused"}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Saves language, currency conversion, Dark Mode preference, Wishlist items, and recently viewed tours.
+              </p>
+            </div>
+
+            <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50/70 dark:bg-slate-800/40 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>Performance & Analytics</span>
+                </h3>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 shrink-0">
+                  {preferences.analytics ? "Enabled" : "Paused"}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Collects aggregated diagnostics on search latency and popular attractions to improve reliability.
+              </p>
+            </div>
+
+            <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50/70 dark:bg-slate-800/40 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <span>Marketing & Attribution</span>
+                </h3>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 shrink-0">
+                  {preferences.marketing ? "Enabled" : "Paused"}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Supports referral attribution for promotional campaigns and social media integrations.
+              </p>
+            </div>
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase text-[11px] tracking-wider">
+                  <th className="py-3 px-4 font-bold">Storage Key / Cookie</th>
+                  <th className="py-3 px-4 font-bold">Category</th>
+                  <th className="py-3 px-4 font-bold">Purpose</th>
+                  <th className="py-3 px-4 font-bold">Retention</th>
+                  <th className="py-3 px-4 font-bold">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {cookieInventory.map((item) => (
+                  <tr
+                    key={item.name}
+                    className="bg-white dark:bg-slate-900 hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
+                  >
+                    <td className="py-3 px-4 font-mono text-xs text-slate-900 dark:text-slate-100 font-semibold whitespace-nowrap">
+                      {item.name}
+                    </td>
+                    <td className="py-3 px-4 text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                      {item.category}
+                    </td>
+                    <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
+                      {item.purpose}
+                    </td>
+                    <td className="py-3 px-4 text-slate-600 dark:text-slate-400 tabular-nums whitespace-nowrap">
+                      {item.retention}
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap font-semibold">
+                      <span
+                        className={
+                          item.active
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-slate-400 dark:text-slate-500"
+                        }
+                      >
+                        {item.active ? "Active" : "Paused"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Stacked Breakdown Cards */}
+          <div className="md:hidden space-y-3">
+            {cookieInventory.map((item) => (
+              <div
+                key={item.name}
+                className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 space-y-1.5"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-xs font-bold text-slate-900 dark:text-white break-all">
+                    {item.name}
+                  </span>
+                  <span
+                    className={`text-xs font-bold shrink-0 ${
+                      item.active
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-slate-400 dark:text-slate-500"
+                    }`}
+                  >
+                    {item.active ? "Active" : "Paused"}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                  {item.category} · Retention: {item.retention}
+                </p>
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                  {item.purpose}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "manage-preferences",
+      title: "4. Manage Cookie Preferences",
+      icon: <Settings className="w-5 h-5" />,
+      searchText:
+        "manage cookie preferences toggles essential functional analytics marketing accept all save preferences reset",
+      content: (
+        <div className="bg-slate-900 dark:bg-slate-950 text-white p-5 sm:p-7 rounded-2xl border border-slate-800 space-y-5 print:hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-bold text-white">
+                Customize Your Browser Preferences
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 mt-1">
+                Changes are stored immediately in your browser via <span className="font-mono text-xs">tiqsey_cookie_preferences</span>.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleResetDefaults}
+              className="min-h-[38px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer w-fit"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset Defaults</span>
+            </button>
+          </div>
+
+          <div className="space-y-4 bg-slate-950/80 dark:bg-slate-900/70 p-4 sm:p-5 rounded-xl border border-slate-800">
+            {/* Essential */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-sm text-white">
+                  Essential & Security Cookies{" "}
+                  <span className="text-xs font-semibold text-emerald-400 ml-1.5">
+                    · Required
+                  </span>
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                  Necessary for ticket search, account login, and payment security.
+                </p>
+              </div>
+              <span className="shrink-0 bg-slate-800 border border-slate-700 text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap">
+                Always Active
+              </span>
+            </div>
+
+            {/* Functional */}
+            <div className="flex items-center justify-between gap-3 py-1 border-b border-slate-800 pb-4">
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-sm text-white">
+                  Functional Preferences
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                  Remembers your Wishlist items, currency selection, language, and Dark Mode.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={preferences.functional}
+                aria-label="Toggle Functional Preferences cookies"
+                onClick={() => handleToggle("functional")}
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                  preferences.functional ? "bg-[#e3000f]" : "bg-slate-700"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                    preferences.functional ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Analytics */}
+            <div className="flex items-center justify-between gap-3 py-1 border-b border-slate-800 pb-4">
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-sm text-white">
+                  Analytics & Performance
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                  Helps measure search speed, availability reliability, and technical errors.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={preferences.analytics}
+                aria-label="Toggle Analytics and Performance cookies"
+                onClick={() => handleToggle("analytics")}
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                  preferences.analytics ? "bg-[#e3000f]" : "bg-slate-700"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                    preferences.analytics ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Marketing */}
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-sm text-white">
+                  Marketing & Social Media
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                  Supports promotional deal attribution and embedded social widgets.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={preferences.marketing}
+                aria-label="Toggle Marketing and Social Media cookies"
+                onClick={() => handleToggle("marketing")}
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                  preferences.marketing ? "bg-[#e3000f]" : "bg-slate-700"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                    preferences.marketing ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleSaveCustom}
+                className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#e3000f] hover:bg-[#c7000d] text-white font-bold transition-colors text-sm whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                Save Preferences
+              </button>
+              <button
+                type="button"
+                onClick={handleAcceptAll}
+                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition-colors text-sm whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                Accept All
+              </button>
+            </div>
+
+            {statusMessage && (
+              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{statusMessage}</span>
+              </span>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "third-party-cookies",
+      title: "5. Third-Party & Social Media Services",
+      icon: <Globe className="w-5 h-5" />,
+      searchText:
+        "third-party social media facebook instagram meta stripe paypal policies",
+      content: (
+        <>
+          <p className="text-sm sm:text-base">
+            When interacting with encrypted checkout windows (Stripe, PayPal) or opening official Tiqsey links on Meta/Facebook or Instagram, those external providers manage cookies under their own policies:
+          </p>
+          <ul className="list-disc list-inside space-y-1.5 text-sm text-slate-700 dark:text-slate-300 font-medium">
+            <li>
+              <a
+                href="https://www.facebook.com/policies/cookies/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#e3000f] hover:underline"
+              >
+                Meta / Facebook Cookie Policy
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://help.instagram.com/1896641480634370"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#e3000f] hover:underline"
+              >
+                Instagram Cookie Information
+              </a>
+            </li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      id: "browser-settings",
+      title: "6. Managing Cookies in Your Browser",
+      icon: <Shield className="w-5 h-5" />,
+      searchText:
+        "browser settings chrome safari firefox microsoft edge block delete clear cookies",
+      content: (
+        <>
+          <p className="text-sm sm:text-base">
+            In addition to the interactive toggles above, most browsers let you view, block, or clear cookies directly inside privacy settings:
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+            {[
+              {
+                name: "Google Chrome",
+                href: "https://support.google.com/chrome/answer/95647",
+              },
+              {
+                name: "Apple Safari",
+                href: "https://support.apple.com/guide/safari/manage-cookies-sfri11471/mac",
+              },
+              {
+                name: "Mozilla Firefox",
+                href: "https://support.mozilla.org/en-US/kb/enhanced-tracking-protection-firefox-desktop",
+              },
+              {
+                name: "Microsoft Edge",
+                href: "https://support.microsoft.com/en-us/microsoft-edge/delete-cookies-in-microsoft-edge-63947406-400c-23f2-4402-d0da8e561d37",
+              },
+            ].map((browser) => (
+              <a
+                key={browser.name}
+                href={browser.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-h-[44px] p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl flex items-center justify-center text-center text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-[#e3000f]/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                {browser.name}
+              </a>
+            ))}
+          </div>
+        </>
+      ),
+    },
+    {
+      id: "policy-updates",
+      title: "7. Policy Updates & Retention",
+      icon: <Info className="w-5 h-5" />,
+      searchText:
+        "updates policy changes effective date retention compliance review",
+      content: (
+        <p className="text-sm sm:text-base">
+          We review this Cookie Policy whenever we introduce new booking capabilities or updated privacy regulations take effect. Any material changes will update the "Last Updated" date at the top of this document. You can also revisit our{" "}
+          <button
+            type="button"
+            onClick={() =>
+              onNavigate
+                ? onNavigate("privacy-policy")
+                : (window.location.href = "/privacy-policy")
+            }
+            className="text-[#e3000f] font-semibold underline hover:text-[#c7000d] cursor-pointer"
+          >
+            Privacy Policy
+          </button>{" "}
+          for broader data protection terms.
+        </p>
+      ),
+    },
+  ];
+
+  return (
+    <LegalDocumentLayout
+      activePage="cookie-policy"
+      eyebrow="Cookie Transparency & Control"
+      heroIcon={<Cookie className="w-4 h-4" />}
+      title={t("cookiePolicy", "Cookie Policy")}
+      subtitle="Understand exactly how Tiqsey uses cookies and local browser storage to keep checkout secure, save your wishlist, and give you instant control over optional tracking."
+      lastUpdated="July 29, 2026"
+      effectiveDate="January 1, 2026"
+      complianceText="ePrivacy & GDPR Compliant"
+      highlights={[
+        {
+          label: "Default Posture",
+          value: "Essential Ready",
+          detail:
+            "Core checkout and security work even with marketing cookies disabled.",
+        },
+        {
+          label: "Browser Control",
+          value: "Instant Toggle",
+          detail:
+            "Adjust functional, analytics, or marketing storage keys with zero reload.",
+        },
+        {
+          label: "Data Inspection",
+          value: "6 Documented Keys",
+          detail:
+            "Every storage key, retention period, and live active status is listed clearly.",
+        },
+      ]}
+      topBanner={liveConsentBanner}
+      sections={sections}
+      onBackToHome={onBackToHome}
+      onNavigate={onNavigate}
+      sidebarSupportHeading="Cookie Questions"
+      sidebarSupportDescription="Want details about browser storage keys or privacy compliance?"
+      footerContactHeading="8. Questions About Cookies or Privacy?"
+      footerContactDescription="If you have questions regarding how Tiqsey uses cookies, browser storage, or consent settings, reach our privacy team anytime."
+    />
   );
 }

@@ -491,14 +491,25 @@ export default function App() {
       );
     }
 
+    const handleTrustNavigate = (
+      page:
+        | "about"
+        | "privacy-policy"
+        | "cookie-policy"
+        | "terms-and-conditions"
+    ) => {
+      setSelectedDestination(null);
+      setSelectedAttractionId(null);
+      setActiveCategoryFilter(null);
+      setCurrentPage(page);
+      window.history.pushState({}, "", `/${page}`);
+      window.scrollTo(0, 0);
+    };
+
     if (currentPage === "about") {
       return (
         <AboutPage
-          onBackToHome={() => {
-            setCurrentPage("home");
-            window.history.pushState({}, "", "/");
-            window.scrollTo(0, 0);
-          }}
+          onBackToHome={navigateHome}
           onExploreActivities={() => {
             setCurrentPage("attractions-and-museums");
             window.history.pushState({}, "", "/attractions-and-museums");
@@ -507,6 +518,18 @@ export default function App() {
           onSelectAttraction={(id) => {
             setSelectedAttractionId(id);
           }}
+          onSelectDestination={(dest) => {
+            setSelectedDestination(dest);
+            window.history.pushState(
+              {},
+              "",
+              `/destinations/${encodeURIComponent(
+                dest.toLowerCase().replace(/\s+/g, "-")
+              )}`
+            );
+            window.scrollTo(0, 0);
+          }}
+          onNavigate={handleTrustNavigate}
         />
       );
     }
@@ -514,11 +537,8 @@ export default function App() {
     if (currentPage === "privacy-policy") {
       return (
         <PrivacyPolicyPage
-          onBackToHome={() => {
-            setCurrentPage("home");
-            window.history.pushState({}, "", "/");
-            window.scrollTo(0, 0);
-          }}
+          onBackToHome={navigateHome}
+          onNavigate={handleTrustNavigate}
         />
       );
     }
@@ -526,11 +546,8 @@ export default function App() {
     if (currentPage === "cookie-policy") {
       return (
         <CookiePolicyPage
-          onBackToHome={() => {
-            setCurrentPage("home");
-            window.history.pushState({}, "", "/");
-            window.scrollTo(0, 0);
-          }}
+          onBackToHome={navigateHome}
+          onNavigate={handleTrustNavigate}
         />
       );
     }
@@ -538,11 +555,8 @@ export default function App() {
     if (currentPage === "terms-and-conditions") {
       return (
         <TermsAndConditionsPage
-          onBackToHome={() => {
-            setCurrentPage("home");
-            window.history.pushState({}, "", "/");
-            window.scrollTo(0, 0);
-          }}
+          onBackToHome={navigateHome}
+          onNavigate={handleTrustNavigate}
         />
       );
     }

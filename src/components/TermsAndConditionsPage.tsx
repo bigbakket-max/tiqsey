@@ -1,14 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   FileText,
   Shield,
   CheckCircle2,
   Lock,
-  Mail,
-  ArrowLeft,
-  ChevronRight,
   AlertCircle,
-  HelpCircle,
   Globe,
   Scale,
   CreditCard,
@@ -17,30 +13,23 @@ import {
   UserCheck,
   Ban,
   Building2,
-  Clock
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
+import LegalDocumentLayout, {
+  LegalSectionItem,
+  TrustPageKey,
+} from "./LegalDocumentLayout";
 
 interface TermsAndConditionsPageProps {
   onBackToHome: () => void;
+  onNavigate?: (page: TrustPageKey) => void;
 }
 
-const SECTIONS = [
-  { id: "acceptance", title: "1. Acceptance of Terms" },
-  { id: "services", title: "2. Platform Role & Services" },
-  { id: "accounts", title: "3. Accounts & Eligibility" },
-  { id: "pricing", title: "4. Ticket Purchases & Pricing" },
-  { id: "delivery", title: "5. E-Ticket Delivery & Entry" },
-  { id: "cancellations", title: "6. Cancellations & Refunds" },
-  { id: "conduct", title: "7. Acceptable Use & Conduct" },
-  { id: "intellectual-property", title: "8. Intellectual Property" },
-  { id: "liability", title: "9. Liability & Disclaimers" },
-  { id: "disputes", title: "10. Governing Law & Contact" },
-];
-
-export default function TermsAndConditionsPage({ onBackToHome }: TermsAndConditionsPageProps) {
+export default function TermsAndConditionsPage({
+  onBackToHome,
+  onNavigate,
+}: TermsAndConditionsPageProps) {
   const { t } = useSettings();
-  const [activeSection, setActiveSection] = useState("acceptance");
 
   useEffect(() => {
     const originalTitle = document.title;
@@ -50,343 +39,286 @@ export default function TermsAndConditionsPage({ onBackToHome }: TermsAndConditi
     };
   }, []);
 
-  const scrollToSection = (id: string) => {
-    setActiveSection(id);
-    const element = document.getElementById(id);
-    if (element) {
-      const yOffset = -100;
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: "smooth" });
+  const handleInternalLink = (page: TrustPageKey) => {
+    if (onNavigate) {
+      onNavigate(page);
+    } else {
+      window.history.pushState({}, "", `/${page}`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  return (
-    <div className="min-h-[100dvh] bg-gray-50 text-gray-900 pb-24 lg:pb-20 overflow-x-clip">
-      {/* Hero Header */}
-      <div className="bg-slate-900 text-white pt-8 sm:pt-12 pb-10 sm:pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand/20 via-transparent to-slate-950 pointer-events-none" />
-        <div className="max-w-7xl mx-auto relative z-10">
-          <button
-            onClick={onBackToHome}
-            className="min-h-[44px] inline-flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3.5 py-2 rounded-lg transition-all mb-6 sm:mb-8 border border-slate-700/60 cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {t('backToHome', 'Back to Home')}
-          </button>
-
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand/20 text-brand-light text-xs font-semibold tracking-wide uppercase mb-4 border border-brand/30">
-              <Scale className="w-3.5 h-3.5" />
-              Legal & Service Terms
-            </div>
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4">
-              {t('termsAndConditions', 'Terms & Conditions')}
-            </h1>
-            <p className="text-base sm:text-lg text-gray-300 leading-relaxed mb-6">
-              Welcome to Tiqsey. These Terms and Conditions govern your access to and use of the Tiqsey website, mobile interfaces, ticket booking engine, and customer support services.
-            </p>
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-gray-400 border-t border-slate-800 pt-4">
-              <span><strong>Last Updated:</strong> July 29, 2026</span>
-              <span className="hidden sm:inline">•</span>
-              <span><strong>Effective Date:</strong> January 1, 2026</span>
-              <span className="hidden sm:inline">•</span>
-              <span className="text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Official Service Agreement
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-
-          {/* Sticky Sidebar Navigation */}
-          <div className="lg:col-span-4 xl:col-span-3">
-            <div className="lg:sticky lg:top-24 bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-sm space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 px-2">
-                Table of Contents
+  const sections: LegalSectionItem[] = [
+    {
+      id: "acceptance",
+      title: "1. Acceptance of Terms",
+      icon: <FileText className="w-5 h-5" />,
+      searchText:
+        "acceptance terms agreement privacy policy cookie policy amendments access browse purchase ticket vouchers",
+      content: (
+        <>
+          <p className="text-sm sm:text-base">
+            By accessing, browsing, or purchasing ticket vouchers through{" "}
+            <strong className="text-slate-900 dark:text-white">Tiqsey</strong>{" "}
+            ("we", "our", "us", or "the Platform"), you confirm that you have read, understood, and agree to be bound by these Terms and Conditions, as well as our{" "}
+            <button
+              type="button"
+              onClick={() => handleInternalLink("privacy-policy")}
+              className="text-[#e3000f] font-semibold underline hover:text-[#c7000d] cursor-pointer"
+            >
+              Privacy Policy
+            </button>{" "}
+            and{" "}
+            <button
+              type="button"
+              onClick={() => handleInternalLink("cookie-policy")}
+              className="text-[#e3000f] font-semibold underline hover:text-[#c7000d] cursor-pointer"
+            >
+              Cookie Policy
+            </button>
+            .
+          </p>
+          <p className="text-sm sm:text-base">
+            If you do not agree to these terms, you should discontinue using the platform. Updated revisions take effect upon publication with the revised effective date shown above.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "services",
+      title: "2. Platform Role & Booking Marketplace",
+      icon: <Building2 className="w-5 h-5" />,
+      searchText:
+        "platform role marketplace intermediary venue operators museums parks tours e-ticket voucher safety schedules",
+      content: (
+        <>
+          <p className="text-sm sm:text-base">
+            Tiqsey operates as a digital booking marketplace connecting travelers with verified attraction operators, museums, theme parks, tour guides, and cultural organizers ("Venue Operators"):
+          </p>
+          <ul className="space-y-2.5 text-sm list-disc list-inside text-slate-700 dark:text-slate-300">
+            <li>
+              <strong className="text-slate-900 dark:text-white">Official E-Ticket Issuer:</strong> When you complete checkout on Tiqsey, we facilitate the reservation and generate valid digital entry vouchers or QR passes on behalf of the participating Venue Operator.
+            </li>
+            <li>
+              <strong className="text-slate-900 dark:text-white">Venue Admission Rules:</strong> Entry remains subject to capacity guidelines, security screenings, dress codes, and posted operating hours of each individual venue.
+            </li>
+            <li>
+              <strong className="text-slate-900 dark:text-white">On-Site Delivery:</strong> Guided tours, exhibits, transport services, and on-site safety are directly operated by the named Venue Operator.
+            </li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      id: "accounts",
+      title: "3. User Accounts & Eligibility",
+      icon: <UserCheck className="w-5 h-5" />,
+      searchText:
+        "accounts eligibility 18 years parental consent guest booking accurate email security password unauthorized",
+      content: (
+        <>
+          <p className="text-sm sm:text-base">
+            To place bookings on Tiqsey, you must be at least 18 years old or have legal parental/guardian authorization. When creating an account or booking as a guest, you agree to:
+          </p>
+          <ul className="space-y-2 text-sm list-disc list-inside text-slate-700 dark:text-slate-300">
+            <li>
+              Provide accurate contact information (including an active email address for instant digital ticket delivery).
+            </li>
+            <li>
+              Safeguard your login credentials and accept responsibility for orders placed under your authenticated session.
+            </li>
+            <li>
+              Notify us promptly at{" "}
+              <a
+                href="mailto:support@tiqsey.com"
+                className="text-[#e3000f] font-bold underline"
+              >
+                support@tiqsey.com
+              </a>{" "}
+              if you suspect unauthorized account activity.
+            </li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      id: "pricing",
+      title: "4. Ticket Purchases, Pricing & Taxes",
+      icon: <CreditCard className="w-5 h-5" />,
+      searchText:
+        "pricing taxes fees usd eur gbp aud stripe paypal apple pay google pay dynamic currency exchange",
+      content: (
+        <>
+          <p className="text-sm sm:text-base">
+            All ticket prices shown on Tiqsey reflect your chosen display currency (such as USD, EUR, GBP, or AUD) with applicable taxes and service fees presented clearly prior to payment authorization.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-xl space-y-1.5">
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                <Lock className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Secure Payment Gateways</span>
               </h3>
-              <nav className="space-y-1">
-                {SECTIONS.map((sec) => (
-                  <button
-                    key={sec.id}
-                    onClick={() => scrollToSection(sec.id)}
-                    className={`w-full min-h-[42px] text-left px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 cursor-pointer ${
-                      activeSection === sec.id
-                        ? "bg-brand text-white shadow-sm font-semibold"
-                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                  >
-                    <span className="truncate">{sec.title}</span>
-                    <ChevronRight className={`w-4 h-4 shrink-0 opacity-70 ${activeSection === sec.id ? "text-white" : "text-gray-400"}`} />
-                  </button>
-                ))}
-              </nav>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Transactions are encrypted and cleared via PCI-DSS certified payment processors including Stripe, PayPal, Apple Pay, and Google Pay.
+              </p>
+            </div>
 
-              <div className="pt-4 mt-4 border-t border-gray-100 px-2">
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-gray-200/80">
-                  <p className="text-xs font-semibold text-gray-800 mb-1 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-brand" /> Legal Questions?
-                  </p>
-                  <p className="text-xs text-gray-600 mb-2">Need clarification regarding our terms?</p>
-                  <a
-                    href="mailto:support@tiqsey.com"
-                    className="text-xs font-bold text-brand hover:underline block break-all"
-                  >
-                    support@tiqsey.com
-                  </a>
-                </div>
-              </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-xl space-y-1.5">
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#e3000f] shrink-0" />
+                <span>Dynamic Currency Conversion</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Multi-currency display estimates update continuously against reference exchange benchmarks.
+              </p>
             </div>
           </div>
-
-          {/* Main Legal Document Content */}
-          <div className="lg:col-span-8 xl:col-span-9 space-y-8 sm:space-y-10 min-w-0">
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-10 shadow-sm space-y-10 sm:space-y-12 break-words">
-
-              {/* Section 1 */}
-              <section id="acceptance" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-brand/10 text-brand">
-                    <FileText className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">1. Acceptance of Terms</h2>
-                </div>
-                <div className="prose prose-slate max-w-none text-gray-600 space-y-4 leading-relaxed">
-                  <p>
-                    By accessing, browsing, or purchasing ticket vouchers through <strong>Tiqsey</strong> ("we", "our", "us", or "the Platform"), you confirm that you have read, understood, and agree to be bound by these Terms and Conditions, as well as our <a href="/privacy-policy" className="text-brand font-semibold underline">Privacy Policy</a> and <a href="/cookie-policy" className="text-brand font-semibold underline">Cookie Policy</a>.
-                  </p>
-                  <p>
-                    If you do not agree to these terms in full, you must discontinue using our services immediately. We reserve the right to amend these Terms at any time, with updated versions taking effect immediately upon publication.
-                  </p>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 2 */}
-              <section id="services" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
-                    <Building2 className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">2. Platform Role & Booking Marketplace</h2>
-                </div>
-                <div className="space-y-4 text-gray-600 leading-relaxed">
-                  <p>
-                    Tiqsey acts as an intermediary digital marketplace connecting travelers with third-party attraction operators, museums, theme parks, tour companies, and cultural event organizers ("Venue Operators"):
-                  </p>
-                  <ul className="space-y-2 text-sm list-disc list-inside text-gray-700">
-                    <li><strong>E-Ticket Voucher Issuer:</strong> When you book on Tiqsey, we facilitate the reservation and issue official digital vouchers or entry barcodes on behalf of Venue Operators.</li>
-                    <li><strong>Venue Rules & Safety:</strong> Entry into attractions is subject to the specific rules, capacity limits, security checks, and operating schedules set by each individual Venue Operator.</li>
-                    <li><strong>Direct Services:</strong> Physical tours, transport, exhibit maintenance, and venue safety remain under the direct responsibility of the respective Venue Operator.</li>
-                  </ul>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 3 */}
-              <section id="accounts" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600">
-                    <UserCheck className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">3. User Accounts & Eligibility</h2>
-                </div>
-                <div className="space-y-3 text-gray-600 leading-relaxed text-sm">
-                  <p>
-                    To place ticket orders on Tiqsey, you must be at least 18 years of age or possess legal parental consent. When registering an account or making a guest booking, you agree to:
-                  </p>
-                  <ul className="space-y-2 list-disc list-inside text-gray-800">
-                    <li>Provide accurate, current, and complete contact details (especially your email address for instant e-ticket delivery).</li>
-                    <li>Maintain the security of your password and accept responsibility for all activities under your account.</li>
-                    <li>Notify us immediately at <a href="mailto:support@tiqsey.com" className="text-brand font-bold underline">support@tiqsey.com</a> if you suspect unauthorized access to your account.</li>
-                  </ul>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 4 */}
-              <section id="pricing" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600">
-                    <CreditCard className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">4. Ticket Purchases, Pricing & Taxes</h2>
-                </div>
-                <div className="space-y-4 text-gray-600 leading-relaxed text-sm">
-                  <p>
-                    All ticket prices listed on Tiqsey are displayed in your selected currency (e.g. USD, EUR, GBP, AUD) and include applicable booking fees or local taxes unless stated otherwise.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-1">
-                      <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                        <Lock className="w-4 h-4 text-emerald-600" /> Secure Payment Gateways
-                      </h4>
-                      <p className="text-xs text-gray-600">
-                        Payments are processed via encrypted, PCI-DSS compliant payment solutions (Stripe, PayPal, Apple Pay, Google Pay).
-                      </p>
-                    </div>
-
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-1">
-                      <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-brand" /> Dynamic Currency Exchange
-                      </h4>
-                      <p className="text-xs text-gray-600">
-                        Converted display prices are updated regularly based on real-time central exchange rates.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 5 */}
-              <section id="delivery" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600">
-                    <Ticket className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">5. E-Ticket Delivery, Redemption & Entry</h2>
-                </div>
-                <div className="space-y-3 text-gray-600 leading-relaxed text-sm">
-                  <p>
-                    Upon successful payment confirmation:
-                  </p>
-                  <ol className="list-decimal list-inside space-y-2 text-gray-800 font-medium">
-                    <li><strong>Instant E-Voucher Generation:</strong> Your digital entry pass containing a unique QR barcode will be delivered to your email inbox and stored under your account's "My Bookings" tab.</li>
-                    <li><strong>Mobile Redemption:</strong> Most venues support direct smartphone scanning at the turnstiles. Certain historical sites may require presenting a valid government ID matching the booking name.</li>
-                    <li><strong>Timed-Entry Slots:</strong> If your ticket includes a specific time slot, you must arrive on time. Venue Operators reserve the right to refuse late admission.</li>
-                  </ol>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 6 */}
-              <section id="cancellations" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-red-50 text-red-600">
-                    <RefreshCw className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">6. Cancellations, Refunds & Rescheduling</h2>
-                </div>
-                <div className="space-y-4 text-gray-600 leading-relaxed text-sm">
-                  <p>
-                    Cancellation terms vary by specific ticket type and are clearly displayed on each attraction page prior to purchase:
-                  </p>
-                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
-                    <p className="font-bold text-emerald-900 flex items-center gap-2">
-                      <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600" /> Free Cancellation Badges
-                    </p>
-                    <p className="text-xs text-emerald-800">
-                      Tickets marked with "Free Cancellation" can be cancelled for a 100% full refund up to 24 hours before your scheduled visit time via your Tiqsey dashboard or by emailing customer support.
-                    </p>
-                  </div>
-                  <p>
-                    In the rare event that a venue closes unexpectedly due to severe weather, maintenance, or force majeure, Tiqsey will issue a full refund or assist in rescheduling your visit at no additional charge.
-                  </p>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 7 */}
-              <section id="conduct" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-slate-100 text-slate-800">
-                    <Ban className="w-6 h-6 text-red-500" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">7. Acceptable Use & Prohibited Conduct</h2>
-                </div>
-                <div className="space-y-3 text-gray-600 leading-relaxed text-sm">
-                  <p>When using Tiqsey, you agree NOT to:</p>
-                  <ul className="space-y-2 list-disc list-inside text-gray-800">
-                    <li>Resell, duplicate, forge, or commercialize Tiqsey ticket vouchers for unauthorized profit.</li>
-                    <li>Use automated scrapers, bots, or extraction tools to gather pricing or content without written consent.</li>
-                    <li>Submit fraudulent payment information or attempt chargebacks for validated ticket entries.</li>
-                    <li>Engage in any activity that disrupts or overloads our platform infrastructure.</li>
-                  </ul>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 8 */}
-              <section id="intellectual-property" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
-                    <Shield className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">8. Intellectual Property Rights</h2>
-                </div>
-                <div className="space-y-3 text-gray-600 leading-relaxed text-sm">
-                  <p>
-                    All content on Tiqsey—including logos, design trademarks, software code, copy, photography, interactive search widgets, and graphics—is the property of Tiqsey or its licensors and is protected under international copyright and trademark laws.
-                  </p>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 9 */}
-              <section id="liability" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-gray-100 text-gray-800">
-                    <AlertCircle className="w-6 h-6 text-amber-600" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">9. Limitation of Liability & Disclaimers</h2>
-                </div>
-                <div className="space-y-3 text-gray-600 leading-relaxed text-sm">
-                  <p>
-                    Tiqsey strives to maintain accurate schedules, venue descriptions, and real-time availability. However, to the maximum extent permitted by law, Tiqsey is not liable for indirect, incidental, or consequential damages resulting from venue operational delays, personal injuries at third-party attractions, or lost belongings.
-                  </p>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 10 */}
-              <section id="disputes" className="scroll-mt-28 bg-slate-900 text-white rounded-2xl p-6 sm:p-8">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                      <Mail className="w-5 h-5 text-brand" /> 10. Governing Law & Customer Support
-                    </h3>
-                    <p className="text-sm text-gray-300">
-                      These Terms are governed by applicable consumer laws. For questions, booking support, or legal inquiries, our support team is available 24/7.
-                    </p>
-                  </div>
-                  <a
-                    href="mailto:support@tiqsey.com"
-                    className="min-h-[44px] inline-flex items-center justify-center px-5 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all text-sm shrink-0 shadow-lg shadow-brand/20"
-                  >
-                    Contact support@tiqsey.com
-                  </a>
-                </div>
-              </section>
-
-              {/* Back to Home CTA */}
-              <div className="pt-4 sm:pt-6 text-center">
-                <button
-                  onClick={onBackToHome}
-                  className="min-h-[44px] inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 transition-all text-sm shadow-sm cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Return to Tiqsey Home
-                </button>
-              </div>
-
-            </div>
+        </>
+      ),
+    },
+    {
+      id: "delivery",
+      title: "5. E-Ticket Delivery, Redemption & Entry",
+      icon: <Ticket className="w-5 h-5" />,
+      searchText:
+        "delivery redemption entry instant e-voucher qr barcode my bookings smartphone scanning government id timed entry",
+      content: (
+        <>
+          <p className="text-sm sm:text-base">
+            Upon successful payment confirmation:
+          </p>
+          <ol className="list-decimal list-inside space-y-2.5 text-sm text-slate-700 dark:text-slate-300">
+            <li>
+              <strong className="text-slate-900 dark:text-white">Instant E-Voucher Generation:</strong> Your digital entry pass containing a unique QR barcode is emailed immediately and accessible inside your account's "My Bookings" view.
+            </li>
+            <li>
+              <strong className="text-slate-900 dark:text-white">Mobile Redemption:</strong> Nearly all venues scan mobile vouchers directly at entrance turnstiles. Select landmarks may also check a matching government photo ID.
+            </li>
+            <li>
+              <strong className="text-slate-900 dark:text-white">Timed-Entry Punctuality:</strong> When purchasing timed admission slots, arrive at least 15 minutes early; Venue Operators may restrict late arrivals.
+            </li>
+          </ol>
+        </>
+      ),
+    },
+    {
+      id: "cancellations",
+      title: "6. Cancellations, Refunds & Rescheduling",
+      icon: <RefreshCw className="w-5 h-5" />,
+      searchText:
+        "cancellations refunds rescheduling free cancellation 24 hours 100% weather force majeure closure",
+      content: (
+        <>
+          <p className="text-sm sm:text-base">
+            Specific cancellation eligibility depends on the ticket option chosen and is always highlighted clearly on each attraction page before checkout:
+          </p>
+          <div className="p-4 bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-xl space-y-1.5">
+            <p className="font-bold text-emerald-900 dark:text-emerald-200 text-sm flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>Free Cancellation Protection</span>
+            </p>
+            <p className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 leading-relaxed">
+              Tickets labeled "Free Cancellation" are eligible for a 100% refund up to 24 hours prior to your scheduled visit start time via your booking dashboard or customer support.
+            </p>
           </div>
+          <p className="text-sm sm:text-base">
+            If an attraction closes unexpectedly due to severe weather, operational disruption, or force majeure, Tiqsey guarantees either a 100% full refund or priority rescheduling at no extra fee.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "conduct",
+      title: "7. Acceptable Use & Prohibited Conduct",
+      icon: <Ban className="w-5 h-5" />,
+      searchText:
+        "acceptable use prohibited conduct resell duplicate forge scrapers bots chargebacks disrupt infrastructure",
+      content: (
+        <>
+          <p className="text-sm sm:text-base">
+            While using the Tiqsey platform, you agree not to:
+          </p>
+          <ul className="space-y-2 text-sm list-disc list-inside text-slate-700 dark:text-slate-300">
+            <li>
+              Resell, duplicate, alter, or commercially broker Tiqsey ticket vouchers without explicit written authorization.
+            </li>
+            <li>
+              Deploy automated scrapers, bots, or data-harvesting scripts against pricing feeds or availability endpoints.
+            </li>
+            <li>
+              Submit fraudulent payment instruments or initiate unwarranted chargebacks after valid voucher redemption.
+            </li>
+            <li>
+              Interfere with site availability, bypass access limits, or test system vulnerabilities without permission.
+            </li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      id: "intellectual-property",
+      title: "8. Intellectual Property Rights",
+      icon: <Shield className="w-5 h-5" />,
+      searchText:
+        "intellectual property logos trademarks software code copy photography copyright",
+      content: (
+        <p className="text-sm sm:text-base">
+          All Tiqsey brand marks, interface architecture, curated copy, original photography, and software components remain the exclusive intellectual property of Tiqsey or its licensed partners and are protected under applicable copyright and trademark statutes.
+        </p>
+      ),
+    },
+    {
+      id: "liability",
+      title: "9. Limitation of Liability & Disclaimers",
+      icon: <AlertCircle className="w-5 h-5" />,
+      searchText:
+        "liability disclaimers schedules availability damages delays third-party attractions belongings",
+      content: (
+        <p className="text-sm sm:text-base">
+          Tiqsey works continuously with partners to ensure real-time slot accuracy and venue information. To the maximum extent allowed under applicable consumer law, Tiqsey is not liable for indirect or consequential losses arising from third-party attraction delays, temporary exhibit closures, or personal belongings lost on-site. Statutory consumer rights remain unaffected.
+        </p>
+      ),
+    },
+  ];
 
-        </div>
-      </div>
-    </div>
+  return (
+    <LegalDocumentLayout
+      activePage="terms-and-conditions"
+      eyebrow="Legal & Booking Terms"
+      heroIcon={<Scale className="w-4 h-4" />}
+      title={t("termsAndConditions", "Terms & Conditions")}
+      subtitle="Clear, plain-language service terms governing your use of the Tiqsey platform, ticket reservations, cancellations, refunds, and traveler protections."
+      lastUpdated="July 29, 2026"
+      effectiveDate="January 1, 2026"
+      complianceText="Official Service Agreement"
+      highlights={[
+        {
+          label: "Flexible Changes",
+          value: "24h Free Refund",
+          detail:
+            "Full refund up to 24 hours prior on all Free Cancellation tickets.",
+        },
+        {
+          label: "Voucher Delivery",
+          value: "Instant QR Pass",
+          detail:
+            "Digital tickets arrive by email and stay accessible under My Bookings.",
+        },
+        {
+          label: "Closure Guarantee",
+          value: "100% Protected",
+          detail:
+            "Automatic refund or free rescheduling if a venue closes unexpectedly.",
+        },
+      ]}
+      sections={sections}
+      onBackToHome={onBackToHome}
+      onNavigate={onNavigate}
+      sidebarSupportHeading="Booking & Legal Help"
+      sidebarSupportDescription="Need clarification on cancellations, refunds, or voucher rules?"
+      footerContactHeading="10. Governing Law & Customer Support"
+      footerContactDescription="These Terms are governed by applicable consumer protection laws. For order support, cancellation help, or formal inquiries, our support team is available 24/7."
+    />
   );
 }

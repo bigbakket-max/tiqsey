@@ -1,423 +1,380 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   Shield,
   Lock,
   Eye,
   FileText,
-  Mail,
-  ArrowLeft,
   CheckCircle2,
-  AlertCircle,
-  HelpCircle,
-  ChevronRight,
   Database,
   Globe,
   UserCheck,
   Cookie,
   Server,
-  RefreshCw
 } from "lucide-react";
-import { motion } from "motion/react";
-import { ScrollReveal } from "./ScrollReveal";
 import { useSettings } from "../contexts/SettingsContext";
+import LegalDocumentLayout, {
+  LegalSectionItem,
+  TrustPageKey,
+} from "./LegalDocumentLayout";
 
 interface PrivacyPolicyPageProps {
   onBackToHome: () => void;
+  onNavigate?: (page: TrustPageKey) => void;
 }
 
-const SECTIONS = [
-  { id: "introduction", title: "1. Introduction" },
-  { id: "information-collected", title: "2. Information We Collect" },
-  { id: "how-we-use", title: "3. How We Use Your Information" },
-  { id: "sharing", title: "4. Information Sharing & Third Parties" },
-  { id: "security", title: "5. Data Security & Storage" },
-  { id: "cookies", title: "6. Cookies & Tracking" },
-  { id: "your-rights", title: "7. Your Rights & Choices" },
-  { id: "transfers", title: "8. International Transfers" },
-  { id: "children", title: "9. Children's Privacy" },
-  { id: "contact", title: "10. Contact & Data Protection" },
-];
-
-export default function PrivacyPolicyPage({ onBackToHome }: PrivacyPolicyPageProps) {
+export default function PrivacyPolicyPage({
+  onBackToHome,
+  onNavigate,
+}: PrivacyPolicyPageProps) {
   const { t } = useSettings();
-  const [activeSection, setActiveSection] = useState("introduction");
 
-  // SEO Optimization & Title setup
   useEffect(() => {
     const originalTitle = document.title;
     document.title = "Privacy Policy | Tiqsey - Your Data Protection & Trust";
-
     return () => {
       document.title = originalTitle;
     };
   }, []);
 
-  const scrollToSection = (id: string) => {
-    setActiveSection(id);
-    const element = document.getElementById(id);
-    if (element) {
-      const yOffset = -100;
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: "smooth" });
+  const handleInternalLink = (page: TrustPageKey) => {
+    if (onNavigate) {
+      onNavigate(page);
+    } else {
+      window.history.pushState({}, "", `/${page}`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  return (
-    <div className="min-h-[100dvh] bg-gray-50 text-gray-900 pb-24 lg:pb-20 overflow-x-clip">
-      {/* Hero Header */}
-      <div className="bg-slate-900 text-white pt-8 sm:pt-12 pb-10 sm:pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand/20 via-transparent to-slate-950 pointer-events-none" />
-        <div className="max-w-7xl mx-auto relative z-10">
-          <button
-            onClick={onBackToHome}
-            className="min-h-[44px] inline-flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3.5 py-2 rounded-lg transition-all mb-6 sm:mb-8 border border-slate-700/60 cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {t('backToHome', 'Back to Home')}
-          </button>
-
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand/20 text-brand-light text-xs font-semibold tracking-wide uppercase mb-4 border border-brand/30">
-              <Shield className="w-3.5 h-3.5" />
-              Privacy & Data Trust
-            </div>
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4">
-              {t('privacyPolicy', 'Privacy Policy')}
-            </h1>
-            <p className="text-base sm:text-lg text-gray-300 leading-relaxed mb-6">
-              At Tiqsey, protecting your personal data and maintaining your trust is our top priority.
-              This policy explains how we collect, use, safeguard, and share your information when you browse or book experiences on our platform.
-            </p>
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-gray-400 border-t border-slate-800 pt-4">
-              <span><strong>Last Updated:</strong> July 29, 2026</span>
-              <span className="hidden sm:inline">•</span>
-              <span><strong>Effective Date:</strong> January 1, 2026</span>
-              <span className="hidden sm:inline">•</span>
-              <span className="text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> GDPR & CCPA Compliant
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-          
-          {/* Sidebar / Navigation Table of Contents */}
-          <div className="lg:col-span-4 xl:col-span-3">
-            <div className="lg:sticky lg:top-24 bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-sm space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 px-2">
-                Table of Contents
+  const sections: LegalSectionItem[] = [
+    {
+      id: "introduction",
+      title: "1. Introduction",
+      icon: <FileText className="w-5 h-5" />,
+      searchText:
+        "introduction welcome tiqsey marketplace platform digital ticket booking website mobile privacy practices consent",
+      content: (
+        <>
+          <p>
+            Welcome to <strong className="text-slate-900 dark:text-white">Tiqsey</strong> ("we", "our", or "us"). Tiqsey operates a digital ticket booking marketplace and technology platform that connects travelers with attractions, museums, city tours, theme parks, and cultural activities around the world.
+          </p>
+          <p>
+            This Privacy Policy applies to all users of our website, mobile interface, and services. By accessing or using Tiqsey to browse activities or complete ticket bookings, you acknowledge the data collection, protection, and usage practices described in this document alongside our{" "}
+            <button
+              type="button"
+              onClick={() => handleInternalLink("cookie-policy")}
+              className="text-[#e3000f] font-semibold underline hover:text-[#c7000d] cursor-pointer"
+            >
+              Cookie Policy
+            </button>{" "}
+            and{" "}
+            <button
+              type="button"
+              onClick={() => handleInternalLink("terms-and-conditions")}
+              className="text-[#e3000f] font-semibold underline hover:text-[#c7000d] cursor-pointer"
+            >
+              Terms & Conditions
+            </button>
+            .
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "information-collected",
+      title: "2. Information We Collect",
+      icon: <Database className="w-5 h-5" />,
+      searchText:
+        "information collect personal identifiers name email phone currency language payment stripe paypal pci-dss technical ip browser wishlist",
+      content: (
+        <>
+          <p>
+            We collect information that you directly provide to us when creating an account or booking tickets, as well as technical telemetry generated automatically to keep the platform fast and secure:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80">
+              <h3 className="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2 text-sm">
+                <UserCheck className="w-4 h-4 text-[#e3000f] shrink-0" />
+                <span>Personal Identifiers</span>
               </h3>
-              <nav className="space-y-1">
-                {SECTIONS.map((sec) => (
-                  <button
-                    key={sec.id}
-                    onClick={() => scrollToSection(sec.id)}
-                    className={`w-full min-h-[42px] text-left px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 cursor-pointer ${
-                      activeSection === sec.id
-                        ? "bg-brand text-white shadow-sm font-semibold"
-                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                  >
-                    <span className="truncate">{sec.title}</span>
-                    <ChevronRight className={`w-4 h-4 shrink-0 opacity-70 ${activeSection === sec.id ? "text-white" : "text-gray-400"}`} />
-                  </button>
-                ))}
-              </nav>
+              <ul className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 space-y-1.5 list-disc list-inside">
+                <li>Full Name and Contact Details</li>
+                <li>Email Address for instant QR e-ticket delivery</li>
+                <li>Phone Number for urgent booking alerts</li>
+                <li>Preferred Currency and Language Settings</li>
+              </ul>
+            </div>
 
-              <div className="pt-4 mt-4 border-t border-gray-100 px-2">
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-gray-200/80">
-                  <p className="text-xs font-semibold text-gray-800 mb-1 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-brand" /> Privacy Inquiries
-                  </p>
-                  <p className="text-xs text-gray-600 mb-2">Have questions about your data?</p>
-                  <a
-                    href="mailto:support@tiqsey.com"
-                    className="text-xs font-bold text-brand hover:underline block break-all"
-                  >
-                    support@tiqsey.com
-                  </a>
-                </div>
-              </div>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80">
+              <h3 className="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2 text-sm">
+                <Lock className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Payment & Transaction Data</span>
+              </h3>
+              <ul className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 space-y-1.5 list-disc list-inside">
+                <li>Selected activities, visit dates, and time slots</li>
+                <li>Encrypted confirmation tokens from Stripe or PayPal</li>
+                <li className="italic">
+                  Full card numbers are processed directly by PCI-DSS certified payment providers and never stored on Tiqsey servers.
+                </li>
+              </ul>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80">
+              <h3 className="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2 text-sm">
+                <Server className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span>Technical & Device Information</span>
+              </h3>
+              <ul className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 space-y-1.5 list-disc list-inside">
+                <li>IP Address and approximate region for localization</li>
+                <li>Browser type, operating system, and screen viewport</li>
+                <li>Session timestamps and error diagnostic logs</li>
+              </ul>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80">
+              <h3 className="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2 text-sm">
+                <Cookie className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Wishlist & Preferences</span>
+              </h3>
+              <ul className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 space-y-1.5 list-disc list-inside">
+                <li>Saved attractions and favorite destinations</li>
+                <li>Recently viewed activities and filter choices</li>
+                <li>Traveler reviews, ratings, and support correspondence</li>
+              </ul>
             </div>
           </div>
-
-          {/* Policy Text Document */}
-          <div className="lg:col-span-8 xl:col-span-9 space-y-8 sm:space-y-10 min-w-0">
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-10 shadow-sm space-y-10 sm:space-y-12 break-words">
-
-              {/* Section 1 */}
-              <section id="introduction" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-brand/10 text-brand">
-                    <FileText className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">1. Introduction</h2>
-                </div>
-                <div className="prose prose-slate max-w-none text-gray-600 space-y-4 leading-relaxed">
-                  <p>
-                    Welcome to <strong>Tiqsey</strong> ("we", "our", or "us"). Tiqsey operates a digital ticket booking marketplace and technology platform that connects travelers with attractions, museums, city tours, theme parks, and cultural activities around the world.
-                  </p>
-                  <p>
-                    This Privacy Policy applies to all users of our website, mobile interface, and services. By accessing or using Tiqsey to browse activities or complete ticket bookings, you consent to the data collection and usage practices described in this document.
-                  </p>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 2 */}
-              <section id="information-collected" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
-                    <Database className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">2. Information We Collect</h2>
-                </div>
-                <div className="space-y-4 text-gray-600 leading-relaxed">
-                  <p>
-                    We collect information that you directly provide to us, as well as information generated automatically when you interact with our platform:
-                  </p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                      <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
-                        <UserCheck className="w-4 h-4 text-brand" /> Personal Identifiers
-                      </h4>
-                      <ul className="text-xs text-gray-600 space-y-1.5 list-disc list-inside">
-                        <li>Full Name & Contact Information</li>
-                        <li>Email Address (for instant digital ticket delivery)</li>
-                        <li>Phone Number (for booking updates & SMS notifications)</li>
-                        <li>Preferred Currency and Language Settings</li>
-                      </ul>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                      <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
-                        <Lock className="w-4 h-4 text-emerald-600" /> Payment & Transaction Data
-                      </h4>
-                      <ul className="text-xs text-gray-600 space-y-1.5 list-disc list-inside">
-                        <li>Selected activities, visit dates, and time slots</li>
-                        <li>Payment confirmation tokens from Stripe or PayPal</li>
-                        <li><em>Note: Full payment card numbers are processed directly by PCI-DSS certified gateways and never stored on Tiqsey servers.</em></li>
-                      </ul>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                      <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
-                        <Server className="w-4 h-4 text-purple-600" /> Technical & Device Information
-                      </h4>
-                      <ul className="text-xs text-gray-600 space-y-1.5 list-disc list-inside">
-                        <li>IP Address and approximate geographic location</li>
-                        <li>Browser type, operating system, and device specs</li>
-                        <li>Access times, referring URLs, and page navigation paths</li>
-                      </ul>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                      <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
-                        <Cookie className="w-4 h-4 text-amber-600" /> Wishlist & Preferences
-                      </h4>
-                      <ul className="text-xs text-gray-600 space-y-1.5 list-disc list-inside">
-                        <li>Saved attractions and favorite destinations</li>
-                        <li>Recently viewed activities and search queries</li>
-                        <li>User feedback, ratings, and customer support history</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 3 */}
-              <section id="how-we-use" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600">
-                    <Eye className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">3. How We Use Your Information</h2>
-                </div>
-                <div className="space-y-3 text-gray-600 leading-relaxed">
-                  <p>We use the data we collect strictly for legitimate business and service purposes, including:</p>
-                  <ul className="space-y-2.5 text-sm list-none pl-0">
-                    <li className="flex items-start gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
-                      <span><strong>Fulfilling Bookings:</strong> Generating e-tickets, confirming time slots, and emailing voucher QR codes directly to your inbox.</span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
-                      <span><strong>Customer Support & Assistance:</strong> Providing 24/7 help regarding schedule changes, venue alerts, refunds, or entry instructions.</span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
-                      <span><strong>Platform Optimization:</strong> Improving search response times, tailoring curated deals for your destination, and preventing fraud.</span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
-                      <span><strong>Communication & Alerts:</strong> Sending essential booking reminders or optional newsletter updates (which you can opt-out of at any time).</span>
-                    </li>
-                  </ul>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 4 */}
-              <section id="sharing" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600">
-                    <Globe className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">4. Information Sharing & Third Parties</h2>
-                </div>
-                <div className="space-y-4 text-gray-600 leading-relaxed">
-                  <p className="bg-amber-50 border-l-4 border-amber-400 p-4 text-amber-900 text-sm rounded-r-xl">
-                    <strong>Zero Sale Guarantee:</strong> Tiqsey does NOT sell, rent, or trade your personal information to third-party advertisers or data brokers.
-                  </p>
-                  <p>We only share necessary data with trusted third parties under strict confidentiality agreements:</p>
-                  <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
-                    <li><strong>Venue Operators & Tour Partners:</strong> Names and ticket quantities are shared with museums, parks, or activity hosts strictly so they can validate your mobile pass at entry.</li>
-                    <li><strong>Payment Processors:</strong> Transactions are handled securely via encrypted payment providers (e.g., Stripe, PayPal).</li>
-                    <li><strong>Infrastructure & Analytics:</strong> Secure cloud infrastructure and performance analytics providers under contractual data security standards.</li>
-                    <li><strong>Legal Obligations:</strong> If required by law, subpoena, or governmental regulation to protect user safety and prevent illegal activities.</li>
-                  </ol>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 5 */}
-              <section id="security" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-slate-100 text-slate-800">
-                    <Shield className="w-6 h-6 text-brand" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">5. Data Security & Storage</h2>
-                </div>
-                <div className="space-y-3 text-gray-600 leading-relaxed text-sm">
-                  <p>
-                    We employ industry-standard technical and organizational security measures to protect your information from unauthorized access, alteration, or disclosure:
-                  </p>
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                    <li className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center gap-2">
-                      <Lock className="w-4 h-4 text-brand shrink-0" /> 256-bit SSL/TLS Encryption
-                    </li>
-                    <li className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-brand shrink-0" /> Regular Security Vulnerability Audits
-                    </li>
-                    <li className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center gap-2">
-                      <Server className="w-4 h-4 text-brand shrink-0" /> Secure Cloud Data Centers
-                    </li>
-                    <li className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center gap-2">
-                      <UserCheck className="w-4 h-4 text-brand shrink-0" /> Restricted Employee Access Control
-                    </li>
-                  </ul>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 6 */}
-              <section id="cookies" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600">
-                    <Cookie className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">6. Cookies & Tracking Technologies</h2>
-                </div>
-                <div className="space-y-3 text-gray-600 leading-relaxed text-sm">
-                  <p>
-                    Tiqsey uses essential cookies and local browser storage to remember your currency preference, keep items in your Wishlist, and ensure smooth navigation across pages.
-                  </p>
-                  <p>
-                    You can manage or block cookies through your web browser settings. Note that disabling essential cookies may affect booking features or preference saving.
-                  </p>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 7 */}
-              <section id="your-rights" className="scroll-mt-28">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
-                    <UserCheck className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">7. Your Rights & Choices (GDPR & CCPA)</h2>
-                </div>
-                <div className="space-y-3 text-gray-600 leading-relaxed text-sm">
-                  <p>Depending on your location, you have rights regarding your personal data:</p>
-                  <ul className="space-y-2 list-disc list-inside font-medium text-gray-800">
-                    <li><strong>Right to Access:</strong> Request a copy of the personal data we hold about you.</li>
-                    <li><strong>Right to Rectification:</strong> Request correction of inaccurate or incomplete information.</li>
-                    <li><strong>Right to Erasure (Right to be Forgotten):</strong> Request deletion of your account and personal history.</li>
-                    <li><strong>Right to Opt-Out:</strong> Unsubscribe from marketing communications at any time.</li>
-                  </ul>
-                  <p className="pt-2">To exercise any of these rights, email us at <a href="mailto:support@tiqsey.com" className="text-brand font-bold underline">support@tiqsey.com</a>.</p>
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 8 & 9 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <section id="transfers" className="scroll-mt-28 p-5 bg-gray-50 border border-gray-200 rounded-xl">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">8. International Transfers</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    Because Tiqsey offers worldwide booking services, your data may be processed in countries where our partners or cloud servers operate, adhering to international transfer safeguards.
-                  </p>
-                </section>
-
-                <section id="children" className="scroll-mt-28 p-5 bg-gray-50 border border-gray-200 rounded-xl">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">9. Children's Privacy</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    Tiqsey does not knowingly collect personal data from children under 16 without parental consent. Ticket bookings for minors must be completed by an adult.
-                  </p>
-                </section>
-              </div>
-
-              <hr className="border-gray-100" />
-
-              {/* Section 10 */}
-              <section id="contact" className="scroll-mt-28 bg-slate-900 text-white rounded-2xl p-6 sm:p-8">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                      <Mail className="w-5 h-5 text-brand" /> 10. Contact Us & Data Protection
-                    </h3>
-                    <p className="text-sm text-gray-300">
-                      If you have questions, feedback, or requests regarding this Privacy Policy, our Data Protection Officer is ready to assist.
-                    </p>
-                  </div>
-                  <a
-                    href="mailto:support@tiqsey.com"
-                    className="min-h-[44px] inline-flex items-center justify-center px-5 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all text-sm shrink-0 shadow-lg shadow-brand/20"
-                  >
-                    Contact support@tiqsey.com
-                  </a>
-                </div>
-              </section>
-
-              {/* Back to Home CTA */}
-              <div className="pt-4 sm:pt-6 text-center">
-                <button
-                  onClick={onBackToHome}
-                  className="min-h-[44px] inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 transition-all text-sm shadow-sm cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Return to Tiqsey Home
-                </button>
-              </div>
-
-            </div>
+        </>
+      ),
+    },
+    {
+      id: "how-we-use",
+      title: "3. How We Use Your Information",
+      icon: <Eye className="w-5 h-5" />,
+      searchText:
+        "use information fulfilling bookings e-tickets qr customer support 24/7 platform optimization fraud newsletter opt-out",
+      content: (
+        <>
+          <p>
+            We process your personal information strictly for legitimate service fulfillment, fraud prevention, and customer care:
+          </p>
+          <ul className="space-y-3 text-sm list-none pl-0">
+            <li className="flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-1 shrink-0" />
+              <span>
+                <strong className="text-slate-900 dark:text-white">Fulfilling Bookings:</strong> Generating instant e-tickets, locking timed-entry slots, and emailing mobile QR vouchers directly to your inbox.
+              </span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-1 shrink-0" />
+              <span>
+                <strong className="text-slate-900 dark:text-white">Customer Support & Venue Alerts:</strong> Providing 24/7 assistance for schedule updates, refund requests, and entry instructions.
+              </span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-1 shrink-0" />
+              <span>
+                <strong className="text-slate-900 dark:text-white">Security & Fraud Prevention:</strong> Verifying transaction integrity, preventing unauthorized ticket reselling, and maintaining fast page speeds.
+              </span>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-1 shrink-0" />
+              <span>
+                <strong className="text-slate-900 dark:text-white">Essential Communication:</strong> Delivering mandatory booking receipts and optional promotional alerts (you may opt out anytime).
+              </span>
+            </li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      id: "sharing",
+      title: "4. Information Sharing & Third Parties",
+      icon: <Globe className="w-5 h-5" />,
+      searchText:
+        "zero sale guarantee sharing third parties venue operators museums parks stripe paypal legal obligations",
+      content: (
+        <>
+          <div className="p-4 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-sm">
+            <strong>Zero Sale Guarantee:</strong> Tiqsey never sells, rents, or trades your personal information to third-party advertisers or data brokers.
           </div>
+          <p className="text-sm">
+            We share only the minimum required data with vetted partners strictly necessary to deliver your booked experience:
+          </p>
+          <ol className="list-decimal list-inside space-y-2 text-sm text-slate-700 dark:text-slate-300">
+            <li>
+              <strong className="text-slate-900 dark:text-white">Venue Operators & Activity Hosts:</strong> Guest names, booking references, and ticket counts are shared solely to validate entry passes at venue check-in.
+            </li>
+            <li>
+              <strong className="text-slate-900 dark:text-white">Payment Gateways:</strong> Payments are processed directly through encrypted, certified providers such as Stripe and PayPal.
+            </li>
+            <li>
+              <strong className="text-slate-900 dark:text-white">Cloud Infrastructure Providers:</strong> Encrypted hosting and database systems governed by strict data-processing agreements.
+            </li>
+            <li>
+              <strong className="text-slate-900 dark:text-white">Legal Compliance:</strong> Disclosure only where strictly mandated by valid legal process or law enforcement.
+            </li>
+          </ol>
+        </>
+      ),
+    },
+    {
+      id: "security",
+      title: "5. Data Security & Storage",
+      icon: <Lock className="w-5 h-5" />,
+      searchText:
+        "security storage tls ssl encryption vulnerability audits cloud data centers access control retention",
+      content: (
+        <>
+          <p className="text-sm">
+            We apply layered technical and organizational safeguards to protect account records and transaction tokens against unauthorized access or disclosure:
+          </p>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
+            <li className="p-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-xl flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-medium">
+              <Lock className="w-4 h-4 text-[#e3000f] shrink-0" />
+              <span>256-bit TLS/HTTPS Encryption in Transit</span>
+            </li>
+            <li className="p-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-xl flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-medium">
+              <Shield className="w-4 h-4 text-[#e3000f] shrink-0" />
+              <span>Periodic Security & Dependency Audits</span>
+            </li>
+            <li className="p-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-xl flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-medium">
+              <Server className="w-4 h-4 text-[#e3000f] shrink-0" />
+              <span>Hardened Cloud Storage & Backups</span>
+            </li>
+            <li className="p-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 rounded-xl flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-medium">
+              <UserCheck className="w-4 h-4 text-[#e3000f] shrink-0" />
+              <span>Least-Privilege Access Controls</span>
+            </li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      id: "cookies",
+      title: "6. Cookies & Local Browser Storage",
+      icon: <Cookie className="w-5 h-5" />,
+      searchText:
+        "cookies local storage preferences currency wishlist tracking browser settings manage consent",
+      content: (
+        <>
+          <p className="text-sm">
+            Tiqsey uses essential cookies and browser local storage to remember your preferred currency, language, Wishlist selections, and active booking sessions.
+          </p>
+          <p className="text-sm">
+            You have direct control over optional functional, analytics, and marketing cookies at any time via our interactive{" "}
+            <button
+              type="button"
+              onClick={() => handleInternalLink("cookie-policy")}
+              className="text-[#e3000f] font-semibold underline hover:text-[#c7000d] cursor-pointer"
+            >
+              Cookie Preference Center
+            </button>
+            .
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "your-rights",
+      title: "7. Your Rights & Choices (GDPR & CCPA)",
+      icon: <UserCheck className="w-5 h-5" />,
+      searchText:
+        "rights gdpr ccpa access rectification erasure deletion portability opt-out forgotten support",
+      content: (
+        <>
+          <p className="text-sm">
+            Depending on your jurisdiction (including the EU/EEA, UK, and California), you are entitled to exercise full control over your personal data:
+          </p>
+          <ul className="space-y-2 text-sm list-disc list-inside text-slate-700 dark:text-slate-300">
+            <li>
+              <strong className="text-slate-900 dark:text-white">Right to Access:</strong> Request a clear summary or export of the personal data we hold for your account.
+            </li>
+            <li>
+              <strong className="text-slate-900 dark:text-white">Right to Rectification:</strong> Request prompt correction of inaccurate names, emails, or traveler details.
+            </li>
+            <li>
+              <strong className="text-slate-900 dark:text-white">Right to Erasure:</strong> Request deletion of your profile and associated personal history, subject to statutory financial record retention.
+            </li>
+            <li>
+              <strong className="text-slate-900 dark:text-white">Right to Opt-Out:</strong> Unsubscribe from promotional digests or disable optional cookies anytime.
+            </li>
+          </ul>
+          <p className="text-sm">
+            To submit a data access or deletion request, email our Data Protection team at{" "}
+            <a
+              href="mailto:support@tiqsey.com?subject=Privacy%20Rights%20Request"
+              className="text-[#e3000f] font-bold underline"
+            >
+              support@tiqsey.com
+            </a>
+            . We respond within 30 calendar days.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "transfers",
+      title: "8. International Data Transfers",
+      icon: <Globe className="w-5 h-5" />,
+      searchText:
+        "international transfers cross-border safeguards destinations global partners standard contractual clauses",
+      content: (
+        <p className="text-sm">
+          Because Tiqsey connects travelers with venues across more than 30 countries, booking fulfillment may require transferring guest reservation details to local activity operators outside your country of residence under standard contractual and operational safeguards.
+        </p>
+      ),
+    },
+    {
+      id: "children",
+      title: "9. Children's Privacy",
+      icon: <Shield className="w-5 h-5" />,
+      searchText:
+        "children privacy under 16 parental consent minors bookings adult",
+      content: (
+        <p className="text-sm">
+          Tiqsey does not knowingly collect personal information directly from children under 16 years of age without verified parental consent. Ticket purchases for family or youth admission must be completed by an adult account holder or guardian.
+        </p>
+      ),
+    },
+  ];
 
-        </div>
-      </div>
-    </div>
+  return (
+    <LegalDocumentLayout
+      activePage="privacy-policy"
+      eyebrow="Privacy & Data Governance"
+      heroIcon={<Shield className="w-4 h-4" />}
+      title={t("privacyPolicy", "Privacy Policy")}
+      subtitle="At Tiqsey, protecting your personal data and maintaining transparent booking trust is fundamental. Review exactly what information we collect, why we use it, and how you control it."
+      lastUpdated="July 29, 2026"
+      effectiveDate="January 1, 2026"
+      complianceText="GDPR & CCPA Aligned"
+      highlights={[
+        {
+          label: "Commercial Policy",
+          value: "Zero Data Sale",
+          detail:
+            "We never sell, rent, or broker traveler details to advertisers.",
+        },
+        {
+          label: "Checkout Security",
+          value: "PCI-DSS Level 1",
+          detail:
+            "Full card numbers stay exclusively with Stripe and PayPal.",
+        },
+        {
+          label: "Traveler Control",
+          value: "Full Data Rights",
+          detail:
+            "Request access, updates, or account deletion within 30 days.",
+        },
+      ]}
+      sections={sections}
+      onBackToHome={onBackToHome}
+      onNavigate={onNavigate}
+      sidebarSupportHeading="Privacy Inquiries"
+      sidebarSupportDescription="Questions about data rights, exports, or account deletion?"
+      footerContactHeading="10. Contact Our Data Protection Team"
+      footerContactDescription="If you have questions, access requests, or feedback regarding this Privacy Policy, our privacy team responds promptly."
+    />
   );
 }
