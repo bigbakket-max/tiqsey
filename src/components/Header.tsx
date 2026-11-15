@@ -846,17 +846,29 @@ export default function Header({
               </motion.button>
 
               <motion.button
+                type="button"
                 onClick={() => setMobileMenuOpen(true)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="min-w-[44px] min-h-[44px] p-2 rounded-full text-slate-700 dark:text-slate-300 hover:text-brand dark:hover:text-brand hover:bg-brand/[0.06] dark:hover:bg-brand/[0.08] transition-all cursor-pointer flex items-center justify-center shrink-0"
-                title="Menu"
-                aria-label="Menu"
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.94 }}
+                className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:text-brand dark:hover:text-brand hover:border-brand/35 hover:bg-brand/[0.06] dark:hover:bg-brand/[0.12] shadow-2xs transition-all cursor-pointer flex items-center justify-center shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                title="Open navigation menu"
+                aria-label="Open navigation menu"
+                aria-expanded={mobileMenuOpen}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-                  <line x1="4" y1="7" x2="20" y2="7"></line>
-                  <line x1="4" y1="12" x2="16" y2="12"></line>
-                  <line x1="4" y1="17" x2="10" y2="17"></line>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-5 h-5"
+                  aria-hidden="true"
+                >
+                  <line x1="4.5" y1="7" x2="19.5" y2="7" />
+                  <line x1="4.5" y1="12" x2="19.5" y2="12" />
+                  <line x1="4.5" y1="17" x2="19.5" y2="17" />
                 </svg>
               </motion.button>
             </div>

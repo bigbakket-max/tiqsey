@@ -191,11 +191,11 @@ export default function LargeFeaturedBanner({
 
     if (line2) {
       return (
-        <div className="text-left font-black tracking-tight leading-[0.9] uppercase select-none">
-          <span className={`block text-[32px] sm:text-5xl md:text-7xl lg:text-[76px] xl:text-[84px] font-black tracking-tight ${line1Color} ${line1DropShadow}`}>
+        <div className="text-left font-black tracking-tight leading-[0.94] uppercase select-none">
+          <span className={`block text-[clamp(1.85rem,8vw,3rem)] sm:text-5xl md:text-6xl lg:text-[74px] xl:text-[82px] font-black tracking-tight break-words ${line1Color} ${line1DropShadow}`}>
             {line1}
           </span>
-          <span className={`block text-lg sm:text-3xl md:text-4xl lg:text-[42px] xl:text-[46px] font-black tracking-tight mt-0.5 sm:mt-2 ${line2Color} ${line2DropShadow}`}>
+          <span className={`block text-[clamp(1.125rem,4.6vw,1.75rem)] sm:text-3xl md:text-[34px] lg:text-[42px] xl:text-[46px] font-black tracking-tight mt-1 sm:mt-2 break-words ${line2Color} ${line2DropShadow}`}>
             {line2}
           </span>
         </div>
@@ -203,8 +203,8 @@ export default function LargeFeaturedBanner({
     }
 
     return (
-      <div className="text-left font-black tracking-tight leading-[0.92] uppercase select-none">
-        <span className={`block text-[32px] sm:text-5xl md:text-7xl lg:text-[76px] xl:text-[84px] font-black tracking-tight ${line1Color} ${line1DropShadow}`}>
+      <div className="text-left font-black tracking-tight leading-[0.94] uppercase select-none">
+        <span className={`block text-[clamp(1.85rem,8vw,3rem)] sm:text-5xl md:text-6xl lg:text-[74px] xl:text-[82px] font-black tracking-tight break-words ${line1Color} ${line1DropShadow}`}>
           {line1}
         </span>
       </div>
@@ -217,13 +217,13 @@ export default function LargeFeaturedBanner({
     const items = partnerText.split('|').map(s => s.trim()).filter(Boolean);
 
     return (
-      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-white text-[10px] sm:text-xs font-bold tracking-[0.12em] sm:tracking-[0.14em] uppercase mb-2 sm:mb-3.5 select-none drop-shadow-sm">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-white text-[10px] sm:text-xs font-bold tracking-[0.1em] sm:tracking-[0.14em] uppercase mb-2 sm:mb-3 select-none drop-shadow-sm">
         {items.map((item, idx) => (
           <React.Fragment key={idx}>
-            {idx > 0 && <span className="text-white/35 font-light px-0.5 select-none">|</span>}
+            {idx > 0 && <span className="text-white/40 font-light select-none">|</span>}
             <div className="flex items-center gap-1.5 sm:gap-2">
               {idx === 0 && (
-                <svg className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-[#e3000f] fill-[#e3000f] drop-shadow-sm shrink-0" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#e3000f] fill-[#e3000f] drop-shadow-sm shrink-0" viewBox="0 0 24 24">
                   <path d="M12 2L4 5.5v6c0 5.25 3.4 10.15 8 11.5 4.6-1.35 8-6.25 8-11.5v-6L12 2z" />
                   <path d="M9 12.2l2 2 4.5-4.5" stroke="white" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </svg>
@@ -240,15 +240,15 @@ export default function LargeFeaturedBanner({
 
   return (
     <section 
-      className="w-full py-4 sm:py-6 overflow-hidden select-none"
+      className="w-full py-3 sm:py-5 md:py-6 overflow-hidden select-none"
       id="homepage-featured-banner"
       aria-label="Promotional Activities Banner"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6">
         
-        {/* Banner Card Container with wide cinematic panoramic aspect ratio and rounded corners */}
+        {/* Banner Card Container: fluid height on small screens so wrapped text never clips, panoramic proportions on larger viewports */}
         <div 
-          className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs border border-slate-800/40 dark:border-slate-800/80 bg-[#050f18] group cursor-pointer aspect-[1.45/1] sm:aspect-[2.5/1] md:aspect-[3/1] min-h-[260px] sm:min-h-[320px] md:min-h-[350px] lg:min-h-[380px]"
+          className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs border border-slate-800/40 dark:border-slate-800/80 bg-[#050f18] group cursor-pointer flex flex-col justify-center min-h-[300px] sm:min-h-[340px] md:min-h-[370px] lg:min-h-[400px] xl:min-h-[420px]"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
           onTouchStart={handleTouchStart}
@@ -274,12 +274,13 @@ export default function LargeFeaturedBanner({
             </div>
           ))}
 
-          {/* Deep rich dark gradient overlay on the left to ensure high typographic legibility */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#030b14]/95 via-[#030b14]/80 sm:via-[#030b14]/75 via-60% sm:via-45% to-transparent to-95% sm:to-75% z-10 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#030b14]/75 sm:from-[#030b14]/60 via-transparent to-transparent z-10 pointer-events-none" />
+          {/* Multi-layer scrim: even mobile full-width contrast + rich desktop left directional gradient */}
+          <div className="absolute inset-0 bg-[#030b14]/40 md:bg-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#030b14]/95 via-[#030b14]/80 sm:via-[#030b14]/75 via-60% md:via-45% to-[#030b14]/30 md:to-transparent to-95% md:to-75% z-10 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#030b14]/85 via-transparent to-[#030b14]/25 z-10 pointer-events-none" />
 
-          {/* Left-Aligned Overlaid Hero Content */}
-          <div className="relative sm:absolute sm:inset-y-0 sm:left-0 z-20 flex flex-col justify-center h-full px-5 pt-5 pb-12 sm:py-0 sm:px-12 md:px-14 lg:px-16 max-w-xl sm:max-w-2xl lg:max-w-3xl">
+          {/* Left-Aligned Hero Content (relative flow expands card gracefully on smaller devices; generous bottom clearance for dots) */}
+          <div className="relative z-20 flex flex-col justify-center w-full px-5 pt-6 pb-16 sm:px-8 sm:pt-7 sm:pb-16 md:py-10 md:px-16 lg:px-20 max-w-full md:max-w-3xl">
             
             {/* Top Partner Logos / Badges with Red Shield Checkmark */}
             {renderPartnerBadges(currentSlide.partnerLogosText)}
@@ -296,28 +297,28 @@ export default function LargeFeaturedBanner({
               {renderTitle(currentSlide.title, currentSlide.textStyle)}
             </div>
 
-            {/* Subtitle / Tagline */}
+            {/* Subtitle / Tagline (no hard line-clamp slice on small screens) */}
             {currentSlide.subtitle && (
-              <p className="text-white/95 font-medium text-xs sm:text-base md:text-lg lg:text-[18px] tracking-normal drop-shadow-md mt-2 sm:mt-4 line-clamp-2 max-w-md sm:max-w-xl">
+              <p className="text-white/95 font-medium text-[13px] sm:text-base md:text-[17px] lg:text-[18px] leading-relaxed sm:leading-snug tracking-normal drop-shadow-md mt-2.5 sm:mt-3.5 max-w-md sm:max-w-xl">
                 {currentSlide.subtitle}
               </p>
             )}
 
             {/* Call To Action Button (matching reference styling with crimson red arrow) */}
-            <div className="mt-3.5 sm:mt-6">
+            <div className="mt-4 sm:mt-6">
               <button
                 type="button"
                 onClick={(e) => handleActionClick(e)}
-                className="group/btn inline-flex items-center gap-2 sm:gap-2.5 bg-white hover:bg-slate-50 text-slate-950 px-5 sm:px-7 py-2.5 sm:py-3.5 min-h-[44px] rounded-full text-xs sm:text-sm md:text-base font-bold shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 cursor-pointer"
+                className="group/btn inline-flex items-center justify-center gap-2 sm:gap-2.5 bg-white hover:bg-slate-50 text-slate-950 px-5 sm:px-7 py-2.5 sm:py-3.5 min-h-[44px] max-w-full rounded-full text-xs sm:text-sm md:text-base font-bold shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 cursor-pointer"
               >
-                <span>{currentSlide.ctaText || 'Explore Rome'}</span>
-                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#e3000f] stroke-[3] transition-transform duration-200 group-hover/btn:translate-x-1" />
+                <span className="truncate">{currentSlide.ctaText || 'Explore Rome'}</span>
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#e3000f] stroke-[3] shrink-0 transition-transform duration-200 group-hover/btn:translate-x-1" />
               </button>
             </div>
 
           </div>
 
-          {/* Left Navigation Chevron Button (tablet/desktop only; mobile uses swipe + dots cleanly) */}
+          {/* Left Navigation Chevron Button (md+ screens only; mobile/narrow tablets use swipe + dots cleanly) */}
           {activeSlides.length > 1 && (
             <button
               type="button"
@@ -326,13 +327,13 @@ export default function LargeFeaturedBanner({
                 handlePrev();
               }}
               aria-label="Previous slide"
-              className="hidden sm:flex absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white hover:bg-white text-slate-800 shadow-xl items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 cursor-pointer"
+              className="hidden md:flex absolute left-3.5 lg:left-4 top-1/2 -translate-y-1/2 w-10 h-10 lg:w-11 lg:h-11 rounded-full bg-white hover:bg-white text-slate-800 shadow-xl items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 cursor-pointer"
             >
               <ChevronLeft className="w-5 h-5 text-slate-800 stroke-[2.8]" />
             </button>
           )}
 
-          {/* Right Navigation Chevron Button (tablet/desktop only; mobile uses swipe + dots cleanly) */}
+          {/* Right Navigation Chevron Button (md+ screens only; mobile/narrow tablets use swipe + dots cleanly) */}
           {activeSlides.length > 1 && (
             <button
               type="button"
@@ -341,7 +342,7 @@ export default function LargeFeaturedBanner({
                 handleNext();
               }}
               aria-label="Next slide"
-              className="hidden sm:flex absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white hover:bg-white text-slate-800 shadow-xl items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 cursor-pointer"
+              className="hidden md:flex absolute right-3.5 lg:right-4 top-1/2 -translate-y-1/2 w-10 h-10 lg:w-11 lg:h-11 rounded-full bg-white hover:bg-white text-slate-800 shadow-xl items-center justify-center transition-all hover:scale-110 active:scale-95 z-30 cursor-pointer"
             >
               <ChevronRight className="w-5 h-5 text-slate-800 stroke-[2.8]" />
             </button>
@@ -349,7 +350,7 @@ export default function LargeFeaturedBanner({
 
           {/* Bottom Pagination Dots / Indicators (housed in translucent dark capsule) */}
           {activeSlides.length > 1 && (
-            <div className="absolute bottom-2.5 sm:bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 z-30 bg-slate-950/75 backdrop-blur-md px-3 py-1 rounded-full shadow-lg border border-white/10">
+            <div className="absolute bottom-3 sm:bottom-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1 sm:gap-1.5 z-30 bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-full shadow-lg border border-white/15">
               {activeSlides.map((_, dotIdx) => (
                 <button
                   key={dotIdx}
