@@ -257,59 +257,67 @@ export default function BookingDetailsView({
       </div>
 
       {/* 1. ORDER SUMMARY CARD & PAYMENTS LIST */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-4 sm:p-5 shadow-sm space-y-6">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-6">
         {/* Order Summary Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <h3 className="text-[15px] font-bold tracking-tight text-slate-800 dark:text-slate-200">Order Summary</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-brand/10 text-brand">
+              <Receipt className="w-5 h-5" />
+            </span>
+            <div>
+              <h3 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">Order Summary</h3>
+              <p className="text-xs text-slate-400">Financial overview and payment status</p>
+            </div>
+          </div>
           <button 
             type="button"
             onClick={() => setShowPayments(!showPayments)}
-            className="self-start sm:self-auto border border-brand hover:bg-brand/5 dark:hover:bg-brand/10 text-brand px-4 py-1.5 min-h-[36px] rounded-md text-[13px] font-medium transition-colors cursor-pointer"
+            className="self-start sm:self-auto border border-brand/40 hover:bg-brand/10 text-brand px-4 py-2 min-h-[38px] rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
           >
-            {showPayments ? 'Hide Payments' : 'View Payments'}
+            <span>{showPayments ? 'Hide Payments' : 'View Payments'}</span>
           </button>
         </div>
 
-        {/* Order Summary Metrics */}
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-x-6 sm:gap-x-10 gap-y-4 sm:gap-y-6 pt-2">
-          <div className="flex flex-col leading-tight min-w-0 col-span-2 sm:col-span-1">
-            <div className="flex items-center gap-1.5 mb-1">
-              <FileText className="w-3.5 h-3.5 text-[#94a3b8] shrink-0" />
-              <span className="text-[11px] font-medium text-[#94a3b8]">Order ID / Number</span>
+        {/* Order Summary Metrics - Clean Responsive Grid Tiles */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center gap-1.5 text-slate-400 mb-2">
+              <FileText className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Order ID</span>
             </div>
-            <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 select-all break-all tabular-nums">{booking.order_number || booking.orderId || 'OD822954911803214'}</span>
+            <span className="text-xs font-black text-slate-800 dark:text-slate-100 select-all break-all tabular-nums">{booking.order_number || booking.orderId || 'OD8229'}</span>
           </div>
           
-          <div className="flex flex-col leading-tight">
-            <div className="flex items-center gap-1.5 mb-1">
-              <User className="w-3.5 h-3.5 text-[#94a3b8]" />
-              <span className="text-[11px] font-medium text-[#94a3b8]">Booked By</span>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center gap-1.5 text-slate-400 mb-2">
+              <User className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Booked By</span>
             </div>
-            <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">{booking.customerName || 'Arsalan F'}</span>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{booking.customerName || 'Arsalan F'}</span>
           </div>
 
-          <div className="flex flex-col leading-tight">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Calendar className="w-3.5 h-3.5 text-[#94a3b8]" />
-              <span className="text-[11px] font-medium text-[#94a3b8]">Created At</span>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center gap-1.5 text-slate-400 mb-2">
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Created At</span>
             </div>
-            <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">{booking.createdAt || '12 Jul 2026'}</span>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-100">{booking.createdAt || '12 Jul 2026'}</span>
           </div>
 
-          <div className="flex flex-col leading-tight">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Layers className="w-3.5 h-3.5 text-[#94a3b8]" />
-              <span className="text-[11px] font-medium text-[#94a3b8]">Bookings</span>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center gap-1.5 text-slate-400 mb-2">
+              <Layers className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Bookings</span>
             </div>
-            <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">1</span>
+            <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100">1</span>
           </div>
 
-          <div className="flex flex-col leading-tight">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Wallet className="w-3.5 h-3.5 text-[#94a3b8]" />
-              <span className="text-[11px] font-medium text-[#94a3b8]">Net Amount</span>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center gap-1.5 text-slate-400 mb-2">
+              <Wallet className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Net Amount</span>
             </div>
-            <span className="text-[13px] font-extrabold text-slate-900 dark:text-slate-100">
+            <span className="text-xs font-black text-slate-900 dark:text-white">
               <EurToInrTooltip 
                 amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 40)} 
                 bookingDate={booking.bookingDate} 
@@ -329,12 +337,12 @@ export default function BookingDetailsView({
             </span>
           </div>
 
-          <div className="flex flex-col leading-tight">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Wallet className="w-3.5 h-3.5 text-[#94a3b8]" />
-              <span className="text-[11px] font-medium text-[#94a3b8]">Gross Amount</span>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <div className="flex items-center gap-1.5 text-slate-400 mb-2">
+              <Wallet className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Gross Amount</span>
             </div>
-            <span className="text-[13px] font-extrabold text-slate-900 dark:text-slate-100">
+            <span className="text-xs font-black text-slate-900 dark:text-white">
               <EurToInrTooltip 
                 amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 40)} 
                 bookingDate={booking.bookingDate} 
@@ -355,108 +363,119 @@ export default function BookingDetailsView({
           </div>
         </div>
 
-        {/* Payments Section */}
-        {showPayments && (
-          <div className="pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
-            <h3 className="text-[15px] font-medium text-slate-700 dark:text-slate-300 mb-4">
-              Payments
-            </h3>
+        {/* Payments Section with Smooth AnimatePresence */}
+        <AnimatePresence>
+          {showPayments && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="overflow-hidden pt-6 border-t border-slate-100 dark:border-slate-800 mt-6 space-y-4"
+            >
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                Payment Transactions
+              </h4>
 
-            <div className="w-full max-w-[320px] border border-slate-200 dark:border-slate-700 rounded-md p-4 bg-white dark:bg-slate-900 relative">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] text-[#94a3b8]">Payment 1</span>
-                <div className="flex items-center gap-1 text-[#94a3b8]">
-                  <span className="text-[11px]">Date: 12 Jul 2026</span>
-                  <MoreVertical className="w-3.5 h-3.5" />
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-[17px] font-extrabold text-slate-900 dark:text-slate-100 mb-2">
-                  <EurToInrTooltip 
-                    amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 40)} 
-                    bookingDate={booking.bookingDate} 
-                    currency={booking.paymentCurrency || "USD"}
-                  >
-                    {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
-                      new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: booking.paymentCurrency,
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      }).format(booking.paymentPrice)
-                    ) : (
-                      `USD ${booking.totalPrice || 40}`
-                    )}
-                  </EurToInrTooltip>
-                </p>
-                <span className="px-2.5 py-0.5 text-[10px] font-medium text-emerald-500 border border-emerald-500 rounded-full">
-                  Successful
-                </span>
-              </div>
-
-              {/* Stamp */}
-              <div className="absolute right-4 top-12 -rotate-[20deg] z-10 pointer-events-none opacity-80">
-                <div className="border-[2px] border-emerald-500 rounded-full px-3 py-2 text-emerald-500 text-[14px] font-black tracking-widest flex items-center justify-center transform scale-[0.85] origin-center">
-                  PAID
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-4 border-t border-dashed border-slate-200 dark:border-slate-800 text-[11px]">
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">Payment Ref: </span>
-                  <span className="text-slate-500 dark:text-slate-400">dUqvQdv95nm55sm</span>
-                </div>
-                
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">Mode: </span>
-                  <span className="text-slate-500 dark:text-slate-400">/TazapayV2</span>
+              <div className="w-full max-w-[340px] border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 sm:p-5 bg-white dark:bg-slate-900 shadow-md relative overflow-hidden group hover:border-brand/40 transition-all">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[11px] font-bold text-slate-400">Payment 1</span>
+                  <div className="flex items-center gap-1 text-slate-400 text-xs">
+                    <span>12 Jul 2026</span>
+                    <MoreVertical className="w-3.5 h-3.5" />
+                  </div>
                 </div>
 
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block mb-0.5">Transaction ID:</span>
-                  <span className="text-slate-500 dark:text-slate-400 break-all">chk_d99p9h7hhjpr05ekuh80</span>
-                </div>
-
-                <AnimatePresence>
-                  {showPaymentDetails && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }} 
-                      animate={{ height: 'auto', opacity: 1 }} 
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden space-y-3 pt-1 border-t border-dashed border-slate-200 dark:border-slate-800"
+                <div className="mb-4">
+                  <p className="text-xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">
+                    <EurToInrTooltip 
+                      amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 40)} 
+                      bookingDate={booking.bookingDate} 
+                      currency={booking.paymentCurrency || "USD"}
                     >
-                      <div>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">Gateway: </span>
-                        <span className="text-slate-500 dark:text-slate-400">Stripe</span>
-                      </div>
-                      <div>
-                        <span className="font-bold text-slate-800 dark:text-slate-200 block mb-0.5">Card Details:</span>
-                        <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                          <CreditCard className="w-3.5 h-3.5" />
-                          •••• •••• •••• 4242
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">IP Address: </span>
-                        <span className="text-slate-500 dark:text-slate-400">192.168.1.1</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+                        new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: booking.paymentCurrency,
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        }).format(booking.paymentPrice)
+                      ) : (
+                        `USD ${booking.totalPrice || 40}`
+                      )}
+                    </EurToInrTooltip>
+                  </p>
+                  <span className="px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-full inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Successful
+                  </span>
+                </div>
 
-                <div className="pt-2 text-center">
-                  <button 
-                    onClick={() => setShowPaymentDetails(!showPaymentDetails)}
-                    className="text-brand text-[11px] font-medium hover:underline cursor-pointer"
-                  >
-                    {showPaymentDetails ? 'Hide Details' : 'Show Details'}
-                  </button>
+                {/* PAID Stamp */}
+                <div className="absolute right-4 top-14 -rotate-[15deg] z-10 pointer-events-none opacity-90">
+                  <div className="border-[2.5px] border-emerald-500 rounded-xl px-3 py-1.5 text-emerald-500 text-xs font-black tracking-widest flex items-center justify-center shadow-xs">
+                    PAID
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 pt-4 border-t border-dashed border-slate-200 dark:border-slate-800 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-500">Payment Ref:</span>
+                    <span className="font-mono text-slate-700 dark:text-slate-300 select-all">dUqvQdv95nm</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-500">Mode:</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">/TazapayV2</span>
+                  </div>
+
+                  <div>
+                    <span className="font-bold text-slate-500 block mb-0.5">Transaction ID:</span>
+                    <span className="font-mono text-[11px] text-slate-600 dark:text-slate-400 break-all select-all">chk_d99p9h7hhjpr05ekuh80</span>
+                  </div>
+
+                  <AnimatePresence>
+                    {showPaymentDetails && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }} 
+                        animate={{ height: 'auto', opacity: 1 }} 
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden space-y-2.5 pt-2 border-t border-dashed border-slate-200 dark:border-slate-800"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-500">Gateway:</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">Stripe</span>
+                        </div>
+                        <div>
+                          <span className="font-bold text-slate-500 block mb-0.5">Card Details:</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 font-mono">
+                            <CreditCard className="w-3.5 h-3.5 text-brand" />
+                            •••• •••• •••• 4242
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-500">IP Address:</span>
+                          <span className="font-mono text-slate-700 dark:text-slate-300">192.168.1.1</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="pt-2 text-center">
+                    <button 
+                      type="button"
+                      onClick={() => setShowPaymentDetails(!showPaymentDetails)}
+                      className="text-brand text-xs font-bold hover:underline cursor-pointer"
+                    >
+                      {showPaymentDetails ? 'Hide Payment Details' : 'Show Advanced Details'}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* 3. ACTIVE BOOKING CARD */}
