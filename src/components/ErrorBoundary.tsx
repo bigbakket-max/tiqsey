@@ -16,16 +16,17 @@ function DefaultErrorFallback({ error, onRefresh }: { error: Error | null; onRef
   const { t } = useSettings();
 
   return (
-    <div className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center">
-      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-        <AlertTriangle className="w-8 h-8 text-red-600" />
+    <div className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center bg-slate-50 dark:bg-slate-950">
+      <div className="w-16 h-16 bg-red-100 dark:bg-red-950/50 rounded-full flex items-center justify-center mb-4 border border-red-200 dark:border-red-900/50">
+        <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('somethingWentWrong', 'Something went wrong')}</h2>
-      <p className="text-gray-600 max-w-md mb-6">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('somethingWentWrong', 'Something went wrong')}</h2>
+      <p className="text-gray-600 dark:text-slate-300 max-w-md mb-6">
         {t('somethingWentWrongDesc', "We're sorry for the inconvenience. The application encountered an unexpected error.")}
       </p>
       <div className="flex flex-wrap items-center justify-center gap-3">
         <button
+          type="button"
           onClick={onRefresh}
           className="inline-flex items-center gap-2 px-6 py-2.5 bg-brand text-white rounded-xl font-bold hover:bg-brand/90 transition-all shadow-md active:scale-95 cursor-pointer text-sm"
         >
@@ -33,6 +34,7 @@ function DefaultErrorFallback({ error, onRefresh }: { error: Error | null; onRef
           {t('refreshPage', 'Refresh Page')}
         </button>
         <button
+          type="button"
           onClick={() => {
             window.location.href = '/';
           }}
@@ -41,9 +43,11 @@ function DefaultErrorFallback({ error, onRefresh }: { error: Error | null; onRef
           {t('returnToHome', 'Return to Home')}
         </button>
       </div>
-      <div className="mt-8 p-4 bg-gray-50 rounded-lg text-left overflow-auto max-w-full">
-        <p className="text-xs font-mono text-red-500">{error?.toString()}</p>
-      </div>
+      {error && (
+        <div className="mt-8 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-left overflow-auto max-w-full">
+          <p className="text-xs font-mono text-red-600 dark:text-red-400">{error.toString()}</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -189,8 +189,8 @@ export default function HotDealsPage({
         </div>
 
         {/* Hero Section */}
-        <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-[#fff5ea] dark:from-zinc-900/80 dark:via-amber-950/15 dark:to-zinc-900 border border-amber-100/70 dark:border-amber-500/15 p-5 sm:p-10 md:p-14 mb-8 sm:mb-10 shadow-[0_10px_30px_rgba(245,158,11,0.03)] dark:shadow-[0_20px_50px_rgba(245,158,11,0.08)]">
-          <div className="absolute inset-0 bg-[url('https://chatgpt.com/backend-api/estuary/content?id=file_00000000617882118946b0516596950c&ts=496321&p=fs&cid=1&sig=23a9284c38a206461d638be53ae67b654e1c7ac817acf3ca0edea46e9fe67625&v=0')] bg-cover bg-right sm:bg-center opacity-100 dark:opacity-20 pointer-events-none" />
+        <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-br from-[#fff5ea] via-[#fffaf3] to-amber-50/80 dark:from-zinc-900/90 dark:via-amber-950/20 dark:to-zinc-900 border border-amber-100/70 dark:border-amber-500/15 p-5 sm:p-10 md:p-14 mb-8 sm:mb-10 shadow-[0_10px_30px_rgba(245,158,11,0.03)] dark:shadow-[0_20px_50px_rgba(245,158,11,0.08)]">
+          <div className="absolute -right-24 -top-24 w-80 h-80 rounded-full bg-gradient-to-br from-amber-300/25 via-orange-300/15 to-transparent dark:from-amber-500/10 dark:via-orange-500/5 blur-3xl pointer-events-none" />
 
           <div className="relative z-10 max-w-5xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 dark:border-amber-500/30 rounded-full text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-wider mb-3 sm:mb-4">
@@ -341,7 +341,6 @@ export default function HotDealsPage({
                 aria-label="Sort deals"
                 className="appearance-none pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs w-full sm:w-auto"
               >
-                <option value="discount-desc">Recommended</option>
                 <option value="discount-desc">Highest Discount First</option>
                 <option value="price-asc">Price: Low to High</option>
                 <option value="price-desc">Price: High to Low</option>

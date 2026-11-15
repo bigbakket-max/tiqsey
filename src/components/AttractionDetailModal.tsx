@@ -620,8 +620,18 @@ export default function AttractionDetailModal({
   const [showGuestsDropdown, setShowGuestsDropdown] = useState(false);
   const [showCalendarDropdown, setShowCalendarDropdown] = useState(false);
 
-  const [calendarYear, setCalendarYear] = useState(() => new Date(bookingDate || Date.now()).getFullYear());
-  const [calendarMonth, setCalendarMonth] = useState(() => new Date(bookingDate || Date.now()).getMonth());
+  const [calendarYear, setCalendarYear] = useState(() => {
+    if (bookingDate && /^\d{4}-\d{2}-\d{2}$/.test(bookingDate)) {
+      return parseInt(bookingDate.split('-')[0], 10);
+    }
+    return new Date().getFullYear();
+  });
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    if (bookingDate && /^\d{4}-\d{2}-\d{2}$/.test(bookingDate)) {
+      return parseInt(bookingDate.split('-')[1], 10) - 1;
+    }
+    return new Date().getMonth();
+  });
 
   const MONTH_NAMES = useMemo(() => [
     "January", "February", "March", "April", "May", "June", 
@@ -929,8 +939,26 @@ export default function AttractionDetailModal({
     }
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(shareUrl);
+  const handleCopyLink = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        throw new Error('Clipboard API unavailable');
+      }
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = shareUrl;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
@@ -2151,7 +2179,7 @@ export default function AttractionDetailModal({
 
                         <div className="space-y-1.5 sm:col-span-2">
                           <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                            email address*
+                            Email Address*
                           </label>
                           <input
                             type="email"
@@ -2165,7 +2193,7 @@ export default function AttractionDetailModal({
 
                         <div className="space-y-1.5 sm:col-span-2">
                           <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                            select your conuntry*
+                            Select Your Country*
                           </label>
                           <select
                             required
@@ -2191,7 +2219,7 @@ export default function AttractionDetailModal({
 
                         <div className="space-y-1.5">
                           <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                            select your country code*
+                            Select Your Country Code*
                           </label>
                           <select
                             required
@@ -2217,7 +2245,7 @@ export default function AttractionDetailModal({
 
                         <div className="space-y-1.5">
                           <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                            enetr you phone number*
+                            Enter Your Phone Number*
                           </label>
                           <input
                             type="tel"
@@ -2231,7 +2259,7 @@ export default function AttractionDetailModal({
 
                         <div className="space-y-1.5 sm:col-span-2">
                           <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                            Special Requests box(Optional)
+                            Special Requests (Optional)
                           </label>
                           <textarea
                             value={specialRequests}
@@ -3082,7 +3110,7 @@ export default function AttractionDetailModal({
                 </div>
 
                 {/* 2-5: Verified Guest Reviews */}
-                {visibleReviews.slice(0, 4).map((rev, idx) => (
+                {visibleReviews.map((rev, idx) => (
                   <div 
                     key={idx}
                     className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4.5 flex flex-col justify-between shadow-2xs"
@@ -3121,14 +3149,14 @@ export default function AttractionDetailModal({
               </div>
 
               {/* Extra reviews toggle if more than 4 */}
-              {visibleReviews.length > 4 && (
+              {filteredReviews.length > 4 && (
                 <div className="mt-5 text-center">
                   <button
                     type="button"
                     onClick={() => setShowAllReviews(!showAllReviews)}
                     className="px-5 py-2 border border-slate-200 dark:border-slate-800 hover:border-slate-400 rounded-full text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                   >
-                    {showAllReviews ? 'Show Fewer Reviews' : `Show All ${visibleReviews.length} Reviews`}
+                    {showAllReviews ? 'Show Fewer Reviews' : `Show All ${filteredReviews.length} Reviews`}
                   </button>
                 </div>
               )}

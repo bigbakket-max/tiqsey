@@ -701,11 +701,15 @@ export default function CookiePolicyPage({
           We review this Cookie Policy whenever we introduce new booking capabilities or updated privacy regulations take effect. Any material changes will update the "Last Updated" date at the top of this document. You can also revisit our{" "}
           <button
             type="button"
-            onClick={() =>
-              onNavigate
-                ? onNavigate("privacy-policy")
-                : (window.location.href = "/privacy-policy")
-            }
+            onClick={() => {
+              if (onNavigate) {
+                onNavigate("privacy-policy");
+              } else {
+                window.history.pushState({}, "", "/privacy-policy");
+                window.dispatchEvent(new PopStateEvent("popstate"));
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
             className="text-[#e3000f] font-semibold underline hover:text-[#c7000d] cursor-pointer"
           >
             Privacy Policy

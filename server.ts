@@ -671,8 +671,14 @@ async function startServer() {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
-      const session = db.prepare("SELECT * FROM backend_sessions WHERE id = ?").get(token);
-      if (session) return true;
+      const session = db.prepare("SELECT * FROM backend_sessions WHERE id = ?").get(token) as any;
+      if (session) {
+        if (session.expires_at && new Date() > new Date(session.expires_at)) {
+          db.prepare("DELETE FROM backend_sessions WHERE id = ?").run(token);
+          return false;
+        }
+        return true;
+      }
     }
     return false;
   };
@@ -1219,9 +1225,11 @@ async function startServer() {
 
       console.log(`[Database] Saving/updating booking in DB: ${booking.id} (${booking.order_number || booking.orderId})`);
 
-      const id = booking.id;
-      const order_number = booking.order_number || booking.orderId || "";
-      const pnr_number = booking.pnr_number || booking.bookingRef || "";
+      const id = String(booking.id).trim();
+      const rawOrderNum = String(booking.order_number || booking.orderId || "").trim();
+      const order_number = rawOrderNum || `OD${Date.now()}${Math.floor(Math.random() * 1000)}`;
+      const rawPnrNum = String(booking.pnr_number || booking.bookingRef || "").trim();
+      const pnr_number = rawPnrNum || `TQX-${Math.floor(100000 + Math.random() * 900000)}`;
       const attraction_id = booking.attractionId || "";
       const attraction_name = booking.attractionName || "";
       const attraction_image_url = booking.attractionImageUrl || "";
@@ -1245,7 +1253,9 @@ async function startServer() {
       const payment_symbol = booking.paymentSymbol || "";
 
       // Check if there is an existing row for this order_number or id
-      const existing = db.prepare('SELECT id FROM bookings WHERE id = ? OR order_number = ?').get(id, order_number);
+      const existing = (rawOrderNum
+        ? db.prepare('SELECT id FROM bookings WHERE id = ? OR order_number = ?').get(id, order_number)
+        : db.prepare('SELECT id FROM bookings WHERE id = ?').get(id)) as { id: string } | undefined;
 
       if (existing) {
         const stmt = db.prepare(`
@@ -1271,7 +1281,7 @@ async function startServer() {
             payment_currency = ?,
             payment_price = ?,
             payment_symbol = ?
-          WHERE id = ? OR order_number = ?
+          WHERE id = ?
         `);
         stmt.run(
           id,
@@ -1295,8 +1305,7 @@ async function startServer() {
           payment_currency,
           payment_price,
           payment_symbol,
-          id,
-          order_number
+          existing.id
         );
       } else {
         const stmt = db.prepare(`
@@ -3026,8 +3035,8 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
       // Helper function for delaying execution (for backoff)
       const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-      // Try multiple models and apply exponential backoff on transient errors
-      const modelsToTry = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite"];
+      // Try multiple valid models and apply exponential backoff on transient errors
+      const modelsToTry = ["gemini-4-hydrogen", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
       let text = "";
       let lastError: any = null;
       let usedModel = "";

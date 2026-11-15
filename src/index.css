@@ -9,6 +9,7 @@
   --font-serif: "Lora", "Playfair Display", Georgia, serif;
   --color-brand: #e3000f;
   --color-brand-dark: #c7000d;
+  --color-brand-hover: #c7000d;
   --color-brand-light: #ff2a3b;
   --color-gray-150: #eef2f6;
   --color-gray-155: #e2e8f0;
@@ -16,10 +17,24 @@
   --color-gray-755: #334155;
   --color-slate-150: #eef2f6;
   --color-slate-250: #cbd5e1;
+  --color-slate-350: #b0bccb;
+  --color-slate-450: #7c8ca1;
   --color-slate-650: #475569;
+  --color-slate-750: #334155;
   --color-slate-755: #334155;
+  --color-slate-805: #243144;
   --color-slate-850: #1e293b;
   --color-slate-955: #0f172a;
+  --color-zinc-350: #b8b8c2;
+  --color-zinc-850: #1f1f23;
+  --color-emerald-150: #d1fae5;
+  --color-emerald-650: #04875e;
+  --color-rose-150: #ffe4e6;
+  --color-rose-650: #d11d49;
+  --color-amber-150: #fef3c7;
+  --color-blue-150: #dbeafe;
+  --color-yellow-250: #fde68a;
+  --shadow-3xs: 0 1px 1px rgb(0 0 0 / 0.03);
   
   @keyframes shimmer {
     from { transform: translateX(-100%); }

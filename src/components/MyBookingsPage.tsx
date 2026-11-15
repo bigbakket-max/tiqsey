@@ -47,10 +47,35 @@ export default function MyBookingsPage({
   const [reviewError, setReviewError] = useState<string>("");
   const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
 
+  const parseBookingTimestamp = (dateStr?: string) => {
+    if (!dateStr) return 0;
+    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])).getTime();
+    }
+    const ts = new Date(dateStr).getTime();
+    return Number.isNaN(ts) ? 0 : ts;
+  };
+
+  const formatVisitDate = (dateStr?: string) => {
+    if (!dateStr) return "Flexible Date";
+    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const d = match
+      ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      : new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   // Parse dates and categorize bookings
   const categorizedBookings = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const todayTs = today.getTime();
     
     const pending: Booking[] = [];
     const upcoming: Booking[] = [];
@@ -70,8 +95,8 @@ export default function MyBookingsPage({
       } else if (booking.status === "rejected") {
         rejected.push(booking);
       } else {
-        const bookingDate = new Date(booking.bookingDate);
-        if (bookingDate >= today) {
+        const bookingTs = parseBookingTimestamp(booking.bookingDate);
+        if (bookingTs >= todayTs) {
           upcoming.push(booking);
         } else {
           completed.push(booking);
@@ -80,11 +105,11 @@ export default function MyBookingsPage({
     });
 
     // Sort: upcoming/pending soonest first; completed/cancelled/rejected newest first
-    pending.sort((a, b) => new Date(a.bookingDate).getTime() - new Date(b.bookingDate).getTime());
-    upcoming.sort((a, b) => new Date(a.bookingDate).getTime() - new Date(b.bookingDate).getTime());
-    completed.sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime());
-    cancelled.sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime());
-    rejected.sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime());
+    pending.sort((a, b) => parseBookingTimestamp(a.bookingDate) - parseBookingTimestamp(b.bookingDate));
+    upcoming.sort((a, b) => parseBookingTimestamp(a.bookingDate) - parseBookingTimestamp(b.bookingDate));
+    completed.sort((a, b) => parseBookingTimestamp(b.bookingDate) - parseBookingTimestamp(a.bookingDate));
+    cancelled.sort((a, b) => parseBookingTimestamp(b.bookingDate) - parseBookingTimestamp(a.bookingDate));
+    rejected.sort((a, b) => parseBookingTimestamp(b.bookingDate) - parseBookingTimestamp(a.bookingDate));
 
     return { pending, upcoming, completed, cancelled, rejected };
   }, [bookings]);
@@ -102,7 +127,7 @@ export default function MyBookingsPage({
   const currentList = useMemo(() => {
     if (activeTab === "upcoming") {
       const combined = [...categorizedBookings.pending, ...categorizedBookings.upcoming];
-      combined.sort((a, b) => new Date(a.bookingDate).getTime() - new Date(b.bookingDate).getTime());
+      combined.sort((a, b) => parseBookingTimestamp(a.bookingDate) - parseBookingTimestamp(b.bookingDate));
       return combined;
     } else {
       const combined = [
@@ -110,7 +135,7 @@ export default function MyBookingsPage({
         ...categorizedBookings.cancelled,
         ...categorizedBookings.rejected
       ];
-      combined.sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime());
+      combined.sort((a, b) => parseBookingTimestamp(b.bookingDate) - parseBookingTimestamp(a.bookingDate));
       return combined;
     }
   }, [activeTab, categorizedBookings]);
@@ -292,9 +317,12 @@ export default function MyBookingsPage({
             ) : (
               <div className="flex flex-col gap-5 w-full">
                 {currentList.map((booking) => {
+                  const todayStart = new Date();
+                  todayStart.setHours(0, 0, 0, 0);
+                  const bookingTs = parseBookingTimestamp(booking.bookingDate);
                   const isPending = booking.status === "pending";
-                  const isUpcoming = booking.status === "confirmed" || (!booking.status && new Date(booking.bookingDate) >= new Date("2026-07-07"));
-                  const isCompleted = booking.status === "completed" || (!booking.status && new Date(booking.bookingDate) < new Date("2026-07-07"));
+                  const isUpcoming = booking.status === "confirmed" || (!booking.status && bookingTs >= todayStart.getTime());
+                  const isCompleted = booking.status === "completed" || (!booking.status && bookingTs < todayStart.getTime());
                   const isCancelled = booking.status === "cancelled";
                   const isRejected = booking.status === "rejected";
 
@@ -387,11 +415,7 @@ export default function MyBookingsPage({
                             <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 font-semibold">
                               <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                               <span>
-                                {new Date(booking.bookingDate).toLocaleDateString("en-US", {
-                                  day: "numeric",
-                                  month: "short",
-                                  year: "numeric"
-                                })}
+                                {formatVisitDate(booking.bookingDate)}
                               </span>
                             </div>
 
@@ -588,11 +612,7 @@ export default function MyBookingsPage({
                       VISIT DATE
                     </span>
                     <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
-                      {new Date(selectedBookingForTicket.bookingDate).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {formatVisitDate(selectedBookingForTicket.bookingDate)}
                     </span>
                   </div>
 

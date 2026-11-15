@@ -11,17 +11,20 @@ import { HelmetProvider } from 'react-helmet-async';
 import { fetchActiveFavicon, applyFaviconToDocument, FAVICON_STORAGE_KEY } from './utils/faviconManager';
 
 function Root() {
-  // If navigating to old /admin, smoothly redirect to /secure-panel
-  if (window.location.pathname.startsWith('/admin')) {
-    const newPath = window.location.pathname.replace(/^\/admin/, '/secure-panel') + window.location.search + window.location.hash;
-    window.location.replace(newPath);
-    return null;
-  }
-
+  const isLegacyAdmin = window.location.pathname.startsWith('/admin');
   const isAdminRoute = window.location.pathname.startsWith('/secure-panel');
+
+  // If navigating to old /admin, smoothly redirect to /secure-panel
+  useEffect(() => {
+    if (isLegacyAdmin) {
+      const newPath = window.location.pathname.replace(/^\/admin/, '/secure-panel') + window.location.search + window.location.hash;
+      window.location.replace(newPath);
+    }
+  }, [isLegacyAdmin]);
 
   // Synchronize and apply live dynamic favicon across the entire application and tabs
   useEffect(() => {
+    if (isLegacyAdmin) return;
     fetchActiveFavicon().then(applyFaviconToDocument).catch(() => {});
 
     const handleStorage = (e: StorageEvent) => {
@@ -34,7 +37,11 @@ function Root() {
 
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+  }, [isLegacyAdmin]);
+
+  if (isLegacyAdmin) {
+    return null;
+  }
   
   return (
     <HelmetProvider>

@@ -347,7 +347,7 @@ export default function LargeBannerManager() {
         {/* Action Buttons */}
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
           <a
-            href="/#/"
+            href="/"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3.5 min-h-[40px] rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors shadow-2xs"

@@ -128,7 +128,7 @@ export default function AdminLayout() {
         crumbs.push({ name: 'Blog', icon: undefined, path: '/blog' });
         if (path.includes('/new')) {
           crumbs.push({ name: 'New Post', icon: undefined, path: '/blog/new' });
-        } else if (path.match(/\/blog\/[a-zA-Z0-9-]+$/)) {
+        } else if (path.match(/\/blog\/[^/]+$/)) {
           crumbs.push({ name: 'Edit Post', icon: undefined, path: path });
         }
       } else if (path.includes('/promotional-banners')) {
@@ -141,6 +141,8 @@ export default function AdminLayout() {
       } else if (path.includes('/favicon')) {
         crumbs.push({ name: 'Favicon', icon: undefined, path: '/favicon' });
       }
+    } else if (path.includes('/gemini-logo')) {
+      crumbs.push({ name: 'Brand Assets', icon: undefined, path: '/gemini-logo' });
     }
     return crumbs;
   };
@@ -561,7 +563,7 @@ export default function AdminLayout() {
                       System Updates & Alerts
                     </span>
                     <span className="text-[10px] bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/60 font-mono">
-                      3 Active
+                      2 Active
                     </span>
                   </div>
                   <div className="py-2.5 space-y-2 text-xs">

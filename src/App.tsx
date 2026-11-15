@@ -99,6 +99,7 @@ function parseInitialRoute(): { page: AppPage; destination: string | null; attra
       (a) =>
         a.id === rawAttrId ||
         a.productId === rawAttrId ||
+        (a.customSlug && a.customSlug.toLowerCase() === rawAttrId.toLowerCase()) ||
         getDisplayProductId(a) === rawAttrId ||
         a.id.toLowerCase() === rawAttrId.toLowerCase()
     );
@@ -367,11 +368,7 @@ export default function App() {
       return (
         <ActivitiesPage
           destination={selectedDestination}
-          onBack={() => {
-            setSelectedDestination(null);
-            setActiveCategoryFilter(null);
-            window.scrollTo(0, 0);
-          }}
+          onBack={navigateHome}
           onViewAttraction={handleViewAttraction}
           initialCategory={activeCategoryFilter}
         />
@@ -444,17 +441,16 @@ export default function App() {
     if (currentPage === "wishlist") {
       return (
         <WishlistPage
-          onBackToHome={() => {
-            setCurrentPage("home");
-            window.scrollTo(0, 0);
-          }}
+          onBackToHome={navigateHome}
           onNavigateToAttractions={() => {
             setCurrentPage("attractions-and-museums");
+            window.history.pushState({}, "", "/attractions-and-museums");
             window.scrollTo(0, 0);
           }}
           onViewAttraction={handleViewAttraction}
           onNavigateToSignIn={() => {
             setCurrentPage("sign-in");
+            window.history.pushState({}, "", "/login");
             window.scrollTo(0, 0);
           }}
         />
@@ -464,16 +460,15 @@ export default function App() {
     if (currentPage === "my-bookings") {
       return (
         <MyBookingsPage
-          onBackToHome={() => {
-            setCurrentPage("home");
-            window.scrollTo(0, 0);
-          }}
+          onBackToHome={navigateHome}
           onNavigateToAttractions={() => {
             setCurrentPage("attractions-and-museums");
+            window.history.pushState({}, "", "/attractions-and-museums");
             window.scrollTo(0, 0);
           }}
           onNavigateToSignIn={() => {
             setCurrentPage("sign-in");
+            window.history.pushState({}, "", "/login");
             window.scrollTo(0, 0);
           }}
         />
@@ -483,10 +478,7 @@ export default function App() {
     if (currentPage === "profile") {
       return (
         <ProfilePage
-          onBackToHome={() => {
-            setCurrentPage("home");
-            window.scrollTo(0, 0);
-          }}
+          onBackToHome={navigateHome}
         />
       );
     }
@@ -515,9 +507,7 @@ export default function App() {
             window.history.pushState({}, "", "/attractions-and-museums");
             window.scrollTo(0, 0);
           }}
-          onSelectAttraction={(id) => {
-            setSelectedAttractionId(id);
-          }}
+          onSelectAttraction={handleViewAttraction}
           onSelectDestination={(dest) => {
             setSelectedDestination(dest);
             window.history.pushState(
@@ -529,7 +519,6 @@ export default function App() {
             );
             window.scrollTo(0, 0);
           }}
-          onNavigate={handleTrustNavigate}
         />
       );
     }
@@ -598,12 +587,23 @@ export default function App() {
             onViewAttraction={handleViewAttraction}
             onViewAll={() => {
               setCurrentPage("hot-deals");
+              window.history.pushState({}, "", "/hot-deals");
               window.scrollTo(0, 0);
             }}
           />
         </ScrollReveal>
         <ScrollReveal delay={0.1}>
-          <AdBanner onSelectDestination={setSelectedDestination} />
+          <AdBanner
+            onSelectDestination={(dest) => {
+              setSelectedDestination(dest);
+              window.history.pushState(
+                {},
+                "",
+                `/destinations/${encodeURIComponent(dest.toLowerCase().replace(/\s+/g, "-"))}`,
+              );
+              window.scrollTo(0, 0);
+            }}
+          />
         </ScrollReveal>
         <ScrollReveal delay={0.1}>
           <PopularAttractions onViewAttraction={handleViewAttraction} />
@@ -623,10 +623,11 @@ export default function App() {
             onNavigate={(url) => {
               if (url.startsWith("/")) {
                 window.history.pushState({}, "", url);
-                const page = url.replace("/", "");
-                if (page === "hot-deals" || page === "attractions-and-museums" || page === "blog") {
-                  setCurrentPage(page as AppPage);
-                }
+                const parsed = parseInitialRoute();
+                setSelectedAttractionId(parsed.attractionId);
+                setSelectedDestination(parsed.destination);
+                setCurrentPage(parsed.page);
+                setActiveCategoryFilter(null);
                 window.scrollTo(0, 0);
               }
             }}
@@ -665,11 +666,7 @@ export default function App() {
         />
         {mainContent()}
         <Footer
-          onExplore={() => {
-            setSelectedDestination(null);
-            setSelectedAttractionId(null);
-            setCurrentPage("home");
-          }}
+          onExplore={navigateHome}
           onNavigate={(page) => {
             setSelectedDestination(null);
             setSelectedAttractionId(null);
@@ -693,6 +690,7 @@ export default function App() {
                 setSelectedDestination(null);
                 setSelectedAttractionId(null);
                 setCurrentPage("wishlist");
+                window.history.pushState({}, "", "/wishlist");
                 window.scrollTo(0, 0);
               }}
             />

@@ -177,7 +177,7 @@ export default function AttractionsAndMuseumsPage({
     });
 
     return result;
-  }, [searchQuery, selectedCategory, selectedRegion, selectedCity, sortBy]);
+  }, [searchQuery, selectedCategory, selectedRegion, selectedCity, sortBy, rev]);
 
   const handleResetFilters = () => {
     setSearchQuery("");

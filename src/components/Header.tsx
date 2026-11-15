@@ -1305,12 +1305,22 @@ export default function Header({
                   </div>
 
                   <div className="mt-auto pt-6 border-t border-gray-100 dark:border-slate-800 flex flex-col gap-2">
-                    <a
-                      href="#"
-                      className="flex items-center gap-3 text-lg font-bold text-[#1A2B48] hover:bg-gray-50 dark:hover:bg-slate-900 dark:text-slate-100 py-3 px-4 rounded-xl transition-colors"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        if (onNavigate) {
+                          onNavigate("about");
+                        } else {
+                          window.history.pushState({}, "", "/about");
+                          window.dispatchEvent(new PopStateEvent("popstate"));
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }
+                      }}
+                      className="flex items-center gap-3 text-lg font-bold text-[#1A2B48] hover:bg-gray-50 dark:hover:bg-slate-900 dark:text-slate-100 py-3 px-4 rounded-xl transition-colors text-left cursor-pointer"
                     >
-                      Support
-                    </a>
+                      Support &amp; About Tiqsey
+                    </button>
                   </div>
                 </div>
               </motion.div>

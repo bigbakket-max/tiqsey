@@ -34,11 +34,29 @@ export default function BannerCard({
   const { t } = useSettings();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  const handleCopy = (e: React.MouseEvent, code: string) => {
+  const handleCopy = async (e: React.MouseEvent, code: string) => {
     e.preventDefault();
     e.stopPropagation();
     if (!code) return;
-    navigator.clipboard?.writeText(code);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(code);
+      } else {
+        throw new Error('Clipboard API unavailable');
+      }
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = code;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
     setCopiedCode(code);
     setTimeout(() => {
       setCopiedCode(null);

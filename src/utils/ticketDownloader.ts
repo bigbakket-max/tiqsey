@@ -25,12 +25,15 @@ export function downloadTicketVoucher(data: TicketDownloadData) {
   const attractionImage = data.attractionImageUrl || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=600";
   const refCode = data.pnr_number || data.bookingRef || `TQX-${Math.floor(100000 + Math.random() * 900000)}`;
   const orderNumberStr = data.order_number || `OD822954911803214`;
-  const dateFormatted = new Date(data.bookingDate).toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric"
-  });
+  const parsedDate = data.bookingDate ? new Date(data.bookingDate) : new Date();
+  const dateFormatted = !isNaN(parsedDate.getTime())
+    ? parsedDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      })
+    : (data.bookingDate || "Flexible Date");
   const time = data.timeSlot || "Flexible Daily Admission";
   const passengersText = `${data.ticketsCount} ${data.ticketsCount === 1 ? "Person" : "People"}`;
   
@@ -526,7 +529,7 @@ export function downloadTicketVoucher(data: TicketDownloadData) {
         <div class="barcode-graphic">
           ${barcodeLines}
         </div>
-        <span class="barcode-text">*${data.bookingId.toUpperCase()}*</span>
+        <span class="barcode-text">*${(data.bookingId || refCode).toUpperCase()}*</span>
       </div>
 
     </div>

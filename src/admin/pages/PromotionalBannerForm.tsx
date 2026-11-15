@@ -507,7 +507,7 @@ export default function PromotionalBannerForm() {
         <div className="flex items-center flex-wrap gap-2">
           {/* Live Storefront Preview */}
           <a
-            href="/#/"
+            href="/"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3.5 min-h-[40px] rounded-xl text-xs font-bold text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-2xs"

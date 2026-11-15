@@ -35,8 +35,6 @@ interface AllocateVendorModalProps {
 }
 
 export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendorModalProps) {
-  if (!isOpen) return null;
-
   // Form states initialized with realistic values matching screenshots
   // Let's check the status to match save button color and layout dynamically
   const isPending = booking.status === 'pending';
@@ -126,6 +124,8 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
         };
     }
   }, [booking.status]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">

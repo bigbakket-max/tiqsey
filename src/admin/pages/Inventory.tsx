@@ -778,9 +778,9 @@ export default function Inventory() {
         loadedIdRef.current = id;
         setEditingAttraction(attr);
         setProductStatus(attr.isAvailable ? "active" : "paused");
-        setSeoTitle(attr.name || "");
-        setSeoDescription(attr.description || "");
-        setCustomSlug(attr.id || "");
+        setSeoTitle(attr.seoTitle || attr.name || "");
+        setSeoDescription(attr.seoDescription || attr.description || "");
+        setCustomSlug(attr.customSlug || attr.id || "");
         setActiveTab("Primary");
         setName(attr.name || "");
         setLocation(attr.location || "");
@@ -1324,6 +1324,7 @@ export default function Inventory() {
       isAvailable: false,
       rating: 5.0,
       reviewsCount: 0,
+      customSlug: undefined,
       galleryUrls: [...galleryUrls],
       variants: [...variants],
     };
@@ -1464,7 +1465,7 @@ export default function Inventory() {
       return;
     }
     if (!imageUrl.trim()) {
-      setActiveTab("Gallary");
+      setActiveTab("Gallery");
       triggerInventoryToast("Image URL or uploaded cover image is required.", "error");
       return;
     }
@@ -1601,6 +1602,9 @@ export default function Inventory() {
       galleryUrls,
       bookingMode: isAllAffiliate ? 'affiliate' : 'manual',
       affiliateConfig: firstAffiliate?.affiliateConfig ? { ...firstAffiliate.affiliateConfig } : undefined,
+      seoTitle: seoTitle.trim() || undefined,
+      seoDescription: seoDescription.trim() || undefined,
+      customSlug: customSlug.trim().replace(/^-+|-+$/g, '') || undefined,
     };
 
     let updatedList: Attraction[];
@@ -1620,9 +1624,9 @@ export default function Inventory() {
     }).catch(() => {});
     loadedIdRef.current = null;
     setShowSaveConfirm(false);
-    hideLoader();
     navigate("/inventory");
     } finally {
+      hideLoader();
       setIsSavingConfirm(false);
     }
   };
@@ -1973,7 +1977,7 @@ export default function Inventory() {
                   : 0;
                 const displayId = getDisplayProductId(attr);
                 const isCopied = copiedTableId === displayId;
-                const liveUrl = `${window.location.origin}/#/attraction/${attr.customSlug || attr.id}`;
+                const liveUrl = `${window.location.origin}/attraction/${encodeURIComponent(attr.customSlug || attr.id)}`;
                 const vars = (attr.variants || []).filter(Boolean);
                 const affiliateVars = vars.filter(v => v?.bookingMode === 'affiliate');
                 const manualVars = vars.filter(v => v?.bookingMode !== 'affiliate');
@@ -2217,7 +2221,7 @@ export default function Inventory() {
                   : 0;
                 const displayId = getDisplayProductId(attr);
                 const isCopied = copiedTableId === displayId;
-                const liveUrl = `${window.location.origin}/#/attraction/${attr.customSlug || attr.id}`;
+                const liveUrl = `${window.location.origin}/attraction/${encodeURIComponent(attr.customSlug || attr.id)}`;
 
                 return (
                   <tr 
@@ -4714,7 +4718,7 @@ export default function Inventory() {
             <div className="flex items-center flex-wrap gap-2 shrink-0">
               {editingAttraction && (
                 <a
-                  href={`/#/attraction/${encodeURIComponent(editingAttraction.customSlug || editingAttraction.id)}`}
+                  href={`/attraction/${encodeURIComponent(editingAttraction.customSlug || editingAttraction.id)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="min-h-[38px] inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 rounded-lg transition-colors shadow-2xs cursor-pointer"
@@ -4780,7 +4784,7 @@ export default function Inventory() {
                   {[
                     { key: "Primary", label: "Primary Details", icon: <Home className="w-4 h-4" /> },
                     { key: "Variants", label: "Ticket Variants", count: variants.length, icon: <Layers className="w-4 h-4" /> },
-                    { key: "Gallary", label: "Gallery", count: galleryUrls.length, icon: <Image className="w-4 h-4" /> },
+                    { key: "Gallery", label: "Gallery", count: galleryUrls.length, icon: <Image className="w-4 h-4" /> },
                     { key: "Live Ticket Preview", label: "Live Ticket Preview", icon: <Compass className="w-4 h-4" /> }
                   ].map(tab => {
                     const isActive = activeTab === tab.key;
@@ -6256,8 +6260,8 @@ export default function Inventory() {
 
 
 
-                  {/* TAB 3: Gallary */}
-                  {activeTab === "Gallary" && (
+                  {/* TAB 3: Gallery */}
+                  {activeTab === "Gallery" && (
                     <div className="space-y-6 animate-in fade-in duration-300">
                       
                       {/* PRODUCT GALLERY CARD */}

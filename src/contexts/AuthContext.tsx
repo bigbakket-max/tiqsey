@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Booking } from '../types';
+import { TRAVEL_AVATARS } from '../utils/avatars';
 
 interface AuthContextType {
   user: User | null;
@@ -315,7 +316,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Load bookings
           const storedBookings = localStorage.getItem(`tiqsey_bookings_${userSession.id}`);
           if (storedBookings) {
-            setBookings(JSON.parse(storedBookings));
+            try {
+              const parsed = JSON.parse(storedBookings);
+              setBookings(Array.isArray(parsed) ? parsed : []);
+            } catch {
+              setBookings([]);
+            }
           } else {
             setBookings([]);
           }
@@ -395,7 +401,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: trimmedEmail,
           password,
           bio: 'New explorer on Tiqsey! Adventure is just a booking away.',
-          avatarUrl: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 900000)}?auto=format&fit=crop&q=80&w=200`,
+          avatarUrl: TRAVEL_AVATARS[Math.floor(Math.random() * TRAVEL_AVATARS.length)]?.url || TRAVEL_AVATARS[0].url,
           createdAt: new Date().toLocaleDateString(),
           role: (isAdmin ? 'admin' : 'user') as 'admin' | 'user',
         };
@@ -458,7 +464,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const storedBookings = localStorage.getItem(`tiqsey_bookings_${userSession.id}`);
         if (storedBookings) {
-          setBookings(JSON.parse(storedBookings));
+          try {
+            const parsed = JSON.parse(storedBookings);
+            setBookings(Array.isArray(parsed) ? parsed : []);
+          } catch {
+            setBookings([]);
+          }
         } else {
           setBookings([]);
         }
@@ -482,7 +493,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setTimeout(() => {
         const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
-        const users = JSON.parse(usersRaw);
+        let users: any[] = [];
+        try {
+          const parsedUsers = JSON.parse(usersRaw);
+          users = Array.isArray(parsedUsers) ? parsedUsers : [];
+        } catch {
+          users = [];
+        }
         
         let matchedIdx = users.findIndex((u: any) => u.id === user.id);
         if (matchedIdx === -1) {
@@ -565,7 +582,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       // Save guest user state to DB
       const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
-      const users = JSON.parse(usersRaw);
+      let users: any[] = [];
+      try {
+        const parsedUsers = JSON.parse(usersRaw);
+        users = Array.isArray(parsedUsers) ? parsedUsers : [];
+      } catch {
+        users = [];
+      }
       users.push(newGuest);
       localStorage.setItem('tiqsey_users', JSON.stringify(users));
       // Authenticate guest user session

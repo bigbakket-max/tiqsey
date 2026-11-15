@@ -249,40 +249,42 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('tiqsey_autodetected', 'true');
       };
 
-      const tryGeoServices = async () => {
+      const detectFromLocaleOrTimezone = () => {
         try {
-          const res = await fetch('https://ipapi.co/json/');
-          if (res.ok) {
-            const data = await res.json();
-            if (data.currency) {
-              handleDetectionSuccess(data.currency);
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+          const tzCurrencyMap: Array<[RegExp, string]> = [
+            [/America\/(New_York|Chicago|Denver|Los_Angeles|Phoenix|Detroit|Anchorage)/, 'USD'],
+            [/America\/Toronto|America\/Vancouver|America\/Montreal/, 'CAD'],
+            [/Europe\/London/, 'GBP'],
+            [/Europe\/Zurich/, 'CHF'],
+            [/Asia\/Tokyo/, 'JPY'],
+            [/Asia\/Singapore/, 'SGD'],
+            [/Asia\/Kolkata|Asia\/Calcutta/, 'INR'],
+            [/Asia\/Dubai/, 'AED'],
+            [/Australia\//, 'AUD'],
+            [/Asia\/Seoul/, 'KRW'],
+            [/Asia\/Bangkok/, 'THB'],
+            [/Europe\/Istanbul|Asia\/Istanbul/, 'TRY'],
+            [/Europe\//, 'EUR'],
+          ];
+          for (const [pattern, code] of tzCurrencyMap) {
+            if (pattern.test(tz)) {
+              handleDetectionSuccess(code);
               return;
             }
           }
-        } catch {
-          // ignore
-        }
-
-        try {
-          const res = await fetch('https://ip-api.com/json/');
-          if (res.ok) {
-            const data = await res.json();
-            if (data.countryCode) {
-              const mappedCurrency = countryToCurrency[data.countryCode.toUpperCase()];
-              if (mappedCurrency) {
-                handleDetectionSuccess(mappedCurrency);
-                return;
-              }
-            }
+          const langRegion = (navigator.language || '').split('-')[1]?.toUpperCase();
+          if (langRegion && countryToCurrency[langRegion]) {
+            handleDetectionSuccess(countryToCurrency[langRegion]);
+            return;
           }
         } catch {
           // ignore
         }
-
         localStorage.setItem('tiqsey_autodetected', 'true');
       };
 
-      tryGeoServices();
+      detectFromLocaleOrTimezone();
     }
   }, []);
 
@@ -293,20 +295,28 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     root.dir = language.dir || 'ltr';
   }, [language]);
 
-  // Sync dark/light theme
+  // Sync dark/light theme and respond to system preference changes
   useEffect(() => {
     const root = window.document.documentElement;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const applyTheme = (t: Theme) => {
       if (t === 'dark') {
         root.classList.add('dark');
       } else if (t === 'light') {
         root.classList.remove('dark');
       } else {
-        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        root.classList.toggle('dark', isDark);
+        root.classList.toggle('dark', mediaQuery.matches);
       }
     };
     applyTheme(theme);
+
+    const handleSystemChange = () => {
+      if (theme === 'system') {
+        applyTheme('system');
+      }
+    };
+    mediaQuery.addEventListener('change', handleSystemChange);
+    return () => mediaQuery.removeEventListener('change', handleSystemChange);
   }, [theme]);
 
   const handleSetCurrency = (curr: Currency) => {

@@ -924,8 +924,8 @@ export default function Bookings() {
   // Download ticket proxy
   const handleDownload = async (booking: AdminBooking) => {
     showLoader();
-    await new Promise(resolve => setTimeout(resolve, 800));
     try {
+      await new Promise(resolve => setTimeout(resolve, 400));
       downloadTicketVoucher({
         bookingId: booking.id,
         bookingRef: booking.bookingRef,
@@ -935,7 +935,7 @@ export default function Bookings() {
         attractionImageUrl: booking.attractionImageUrl,
         city: booking.city || 'Paris',
         bookingDate: booking.bookingDate,
-        timeSlot: '11:15 AM - Standard Admission',
+        timeSlot: booking.timeslot || '11:15 AM - Standard Admission',
         passengerName: booking.customerName,
         ticketsCount: booking.travelers,
         totalPrice: booking.paymentCurrency && booking.paymentPrice !== undefined ? (
@@ -959,6 +959,8 @@ export default function Bookings() {
     } catch (e) {
       console.error('Error generating ticket download', e);
       triggerToast('Error issuing voucher. Please try again.', 'error');
+    } finally {
+      hideLoader();
     }
   };
 
@@ -1338,7 +1340,7 @@ export default function Bookings() {
 
                       {/* Small external link indicator to open booking details in a new tab */}
                       <a 
-                        href={`/#/secure-panel/bookings?orderId=${encodeURIComponent(booking.orderId)}`}
+                        href={`/secure-panel/bookings?orderId=${encodeURIComponent(booking.orderId)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[#8892a0] hover:text-[#5fa6d9] transition-colors p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex items-center justify-center min-w-[36px] min-h-[36px]"

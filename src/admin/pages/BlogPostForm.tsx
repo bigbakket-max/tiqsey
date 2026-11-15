@@ -836,79 +836,85 @@ export default function BlogPostForm() {
 
   const handleSave = async (overrideStatus?: 'Draft' | 'Published' | 'Scheduled') => {
     showLoader();
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const finalStatus = overrideStatus || status;
+    try {
+      await new Promise(resolve => setTimeout(resolve, 400));
+      const finalStatus = overrideStatus || status;
 
-    // Form validation
-    const newErrors: { title?: boolean; content?: boolean; excerpt?: boolean } = {};
-    if (!title.trim()) newErrors.title = true;
-    if (!excerpt.trim()) newErrors.excerpt = true;
-    if (!content.trim()) newErrors.content = true;
+      // Form validation (strip empty TipTap tags like <p></p>)
+      const strippedContent = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, '').trim();
+      const hasMediaInContent = /<(?:img|iframe|video|table)\b/i.test(content);
+      const newErrors: { title?: boolean; content?: boolean; excerpt?: boolean } = {};
+      if (!title.trim()) newErrors.title = true;
+      if (!excerpt.trim()) newErrors.excerpt = true;
+      if (!strippedContent && !hasMediaInContent) newErrors.content = true;
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      setToastType('error');
-      setToastMessage('Error: Please fill out Title, Excerpt, and Content fields.');
-      setShowToast(true);
-      return;
-    }
-
-    // Future date validation for Scheduled posts
-    let finalPublishedAt = publishedAt;
-    if (finalStatus === 'Scheduled') {
-      const scheduledDate = new Date(publishedAt);
-      if (isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now() + 5000) {
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
         setToastType('error');
-        setToastMessage('Error: Scheduled date and time must be in the future. Please update the Publish Date & Time in the sidebar.');
+        setToastMessage('Error: Please fill out Title, Excerpt, and Content fields.');
         setShowToast(true);
         return;
       }
-    } else if (finalStatus === 'Published') {
-      // If publishing immediately, ensure publishedAt is not in the future
-      const pubDate = new Date(publishedAt);
-      if (isNaN(pubDate.getTime()) || pubDate.getTime() > Date.now()) {
-        finalPublishedAt = getLocalDatetime();
+
+      // Future date validation for Scheduled posts
+      let finalPublishedAt = publishedAt;
+      if (finalStatus === 'Scheduled') {
+        const scheduledDate = new Date(publishedAt);
+        if (isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now() + 5000) {
+          setToastType('error');
+          setToastMessage('Error: Scheduled date and time must be in the future. Please update the Publish Date & Time in the sidebar.');
+          setShowToast(true);
+          return;
+        }
+      } else if (finalStatus === 'Published') {
+        // If publishing immediately, ensure publishedAt is not in the future
+        const pubDate = new Date(publishedAt);
+        if (isNaN(pubDate.getTime()) || pubDate.getTime() > Date.now()) {
+          finalPublishedAt = getLocalDatetime();
+        }
       }
+
+      setErrors({});
+      setStatus(finalStatus);
+
+      const postData = {
+        title,
+        excerpt,
+        content: htmlToMarkdown(content).split('\n\n').filter(Boolean),
+        imageUrl: imageUrl || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1200&q=80",
+        category: category as any,
+        author: {
+          name: authorName || "Admin",
+          avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
+          role: "Editor"
+        },
+        publishedAt: finalPublishedAt || getLocalDatetime(),
+        readTime: Math.max(1, Math.ceil(htmlToMarkdown(content).length / 1000)) + " min read",
+        city,
+        tags: tags.length > 0 ? tags : (tagInput ? tagInput.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean) : []),
+        slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        status: finalStatus
+      };
+
+      if (isEditing && id) {
+        updatePost(id, postData);
+      } else {
+        addPost(postData);
+      }
+      
+      let msg = `Post saved as Draft!`;
+      if (finalStatus === 'Published') msg = 'Post published successfully!';
+      if (finalStatus === 'Scheduled') msg = `Post scheduled for ${new Date(finalPublishedAt).toLocaleString()}!`;
+      setToastType('success');
+      setToastMessage(msg);
+      setShowToast(true);
+      
+      setTimeout(() => {
+        navigate('/blog');
+      }, 1500);
+    } finally {
+      hideLoader();
     }
-
-    setErrors({});
-    setStatus(finalStatus);
-
-    const postData = {
-      title,
-      excerpt,
-      content: htmlToMarkdown(content).split('\n\n').filter(Boolean),
-      imageUrl: imageUrl || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1200&q=80",
-      category: category as any,
-      author: {
-        name: authorName || "Admin",
-        avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
-        role: "Editor"
-      },
-      publishedAt: finalPublishedAt || getLocalDatetime(),
-      readTime: Math.max(1, Math.ceil(htmlToMarkdown(content).length / 1000)) + " min read",
-      city,
-      tags: tags.length > 0 ? tags : (tagInput ? tagInput.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean) : []),
-      slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-      status: finalStatus
-    };
-
-    if (isEditing && id) {
-      updatePost(id, postData);
-    } else {
-      addPost(postData);
-    }
-    
-    let msg = `Post saved as Draft!`;
-    if (finalStatus === 'Published') msg = 'Post published successfully!';
-    if (finalStatus === 'Scheduled') msg = `Post scheduled for ${new Date(finalPublishedAt).toLocaleString()}!`;
-    setToastType('success');
-    setToastMessage(msg);
-    setShowToast(true);
-    
-    setTimeout(() => {
-      navigate('/blog');
-    }, 1500);
   };
 
   const getFormatLabel = () => {
@@ -1765,12 +1771,6 @@ export default function BlogPostForm() {
 
                   {/* Center/Right: View Toggle & Extras */}
                   <div className="flex items-center gap-3">
-                    {/* Visual Editor Label */}
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-bold border border-amber-200/50 dark:border-amber-900/40">
-                      <Wand2 className="w-3.5 h-3.5 animate-bounce" />
-                      <span>WYSIWYG Live Editor</span>
-                    </div>
-
                     {/* Extras */}
                     <div className="flex items-center gap-1">
                       <button

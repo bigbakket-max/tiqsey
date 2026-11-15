@@ -13,20 +13,16 @@ import {
   ArrowLeft,
   Plane,
   MapPin,
-  Cookie,
-  Scale,
   Compass,
 } from "lucide-react";
 import { ScrollReveal } from "./ScrollReveal";
 import { useSettings } from "../contexts/SettingsContext";
-import { TrustPageKey } from "./LegalDocumentLayout";
 
 interface AboutPageProps {
   onBackToHome: () => void;
   onExploreActivities: () => void;
   onSelectAttraction?: (id: string) => void;
   onSelectDestination?: (destination: string) => void;
-  onNavigate?: (page: TrustPageKey) => void;
 }
 
 interface SafeImageProps {
@@ -74,7 +70,6 @@ export default function AboutPage({
   onBackToHome,
   onExploreActivities,
   onSelectDestination,
-  onNavigate,
 }: AboutPageProps) {
   const { t } = useSettings();
 
@@ -112,16 +107,6 @@ export default function AboutPage({
       onSelectDestination(cityName);
     } else {
       onExploreActivities();
-    }
-  };
-
-  const handleNavToPolicy = (page: TrustPageKey) => {
-    if (onNavigate) {
-      onNavigate(page);
-    } else {
-      window.history.pushState({}, "", `/${page}`);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 

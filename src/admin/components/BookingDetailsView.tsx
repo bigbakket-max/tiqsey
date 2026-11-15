@@ -96,9 +96,24 @@ export default function BookingDetailsView({
     setTimeout(() => setShowToast(false), 3000);
   };
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    triggerToast(`${label} copied to clipboard!`, 'success');
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      triggerToast(`${label} copied to clipboard!`, 'success');
+    } catch {
+      triggerToast(`Could not copy ${label}.`, 'error');
+    }
   };
 
   const toggleCollapse = (section: keyof typeof sectionsCollapsed) => {
@@ -108,33 +123,30 @@ export default function BookingDetailsView({
     }));
   };
 
-  // Passenger data with fallback matching PDF exactly
-  const [passengersList, setPassengersList] = useState<Passenger[]>(
-    booking.passengers && booking.passengers.length >= 2 ? booking.passengers : [
+  const deriveInitialPassengers = (b: AdminBooking): Passenger[] => {
+    if (b.passengers && b.passengers.length > 0) {
+      return b.passengers;
+    }
+    const fullName = (b.customerName || 'Lead Traveler').trim();
+    const parts = fullName.split(/\s+/);
+    return [
       {
-        name: 'Jacob davis',
-        email: 'alyshaawaluddin@gmail.com',
-        phone: '0459515313',
-        phoneCode: '+61',
-        firstName: 'Jacob',
-        lastName: 'davis',
-        gender: 'male',
-        dob: '1999-09-29',
-        type: 'Adult'
-      },
-      {
-        name: 'Sarah davis',
-        email: 'sarah@outlook.com',
-        phone: '0459515313',
-        phoneCode: '+61',
-        firstName: 'Sarah',
-        lastName: 'davis',
-        gender: 'female',
-        dob: '2001-05-12',
+        name: fullName,
+        email: b.customerEmail || '',
+        phone: b.customerPhone || '',
+        firstName: parts[0] || fullName,
+        lastName: parts.slice(1).join(' ') || '',
         type: 'Adult'
       }
-    ]
-  );
+    ];
+  };
+
+  const [passengersList, setPassengersList] = useState<Passenger[]>(() => deriveInitialPassengers(booking));
+
+  React.useEffect(() => {
+    setPassengersList(deriveInitialPassengers(booking));
+    setTimeSlot(booking.timeslot || 'Flexible');
+  }, [booking.id, booking.timeslot, booking.passengers]);
 
   const StatusBadge = ({ status }: { status: string }) => {
     switch (status) {
@@ -508,15 +520,27 @@ export default function BookingDetailsView({
                     type="text" 
                     value={timeSlot}
                     onChange={e => setTimeSlot(e.target.value)}
-                    onBlur={() => setIsEditingTimeSlot(false)}
-                    onKeyDown={e => e.key === 'Enter' && setIsEditingTimeSlot(false)}
-                    className="w-16 border rounded bg-white dark:bg-slate-800 text-xs px-1 font-bold"
+                    onBlur={() => {
+                      setIsEditingTimeSlot(false);
+                      const cleaned = timeSlot.trim() || 'Flexible';
+                      setTimeSlot(cleaned);
+                      if (cleaned !== (booking.timeslot || 'Flexible')) {
+                        onUpdateBooking({ ...booking, timeslot: cleaned });
+                        triggerToast('Time slot updated.', 'success');
+                      }
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        (e.currentTarget as HTMLInputElement).blur();
+                      }
+                    }}
+                    className="w-24 border rounded bg-white dark:bg-slate-800 text-xs px-1.5 py-0.5 font-bold"
                     autoFocus
                   />
                 ) : (
                   <>
                     <span>{timeSlot}</span>
-                    <button onClick={() => setIsEditingTimeSlot(true)} className="text-blue-500 hover:underline text-[10px] font-bold">
+                    <button type="button" onClick={() => setIsEditingTimeSlot(true)} className="text-blue-500 hover:underline text-[10px] font-bold cursor-pointer">
                       Edit
                     </button>
                   </>
@@ -781,24 +805,39 @@ export default function BookingDetailsView({
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <button onClick={() => setIsAddingPassenger(false)} className="px-3 py-1 text-xs text-slate-500 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded">
+                  <button type="button" onClick={() => setIsAddingPassenger(false)} className="px-3 py-1 text-xs text-slate-500 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded cursor-pointer">
                     Cancel
                   </button>
                   <button 
+                    type="button"
                     onClick={() => {
-                      setPassengersList([...passengersList, {
-                        id: Math.random().toString(),
-                        name: newPassengerName,
-                        email: newPassengerEmail,
+                      const trimmedName = newPassengerName.trim();
+                      if (!trimmedName) {
+                        triggerToast('Please enter the traveler full name.', 'error');
+                        return;
+                      }
+                      const parts = trimmedName.split(/\s+/);
+                      const updatedPassengers: Passenger[] = [...passengersList, {
+                        id: `pax-${Date.now()}`,
+                        name: trimmedName,
+                        email: newPassengerEmail.trim() || booking.customerEmail || '',
+                        firstName: parts[0] || trimmedName,
+                        lastName: parts.slice(1).join(' ') || '',
                         type: newPassengerType,
                         status: 'Saved'
-                      }]);
+                      }];
+                      setPassengersList(updatedPassengers);
+                      onUpdateBooking({
+                        ...booking,
+                        passengers: updatedPassengers,
+                        travelers: Math.max(booking.travelers || 0, updatedPassengers.length)
+                      });
                       setNewPassengerName('');
                       setNewPassengerEmail('');
                       setIsAddingPassenger(false);
                       triggerToast("New traveler profile saved successfully!", "success");
                     }}
-                    className="px-3 py-1 bg-[#5fa6d9] text-white rounded font-bold"
+                    className="px-3 py-1 bg-[#5fa6d9] text-white rounded font-bold cursor-pointer"
                   >
                     Save Profile
                   </button>
@@ -810,10 +849,10 @@ export default function BookingDetailsView({
           {/* Passengers Mobile Cards (< lg) */}
           <div className="lg:hidden space-y-3">
             {passengersList.map((pass, index) => {
-              const dobString = pass.dob || '1999-09-29';
-              const dob = new Date(dobString);
+              const dobString = pass.dob || '';
+              const dob = dobString ? new Date(dobString) : null;
               let computedAge: string | number = '-';
-              if (!isNaN(dob.getTime())) {
+              if (dob && !isNaN(dob.getTime())) {
                 const today = new Date();
                 let age = today.getFullYear() - dob.getFullYear();
                 const m = today.getMonth() - dob.getMonth();
@@ -822,6 +861,7 @@ export default function BookingDetailsView({
                 }
                 computedAge = age >= 0 ? age : '-';
               }
+              const nameParts = (pass.name || '').trim().split(/\s+/);
               return (
                 <div key={index} className="bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-200/70 dark:border-slate-800">
@@ -835,7 +875,7 @@ export default function BookingDetailsView({
                     </div>
                     <button 
                       type="button"
-                      onClick={() => triggerToast(`Uploading passport attachments for passenger ${index+1}...`, "info")}
+                      onClick={() => triggerToast(`Passport details noted for passenger ${index+1}.`, "info")}
                       className="text-brand font-bold text-xs hover:underline cursor-pointer px-2.5 py-1.5 rounded-md bg-brand/5 border border-brand/20 min-h-[36px]"
                     >
                       + Add Passport
@@ -844,25 +884,25 @@ export default function BookingDetailsView({
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div className="col-span-2 min-w-0">
                       <p className="text-[10px] font-bold uppercase text-slate-400">Email</p>
-                      <p className="font-semibold text-slate-700 dark:text-slate-200 break-all select-all mt-0.5">{pass.email || 'alyshaawaluddin@gmail.com'}</p>
+                      <p className="font-semibold text-slate-700 dark:text-slate-200 break-all select-all mt-0.5">{pass.email || (index === 0 ? booking.customerEmail : '') || '—'}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase text-slate-400">Phone</p>
-                      <p className="font-semibold text-slate-700 dark:text-slate-200 tabular-nums mt-0.5">{pass.phoneCode || '+61'} {pass.phone || '0459515313'}</p>
+                      <p className="font-semibold text-slate-700 dark:text-slate-200 tabular-nums mt-0.5">{[pass.phoneCode, pass.phone || (index === 0 ? booking.customerPhone : '')].filter(Boolean).join(' ') || '—'}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase text-slate-400">Gender & Age</p>
                       <p className="font-semibold text-slate-700 dark:text-slate-200 uppercase mt-0.5 tabular-nums">
-                        {pass.gender || 'male'} • <span className="text-[#5fa6d9]">{computedAge} yrs</span>
+                        {pass.gender || pass.type || 'Adult'} • <span className="text-[#5fa6d9]">{computedAge !== '-' ? `${computedAge} yrs` : '—'}</span>
                       </p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase text-slate-400">First / Last Name</p>
-                      <p className="font-semibold text-slate-700 dark:text-slate-200 mt-0.5">{pass.firstName || 'Jacob'} {pass.lastName || 'davis'}</p>
+                      <p className="font-semibold text-slate-700 dark:text-slate-200 mt-0.5">{pass.firstName || nameParts[0] || '—'} {pass.lastName || nameParts.slice(1).join(' ')}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase text-slate-400">Date of Birth</p>
-                      <p className="font-mono font-semibold text-slate-700 dark:text-slate-200 tabular-nums mt-0.5">{pass.dob || '1999-09-29'}</p>
+                      <p className="font-mono font-semibold text-slate-700 dark:text-slate-200 tabular-nums mt-0.5">{pass.dob || '—'}</p>
                     </div>
                   </div>
                 </div>
@@ -909,16 +949,17 @@ export default function BookingDetailsView({
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-3 break-all select-all">{pass.email || 'alyshaawaluddin@gmail.com'}</td>
-                    <td className="py-3 px-3 tabular-nums">{pass.phone || '0459515313'}</td>
-                    <td className="py-3 px-3 text-center tabular-nums">{pass.phoneCode || '+61'}</td>
-                    <td className="py-3 px-3">{pass.firstName || 'Jacob'}</td>
-                    <td className="py-3 px-3">{pass.lastName || 'davis'}</td>
-                    <td className="py-3 px-3 uppercase text-[10px]">{pass.gender || 'male'}</td>
-                    <td className="py-3 px-3 font-mono tabular-nums">{pass.dob || '1999-09-29'}</td>
+                    <td className="py-3 px-3 break-all select-all">{pass.email || (index === 0 ? booking.customerEmail : '') || '—'}</td>
+                    <td className="py-3 px-3 tabular-nums">{pass.phone || (index === 0 ? booking.customerPhone : '') || '—'}</td>
+                    <td className="py-3 px-3 text-center tabular-nums">{pass.phoneCode || '—'}</td>
+                    <td className="py-3 px-3">{pass.firstName || (pass.name || '').trim().split(/\s+/)[0] || '—'}</td>
+                    <td className="py-3 px-3">{pass.lastName || (pass.name || '').trim().split(/\s+/).slice(1).join(' ') || '—'}</td>
+                    <td className="py-3 px-3 uppercase text-[10px]">{pass.gender || pass.type || 'Adult'}</td>
+                    <td className="py-3 px-3 font-mono tabular-nums">{pass.dob || '—'}</td>
                     <td className="py-3 px-3 text-center font-bold text-[#5fa6d9] dark:text-[#7da7c4] font-mono tabular-nums">
                       {(() => {
-                        const dobString = pass.dob || '1999-09-29';
+                        const dobString = pass.dob || '';
+                        if (!dobString) return '-';
                         const dob = new Date(dobString);
                         if (isNaN(dob.getTime())) return '-';
                         const today = new Date();
