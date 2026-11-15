@@ -3,7 +3,7 @@ import {
   ArrowLeft, Copy, MoreVertical, AlertTriangle, User, Layers, Wallet, Receipt, Mail, Phone, MapPin, 
   Calendar, Clock, ChevronDown, ChevronUp, Plus, Ticket, Edit, CheckCircle2, 
   HelpCircle, FileText, Globe, Laptop, Info, ShieldCheck, X, RefreshCw, DollarSign, ExternalLink,
-  CreditCard, Compass, Lightbulb, QrCode, Download, ShieldAlert, Check
+  CreditCard, Compass, Lightbulb, QrCode, Download, ShieldAlert, Check, Users, Coins
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { EurToInrTooltip } from './EurToInrTooltip';
@@ -479,144 +479,144 @@ export default function BookingDetailsView({
       </div>
 
       {/* 3. ACTIVE BOOKING CARD */}
-      <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-6 shadow-sm space-y-5">
+      <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-6">
         
-        {/* Left Orange Tag Badge */}
-        <div className={`absolute right-full top-6 w-6 sm:w-9 lg:w-11 h-10 sm:h-12 lg:h-14 ${statusColors.bgColor} rounded-tl-xl sm:rounded-tl-2xl rounded-bl-xl sm:rounded-bl-2xl rounded-tr-none rounded-br-none flex items-center justify-center shadow-md ${statusColors.shadowColor} z-10 translate-x-[1px]`}>
+        {/* Left Status Tag Badge */}
+        <div className={`absolute right-full top-6 w-6 sm:w-9 lg:w-11 h-10 sm:h-12 lg:h-14 ${statusColors.bgColor} rounded-tl-2xl rounded-bl-2xl rounded-tr-none rounded-br-none flex items-center justify-center shadow-md ${statusColors.shadowColor} z-10 translate-x-[1px]`}>
           {statusColors.icon}
         </div>
 
         {/* Header warning & Status badges */}
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-snug">
-              {booking.attractionName || 'Acropolis of Athens Entry Tickets | Skip-The-Line Admission Tickets'}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
-              Variant: {booking.variant || 'Acropolis of Athens General Admission Tickets'}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="space-y-1">
+              <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-snug">
+                {booking.attractionName || 'Acropolis of Athens Entry Tickets | Skip-The-Line Admission Tickets'}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                Variant: {booking.variant || 'Acropolis of Athens General Admission Tickets'}
+              </p>
+            </div>
+
+            {/* Actions buttons Row */}
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={booking.status}
+                onChange={(e) => {
+                  const newSt = e.target.value;
+                  onUpdateStatus(booking.id, newSt);
+                  triggerToast(`Booking status updated to ${newSt.toUpperCase()}`, "success");
+                }}
+                className="min-h-[38px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl px-3 py-1.5 focus:outline-none focus:border-brand cursor-pointer shadow-xs"
+              >
+                <option value="confirmed">Confirmed</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              {booking.status !== 'cancelled' && (
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(true)}
+                  className="min-h-[38px] border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+              )}
+              {booking.status !== 'confirmed' && (
+                <button 
+                  type="button"
+                  onClick={() => {
+                    onUpdateStatus(booking.id, 'confirmed');
+                    triggerToast("Booking marked as CONFIRMED successfully!", "success");
+                  }}
+                  className="min-h-[38px] bg-brand hover:opacity-90 text-white px-4 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs"
+                >
+                  Confirm
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <StatusBadge status={booking.status} />
+            <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80">
+              Direct Booking
+            </span>
+          </div>
+        </div>
+
+        {/* Travel Specs Grid - Clean Responsive Tiles */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">PNR</p>
+            <p className="font-extrabold text-slate-800 dark:text-slate-200 select-all">{booking.pnr_number || booking.bookingRef || 'BKWDWDOLOCH7'}</p>
+          </div>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">Travelers</p>
+            <p className="font-extrabold text-slate-800 dark:text-slate-200">{booking.travelers || 2}</p>
+          </div>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">Date of Travel</p>
+            <p className="font-extrabold text-slate-800 dark:text-slate-200">{booking.bookingDate || '30 Jun 2026'}</p>
+          </div>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">End Date</p>
+            <p className="font-extrabold text-slate-800 dark:text-slate-200">{booking.bookingDate || '30 Jun 2026'}</p>
+          </div>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">Time Slot</p>
+            <div className="flex items-center justify-between text-slate-800 dark:text-slate-200 font-extrabold">
+              {isEditingTimeSlot ? (
+                <input 
+                  type="text" 
+                  value={timeSlot}
+                  onChange={e => setTimeSlot(e.target.value)}
+                  onBlur={() => {
+                    setIsEditingTimeSlot(false);
+                    const cleaned = timeSlot.trim() || 'Flexible';
+                    setTimeSlot(cleaned);
+                    if (cleaned !== (booking.timeslot || 'Flexible')) {
+                      onUpdateBooking({ ...booking, timeslot: cleaned });
+                      triggerToast('Time slot updated.', 'success');
+                    }
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      (e.currentTarget as HTMLInputElement).blur();
+                    }
+                  }}
+                  className="w-full border rounded bg-white dark:bg-slate-800 text-xs px-1.5 py-0.5 font-bold"
+                  autoFocus
+                />
+              ) : (
+                <>
+                  <span>{timeSlot}</span>
+                  <button type="button" onClick={() => setIsEditingTimeSlot(true)} className="text-brand hover:underline text-[10px] font-bold cursor-pointer">
+                    Edit
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">Net Amount</p>
+            <p className="font-extrabold text-slate-900 dark:text-white">
+              <EurToInrTooltip amount={booking.totalPrice || 66} bookingDate={booking.bookingDate} currency="USD">
+                USD {booking.totalPrice || 66}
+              </EurToInrTooltip>
             </p>
           </div>
-
-            {/* Badges line & Actions buttons Row */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={booking.status} />
-                <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80">
-                  Direct Booking
-                </span>
-              </div>
-              
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  value={booking.status}
-                  onChange={(e) => {
-                    const newSt = e.target.value;
-                    onUpdateStatus(booking.id, newSt);
-                    triggerToast(`Booking status updated to ${newSt.toUpperCase()}`, "success");
-                  }}
-                  className="min-h-[36px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-md px-2.5 py-1.5 focus:outline-none focus:border-[#5fa6d9] cursor-pointer"
-                >
-                  <option value="confirmed">Confirmed</option>
-                  <option value="pending">Pending</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-                {booking.status !== 'cancelled' && (
-                  <button
-                    type="button"
-                    onClick={() => setShowCancelConfirm(true)}
-                    className="min-h-[36px] border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 px-3 py-1.5 rounded-md text-xs font-bold transition-colors shadow-sm cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                )}
-                {booking.status !== 'confirmed' && (
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      onUpdateStatus(booking.id, 'confirmed');
-                      triggerToast("Booking marked as CONFIRMED successfully!", "success");
-                    }}
-                    className="min-h-[36px] bg-brand hover:opacity-90 text-white px-3.5 py-1.5 rounded-md text-xs font-black transition-colors cursor-pointer shadow-sm"
-                  >
-                    Confirm
-                  </button>
-                )}
-              </div>
-            </div>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">Gross Amount</p>
+            <p className="font-extrabold text-slate-900 dark:text-white">
+              <EurToInrTooltip amount={booking.totalPrice || 66} bookingDate={booking.bookingDate} currency="USD">
+                USD {booking.totalPrice || 66}
+              </EurToInrTooltip>
+            </p>
           </div>
-
-          {/* Travel Specs Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 text-xs border-t border-slate-100 dark:border-slate-800 pt-4 font-semibold text-slate-700 dark:text-slate-300">
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">PNR</p>
-              <p className="font-extrabold text-slate-800 dark:text-slate-200 select-all">{booking.pnr_number || booking.bookingRef || 'BKWDWDOLOCH7'}</p>
-            </div>
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">Travelers</p>
-              <p className="font-extrabold text-slate-800 dark:text-slate-200">{booking.travelers || 2}</p>
-            </div>
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">Date of Travel</p>
-              <p className="font-extrabold text-slate-800 dark:text-slate-200">{booking.bookingDate || '30 Jun 2026'}</p>
-            </div>
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">Booking End Date</p>
-              <p className="font-extrabold text-slate-800 dark:text-slate-200">{booking.bookingDate || '30 Jun 2026'}</p>
-            </div>
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">Time Slot</p>
-              <div className="flex items-center gap-1 text-slate-800 dark:text-slate-200 font-extrabold">
-                {isEditingTimeSlot ? (
-                  <input 
-                    type="text" 
-                    value={timeSlot}
-                    onChange={e => setTimeSlot(e.target.value)}
-                    onBlur={() => {
-                      setIsEditingTimeSlot(false);
-                      const cleaned = timeSlot.trim() || 'Flexible';
-                      setTimeSlot(cleaned);
-                      if (cleaned !== (booking.timeslot || 'Flexible')) {
-                        onUpdateBooking({ ...booking, timeslot: cleaned });
-                        triggerToast('Time slot updated.', 'success');
-                      }
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        (e.currentTarget as HTMLInputElement).blur();
-                      }
-                    }}
-                    className="w-24 border rounded bg-white dark:bg-slate-800 text-xs px-1.5 py-0.5 font-bold"
-                    autoFocus
-                  />
-                ) : (
-                  <>
-                    <span>{timeSlot}</span>
-                    <button type="button" onClick={() => setIsEditingTimeSlot(true)} className="text-blue-500 hover:underline text-[10px] font-bold cursor-pointer">
-                      Edit
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">Net Amount</p>
-              <p className="font-extrabold text-slate-800 dark:text-slate-200">
-                <EurToInrTooltip amount={booking.totalPrice || 66} bookingDate={booking.bookingDate} currency="USD">
-                  USD {booking.totalPrice || 66}
-                </EurToInrTooltip>
-              </p>
-            </div>
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase mb-0.5">Gross Amount</p>
-              <p className="font-extrabold text-slate-800 dark:text-slate-200">
-                <EurToInrTooltip amount={booking.totalPrice || 66} bookingDate={booking.bookingDate} currency="USD">
-                  USD {booking.totalPrice || 66}
-                </EurToInrTooltip>
-              </p>
-            </div>
-          </div>
+        </div>
 
           {/* Booking Contents Embedded Section */}
           <div className="w-full h-px bg-slate-100 dark:bg-slate-800 pt-px" />
@@ -712,98 +712,116 @@ export default function BookingDetailsView({
         </div>
 
         {/* BOOKING LEVEL INFORMATION CARD */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Booking Level Information</h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400">
+              <MapPin className="w-4 h-4" />
+            </span>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Booking Level Information</h3>
+              <p className="text-[11px] text-slate-400">Geographic jurisdiction and region data</p>
+            </div>
           </div>
           
-          <div className="w-full h-px bg-slate-100 dark:bg-slate-800 pt-px" />
+          <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
 
-          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-3">
-            <span className="text-slate-400 dark:text-slate-500">State: <strong className="text-slate-800 dark:text-slate-200 font-semibold">NA</strong></span>
-            <span className="text-slate-200 dark:text-slate-800">|</span>
-            <span className="text-slate-400 dark:text-slate-500">Country: <strong className="text-slate-800 dark:text-slate-200 font-semibold">{(() => {
-              const city = booking.city?.toLowerCase() || '';
-              if (city.includes('paris')) return 'France';
-              if (city.includes('sydney')) return 'Australia';
-              if (city.includes('singapore')) return 'Singapore';
-              if (city.includes('tokyo') || city.includes('osaka')) return 'Japan';
-              if (city.includes('barcelona') || city.includes('madrid')) return 'Spain';
-              if (city.includes('amsterdam')) return 'Netherlands';
-              if (city.includes('london')) return 'United Kingdom';
-              if (city.includes('new york') || city.includes('usa') || city.includes('san diego')) return 'United States';
-              return 'Canada';
-            })()}</strong></span>
+          <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 text-xs">
+            <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <span className="text-slate-400 font-bold uppercase text-[10px]">State</span>
+              <strong className="text-slate-800 dark:text-slate-200 font-extrabold">NA</strong>
+            </div>
+            <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <span className="text-slate-400 font-bold uppercase text-[10px]">Country</span>
+              <strong className="text-slate-800 dark:text-slate-200 font-extrabold">{(() => {
+                const city = booking.city?.toLowerCase() || '';
+                if (city.includes('paris')) return 'France';
+                if (city.includes('sydney')) return 'Australia';
+                if (city.includes('singapore')) return 'Singapore';
+                if (city.includes('tokyo') || city.includes('osaka')) return 'Japan';
+                if (city.includes('barcelona') || city.includes('madrid')) return 'Spain';
+                if (city.includes('amsterdam')) return 'Netherlands';
+                if (city.includes('london')) return 'United Kingdom';
+                if (city.includes('new york') || city.includes('usa') || city.includes('san diego')) return 'United States';
+                return 'Canada';
+              })()}</strong>
+            </div>
           </div>
         </div>
 
         {/* 4. CUSTOMER INFORMATION & PASSENGER DETAILS CARD */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-5 shadow-sm space-y-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Customer Information & Passenger Details</h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-6">
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-brand/10 text-brand">
+              <Users className="w-5 h-5" />
+            </span>
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Customer Information & Passenger Details</h3>
+              <p className="text-xs text-slate-400">Primary guest contacts and passenger manifest</p>
+            </div>
           </div>
           
           <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
 
           {/* Customer Fields Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs font-semibold">
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-md border border-slate-100 dark:border-slate-800">
-              <span className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded">
-                <User className="w-3.5 h-3.5" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <div className="flex items-center gap-3 bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span className="p-2 bg-white dark:bg-slate-900 text-brand rounded-lg shadow-xs">
+                <User className="w-4 h-4" />
               </span>
               <div>
-                <p className="text-[9px] text-slate-400 uppercase">Travelers</p>
-                <p className="font-extrabold text-slate-800 dark:text-slate-200">{booking.travelers || 2}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Travelers</p>
+                <p className="font-extrabold text-slate-900 dark:text-white mt-0.5">{booking.travelers || 2}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-md border border-slate-100 dark:border-slate-800">
-              <span className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded">
-                <User className="w-3.5 h-3.5" />
-              </span>
-              <div>
-                <p className="text-[9px] text-slate-400 uppercase">Name</p>
-                <p className="font-extrabold text-slate-800 dark:text-slate-200">{booking.customerName || 'Jacob davis'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-md border border-slate-100 dark:border-slate-800 min-w-0">
-              <span className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded">
-                <Mail className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-3 bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span className="p-2 bg-white dark:bg-slate-900 text-brand rounded-lg shadow-xs">
+                <User className="w-4 h-4" />
               </span>
               <div className="min-w-0">
-                <p className="text-[9px] text-slate-400 uppercase">Email</p>
-                <p className="font-extrabold text-slate-800 dark:text-slate-200 truncate">{booking.customerEmail || 'alyshaawaluddin@gmail.com'}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Name</p>
+                <p className="font-extrabold text-slate-900 dark:text-white truncate mt-0.5">{booking.customerName || 'Jacob davis'}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-md border border-slate-100 dark:border-slate-800">
-              <span className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded">
-                <Phone className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-3 bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 min-w-0">
+              <span className="p-2 bg-white dark:bg-slate-900 text-brand rounded-lg shadow-xs shrink-0">
+                <Mail className="w-4 h-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Email</p>
+                <p className="font-extrabold text-slate-900 dark:text-white truncate mt-0.5">{booking.customerEmail || 'alyshaawaluddin@gmail.com'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span className="p-2 bg-white dark:bg-slate-900 text-brand rounded-lg shadow-xs">
+                <Phone className="w-4 h-4" />
               </span>
               <div>
-                <p className="text-[9px] text-slate-400 uppercase">Phone</p>
-                <p className="font-extrabold text-slate-800 dark:text-slate-200">{booking.customerPhone || '+6281381847386'}</p>
+                <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Phone</p>
+                <p className="font-extrabold text-slate-900 dark:text-white mt-0.5">{booking.customerPhone || '+6281381847386'}</p>
               </div>
             </div>
           </div>
 
           {/* Subsection Divider */}
-          <div className="w-full h-px bg-slate-100 dark:bg-slate-800 my-2" />
+          <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
 
           {/* Subsection Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h4 className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">Passenger Details</h4>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold mt-0.5">Total: {passengersList.length} Passengers</p>
+              <h4 className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">Passenger Details Manifest</h4>
+              <p className="text-[11px] text-slate-500 font-bold mt-0.5">Total Registered: {passengersList.length} Passengers</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <button 
+                type="button"
                 onClick={() => setIsAddingPassenger(true)}
-                className="flex items-center gap-1.5 bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 px-3 py-1.5 rounded-md text-xs font-bold transition-colors shadow-sm"
+                className="flex items-center gap-1.5 bg-brand hover:opacity-90 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
                 Add Passenger
               </button>
             </div>
@@ -816,49 +834,49 @@ export default function BookingDetailsView({
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-md border border-slate-200 dark:border-slate-700 mb-4"
+                className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-4 shadow-sm"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-bold">Add New Passenger</h4>
-                  <button onClick={() => setIsAddingPassenger(false)} className="text-slate-400 hover:text-slate-600">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Add New Passenger Profile</h4>
+                  <button type="button" onClick={() => setIsAddingPassenger(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Name</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Full Name</label>
                     <input 
                       type="text" 
                       value={newPassengerName}
                       onChange={e => setNewPassengerName(e.target.value)}
-                      className="w-full text-xs p-2 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-medium"
                       placeholder="e.g. John Doe"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Email</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Email Address</label>
                     <input 
                       type="email" 
                       value={newPassengerEmail}
                       onChange={e => setNewPassengerEmail(e.target.value)}
-                      className="w-full text-xs p-2 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-medium"
                       placeholder="e.g. john@example.com"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Type</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Passenger Type</label>
                     <select 
                       value={newPassengerType}
                       onChange={e => setNewPassengerType(e.target.value as 'Adult' | 'Child')}
-                      className="w-full text-xs p-2 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-medium"
                     >
                       <option value="Adult">Adult</option>
                       <option value="Child">Child</option>
                     </select>
                   </div>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => setIsAddingPassenger(false)} className="px-3 py-1 text-xs text-slate-500 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded cursor-pointer">
+                <div className="flex justify-end gap-2.5 pt-2">
+                  <button type="button" onClick={() => setIsAddingPassenger(false)} className="px-4 py-2 text-xs text-slate-600 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl cursor-pointer">
                     Cancel
                   </button>
                   <button 
@@ -890,7 +908,7 @@ export default function BookingDetailsView({
                       setIsAddingPassenger(false);
                       triggerToast("New traveler profile saved successfully!", "success");
                     }}
-                    className="px-3 py-1 bg-[#5fa6d9] text-white rounded font-bold cursor-pointer"
+                    className="px-4 py-2 bg-brand text-white rounded-xl font-bold cursor-pointer shadow-xs"
                   >
                     Save Profile
                   </button>
@@ -1032,48 +1050,52 @@ export default function BookingDetailsView({
         </div>
 
       {/* 5. PAYMENT INFORMATION CARD */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-5 shadow-sm space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Payment Information</h3>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-6">
+        <div className="flex items-center gap-2.5">
+          <span className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+            <DollarSign className="w-5 h-5" />
+          </span>
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Payment Information</h3>
+            <p className="text-xs text-slate-400">Financial breakdown, collected amounts, and payment parts</p>
+          </div>
         </div>
 
         <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
 
         {/* Payment Metrics Cards Grid */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-3.5">
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {/* Total Amount */}
-          <div className="bg-[#f8fafc] dark:bg-slate-950/40 p-4 rounded-xl border border-slate-150 dark:border-slate-800/80 min-h-[90px] flex flex-col justify-between">
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-1">TOTAL AMOUNT</p>
-              <p className="font-extrabold text-[#e3000f] text-base">
-                <EurToInrTooltip 
-                  amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 66)} 
-                  bookingDate={booking.bookingDate} 
-                  currency={booking.paymentCurrency || "USD"}
-                >
-                  {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
-                    new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: booking.paymentCurrency,
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    }).format(booking.paymentPrice)
-                  ) : (
-                    `USD ${booking.totalPrice || 66}`
-                  )}
-                </EurToInrTooltip>
-              </p>
-            </div>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-2">TOTAL AMOUNT</p>
+            <p className="font-extrabold text-[#e3000f] text-base">
+              <EurToInrTooltip 
+                amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 66)} 
+                bookingDate={booking.bookingDate} 
+                currency={booking.paymentCurrency || "USD"}
+              >
+                {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+                  new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: booking.paymentCurrency,
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  }).format(booking.paymentPrice)
+                ) : (
+                  `USD ${booking.totalPrice || 66}`
+                )}
+              </EurToInrTooltip>
+            </p>
           </div>
 
           {/* Collected */}
-          <div className="relative bg-[#f8fafc] dark:bg-slate-950/40 p-4 rounded-xl border border-slate-150 dark:border-slate-800/80 min-h-[90px] flex flex-col justify-between">
-            <span className="absolute top-3 right-3 text-[10px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded">
+          <div className="relative bg-slate-50/80 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <span className="absolute top-3 right-3 text-[10px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
               100.00%
             </span>
             <div>
-              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-1">COLLECTED</p>
-              <p className="font-extrabold text-slate-800 dark:text-slate-200 text-base">
+              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-2">COLLECTED</p>
+              <p className="font-extrabold text-slate-900 dark:text-white text-base">
                 <EurToInrTooltip 
                   amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.collectedAmount ?? booking.totalPrice ?? 66)} 
                   bookingDate={booking.bookingDate} 
@@ -1095,34 +1117,30 @@ export default function BookingDetailsView({
           </div>
 
           {/* Pending */}
-          <div className="relative bg-[#f8fafc] dark:bg-slate-950/40 p-4 rounded-xl border border-slate-150 dark:border-slate-800/80 min-h-[90px] flex flex-col justify-between">
-            <span className="absolute top-3 right-3 text-[10px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded">
+          <div className="relative bg-slate-50/80 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <span className="absolute top-3 right-3 text-[10px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
               0.00%
             </span>
             <div>
-              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-1">PENDING</p>
-              <p className="font-extrabold text-slate-800 dark:text-slate-200 text-base">{booking.paymentCurrency || "USD"} 0</p>
+              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-2">PENDING</p>
+              <p className="font-extrabold text-slate-900 dark:text-white text-base">{booking.paymentCurrency || "USD"} 0</p>
             </div>
           </div>
 
           {/* Authorized Amount */}
-          <div className="bg-[#f8fafc] dark:bg-slate-950/40 p-4 rounded-xl border border-slate-150 dark:border-slate-800/80 min-h-[90px] flex flex-col justify-between">
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-1">AUTHORIZED AMOUNT</p>
-              <p className="font-extrabold text-slate-800 dark:text-slate-200 text-base">{booking.paymentCurrency || "USD"} 0</p>
-            </div>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-2">AUTHORIZED AMOUNT</p>
+            <p className="font-extrabold text-slate-900 dark:text-white text-base">{booking.paymentCurrency || "USD"} 0</p>
           </div>
 
           {/* Refunded */}
-          <div className="bg-[#f8fafc] dark:bg-slate-950/40 p-4 rounded-xl border border-slate-150 dark:border-slate-800/80 min-h-[90px] flex flex-col justify-between">
-            <div>
-              <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-1">REFUNDED</p>
-              <p className="font-extrabold text-[#94a3b8] dark:text-slate-500 text-base">N.A.</p>
-            </div>
+          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+            <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-wider mb-2">REFUNDED</p>
+            <p className="font-extrabold text-slate-400 text-base">N.A.</p>
           </div>
         </div>
 
-        <div className="w-full h-px bg-slate-100 dark:bg-slate-800 pt-px" />
+        <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
 
         {/* Payment Parts List Section */}
         <div className="space-y-4">
@@ -1233,31 +1251,47 @@ export default function BookingDetailsView({
       </div>
 
       {/* 6. RELATED BOOKINGS COLLAPSIBLE CARD */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-sm">
         <button
+          type="button"
           onClick={() => toggleCollapse('relatedBookings')}
-          className="w-full flex items-center justify-between p-4 font-extrabold text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-between p-5 font-extrabold text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors cursor-pointer"
         >
-          <span>Related Bookings (0)</span>
-          {sectionsCollapsed.relatedBookings ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <Layers className="w-4 h-4" />
+            </span>
+            <span>Related Bookings (0)</span>
+          </div>
+          {sectionsCollapsed.relatedBookings ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
         </button>
 
-        {!sectionsCollapsed.relatedBookings && (
-          <div className="p-8 text-center text-xs font-semibold text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-950/10">
-            No related bookings found for this order.
-          </div>
-        )}
+        <AnimatePresence>
+          {!sectionsCollapsed.relatedBookings && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden border-t border-slate-100 dark:border-slate-800"
+            >
+              <div className="p-8 text-center text-xs font-bold text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-950/20">
+                No related bookings found for this order.
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* 8. STARTING/MEETING POINT ALERT BANNER */}
       <div 
         onClick={() => triggerToast("Add custom GPS geo coordinates coordinates for meeting point...", "info")}
-        className="bg-amber-500/10 dark:bg-amber-500/15 border border-amber-300/60 rounded-md p-3.5 flex items-center gap-2.5 hover:bg-amber-500/20 transition-colors cursor-pointer"
+        className="bg-amber-500/10 dark:bg-amber-500/15 border border-amber-300/60 rounded-2xl p-4 flex items-center gap-3 hover:bg-amber-500/20 transition-all cursor-pointer shadow-xs"
       >
-        <span className="p-1 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-full shrink-0">
+        <span className="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl shrink-0">
           <AlertTriangle className="w-4 h-4 animate-pulse" />
         </span>
-        <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
+        <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
           No starting point for booking. <strong className="underline text-brand cursor-pointer">Click here</strong> to add a starting point.
         </p>
       </div>
@@ -1287,10 +1321,22 @@ export default function BookingDetailsView({
         };
 
         return (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-6 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-6">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+                <Coins className="w-5 h-5" />
+              </span>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Booking's Net Profit</h3>
+                <p className="text-xs text-slate-400">Calculated earnings, gateway deductions, and vendor breakdowns</p>
+              </div>
+            </div>
+
+            <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
+
             <div>
-              <p className="text-[11px] font-medium text-[#94a3b8] mb-1">Booking's Net Profit</p>
-              <p className={`text-2xl font-bold mb-6 ${
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">Net Profit Amount</p>
+              <p className={`text-2xl font-black tracking-tight ${
                 isProfit 
                   ? 'text-emerald-600 dark:text-emerald-400' 
                   : 'text-rose-600 dark:text-rose-400'
@@ -1303,66 +1349,66 @@ export default function BookingDetailsView({
 
             <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-y-4 sm:gap-y-6 gap-x-4 pt-6">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] font-medium text-[#94a3b8]">GST:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">{currencyToUse} 0</span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
+              <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">GST</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">{currencyToUse} 0</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] font-medium text-[#94a3b8]">TCS:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">{currencyToUse} 0</span>
+              <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">TCS</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">{currencyToUse} 0</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] font-medium text-[#94a3b8]">Pg Charges:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">
+              <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Pg Charges</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">
                   <EurToInrTooltip amount={pg} bookingDate={booking.bookingDate} currency={currencyToUse}>
                     {formatValue(pg)}
                   </EurToInrTooltip>
                 </span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] font-medium text-[#94a3b8]">Refund Pg Charges:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">
+              <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Refund Pg Charges</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">
                   <EurToInrTooltip amount={refundPg} bookingDate={booking.bookingDate} currency={currencyToUse}>
                     {formatValue(refundPg)}
                   </EurToInrTooltip>
                 </span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] font-medium text-[#94a3b8]">Vendor Payable:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">{currencyToUse} 0</span>
+              <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Vendor Payable</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">{currencyToUse} 0</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] font-medium text-[#94a3b8]">Paid Amount:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">
+              <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Paid Amount</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">
                   <EurToInrTooltip amount={paid} bookingDate={booking.bookingDate} currency={currencyToUse}>
                     {formatValue(paid)}
                   </EurToInrTooltip>
                 </span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] font-medium text-[#94a3b8]">Settled Amount:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">{currencyToUse} 0</span>
+              <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Settled Amount</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">{currencyToUse} 0</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] font-medium text-[#94a3b8]">Refunded Amount:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">
+              <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Refunded Amount</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">
                   <EurToInrTooltip amount={refunded} bookingDate={booking.bookingDate} currency={currencyToUse}>
                     {formatValue(refunded)}
                   </EurToInrTooltip>
                 </span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] font-medium text-[#94a3b8]">Cancellation Charges:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">
+              <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Cancellation Charges</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">
                   <EurToInrTooltip amount={cancellation} bookingDate={booking.bookingDate} currency={currencyToUse}>
                     {formatValue(cancellation)}
                   </EurToInrTooltip>
                 </span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[12px] font-medium text-[#94a3b8]">Vendor Penalty:</span>
-                <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">{currencyToUse} 0</span>
+              <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Vendor Penalty</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">{currencyToUse} 0</span>
               </div>
             </div>
           </div>
