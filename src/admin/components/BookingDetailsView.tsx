@@ -3,11 +3,12 @@ import {
   ArrowLeft, Copy, MoreVertical, AlertTriangle, User, Layers, Wallet, Receipt, Mail, Phone, MapPin, 
   Calendar, Clock, ChevronDown, ChevronUp, Plus, Ticket, Edit, CheckCircle2, 
   HelpCircle, FileText, Globe, Laptop, Info, ShieldCheck, X, RefreshCw, DollarSign, ExternalLink,
-  CreditCard, Compass, Lightbulb
+  CreditCard, Compass, Lightbulb, QrCode, Download, ShieldAlert, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { EurToInrTooltip } from './EurToInrTooltip';
 import { AllocateVendorModal } from './AllocateVendorModal';
+import { downloadTicketVoucher } from '../../utils/ticketDownloader';
 
 interface Passenger {
   name: string;
@@ -88,6 +89,8 @@ export default function BookingDetailsView({
   const [newPassengerType, setNewPassengerType] = useState<'Adult' | 'Child'>('Adult');
   const [showAllocateVendorModal, setShowAllocateVendorModal] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [adminNotes, setAdminNotes] = useState(booking.notes || '');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   const triggerToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToastMessage(message);
@@ -113,6 +116,37 @@ export default function BookingDetailsView({
       triggerToast(`${label} copied to clipboard!`, 'success');
     } catch {
       triggerToast(`Could not copy ${label}.`, 'error');
+    }
+  };
+
+  const handleDownload = async (b: AdminBooking) => {
+    try {
+      await downloadTicketVoucher({
+        bookingId: b.id,
+        bookingRef: b.bookingRef,
+        order_number: b.order_number,
+        pnr_number: b.pnr_number,
+        attractionName: b.attractionName,
+        attractionImageUrl: b.attractionImageUrl,
+        city: b.city || 'Paris',
+        bookingDate: b.bookingDate,
+        timeSlot: b.timeslot || '11:15 AM - Standard Admission',
+        passengerName: b.customerName,
+        ticketsCount: b.travelers,
+        totalPrice: b.totalPrice,
+        additionalPassengers: b.passengers?.map(p => {
+          const names = p.name.split(' ');
+          return {
+            firstName: names[0] || 'Passenger',
+            lastName: names.slice(1).join(' ') || 'User',
+            type: p.type || 'Adult'
+          };
+        }) || []
+      });
+      triggerToast(`Ticket Voucher downloaded successfully for ${b.bookingRef}!`, 'success');
+    } catch (e) {
+      console.error('Error generating ticket download', e);
+      triggerToast('Error issuing voucher. Please try again.', 'error');
     }
   };
 
@@ -1590,6 +1624,203 @@ export default function BookingDetailsView({
             </div>
           </div>
         )}
+      </div>
+
+      {/* TICKET QR CODE & DIGITAL ACCESS PASS CARD */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-5 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+              <QrCode className="w-4 h-4" />
+            </span>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Ticket QR Code & Access Pass</h3>
+              <p className="text-[11px] text-slate-400">Ready for gate validation and traveler presentation</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleDownload(booking as any)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-xs"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Download Voucher PDF
+          </button>
+        </div>
+
+        <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+          <div className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
+            <div className="w-28 h-28 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg flex items-center justify-center p-2 mb-2 shadow-inner">
+              <div className="grid grid-cols-4 gap-1 w-full h-full p-1 bg-slate-900 rounded">
+                <div className="bg-white rounded-xs"></div>
+                <div className="bg-slate-900"></div>
+                <div className="bg-white rounded-xs"></div>
+                <div className="bg-white rounded-xs"></div>
+                <div className="bg-white rounded-xs"></div>
+                <div className="bg-white rounded-xs"></div>
+                <div className="bg-slate-900"></div>
+                <div className="bg-white rounded-xs"></div>
+                <div className="bg-slate-900"></div>
+                <div className="bg-white rounded-xs"></div>
+                <div className="bg-white rounded-xs"></div>
+                <div className="bg-slate-900"></div>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest">VERIFIED PASS</span>
+          </div>
+
+          <div className="md:col-span-2 space-y-3 text-xs">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Booking Ref / PNR</p>
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-slate-800 dark:text-white select-all">{booking.bookingRef || booking.pnr_number || 'BK-8829'}</span>
+                  <button onClick={() => copyToClipboard(booking.bookingRef || 'BK-8829', 'Booking Ref')} className="text-brand hover:underline font-bold text-[11px]">Copy</button>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Order Number</p>
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-slate-800 dark:text-white select-all">{booking.order_number || booking.orderId || 'ORD-9912'}</span>
+                  <button onClick={() => copyToClipboard(booking.order_number || booking.orderId || 'ORD-9912', 'Order ID')} className="text-brand hover:underline font-bold text-[11px]">Copy</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Activity:</span>
+                <strong className="text-slate-800 dark:text-slate-200">{booking.attractionName}</strong>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Variant:</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{booking.variant}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Travelers Count:</span>
+                <span className="font-extrabold text-slate-800 dark:text-slate-200">{booking.travelers || 1} Passengers</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ACTIVITY SCHEDULE & MEETING POINT DETAILS CARD */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400">
+            <Compass className="w-4 h-4" />
+          </span>
+          <div>
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Activity Schedule & Meeting Point</h3>
+            <p className="text-[11px] text-slate-400">Time slots, location details, and venue instructions</p>
+          </div>
+        </div>
+
+        <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1">
+            <p className="text-[10px] font-bold uppercase text-slate-400">Scheduled Date</p>
+            <p className="font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-brand" />
+              {booking.bookingDate || '30 Jun 2026'}
+            </p>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1">
+            <p className="text-[10px] font-bold uppercase text-slate-400">Time Slot</p>
+            <p className="font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-brand" />
+              {timeSlot}
+            </p>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1">
+            <p className="text-[10px] font-bold uppercase text-slate-400">Destination / City</p>
+            <p className="font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-brand" />
+              {booking.city || 'Paris, France'}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 rounded-lg p-3.5 text-xs text-sky-900 dark:text-sky-200 flex items-start gap-2.5">
+          <Info className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold block mb-0.5">Meeting Point & Instructions:</span>
+            <span>Please arrive at the main entrance 15 minutes prior to your scheduled slot. Present the digital QR voucher at the priority admission gate.</span>
+          </div>
+        </div>
+      </div>
+
+      {/* INTERNAL ADMIN NOTES & AUDIT TRAIL CARD */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-5 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
+            <FileText className="w-4 h-4" />
+          </span>
+          <div>
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Internal Admin Notes & Audit Trail</h3>
+            <p className="text-[11px] text-slate-400">Staff notes and system action history log</p>
+          </div>
+        </div>
+
+        <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
+
+        <div className="space-y-3">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+            Internal Staff Notes (Private)
+          </label>
+          <textarea
+            rows={3}
+            value={adminNotes}
+            onChange={(e) => setAdminNotes(e.target.value)}
+            placeholder="Add internal staff notes regarding this booking (e.g. VIP guest, requested special seating, refunded via voucher)..."
+            className="w-full text-xs p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand"
+          />
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSavingNotes(true);
+                setTimeout(() => {
+                  onUpdateBooking({ ...booking, notes: adminNotes });
+                  setIsSavingNotes(false);
+                  triggerToast("Internal admin notes saved successfully!", "success");
+                }, 300);
+              }}
+              disabled={isSavingNotes}
+              className="px-4 py-2 bg-brand text-white rounded-lg text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer shadow-xs flex items-center gap-1.5"
+            >
+              <Check className="w-3.5 h-3.5" />
+              {isSavingNotes ? 'Saving...' : 'Save Notes'}
+            </button>
+          </div>
+        </div>
+
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <p className="text-[11px] font-bold uppercase text-slate-400">Action History & Audit Log</p>
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center justify-between p-2.5 rounded-md bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">Booking Created & Confirmed</span>
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono">{booking.createdAt || 'Recent'}</span>
+            </div>
+            <div className="flex items-center justify-between p-2.5 rounded-md bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">Status synced: <strong className="uppercase">{booking.status}</strong></span>
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono">Just now</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 14. RESELLER INFORMATION COLLAPSIBLE CARD */}
