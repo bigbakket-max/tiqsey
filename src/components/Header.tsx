@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   User,
   X,
@@ -197,22 +197,6 @@ export default function Header({
   const currDropdownRef = useRef<HTMLDivElement>(null);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const navContainerRef = useRef<HTMLElement>(null);
-  const navItemRefs = useRef<Array<HTMLAnchorElement | null>>([]);
-  const hasActiveSliderMounted = useRef(false);
-  const hasHoverPillMounted = useRef(false);
-  const [activeSlider, setActiveSlider] = useState<{ left: number; width: number; visible: boolean; animate: boolean }>({
-    left: 0,
-    width: 0,
-    visible: false,
-    animate: false,
-  });
-  const [hoverSlider, setHoverSlider] = useState<{ left: number; width: number; visible: boolean; animate: boolean }>({
-    left: 0,
-    width: 0,
-    visible: false,
-    animate: false,
-  });
 
   const { currency, t, language, setCurrency, setLanguage, languages } = useSettings();
 
@@ -262,106 +246,6 @@ export default function Header({
     };
   }, [mobileMenuOpen]);
 
-  const navItems = [
-    {
-      name: "Home",
-      label: t("navHome") || "Explore",
-      active: pageName === "home" && !activeDestination,
-      type: undefined as string | undefined,
-    },
-    {
-      name: "Hot Deals",
-      label: `${t("navHotDeals", "Hot Deals")} 🔥`,
-      active: (pageName as string) === "hot-deals",
-      type: undefined as string | undefined,
-    },
-    {
-      name: "Attractions & Museums",
-      label: t("navThingsToDo", "Things to do"),
-      active: (pageName as string) === "attractions-and-museums",
-      type: undefined as string | undefined,
-    },
-    {
-      name: "About Us",
-      label: t("navAboutUs", "About Us"),
-      active: (pageName as string) === "about",
-      type: undefined as string | undefined,
-    },
-  ];
-
-  const activeNavIdx = navItems.findIndex((item) => item.active);
-
-  const updateActiveSlider = useCallback((shouldAnimate: boolean) => {
-    const container = navContainerRef.current;
-    const activeEl = activeNavIdx >= 0 ? navItemRefs.current[activeNavIdx] : null;
-    if (!container || !activeEl) {
-      setActiveSlider((prev) => (prev.visible ? { ...prev, visible: false, animate: shouldAnimate } : prev));
-      return;
-    }
-
-    const navRect = container.getBoundingClientRect();
-    const itemRect = activeEl.getBoundingClientRect();
-    const rawLeft = itemRect.left - navRect.left;
-    const rawWidth = itemRect.width;
-    const inset = Math.min(12, Math.floor(rawWidth * 0.16));
-    const left = Math.round(rawLeft + inset);
-    const width = Math.max(20, Math.round(rawWidth - inset * 2));
-
-    setActiveSlider({
-      left,
-      width,
-      visible: true,
-      animate: shouldAnimate && hasActiveSliderMounted.current,
-    });
-    hasActiveSliderMounted.current = true;
-  }, [activeNavIdx]);
-
-  useLayoutEffect(() => {
-    updateActiveSlider(true);
-  }, [updateActiveSlider, language]);
-
-  useEffect(() => {
-    const handleResize = () => updateActiveSlider(false);
-    window.addEventListener("resize", handleResize);
-
-    let observer: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined" && navContainerRef.current) {
-      observer = new ResizeObserver(() => updateActiveSlider(false));
-      observer.observe(navContainerRef.current);
-    }
-
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => updateActiveSlider(false)).catch(() => {});
-    }
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      observer?.disconnect();
-    };
-  }, [updateActiveSlider]);
-
-  useLayoutEffect(() => {
-    const container = navContainerRef.current;
-    if (hoveredIdx === null || !container) {
-      hasHoverPillMounted.current = false;
-      setHoverSlider((prev) => (prev.visible ? { ...prev, visible: false } : prev));
-      return;
-    }
-    const hoverEl = navItemRefs.current[hoveredIdx];
-    if (!hoverEl) return;
-
-    const navRect = container.getBoundingClientRect();
-    const itemRect = hoverEl.getBoundingClientRect();
-    const shouldAnimatePosition = hasHoverPillMounted.current;
-    hasHoverPillMounted.current = true;
-    setHoverSlider({
-      left: Math.round(itemRect.left - navRect.left + 2),
-      width: Math.max(0, Math.round(itemRect.width - 4)),
-      visible: true,
-      animate: shouldAnimatePosition,
-    });
-  }, [hoveredIdx, language]);
-
   const headerActive = true;
 
   return (
@@ -390,51 +274,70 @@ export default function Header({
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center h-full shrink-0">
               <nav
-                ref={navContainerRef}
-                className="flex items-center h-full relative isolate select-none gap-0.5 xl:gap-1.5 2xl:gap-2.5"
+                className="flex items-center h-full relative select-none gap-0.5 xl:gap-2 2xl:gap-3.5"
                 onMouseLeave={() => setHoveredIdx(null)}
               >
-                {/* Smooth GPU-composited hover background pill */}
-                <span
-                  aria-hidden="true"
-                  style={{
-                    transform: `translate3d(${hoverSlider.left}px, 0, 0)`,
-                    width: `${hoverSlider.width}px`,
-                    opacity: hoverSlider.visible ? 1 : 0,
-                    transition: hoverSlider.animate
-                      ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), width 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 150ms ease"
-                      : "opacity 150ms ease",
-                  }}
-                  className="pointer-events-none absolute top-2.5 bottom-2.5 left-0 rounded-full bg-slate-200/65 dark:bg-slate-800/80 z-0 will-change-transform"
-                />
-
-                {/* Smooth GPU-composited active crimson slider bar */}
-                <span
-                  aria-hidden="true"
-                  style={{
-                    transform: `translate3d(${activeSlider.left}px, 0, 0)`,
-                    width: `${activeSlider.width}px`,
-                    opacity: activeSlider.visible ? 1 : 0,
-                    transition: activeSlider.animate
-                      ? "transform 300ms cubic-bezier(0.22, 1, 0.36, 1), width 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease"
-                      : "opacity 180ms ease",
-                  }}
-                  className="pointer-events-none absolute bottom-[3px] left-0 h-[3px] bg-brand dark:bg-brand rounded-full shadow-[0_1px_6px_rgba(227,0,15,0.28)] z-20 will-change-transform"
-                />
-
-                {navItems.map((item, idx) => (
+                {[
+                  {
+                    name: "Home",
+                    label: t("navHome") || "Explore",
+                    active: pageName === "home" && !activeDestination,
+                    type: undefined as string | undefined,
+                  },
+                  {
+                    name: "Hot Deals",
+                    label: `${t("navHotDeals", "Hot Deals")} 🔥`,
+                    active: (pageName as string) === "hot-deals",
+                    type: undefined as string | undefined,
+                    hasIcon: false,
+                  },
+                  {
+                    name: "Attractions & Museums",
+                    label: t("navThingsToDo", "Things to do"),
+                    active: (pageName as string) === "attractions-and-museums",
+                    type: undefined as string | undefined,
+                    hasIcon: false,
+                  },
+                  {
+                    name: "About Us",
+                    label: t("navAboutUs", "About Us"),
+                    active: (pageName as string) === "about",
+                    type: undefined as string | undefined,
+                    hasIcon: false,
+                  },
+                ].map((item, idx) => (
                   <div
-                    key={item.name}
-                    className="group relative z-10 h-full flex items-center"
+                    key={idx}
+                    className="group relative h-full flex items-center px-1.5 xl:px-2.5 transition-colors cursor-pointer"
+                    onMouseEnter={() => setHoveredIdx(idx)}
                   >
+                    {hoveredIdx === idx && (
+                      <motion.div
+                        layoutId="nav-hover-pill"
+                        className="absolute inset-x-0.5 inset-y-2 rounded-full bg-slate-100/80 dark:bg-slate-800/60 -z-10"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 380,
+                          damping: 28,
+                        }}
+                      />
+                    )}
+                    {item.active && (
+                      <motion.div
+                        layoutId="nav-active-underline"
+                        className="absolute bottom-0 left-1.5 right-1.5 h-[2.5px] bg-brand dark:bg-brand rounded-full z-10"
+                        transition={{
+                          type: "spring",
+                          stiffness: 380,
+                          damping: 28,
+                        }}
+                      />
+                    )}
                     <a
-                      ref={(el) => {
-                        navItemRefs.current[idx] = el;
-                      }}
                       href="#"
-                      onMouseEnter={() => setHoveredIdx(idx)}
-                      onFocus={() => setHoveredIdx(idx)}
-                      onBlur={() => setHoveredIdx(null)}
                       onClick={(e) => {
                         e.preventDefault();
                         if (item.name === "Home") {
@@ -450,10 +353,10 @@ export default function Header({
                           if (onNavigate) onNavigate("about");
                         }
                       }}
-                      className={`px-2.5 xl:px-3.5 text-[13px] xl:text-[14.5px] font-bold tracking-tight whitespace-nowrap transition-colors duration-150 flex items-center gap-1.5 h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
+                      className={`text-[13px] xl:text-[14.5px] font-bold tracking-tight whitespace-nowrap transition-colors flex items-center gap-1.5 h-full ${
                         item.active
-                          ? "text-slate-950 dark:text-white"
-                          : "text-slate-700 dark:text-slate-300 hover:text-brand dark:hover:text-brand"
+                          ? "text-slate-900 dark:text-white"
+                          : "text-slate-700 dark:text-slate-300 group-hover:text-brand dark:group-hover:text-brand"
                       }`}
                     >
                       <span>{item.label}</span>

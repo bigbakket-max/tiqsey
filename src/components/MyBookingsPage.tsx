@@ -20,7 +20,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { Booking } from "../types";
-import { motion, AnimatePresence, LayoutGroup } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { downloadTicketVoucher } from "../utils/ticketDownloader";
 
 interface MyBookingsPageProps {
@@ -216,7 +216,6 @@ export default function MyBookingsPage({
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 mt-6 sm:mt-10">
         <div className="space-y-8">
           {/* Navigation Tabs */}
-          <LayoutGroup id="my-bookings-tabs">
           <div className="flex items-center gap-2 border-b border-slate-200/60 dark:border-slate-800/80 pb-px overflow-x-auto scrollbar-none">
             {[
               { id: "upcoming", label: "Upcoming", count: categorizedBookings.pending.length + categorizedBookings.upcoming.length },
@@ -254,7 +253,6 @@ export default function MyBookingsPage({
               );
             })}
           </div>
-          </LayoutGroup>
 
           {/* Bookings List / Empty State */}
           <div className="space-y-4 w-full">
