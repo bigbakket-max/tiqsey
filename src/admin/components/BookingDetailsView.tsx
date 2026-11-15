@@ -1416,356 +1416,281 @@ export default function BookingDetailsView({
       })()}
 
       {/* 10. VENDOR INFORMATION CARD */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100 dark:border-slate-800">
-          <div>
-            <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Vendor Information</h3>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold mt-0.5">Total Vendor Payable: USD 0</p>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400">
+              <ShieldCheck className="w-5 h-5" />
+            </span>
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Vendor Information</h3>
+              <p className="text-xs text-slate-400">Total Vendor Payable: USD 0</p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <button 
               type="button"
               onClick={() => setShowAllocateVendorModal(true)}
-              className="min-h-[36px] border border-brand hover:bg-brand/5 dark:hover:bg-brand/10 px-3.5 py-1.5 rounded text-xs font-bold text-brand transition-colors cursor-pointer"
+              className="min-h-[38px] border border-brand hover:bg-brand/10 px-4 py-2 rounded-xl text-xs font-bold text-brand transition-all cursor-pointer shadow-xs"
             >
               + Allocate New Vendor
             </button>
             <button 
               type="button"
               disabled 
-              className="min-h-[36px] border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 px-3.5 py-1.5 rounded text-xs font-bold bg-slate-50 dark:bg-slate-950/20 cursor-not-allowed"
+              className="min-h-[38px] border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 px-4 py-2 rounded-xl text-xs font-bold bg-slate-50 dark:bg-slate-950/20 cursor-not-allowed"
             >
               Freeze Vendors
             </button>
           </div>
         </div>
 
-        <div className="p-6 sm:p-8 text-center text-xs font-semibold text-slate-400 bg-slate-50/50 dark:bg-slate-950/10 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+        <div className="p-6 sm:p-8 text-center text-xs font-semibold text-slate-400 bg-slate-50/80 dark:bg-slate-950/60 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
           No vendor information Found.<br />
           <span className="font-normal text-[11px] text-slate-400 mt-1 block">All services for this vendor have been removed or not allocated yet.</span>
         </div>
       </div>
 
       {/* 11. ALLOT VOUCHERS CARD */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-4 sm:p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100 dark:border-slate-800">
-          <div>
-            <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Allot Vouchers</h3>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold mt-0.5">Manage and view voucher distribution details for travelers.</p>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400">
+              <Ticket className="w-5 h-5" />
+            </span>
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Allot Vouchers</h3>
+              <p className="text-xs text-slate-400">Manage and view voucher distribution details for travelers.</p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <button 
               type="button"
               onClick={() => triggerToast("Registering new digital voucher distribution entry...", "info")}
-              className="min-h-[36px] border border-brand hover:bg-brand/5 dark:hover:bg-brand/10 px-3.5 py-1.5 rounded text-xs font-bold text-brand transition-colors cursor-pointer"
+              className="min-h-[38px] border border-brand hover:bg-brand/10 px-4 py-2 rounded-xl text-xs font-bold text-brand transition-all cursor-pointer shadow-xs"
             >
               + Allocate New Event
             </button>
             <button 
               type="button"
               disabled 
-              className="min-h-[36px] border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 px-3.5 py-1.5 rounded text-xs font-bold bg-slate-50 dark:bg-slate-950/20 cursor-not-allowed"
+              className="min-h-[38px] border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 px-4 py-2 rounded-xl text-xs font-bold bg-slate-50 dark:bg-slate-950/20 cursor-not-allowed"
             >
               Freeze Event
             </button>
           </div>
         </div>
 
-        <div className="p-8 text-center bg-slate-50/50 dark:bg-slate-950/10 border border-dashed border-slate-150 dark:border-slate-850 rounded-lg flex flex-col items-center justify-center space-y-2">
-          <span className="p-2 bg-slate-100 dark:bg-slate-850 text-slate-400 rounded-full">
-            <Ticket className="w-5 h-5 text-slate-400" />
+        <div className="p-8 text-center bg-slate-50/80 dark:bg-slate-950/60 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center space-y-2">
+          <span className="p-3 bg-white dark:bg-slate-900 text-slate-400 rounded-2xl shadow-xs">
+            <Ticket className="w-6 h-6 text-slate-400" />
           </span>
-          <p className="text-xs font-bold text-slate-400">No Vouchers Allotted</p>
-          <span className="font-normal text-[11px] text-slate-400 max-w-sm block">
+          <p className="text-xs font-extrabold text-slate-700 dark:text-slate-300">No Vouchers Allotted</p>
+          <span className="font-medium text-[11px] text-slate-400 max-w-sm block">
             Click Manage Allotment to assign voucher or ticket codes to this booking.
           </span>
         </div>
       </div>
 
       {/* 12. METADATA COLLAPSIBLE CARD */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-sm transition-all">
         <button
+          type="button"
           onClick={() => toggleCollapse('metaData')}
-          className="w-full flex items-center justify-between p-4 font-extrabold text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-between p-5 font-extrabold text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors cursor-pointer"
         >
-          <span>Meta Data</span>
-          {sectionsCollapsed.metaData ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <Laptop className="w-4 h-4" />
+            </span>
+            <span>Meta Data</span>
+          </div>
+          {sectionsCollapsed.metaData ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
         </button>
 
-        {!sectionsCollapsed.metaData && (
-          <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-5">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">Ip Address</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">130.117.88.75</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">Host</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">www.tiqsey.com</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">Continent</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">Europe</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">Country</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">Spain</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">City</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">Madrid</span>
+        <AnimatePresence>
+          {!sectionsCollapsed.metaData && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="overflow-hidden border-t border-slate-100 dark:border-slate-800"
+            >
+              <div className="p-5 sm:p-6 bg-white dark:bg-slate-900">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 text-xs">
+                  {[
+                    { label: 'Ip Address', value: '130.117.88.75' },
+                    { label: 'Host', value: 'www.tiqsey.com' },
+                    { label: 'Continent', value: 'Europe' },
+                    { label: 'Country', value: 'Spain' },
+                    { label: 'City', value: 'Madrid' },
+                    { label: 'Time Zone', value: 'Europe/Madrid' },
+                    { label: 'Browser Name', value: 'Safari' },
+                    { label: 'Browser Version', value: '18' },
+                    { label: 'Device Name', value: 'iPhone' },
+                    { label: 'Device Type', value: 'mobile' },
+                    { label: 'Platform Name', value: 'iOS (iPhone)' },
+                    { label: 'Platform Version', value: '18.7' },
+                    { label: 'Extra Data', value: '[object Object]' },
+                    { label: 'User Preferred Languages', value: 'en-AU,en' }
+                  ].map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      onClick={() => copyToClipboard(item.value, item.label)}
+                      className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between hover:border-brand/40 transition-all cursor-pointer group"
+                      title="Click to copy"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">{item.label}</span>
+                        <Copy className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-brand transition-colors" />
+                      </div>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate select-all">{item.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">Time Zone</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">Europe/Madrid</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">Browser Name</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">Safari</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">Browser Version</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">18</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">Device Name</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">iPhone</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">Device Type</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">mobile</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">Platform Name</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">iOS (iPhone)</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">Platform Version</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">18.7</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">Extra Data</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">[object Object]</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">User Preferred Languages</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">en-AU,en</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* 13. UTM PARAMS COLLAPSIBLE CARD */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-sm transition-all">
         <button
+          type="button"
           onClick={() => toggleCollapse('utmParams')}
-          className="w-full flex items-center justify-between p-4 font-extrabold text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-between p-5 font-extrabold text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors cursor-pointer"
         >
-          <span>UTM Parameters</span>
-          {sectionsCollapsed.utmParams ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <Globe className="w-4 h-4" />
+            </span>
+            <span>UTM Parameters</span>
+          </div>
+          {sectionsCollapsed.utmParams ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
         </button>
 
-        {!sectionsCollapsed.utmParams && (
-          <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight min-w-0">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">UTM Campaign</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300 break-all">110622-100-Google-TTD-Referral</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight min-w-0">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">UTM Medium</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300 break-all">110622-110-Google-TTD-Referral</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight min-w-0">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">UTM Source</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300 break-all">110622-111-Google-TTD-Referral</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight min-w-0">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">UTM Term</span>
-                  <span className="text-[13px] text-slate-500 dark:text-slate-400">--</span>
+        <AnimatePresence>
+          {!sectionsCollapsed.utmParams && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="overflow-hidden border-t border-slate-100 dark:border-slate-800"
+            >
+              <div className="p-5 sm:p-6 bg-white dark:bg-slate-900">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                  {[
+                    { label: 'UTM Campaign', value: '110622-100-Google-TTD-Referral' },
+                    { label: 'UTM Medium', value: '110622-110-Google-TTD-Referral' },
+                    { label: 'UTM Source', value: '110622-111-Google-TTD-Referral' },
+                    { label: 'UTM Term', value: '--' },
+                    { label: 'UTM Content', value: '--' }
+                  ].map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      onClick={() => item.value !== '--' && copyToClipboard(item.value, item.label)}
+                      className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between hover:border-brand/40 transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">{item.label}</span>
+                        {item.value !== '--' && <Copy className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-brand transition-colors" />}
+                      </div>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate select-all">{item.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-tight min-w-0">
-                  <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">UTM Content</span>
-                  <span className="text-[13px] text-slate-500 dark:text-slate-400">--</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* TICKET QR CODE & DIGITAL ACCESS PASS CARD */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-5 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
-              <QrCode className="w-4 h-4" />
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5 transition-all hover:shadow-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+              <QrCode className="w-5 h-5" />
             </span>
             <div>
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Ticket QR Code & Access Pass</h3>
-              <p className="text-[11px] text-slate-400">Ready for gate validation and traveler presentation</p>
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Ticket QR Code & Access Pass</h3>
+              <p className="text-xs text-slate-400">Ready for gate validation and traveler presentation</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => handleDownload(booking as any)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-xs"
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-4 h-4" />
             Download Voucher PDF
           </button>
         </div>
 
-        <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-          <div className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
-            <div className="w-28 h-28 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg flex items-center justify-center p-2 mb-2 shadow-inner">
-              <div className="grid grid-cols-4 gap-1 w-full h-full p-1 bg-slate-900 rounded">
-                <div className="bg-white rounded-xs"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-center">
+          <div className="flex flex-col items-center justify-center p-5 bg-slate-50/80 dark:bg-slate-950/60 rounded-2xl border border-slate-100 dark:border-slate-800 text-center">
+            <div className="w-32 h-32 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center p-2 mb-3 shadow-inner">
+              <div className="grid grid-cols-4 gap-1 w-full h-full p-1.5 bg-slate-900 rounded-lg">
+                <div className="bg-white rounded-xs animate-pulse"></div>
                 <div className="bg-slate-900"></div>
                 <div className="bg-white rounded-xs"></div>
                 <div className="bg-white rounded-xs"></div>
                 <div className="bg-white rounded-xs"></div>
                 <div className="bg-white rounded-xs"></div>
                 <div className="bg-slate-900"></div>
-                <div className="bg-white rounded-xs"></div>
+                <div className="bg-white rounded-xs animate-pulse"></div>
                 <div className="bg-slate-900"></div>
                 <div className="bg-white rounded-xs"></div>
                 <div className="bg-white rounded-xs"></div>
                 <div className="bg-slate-900"></div>
               </div>
             </div>
-            <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest">VERIFIED PASS</span>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-600 border border-emerald-200/50 uppercase tracking-widest">
+              VERIFIED PASS
+            </span>
           </div>
 
-          <div className="md:col-span-2 space-y-3 text-xs">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
-                <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Booking Ref / PNR</p>
+          <div className="md:col-span-2 space-y-3.5 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-50/80 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Booking Ref / PNR</p>
                 <div className="flex items-center justify-between">
                   <span className="font-extrabold text-slate-800 dark:text-white select-all">{booking.bookingRef || booking.pnr_number || 'BK-8829'}</span>
-                  <button onClick={() => copyToClipboard(booking.bookingRef || 'BK-8829', 'Booking Ref')} className="text-brand hover:underline font-bold text-[11px]">Copy</button>
+                  <button onClick={() => copyToClipboard(booking.bookingRef || 'BK-8829', 'Booking Ref')} className="text-brand hover:underline font-bold text-xs flex items-center gap-1 cursor-pointer">
+                    <Copy className="w-3 h-3" />
+                    Copy
+                  </button>
                 </div>
               </div>
 
-              <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
-                <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Order Number</p>
+              <div className="bg-slate-50/80 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Order Number</p>
                 <div className="flex items-center justify-between">
                   <span className="font-extrabold text-slate-800 dark:text-white select-all">{booking.order_number || booking.orderId || 'ORD-9912'}</span>
-                  <button onClick={() => copyToClipboard(booking.order_number || booking.orderId || 'ORD-9912', 'Order ID')} className="text-brand hover:underline font-bold text-[11px]">Copy</button>
+                  <button onClick={() => copyToClipboard(booking.order_number || booking.orderId || 'ORD-9912', 'Order ID')} className="text-brand hover:underline font-bold text-xs flex items-center gap-1 cursor-pointer">
+                    <Copy className="w-3 h-3" />
+                    Copy
+                  </button>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Activity:</span>
-                <strong className="text-slate-800 dark:text-slate-200">{booking.attractionName}</strong>
+            <div className="bg-slate-50/80 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2.5">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200/50 dark:border-slate-800">
+                <span className="text-slate-400 font-bold uppercase text-[10px]">Activity</span>
+                <strong className="text-slate-800 dark:text-slate-200 text-right truncate max-w-[220px]">{booking.attractionName}</strong>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Variant:</span>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200/50 dark:border-slate-800">
+                <span className="text-slate-400 font-bold uppercase text-[10px]">Variant</span>
                 <span className="font-semibold text-slate-700 dark:text-slate-300">{booking.variant}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Travelers Count:</span>
+                <span className="text-slate-400 font-bold uppercase text-[10px]">Travelers Count</span>
                 <span className="font-extrabold text-slate-800 dark:text-slate-200">{booking.travelers || 1} Passengers</span>
               </div>
             </div>
