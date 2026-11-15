@@ -92,14 +92,14 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 pb-20">
+    <div className="min-h-[100dvh] bg-gray-50 text-gray-900 pb-24 lg:pb-20 overflow-x-clip">
       {/* Hero Header */}
-      <div className="bg-slate-900 text-white pt-12 pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="bg-slate-900 text-white pt-8 sm:pt-12 pb-10 sm:pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-slate-950 pointer-events-none" />
         <div className="max-w-7xl mx-auto relative z-10">
           <button
             onClick={onBackToHome}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3.5 py-2 rounded-lg transition-all mb-8 border border-slate-700/60 cursor-pointer"
+            className="min-h-[44px] inline-flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3.5 py-2 rounded-lg transition-all mb-6 sm:mb-8 border border-slate-700/60 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             {t('backToHome', 'Back to Home')}
@@ -110,17 +110,17 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
               <Cookie className="w-3.5 h-3.5" />
               Cookie Transparency & Control
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4">
               {t('cookiePolicy', 'Cookie Policy')}
             </h1>
-            <p className="text-lg text-gray-300 leading-relaxed mb-6">
+            <p className="text-base sm:text-lg text-gray-300 leading-relaxed mb-6">
               This policy explains how Tiqsey uses cookies and similar storage technologies to recognize you, remember your trip preferences, secure your ticket bookings, and deliver a seamless experience.
             </p>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400 border-t border-slate-800 pt-4">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-gray-400 border-t border-slate-800 pt-4">
               <span><strong>Last Updated:</strong> July 29, 2026</span>
-              <span>•</span>
+              <span className="hidden sm:inline">•</span>
               <span><strong>Effective Date:</strong> January 1, 2026</span>
-              <span>•</span>
+              <span className="hidden sm:inline">•</span>
               <span className="text-emerald-400 flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" /> ePrivacy & GDPR Compliant
               </span>
@@ -130,12 +130,12 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
       </div>
 
       {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
 
           {/* Sticky Sidebar Navigation */}
           <div className="lg:col-span-4 xl:col-span-3">
-            <div className="sticky top-24 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-2">
+            <div className="lg:sticky lg:top-24 bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-sm space-y-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 px-2">
                 Table of Contents
               </h3>
@@ -144,14 +144,14 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
                   <button
                     key={sec.id}
                     onClick={() => scrollToSection(sec.id)}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between ${
+                    className={`w-full min-h-[42px] text-left px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 cursor-pointer ${
                       activeSection === sec.id
                         ? "bg-brand text-white shadow-sm font-semibold"
                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                     }`}
                   >
-                    <span>{sec.title}</span>
-                    <ChevronRight className={`w-4 h-4 opacity-70 ${activeSection === sec.id ? "text-white" : "text-gray-400"}`} />
+                    <span className="truncate">{sec.title}</span>
+                    <ChevronRight className={`w-4 h-4 shrink-0 opacity-70 ${activeSection === sec.id ? "text-white" : "text-gray-400"}`} />
                   </button>
                 ))}
               </nav>
@@ -174,8 +174,8 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
           </div>
 
           {/* Main Policy Content */}
-          <div className="lg:col-span-8 xl:col-span-9 space-y-10">
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-10 shadow-sm space-y-12">
+          <div className="lg:col-span-8 xl:col-span-9 space-y-8 sm:space-y-10 min-w-0">
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-10 shadow-sm space-y-10 sm:space-y-12 break-words">
 
               {/* Section 1 */}
               <section id="what-are-cookies" className="scroll-mt-28">
@@ -263,12 +263,12 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
                 <div className="space-y-6 text-gray-600 leading-relaxed">
 
                   {/* Cat 1 */}
-                  <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-2xs space-y-2">
-                    <div className="flex items-center justify-between">
+                  <div className="border border-gray-200 rounded-xl p-4 sm:p-5 bg-white shadow-2xs space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                        <Lock className="w-4.5 h-4.5 text-emerald-600" /> Strictly Necessary Cookies
+                        <Lock className="w-4.5 h-4.5 text-emerald-600 shrink-0" /> Strictly Necessary Cookies
                       </h3>
-                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold text-xs rounded-full">
+                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold text-xs rounded-full shrink-0">
                         Always Active
                       </span>
                     </div>
@@ -278,12 +278,12 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
                   </div>
 
                   {/* Cat 2 */}
-                  <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-2xs space-y-2">
-                    <div className="flex items-center justify-between">
+                  <div className="border border-gray-200 rounded-xl p-4 sm:p-5 bg-white shadow-2xs space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                        <Sliders className="w-4.5 h-4.5 text-brand" /> Functional & Preference Cookies
+                        <Sliders className="w-4.5 h-4.5 text-brand shrink-0" /> Functional & Preference Cookies
                       </h3>
-                      <span className="px-2.5 py-1 bg-blue-100 text-blue-800 font-bold text-xs rounded-full">
+                      <span className="px-2.5 py-1 bg-blue-100 text-blue-800 font-bold text-xs rounded-full shrink-0">
                         Optional
                       </span>
                     </div>
@@ -293,12 +293,12 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
                   </div>
 
                   {/* Cat 3 */}
-                  <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-2xs space-y-2">
-                    <div className="flex items-center justify-between">
+                  <div className="border border-gray-200 rounded-xl p-4 sm:p-5 bg-white shadow-2xs space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                        <Eye className="w-4.5 h-4.5 text-amber-600" /> Performance & Analytics Cookies
+                        <Eye className="w-4.5 h-4.5 text-amber-600 shrink-0" /> Performance & Analytics Cookies
                       </h3>
-                      <span className="px-2.5 py-1 bg-blue-100 text-blue-800 font-bold text-xs rounded-full">
+                      <span className="px-2.5 py-1 bg-blue-100 text-blue-800 font-bold text-xs rounded-full shrink-0">
                         Optional
                       </span>
                     </div>
@@ -308,12 +308,12 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
                   </div>
 
                   {/* Cat 4 */}
-                  <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-2xs space-y-2">
-                    <div className="flex items-center justify-between">
+                  <div className="border border-gray-200 rounded-xl p-4 sm:p-5 bg-white shadow-2xs space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                        <Globe className="w-4.5 h-4.5 text-indigo-600" /> Marketing & Social Media Cookies
+                        <Globe className="w-4.5 h-4.5 text-indigo-600 shrink-0" /> Marketing & Social Media Cookies
                       </h3>
-                      <span className="px-2.5 py-1 bg-gray-100 text-gray-700 font-bold text-xs rounded-full">
+                      <span className="px-2.5 py-1 bg-gray-100 text-gray-700 font-bold text-xs rounded-full shrink-0">
                         Optional
                       </span>
                     </div>
@@ -341,14 +341,14 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
                   </div>
                 </div>
 
-                <div className="space-y-4 mt-6 bg-slate-950/80 p-5 rounded-xl border border-slate-800">
+                <div className="space-y-4 mt-6 bg-slate-950/80 p-4 sm:p-5 rounded-xl border border-slate-800">
                   {/* Essential */}
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
-                    <div className="pr-4">
-                      <p className="font-bold text-sm text-white flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
+                    <div className="pr-2 min-w-0 flex-1">
+                      <p className="font-bold text-sm text-white flex flex-wrap items-center gap-2">
                         Essential & Security Cookies <span className="text-[10px] uppercase font-extrabold bg-slate-800 text-emerald-400 px-2 py-0.5 rounded-full">Required</span>
                       </p>
-                      <p className="text-xs text-gray-400">Required for ticket search, currency conversion, and checkout security.</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Required for ticket search, currency conversion, and checkout security.</p>
                     </div>
                     <div className="shrink-0 bg-slate-800 border border-slate-700 text-emerald-400 px-3 py-1 rounded-lg text-xs font-bold">
                       Always On
@@ -356,19 +356,20 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
                   </div>
 
                   {/* Functional */}
-                  <div className="flex items-center justify-between py-2 border-b border-slate-800/80">
-                    <div className="pr-4">
+                  <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-800/80">
+                    <div className="pr-2 min-w-0 flex-1">
                       <p className="font-bold text-sm text-white">Functional Preferences</p>
                       <p className="text-xs text-gray-400">Remembers your wishlist items, preferred language, and recent searches.</p>
                     </div>
                     <button
                       onClick={() => handleToggle("functional")}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      aria-label="Toggle Functional Preferences cookies"
+                      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                         preferences.functional ? "bg-brand" : "bg-slate-700"
                       }`}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                           preferences.functional ? "translate-x-5" : "translate-x-0"
                         }`}
                       />
@@ -376,19 +377,20 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
                   </div>
 
                   {/* Analytics */}
-                  <div className="flex items-center justify-between py-2 border-b border-slate-800/80">
-                    <div className="pr-4">
+                  <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-800/80">
+                    <div className="pr-2 min-w-0 flex-1">
                       <p className="font-bold text-sm text-white">Analytics & Performance</p>
                       <p className="text-xs text-gray-400">Helps us analyze traffic patterns to optimize booking speed and reliability.</p>
                     </div>
                     <button
                       onClick={() => handleToggle("analytics")}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      aria-label="Toggle Analytics and Performance cookies"
+                      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                         preferences.analytics ? "bg-brand" : "bg-slate-700"
                       }`}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                           preferences.analytics ? "translate-x-5" : "translate-x-0"
                         }`}
                       />
@@ -396,19 +398,20 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
                   </div>
 
                   {/* Marketing */}
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="pr-4">
+                  <div className="flex items-center justify-between gap-3 pt-2">
+                    <div className="pr-2 min-w-0 flex-1">
                       <p className="font-bold text-sm text-white">Marketing & Social Media</p>
                       <p className="text-xs text-gray-400">Allows social media integrations (e.g. Facebook/Instagram) and tailored travel deals.</p>
                     </div>
                     <button
                       onClick={() => handleToggle("marketing")}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      aria-label="Toggle Marketing and Social Media cookies"
+                      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                         preferences.marketing ? "bg-brand" : "bg-slate-700"
                       }`}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                           preferences.marketing ? "translate-x-5" : "translate-x-0"
                         }`}
                       />
@@ -419,7 +422,7 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
                   <button
                     onClick={handleSavePreferences}
-                    className="px-6 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all text-sm shadow-md"
+                    className="min-h-[44px] px-6 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all text-sm shadow-md cursor-pointer"
                   >
                     Save Preferences
                   </button>
@@ -530,10 +533,10 @@ export default function CookiePolicyPage({ onBackToHome }: CookiePolicyPageProps
               </div>
 
               {/* Back to Home CTA */}
-              <div className="pt-6 text-center">
+              <div className="pt-4 sm:pt-6 text-center">
                 <button
                   onClick={onBackToHome}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 transition-all text-sm shadow-sm"
+                  className="min-h-[44px] inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 transition-all text-sm shadow-sm cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Return to Tiqsey Home

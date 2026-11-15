@@ -213,7 +213,7 @@ export default function AttractionsAndMuseumsPage({
   }, [selectedCategory, selectedCity, selectedRegion]);
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] dark:bg-slate-950 pb-20 pt-8 transition-colors duration-300">
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-slate-950 pb-24 lg:pb-20 pt-6 sm:pt-8 transition-colors duration-300">
       <Helmet>
         <title>{seoTitle}</title>
         <meta name="description" content={seoDescription} />
@@ -222,10 +222,11 @@ export default function AttractionsAndMuseumsPage({
       </Helmet>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Navigation Breadcrumb & Back action */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
           <button
+            type="button"
             onClick={onBackToHome}
-            className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold text-sm shadow-sm hover:shadow transition-all cursor-pointer select-none active:scale-95"
+            className="group flex items-center gap-2 px-4 min-h-[44px] rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold text-sm shadow-sm hover:shadow transition-all cursor-pointer select-none active:scale-95"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span>Back to Home</span>
@@ -242,84 +243,87 @@ export default function AttractionsAndMuseumsPage({
         </div>
 
         {/* Hero Section */}
-        <div id="hero-banner-container" className="relative rounded-3xl overflow-hidden bg-slate-950 text-white p-6 sm:p-10 md:p-14 mb-8 shadow-lg border border-slate-200/10">
+        <div id="hero-banner-container" className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-slate-950 text-white p-5 sm:p-10 md:p-14 mb-6 sm:mb-8 shadow-lg border border-slate-200/10">
           <div id="hero-banner-background" className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1600')] bg-cover bg-center opacity-60 w-full h-full" />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-transparent" />
           <div className="relative z-10 max-w-4xl text-left">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight mb-3 leading-tight">
-              Explore the world's best attractions & experiences
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight mb-2.5 sm:mb-3 leading-tight">
+              Explore the world's best attractions &amp; experiences
             </h1>
-            <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed mb-6 max-w-2xl">
+            <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed mb-5 sm:mb-6 max-w-2xl">
               Book tickets for top attractions, tours and activities across 30+ countries.
             </p>
 
             {/* Centered / Left-aligned Search Pill */}
-            <div id="hero-search-pill" className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-full p-1.5 shadow-lg border border-slate-200/10 flex flex-col sm:flex-row items-stretch sm:items-center mb-6 gap-2 sm:gap-0 focus-within:ring-4 focus-within:ring-brand/10 transition-all">
-              <div className="flex items-center flex-1 min-w-0 pl-4">
+            <div id="hero-search-pill" className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl sm:rounded-full p-2 sm:p-1.5 shadow-lg border border-slate-200/10 flex flex-col sm:flex-row items-stretch sm:items-center mb-5 sm:mb-6 gap-2 sm:gap-0 focus-within:ring-4 focus-within:ring-brand/10 transition-all">
+              <div className="flex items-center flex-1 min-w-0 pl-3 sm:pl-4">
                 <Search className="w-5 h-5 text-slate-400 shrink-0" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search attractions, cities or activities..."
-                  className="w-full pl-3 pr-4 py-2 bg-transparent text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none text-sm font-medium"
+                  className="w-full pl-3 pr-3 py-2 bg-transparent text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none text-sm font-medium min-w-0"
                 />
                 {searchQuery && (
                   <button
+                    type="button"
                     onClick={() => setSearchQuery("")}
-                    className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors mr-2 cursor-pointer select-none"
+                    className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors mr-1 cursor-pointer select-none shrink-0"
                     title="Clear"
+                    aria-label="Clear search"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
               <button
-                className="bg-[#E51937] hover:bg-[#c4132b] text-white px-7 py-3 rounded-full font-bold text-sm tracking-wide transition-all shadow-md active:scale-95 shrink-0"
+                type="button"
+                className="bg-[#E51937] hover:bg-[#c4132b] text-white px-7 min-h-[44px] py-2.5 sm:py-3 rounded-xl sm:rounded-full font-bold text-sm tracking-wide transition-all shadow-md active:scale-95 shrink-0 cursor-pointer"
               >
                 Search
               </button>
             </div>
 
             {/* Trust Bar Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-4 border-t border-white/10 w-full max-w-4xl">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 mt-5 sm:mt-6 pt-4 border-t border-white/10 w-full max-w-4xl">
               <div className="flex items-center gap-2.5 text-left text-white/90">
-                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
                   <Zap className="w-4 h-4 text-white" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h4 className="text-xs font-bold leading-tight">Instant Confirmation</h4>
-                  <p className="text-[10px] text-white/60">Get e-tickets instantly</p>
+                  <p className="text-[10px] text-white/60 truncate">Get e-tickets instantly</p>
                 </div>
               </div>
               
               <div className="flex items-center gap-2.5 text-left text-white/90">
-                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
                   <RotateCcw className="w-4 h-4 text-white" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h4 className="text-xs font-bold leading-tight">Free Cancellation</h4>
-                  <p className="text-[10px] text-white/60">Up to 24 hours</p>
+                  <p className="text-[10px] text-white/60 truncate">Up to 24 hours</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5 text-left text-white/90">
-                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
                   <Tag className="w-4 h-4 text-white" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h4 className="text-xs font-bold leading-tight">Best Price Guarantee</h4>
-                  <p className="text-[10px] text-white/60">We match the price</p>
+                  <p className="text-[10px] text-white/60 truncate">We match the price</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5 text-left text-white/90">
-                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-4 h-4 text-white" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h4 className="text-xs font-bold leading-tight">Secure Booking</h4>
-                  <p className="text-[10px] text-white/60">Your data is protected</p>
+                  <p className="text-[10px] text-white/60 truncate">Your data is protected</p>
                 </div>
               </div>
             </div>
@@ -327,27 +331,29 @@ export default function AttractionsAndMuseumsPage({
         </div>
 
         {/* Clean Modern Inline Filters Bar */}
-        <div className="flex flex-wrap items-center gap-3 mb-8 pb-1">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mb-6 sm:mb-8 pb-1">
           <button
+            type="button"
             onClick={handleResetFilters}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer select-none active:scale-95 shrink-0"
+            className="flex items-center gap-2 px-4 sm:px-5 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer select-none active:scale-95 shrink-0"
           >
             <SlidersHorizontal className="w-4 h-4 text-slate-400" />
             <span>Filters</span>
             {(selectedRegion !== "All" || selectedCity !== "All" || selectedCategory !== "All" || searchQuery) && (
-              <span className="w-2 h-2 rounded-full bg-[#E51937] animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-[#E51937]" />
             )}
           </button>
 
           {/* Region Filter */}
-          <div className="relative shrink-0">
+          <div className="relative flex-1 min-w-[130px] sm:flex-initial sm:min-w-0">
             <select
               value={selectedRegion}
               onChange={(e) => {
                 setSelectedRegion(e.target.value);
                 setSelectedCity("All");
               }}
-              className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+              aria-label="Filter by region"
+              className="appearance-none w-full sm:w-auto pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
             >
               {regions.map((region) => (
                 <option key={region} value={region}>
@@ -359,11 +365,12 @@ export default function AttractionsAndMuseumsPage({
           </div>
 
           {/* City Filter */}
-          <div className="relative shrink-0">
+          <div className="relative flex-1 min-w-[135px] sm:flex-initial sm:min-w-0">
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+              aria-label="Filter by destination"
+              className="appearance-none w-full sm:w-auto pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
             >
               {cities.map((city) => (
                 <option key={city} value={city}>
@@ -375,11 +382,12 @@ export default function AttractionsAndMuseumsPage({
           </div>
 
           {/* Category Filter */}
-          <div className="relative shrink-0">
+          <div className="relative flex-1 min-w-[135px] sm:flex-initial sm:min-w-0">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+              aria-label="Filter by category"
+              className="appearance-none w-full sm:w-auto pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
             >
               {categories.map((category) => (
                 <option key={category} value={category}>
@@ -393,8 +401,9 @@ export default function AttractionsAndMuseumsPage({
           {/* Active Reset helper badge */}
           {(selectedRegion !== "All" || selectedCity !== "All" || selectedCategory !== "All" || searchQuery) && (
             <button
+              type="button"
               onClick={handleResetFilters}
-              className="flex items-center gap-1.5 text-xs font-bold text-[#E51937] hover:underline cursor-pointer select-none ml-2 shrink-0"
+              className="flex items-center gap-1.5 text-xs font-bold text-[#E51937] hover:underline cursor-pointer select-none px-2 min-h-[40px] shrink-0"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset</span>
@@ -402,13 +411,14 @@ export default function AttractionsAndMuseumsPage({
           )}
 
           {/* Sort By Aligned Right */}
-          <div className="flex items-center gap-2 sm:ml-auto ml-0 mt-2 sm:mt-0 w-full sm:w-auto shrink-0 justify-between sm:justify-start">
+          <div className="flex items-center gap-2 sm:ml-auto ml-0 mt-1 sm:mt-0 w-full sm:w-auto shrink-0 justify-between sm:justify-start">
             <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Sort By:</span>
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-initial">
               <select
                 value={sortBy}
                 onChange={(e: any) => setSortBy(e.target.value)}
-                className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs w-full sm:w-auto"
+                aria-label="Sort attractions"
+                className="appearance-none pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs w-full sm:w-auto"
               >
                 <option value="popularity">Recommended</option>
                 <option value="rating">Rating (Highest First)</option>
@@ -421,8 +431,8 @@ export default function AttractionsAndMuseumsPage({
         </div>
 
         {/* Counter & Clear state */}
-        <div className="flex items-center justify-between mb-6 select-none">
-          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-6 select-none">
+          <p className="text-slate-500 dark:text-slate-400 font-bold text-xs sm:text-sm tabular-nums">
             Showing{" "}
             <span className="text-brand font-extrabold">
               {filteredAndSortedAttractions.length}
@@ -438,6 +448,7 @@ export default function AttractionsAndMuseumsPage({
             selectedRegion !== "All" ||
             selectedCity !== "All") && (
             <button
+              type="button"
               onClick={handleResetFilters}
               className="flex items-center gap-1.5 text-xs font-bold text-brand hover:underline cursor-pointer select-none"
             >

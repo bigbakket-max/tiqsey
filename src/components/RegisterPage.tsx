@@ -76,7 +76,7 @@ export default function RegisterPage({
   };
 
   return (
-    <div className="min-h-[calc(100vh-140px)] w-full relative bg-gradient-to-b from-[#eaf2f9] via-[#edf5fc] to-[#e4eef7] flex items-center justify-center py-10 sm:py-14 px-4 sm:px-6 md:px-8 overflow-hidden font-sans selection:bg-[#e31b23]/10 selection:text-[#e31b23]">
+    <div className="min-h-[100dvh] w-full relative bg-gradient-to-b from-[#eaf2f9] via-[#edf5fc] to-[#e4eef7] flex items-center justify-center py-8 sm:py-14 pb-24 lg:pb-16 px-4 sm:px-6 md:px-8 overflow-hidden font-sans selection:bg-[#e31b23]/10 selection:text-[#e31b23]">
       {/* Background Travel-Themed Illustrations */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden select-none">
         {/* Top-Left Airplane & Dashed Flight Contrail Arc */}
@@ -146,7 +146,7 @@ export default function RegisterPage({
       </div>
 
       {/* Main Card */}
-      <div className="relative z-10 w-full max-w-[480px] bg-white rounded-[26px] sm:rounded-[30px] shadow-[0_20px_60px_-15px_rgba(20,50,90,0.07),0_0_1px_1px_rgba(0,0,0,0.04)] border border-white/80 px-7 py-8 sm:px-10 sm:py-10 my-6 transition-all">
+      <div className="relative z-10 w-full max-w-[480px] bg-white rounded-[24px] sm:rounded-[30px] shadow-[0_20px_60px_-15px_rgba(20,50,90,0.07),0_0_1px_1px_rgba(0,0,0,0.04)] border border-white/80 px-5 py-7 sm:px-10 sm:py-10 my-4 sm:my-6 transition-all">
         {/* Logo */}
         <div className="flex items-center justify-center relative mb-5 sm:mb-6">
           <div className="flex items-center justify-center gap-1 select-none">
@@ -206,7 +206,7 @@ export default function RegisterPage({
           type="button"
           onClick={handleGoogleSignUp}
           disabled={isGoogleLoading || isLoading}
-          className="w-full flex items-center justify-center gap-2.5 py-3 px-4 bg-white hover:bg-slate-50/90 active:bg-slate-100 border border-slate-200/90 rounded-xl text-xs sm:text-[13.5px] font-semibold text-slate-700 shadow-xs hover:shadow-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full min-h-[44px] flex items-center justify-center gap-2.5 py-3 px-4 bg-white hover:bg-slate-50/90 active:bg-slate-100 border border-slate-200/90 rounded-xl text-xs sm:text-[13.5px] font-semibold text-slate-700 shadow-xs hover:shadow-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isGoogleLoading ? (
             <Loader2 className="w-4.5 h-4.5 animate-spin text-slate-500" />
@@ -308,7 +308,8 @@ export default function RegisterPage({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1 cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                aria-label={showPassword ? t('hidePassword', 'Hide password') : t('showPassword', 'Show password')}
                 title={showPassword ? t('hidePassword', 'Hide password') : t('showPassword', 'Show password')}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -320,7 +321,7 @@ export default function RegisterPage({
           <button
             type="submit"
             disabled={isLoading || isGoogleLoading}
-            className="w-full mt-2 py-3 sm:py-3.5 px-4 bg-[#e31b23] hover:bg-[#d0141c] active:scale-[0.99] text-white font-bold text-xs sm:text-[14px] rounded-xl shadow-[0_4px_14px_rgba(227,27,35,0.3)] hover:shadow-[0_6px_20px_rgba(227,27,35,0.38)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+            className="w-full min-h-[48px] mt-2 py-3 sm:py-3.5 px-4 bg-[#e31b23] hover:bg-[#d0141c] active:scale-[0.99] text-white font-bold text-xs sm:text-[14px] rounded-xl shadow-[0_4px_14px_rgba(227,27,35,0.3)] hover:shadow-[0_6px_20px_rgba(227,27,35,0.38)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <>

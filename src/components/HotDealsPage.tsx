@@ -161,17 +161,18 @@ export default function HotDealsPage({
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] dark:bg-slate-950 text-slate-800 dark:text-white pb-20 pt-8 transition-colors duration-300 relative overflow-hidden">
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-slate-950 text-slate-800 dark:text-white pb-24 lg:pb-20 pt-6 sm:pt-8 transition-colors duration-300 relative overflow-hidden">
       {/* Golden/Orange Ambient glow backgrounds */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-amber-500/[0.03] dark:bg-amber-500/5 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-20 right-1/4 w-[500px] h-[500px] bg-yellow-500/[0.03] dark:bg-yellow-500/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="hidden sm:block absolute top-0 left-1/4 w-[400px] md:w-[500px] h-[400px] md:h-[500px] bg-amber-500/[0.03] dark:bg-amber-500/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="hidden sm:block absolute bottom-20 right-1/4 w-[400px] md:w-[500px] h-[400px] md:h-[500px] bg-yellow-500/[0.03] dark:bg-yellow-500/5 rounded-full blur-[150px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Navigation Breadcrumb & Back action */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
           <button
+            type="button"
             onClick={onBackToHome}
-            className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-bold text-sm shadow-sm hover:border-amber-500/40 hover:text-amber-600 dark:hover:text-amber-400 transition-all cursor-pointer select-none active:scale-95"
+            className="group flex items-center gap-2 px-4 min-h-[44px] rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-bold text-sm shadow-sm hover:border-amber-500/40 hover:text-amber-600 dark:hover:text-amber-400 transition-all cursor-pointer select-none active:scale-95"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span>Back to Home</span>
@@ -188,56 +189,59 @@ export default function HotDealsPage({
         </div>
 
         {/* Hero Section */}
-        <div className="relative rounded-3xl overflow-hidden bg-[#fff5ea] dark:from-zinc-900/80 dark:via-amber-950/15 dark:to-zinc-900 border border-amber-100/70 dark:border-amber-500/15 p-8 sm:p-12 md:p-16 mb-10 shadow-[0_10px_30px_rgba(245,158,11,0.03)] dark:shadow-[0_20px_50px_rgba(245,158,11,0.08)]">
-          <div className="absolute inset-0 bg-[url('https://chatgpt.com/backend-api/estuary/content?id=file_00000000617882118946b0516596950c&ts=496321&p=fs&cid=1&sig=23a9284c38a206461d638be53ae67b654e1c7ac817acf3ca0edea46e9fe67625&v=0')] bg-cover bg-right sm:bg-center opacity-100 dark:opacity-20" />
+        <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-[#fff5ea] dark:from-zinc-900/80 dark:via-amber-950/15 dark:to-zinc-900 border border-amber-100/70 dark:border-amber-500/15 p-5 sm:p-10 md:p-14 mb-8 sm:mb-10 shadow-[0_10px_30px_rgba(245,158,11,0.03)] dark:shadow-[0_20px_50px_rgba(245,158,11,0.08)]">
+          <div className="absolute inset-0 bg-[url('https://chatgpt.com/backend-api/estuary/content?id=file_00000000617882118946b0516596950c&ts=496321&p=fs&cid=1&sig=23a9284c38a206461d638be53ae67b654e1c7ac817acf3ca0edea46e9fe67625&v=0')] bg-cover bg-right sm:bg-center opacity-100 dark:opacity-20 pointer-events-none" />
 
           <div className="relative z-10 max-w-5xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 dark:border-amber-500/30 rounded-full text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-wider mb-4">
-              <Flame className="w-3.5 h-3.5 animate-bounce fill-amber-500 stroke-none" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 dark:border-amber-500/30 rounded-full text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-wider mb-3 sm:mb-4">
+              <Flame className="w-3.5 h-3.5 fill-amber-500 stroke-none" />
               <span>{t('limitedStock', 'Limited Stock remaining')}</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-4 leading-tight text-slate-900 dark:text-zinc-50 flex items-center flex-nowrap whitespace-nowrap gap-2 sm:gap-3 overflow-visible pt-2">
-              <span className="text-[#FF5500] dark:text-[#FF6611] relative inline-block pr-6 mr-1 shrink-0">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-3 sm:mb-4 leading-tight text-slate-900 dark:text-zinc-50 flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 pt-2">
+              <span className="text-[#FF5500] dark:text-[#FF6611] relative inline-block pr-5 sm:pr-6 mr-1 shrink-0">
                 {t('navHotDeals', 'Hot Deals')}
-                <svg className="absolute -top-4 -right-1 w-6 h-6 text-[#FF5500]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg className="absolute -top-3.5 sm:-top-4 -right-1 w-5 h-5 sm:w-6 sm:h-6 text-[#FF5500]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M5 15L2 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
                   <path d="M12 13V2" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
                   <path d="M19 15L22 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
                 </svg>
               </span>
-              <span className="text-slate-900 dark:text-zinc-100 inline shrink-0">
-                & {t('specialOffers', 'Special Offers')}
+              <span className="text-slate-900 dark:text-zinc-100 inline">
+                &amp; {t('specialOffers', 'Special Offers')}
               </span>
             </h1>
-            <p className="text-slate-600 dark:text-zinc-400 text-sm sm:text-base font-medium leading-relaxed mb-0">
+            <p className="text-slate-600 dark:text-zinc-400 text-xs sm:text-sm md:text-base font-medium leading-relaxed mb-0 max-w-3xl">
               Instantly secure top attraction passes, historic tours, and
               skip-the-line entries. These special pricing deals are
               automatically compiled, loaded in real-time, and refreshed as new
               promotional inventory is released.
             </p>
             {/* Search Pill */}
-            <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-full p-1.5 shadow-lg border border-slate-200/10 flex flex-col sm:flex-row items-stretch sm:items-center mt-6 gap-2 sm:gap-0 focus-within:ring-4 focus-within:ring-amber-500/10 transition-all">
-              <div className="flex items-center flex-1 min-w-0 pl-4">
+            <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl sm:rounded-full p-2 sm:p-1.5 shadow-lg border border-slate-200/10 flex flex-col sm:flex-row items-stretch sm:items-center mt-5 sm:mt-6 gap-2 sm:gap-0 focus-within:ring-4 focus-within:ring-amber-500/10 transition-all">
+              <div className="flex items-center flex-1 min-w-0 pl-3 sm:pl-4">
                 <Search className="w-5 h-5 text-slate-400 shrink-0" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search hot deals, cities or categories..."
-                  className="w-full pl-3 pr-4 py-2 bg-transparent text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none text-sm font-medium"
+                  className="w-full pl-3 pr-3 py-2 bg-transparent text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none text-sm font-medium min-w-0"
                 />
                 {searchQuery && (
                   <button
+                    type="button"
                     onClick={() => setSearchQuery("")}
-                    className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors mr-2 cursor-pointer select-none"
+                    className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors mr-1 cursor-pointer select-none shrink-0"
                     title="Clear"
+                    aria-label="Clear search"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
               <button
-                className="bg-amber-600 hover:bg-amber-700 text-white px-7 py-3 rounded-full font-bold text-sm tracking-wide transition-all shadow-md active:scale-95 shrink-0"
+                type="button"
+                className="bg-amber-600 hover:bg-amber-700 text-white px-7 min-h-[44px] py-2.5 sm:py-3 rounded-xl sm:rounded-full font-bold text-sm tracking-wide transition-all shadow-md active:scale-95 shrink-0 cursor-pointer"
               >
                 Search
               </button>
@@ -246,27 +250,29 @@ export default function HotDealsPage({
         </div>
 
         {/* Clean Modern Inline Filters Bar */}
-        <div className="flex flex-wrap items-center gap-3 mb-8 pb-1">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mb-6 sm:mb-8 pb-1">
           <button
+            type="button"
             onClick={handleResetFilters}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer select-none active:scale-95 shrink-0 shadow-xs"
+            className="flex items-center gap-2 px-4 sm:px-5 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer select-none active:scale-95 shrink-0 shadow-xs"
           >
             <SlidersHorizontal className="w-4 h-4 text-slate-400" />
             <span>Filters</span>
             {(selectedRegion !== "All" || selectedCity !== "All" || selectedCategory !== "All" || searchQuery) && (
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
             )}
           </button>
 
           {/* Region Filter */}
-          <div className="relative shrink-0">
+          <div className="relative flex-1 min-w-[130px] sm:flex-initial sm:min-w-0">
             <select
               value={selectedRegion}
               onChange={(e) => {
                 setSelectedRegion(e.target.value);
                 setSelectedCity("All");
               }}
-              className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+              aria-label="Filter by region"
+              className="appearance-none w-full sm:w-auto pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
             >
               {regions.map((region) => (
                 <option key={region} value={region}>
@@ -278,11 +284,12 @@ export default function HotDealsPage({
           </div>
 
           {/* City Filter */}
-          <div className="relative shrink-0">
+          <div className="relative flex-1 min-w-[135px] sm:flex-initial sm:min-w-0">
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+              aria-label="Filter by city"
+              className="appearance-none w-full sm:w-auto pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
             >
               {cities.map((city) => (
                 <option key={city} value={city}>
@@ -294,11 +301,12 @@ export default function HotDealsPage({
           </div>
 
           {/* Category Filter */}
-          <div className="relative shrink-0">
+          <div className="relative flex-1 min-w-[135px] sm:flex-initial sm:min-w-0">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
+              aria-label="Filter by category"
+              className="appearance-none w-full sm:w-auto pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs"
             >
               {categories.map((category) => (
                 <option key={category} value={category}>
@@ -312,8 +320,9 @@ export default function HotDealsPage({
           {/* Active Reset helper badge */}
           {(selectedRegion !== "All" || selectedCity !== "All" || selectedCategory !== "All" || searchQuery) && (
             <button
+              type="button"
               onClick={handleResetFilters}
-              className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer select-none ml-2 shrink-0"
+              className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer select-none px-2 min-h-[40px] shrink-0"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset</span>
@@ -321,15 +330,16 @@ export default function HotDealsPage({
           )}
 
           {/* Sort By Aligned Right */}
-          <div className="flex items-center gap-2 sm:ml-auto ml-0 mt-2 sm:mt-0 w-full sm:w-auto shrink-0 justify-between sm:justify-start">
+          <div className="flex items-center gap-2 sm:ml-auto ml-0 mt-1 sm:mt-0 w-full sm:w-auto shrink-0 justify-between sm:justify-start">
             <span className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">
               SORT BY:
             </span>
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-initial">
               <select
                 value={sortBy}
                 onChange={(e: any) => setSortBy(e.target.value)}
-                className="appearance-none pl-5 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs w-full sm:w-auto"
+                aria-label="Sort deals"
+                className="appearance-none pl-4 pr-9 min-h-[44px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-none shadow-xs w-full sm:w-auto"
               >
                 <option value="discount-desc">Recommended</option>
                 <option value="discount-desc">Highest Discount First</option>
@@ -343,8 +353,8 @@ export default function HotDealsPage({
         </div>
 
         {/* Counter Bar & Reset */}
-        <div className="flex items-center justify-between mb-6 select-none">
-          <p className="text-slate-600 dark:text-zinc-400 font-bold text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-6 select-none">
+          <p className="text-slate-600 dark:text-zinc-400 font-bold text-xs sm:text-sm tabular-nums">
             Found{" "}
             <span className="text-amber-600 dark:text-amber-400 font-extrabold">
               {filteredAndSortedDeals.length}
@@ -360,6 +370,7 @@ export default function HotDealsPage({
             selectedRegion !== "All" ||
             selectedCity !== "All") && (
             <button
+              type="button"
               onClick={handleResetFilters}
               className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer select-none"
             >
@@ -374,7 +385,7 @@ export default function HotDealsPage({
           {filteredAndSortedDeals.length > 0 ? (
             <motion.div
               layout
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6"
             >
               {filteredAndSortedDeals.map((attr, idx) => {
                 const discountRatio = attr.discountPrice
@@ -398,13 +409,16 @@ export default function HotDealsPage({
                       duration: 0.3,
                       delay: Math.min(idx * 0.04, 0.4),
                     }}
-                    className="group relative bg-white dark:bg-zinc-900/40 border border-slate-100 dark:border-zinc-850 hover:border-amber-500/30 dark:hover:border-amber-500/30 rounded-2xl overflow-hidden flex flex-col justify-between h-full shadow-sm hover:shadow-[0_15px_30px_rgba(245,158,11,0.06)] transform hover:-translate-y-1 transition-all duration-300"
+                    onClick={() => onViewAttraction(attr.id)}
+                    className="group cursor-pointer relative bg-white dark:bg-zinc-900/40 border border-slate-100 dark:border-zinc-850 hover:border-amber-500/30 dark:hover:border-amber-500/30 rounded-2xl overflow-hidden flex flex-col justify-between h-full shadow-sm hover:shadow-[0_15px_30px_rgba(245,158,11,0.06)] transform hover:-translate-y-1 transition-all duration-300"
                   >
                     {/* Top image & sticker badges */}
-                    <div className="relative aspect-[16/10] overflow-hidden">
+                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-zinc-900">
                       <img
                         src={attr.imageUrl}
                         alt={attr.name}
+                        loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           const target = e.currentTarget;
                           if (!target.src.includes('photo-1512470876302')) {
@@ -419,17 +433,19 @@ export default function HotDealsPage({
                       {/* Percent Tag */}
                       <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-gradient-to-r from-amber-500 to-yellow-400 text-black font-black text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full shadow-md">
                         <Percent className="w-2.5 h-2.5 text-black" />
-                        <span>SAVE {discountRatio}%</span>
+                        <span className="tabular-nums">SAVE {discountRatio}%</span>
                       </div>
 
                       {/* Heart Wishlist */}
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleWishlist(attr);
                         }}
-                        className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xs flex items-center justify-center border border-slate-100/50 dark:border-zinc-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:border-rose-200/50 dark:hover:border-rose-900/30 text-slate-600 dark:text-zinc-300 transition-all active:scale-90 group/fav cursor-pointer"
+                        className="absolute top-2.5 right-2.5 z-10 w-11 h-11 sm:w-9 sm:h-9 rounded-full bg-white/95 dark:bg-zinc-950/80 backdrop-blur-xs flex items-center justify-center border border-slate-100/50 dark:border-zinc-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:border-rose-200/50 dark:hover:border-rose-900/30 text-slate-600 dark:text-zinc-300 transition-all active:scale-90 group/fav cursor-pointer"
                         title={isWishlisted(attr.id) ? "Remove from Wishlist" : "Save to Wishlist"}
+                        aria-label={isWishlisted(attr.id) ? "Remove from Wishlist" : "Save to Wishlist"}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -456,19 +472,19 @@ export default function HotDealsPage({
                     <div className="p-4 flex-1 flex flex-col justify-between">
                       <div>
                         {/* Sub headers */}
-                        <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-500/80 mb-1">
-                          <span>{attr.city}</span>
+                        <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-500/80 mb-1 flex-wrap">
+                          <span className="truncate max-w-[120px]">{attr.city}</span>
                           <span>•</span>
                           <span>{attr.category}</span>
                         </div>
 
                         {/* Heading */}
-                        <h3 className="font-extrabold text-sm text-slate-800 dark:text-zinc-100 hover:text-amber-600 dark:hover:text-amber-400 transition-colors line-clamp-2 h-[2.5rem]">
+                        <h3 className="font-extrabold text-sm text-slate-800 dark:text-zinc-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-2 min-h-[2.5rem]">
                           {attr.name}
                         </h3>
 
                         {/* Rating block */}
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400 mt-2 mb-3">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-zinc-400 mt-2 mb-3 tabular-nums">
                           <div className="flex items-center gap-0.5 bg-amber-500/10 px-1.5 py-0.5 rounded text-amber-600 dark:text-amber-400 text-[10px] font-bold">
                             <Star className="w-3 h-3 fill-amber-500 dark:fill-amber-400 text-amber-500 dark:text-amber-400" />
                             <span>{attr.rating}</span>
@@ -480,8 +496,8 @@ export default function HotDealsPage({
                       </div>
 
                       {/* Divider and price / action row */}
-                      <div className="border-t border-slate-100 dark:border-zinc-850 pt-3 flex items-end justify-between mt-auto">
-                        <div className="flex flex-col">
+                      <div className="border-t border-slate-100 dark:border-zinc-850 pt-3 flex items-end justify-between gap-2 mt-auto">
+                        <div className="flex flex-col tabular-nums">
                           <span className="text-[9px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest line-through">
                             Reg. {formatPrice(attr.price, attr.currency)}
                           </span>
@@ -491,8 +507,12 @@ export default function HotDealsPage({
                         </div>
 
                         <button
-                          onClick={() => onViewAttraction(attr.id)}
-                          className="bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-zinc-950 font-black text-[10px] uppercase tracking-wider px-3.5 py-2.5 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewAttraction(attr.id);
+                          }}
+                          className="bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-zinc-950 font-black text-[10px] uppercase tracking-wider px-3.5 min-h-[40px] rounded-xl transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
                         >
                           Unlock Deal
                         </button>

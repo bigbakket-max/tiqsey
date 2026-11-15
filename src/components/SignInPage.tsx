@@ -51,10 +51,10 @@ export default function SignInPage({
   };
 
   return (
-    <div className="min-h-screen w-full relative bg-[#f4f7fa] flex items-center justify-center py-10 sm:py-16 px-4 sm:px-6 font-sans select-none selection:bg-[#e31b23]/10 selection:text-[#e31b23]">
+    <div className="min-h-[100dvh] w-full relative bg-[#f4f7fa] flex items-center justify-center py-8 sm:py-16 pb-24 lg:pb-16 px-4 sm:px-6 font-sans select-none selection:bg-[#e31b23]/10 selection:text-[#e31b23]">
       
       {/* Centered Authentication Card */}
-      <div className="relative z-10 w-full max-w-[490px] bg-white rounded-[28px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.06),0_2px_8px_rgba(0,0,0,0.03)] border border-slate-100 p-8 sm:p-12 transition-all">
+      <div className="relative z-10 w-full max-w-[490px] bg-white rounded-[24px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.06),0_2px_8px_rgba(0,0,0,0.03)] border border-slate-100 p-6 sm:p-12 transition-all">
         
         {/* Top Centered Tiqsey Logo */}
         <div className="flex justify-center mb-6">
@@ -155,7 +155,8 @@ export default function SignInPage({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1 cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                aria-label={showPassword ? t('hidePassword', 'Hide password') : t('showPassword', 'Show password')}
                 title={showPassword ? t('hidePassword', 'Hide password') : t('showPassword', 'Show password')}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -164,8 +165,8 @@ export default function SignInPage({
           </div>
 
           {/* Remember Me & Forgot Password Row */}
-          <div className="flex items-center justify-between text-sm pt-1">
-            <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 hover:text-slate-900 transition-colors">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm pt-1">
+            <label className="min-h-[40px] flex items-center gap-2 cursor-pointer select-none text-slate-600 hover:text-slate-900 transition-colors">
               <input
                 type="checkbox"
                 checked={rememberMe}
@@ -178,7 +179,7 @@ export default function SignInPage({
             <button
               type="button"
               onClick={handleForgotPassword}
-              className="text-[#e31b23] font-normal hover:underline cursor-pointer transition-colors"
+              className="min-h-[40px] text-[#e31b23] font-normal hover:underline cursor-pointer transition-colors"
             >
               {t('forgotPassword', 'Forgot password?')}
             </button>
@@ -189,7 +190,7 @@ export default function SignInPage({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 sm:py-4 px-6 bg-[#e31b23] hover:bg-[#d0141c] active:bg-[#b81017] text-white font-semibold text-base rounded-xl transition-all shadow-[0_4px_14px_rgba(227,27,35,0.3)] hover:shadow-[0_6px_20px_rgba(227,27,35,0.38)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full min-h-[48px] py-3.5 sm:py-4 px-6 bg-[#e31b23] hover:bg-[#d0141c] active:bg-[#b81017] text-white font-semibold text-base rounded-xl transition-all shadow-[0_4px_14px_rgba(227,27,35,0.3)] hover:shadow-[0_6px_20px_rgba(227,27,35,0.38)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>

@@ -151,17 +151,17 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           <button
             onClick={() => navigate('/inventory/new')}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer active:scale-95"
+            className="flex-1 sm:flex-none min-h-[42px] flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>New Activity</span>
           </button>
           <button
             onClick={() => navigate('/promotional-banners/new')}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer active:scale-95"
+            className="flex-1 sm:flex-none min-h-[42px] flex items-center justify-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer active:scale-95"
           >
             <Sparkles className="w-4 h-4" />
             <span>New Banner</span>
@@ -270,8 +270,8 @@ export default function Dashboard() {
       </div>
 
       {/* Interactive Analytics & Performance Chart */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 sm:mb-6">
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-slate-800 dark:text-white text-base">Revenue & Bookings Trend</h3>
@@ -282,9 +282,9 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             {/* Legend */}
-            <div className="hidden sm:flex items-center gap-3 text-xs font-semibold">
+            <div className="flex items-center gap-3 text-xs font-semibold">
               <div className="flex items-center gap-1.5 text-emerald-600">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
                 <span>Bookings</span>
@@ -301,7 +301,7 @@ export default function Dashboard() {
                 <button
                   key={range}
                   onClick={() => setTimeRange(range)}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all duration-150 cursor-pointer ${
+                  className={`min-h-[34px] px-3 py-1 text-xs font-bold rounded-lg transition-all duration-150 cursor-pointer ${
                     timeRange === range
                       ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-sky-400 shadow-xs'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
@@ -314,7 +314,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="h-[340px] w-full">
+        <div className="h-[250px] sm:h-[340px] w-full min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={activeChartData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
               <defs>
@@ -383,23 +383,24 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Orders & Bookings Snapshot Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
-        <div className="flex items-center justify-between mb-4">
+      {/* Recent Orders & Bookings Snapshot Table / Mobile Cards */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <div>
             <h3 className="font-bold text-slate-800 dark:text-white text-base">Recent Customer Bookings</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Live incoming bookings with instant access to vouchers.</p>
           </div>
           <button
             onClick={() => navigate('/bookings')}
-            className="flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-sky-400 hover:underline cursor-pointer"
+            className="min-h-[36px] flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-sky-400 hover:underline cursor-pointer"
           >
             <span>View All Orders</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
@@ -428,7 +429,7 @@ export default function Dashboard() {
                   <td className="py-3 px-3 text-slate-700 dark:text-slate-300 font-medium max-w-xs truncate">
                     {order.item}
                   </td>
-                  <td className="py-3 px-3 text-right font-mono font-bold text-slate-800 dark:text-white">
+                  <td className="py-3 px-3 text-right font-mono font-bold text-slate-800 dark:text-white tabular-nums">
                     {order.amount}
                   </td>
                   <td className="py-3 px-3">
@@ -448,6 +449,44 @@ export default function Dashboard() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile & Tablet Stacked Cards */}
+        <div className="lg:hidden space-y-2.5">
+          {RECENT_ACTIVITY.map((order) => (
+            <button
+              key={order.id}
+              type="button"
+              onClick={() => navigate(`/bookings?orderId=${order.id}`)}
+              className="w-full text-left p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors cursor-pointer space-y-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-xs font-bold text-blue-600 dark:text-sky-400">
+                  {order.pnr}
+                </span>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+                  order.status === 'Confirmed' 
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-400' 
+                    : 'bg-amber-50 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-400'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${order.status === 'Confirmed' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  {order.status}
+                </span>
+              </div>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-100 line-clamp-1">
+                {order.item}
+              </p>
+              <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-200/60 dark:border-slate-800 text-xs">
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-700 dark:text-slate-300 truncate">{order.customer}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{order.time}</p>
+                </div>
+                <span className="font-mono font-black text-slate-900 dark:text-white shrink-0 tabular-nums">
+                  {order.amount}
+                </span>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -472,7 +511,7 @@ function StatCard({ title, value, subtitle, trend, trendUp, icon, iconBg, onClic
       <div className="flex justify-between items-start">
         <div>
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{title}</p>
-          <p className="text-2xl font-black font-mono text-slate-800 dark:text-white mt-1 group-hover:text-blue-600 dark:group-hover:text-sky-400 transition-colors">
+          <p className="text-2xl font-black font-mono text-slate-800 dark:text-white mt-1 group-hover:text-blue-600 dark:group-hover:text-sky-400 transition-colors tabular-nums">
             {value}
           </p>
         </div>

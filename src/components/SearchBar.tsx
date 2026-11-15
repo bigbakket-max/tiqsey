@@ -383,13 +383,13 @@ export default function SearchBar({
                 isPageFilter
                   ? "bg-slate-50/50 dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-900 border-slate-250 dark:border-slate-800 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-brand/60 focus-within:ring-2 focus-within:ring-brand/10 shadow-xs"
                   : "bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800/80 border-slate-300/90 dark:border-slate-700 hover:border-[#e3000f]/50 dark:hover:border-[#e3000f]/50 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-[#e3000f] dark:focus-within:border-[#e3000f] focus-within:ring-2 focus-within:ring-[#e3000f]/15 shadow-2xs"
-              } rounded-full h-10 border transition-all overflow-hidden`
-            : "bg-white dark:bg-slate-900 rounded-full p-1.5 pl-6 md:pl-8 h-14 border border-[#e3000f]/40 dark:border-[#e3000f]/30 hover:border-[#e3000f] focus-within:border-[#e3000f] focus-within:ring-4 focus-within:ring-[#e3000f]/5 shadow-sm transition-all duration-300"
+              } rounded-full h-11 sm:h-10 border transition-all overflow-hidden`
+            : "bg-white dark:bg-slate-900 rounded-full p-1 sm:p-1.5 pl-4 sm:pl-6 md:pl-8 h-12 sm:h-14 border border-[#e3000f]/40 dark:border-[#e3000f]/30 hover:border-[#e3000f] focus-within:border-[#e3000f] focus-within:ring-4 focus-within:ring-[#e3000f]/5 shadow-sm transition-all duration-300"
         }`}
       >
         {!isCompact && (
           <Search
-            className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-3 shrink-0"
+            className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 dark:text-slate-500 mr-2 sm:mr-3 shrink-0"
             strokeWidth={2.5}
           />
         )}
@@ -411,10 +411,10 @@ export default function SearchBar({
               : t("searchPlaceholder", "Search destinations, activities, tours, attractions..."))
           }
           autoFocus={autoFocus}
-          className={`focus:outline-none focus:ring-0 focus:border-none focus-visible:outline-none focus-visible:ring-0 transition-all duration-300 ease-in-out font-sans leading-normal ${
+          className={`focus:outline-none focus:ring-0 focus:border-none focus-visible:outline-none focus-visible:ring-0 transition-all duration-300 ease-in-out font-sans leading-normal min-w-0 ${
             isCompact
-              ? "text-[13px] xl:text-[14px] flex-1 bg-transparent border-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 pl-4 pr-1 py-0 h-full font-medium"
-              : "w-full text-slate-900 dark:text-white text-sm md:text-base bg-transparent border-none p-0 placeholder:text-slate-400 dark:placeholder:text-slate-500 pr-4 font-medium"
+              ? "text-[14px] sm:text-[13px] xl:text-[14px] flex-1 bg-transparent border-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 pl-3.5 sm:pl-4 pr-1 py-0 h-full font-medium"
+              : "w-full text-slate-900 dark:text-white text-sm md:text-base bg-transparent border-none p-0 placeholder:text-slate-400 dark:placeholder:text-slate-500 pr-2 sm:pr-4 font-medium"
           }`}
         />
         {searchQuery && (
@@ -425,17 +425,19 @@ export default function SearchBar({
               onSearch("");
               inputRef.current?.focus();
             }}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer mr-1 shrink-0"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer mr-1 shrink-0"
             title="Clear search"
+            aria-label="Clear search"
           >
             <X className="w-4 h-4" strokeWidth={2.5} />
           </button>
         )}
         {isCompact ? (
-          <div className="flex items-center pr-3 shrink-0 gap-1">
+          <div className="flex items-center pr-2.5 sm:pr-3 shrink-0 gap-1">
             <button
               type="submit"
-              className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors cursor-pointer p-0.5"
+              aria-label="Search"
+              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors cursor-pointer rounded-full"
             >
               <Search className="w-4 h-4" strokeWidth={2} />
             </button>
@@ -445,7 +447,7 @@ export default function SearchBar({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
-            className="h-11 px-7 flex items-center justify-center gap-2 text-sm text-white rounded-full font-bold hover:brightness-110 transition-all bg-[#e3000f] shrink-0 shadow-md cursor-pointer"
+            className="h-10 sm:h-11 px-4 sm:px-7 flex items-center justify-center gap-2 text-xs sm:text-sm text-white rounded-full font-bold hover:brightness-110 transition-all bg-[#e3000f] shrink-0 shadow-md cursor-pointer"
           >
             <span>Search</span>
           </motion.button>
@@ -461,8 +463,10 @@ export default function SearchBar({
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className={`absolute top-full mt-2.5 bg-white dark:bg-slate-900 shadow-[0_24px_50px_rgba(0,0,0,0.18)] border border-slate-200/90 dark:border-slate-800 overflow-hidden z-[999999] ${
               isCompact
-                ? "right-0 w-[calc(100vw-32px)] md:w-[580px] lg:w-[620px] rounded-2xl"
-                : "left-1/2 -translate-x-1/2 w-[calc(100vw-32px)] sm:w-[540px] md:w-[640px] lg:w-[700px] rounded-[24px]"
+                ? isPageFilter
+                  ? "left-0 right-0 md:right-auto md:w-[580px] lg:w-[620px] rounded-2xl"
+                  : "right-0 w-[calc(100vw-24px)] sm:w-[460px] md:w-[580px] lg:w-[620px] rounded-2xl"
+                : "left-1/2 -translate-x-1/2 w-[calc(100vw-24px)] sm:w-[540px] md:w-[640px] lg:w-[700px] rounded-2xl sm:rounded-[24px]"
             }`}
           >
             {isSearching ? (
@@ -474,7 +478,7 @@ export default function SearchBar({
               </div>
             ) : searchQuery.trim().length < 2 ? (
               /* EMPTY STATE: Recent Searches & Trending / Popular Chips */
-              <div className="max-h-[500px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/40">
+              <div className="max-h-[65dvh] sm:max-h-[500px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/40">
                 {/* Recent Searches */}
                 {recentSearches.length > 0 && (
                   <div className="p-4 sm:p-5">
@@ -489,7 +493,7 @@ export default function SearchBar({
                           e.stopPropagation();
                           clearAllRecentSearches();
                         }}
-                        className="text-[11px] font-bold text-slate-400 hover:text-[#e3000f] transition-colors cursor-pointer flex items-center gap-1"
+                        className="text-[11px] font-bold text-slate-400 hover:text-[#e3000f] transition-colors cursor-pointer flex items-center gap-1 py-1 px-2"
                       >
                         <Trash2 className="w-3 h-3" />
                         Clear All
@@ -499,7 +503,7 @@ export default function SearchBar({
                       {recentSearches.map((item, index) => (
                         <span
                           key={`recent-${index}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all cursor-pointer group"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[34px] rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all cursor-pointer group"
                           onClick={() => {
                             setSearchQuery(item);
                             saveRecentSearch(item);
@@ -516,7 +520,8 @@ export default function SearchBar({
                               e.stopPropagation();
                               removeRecentSearch(item);
                             }}
-                            className="p-0.5 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-400 hover:text-slate-600 transition-all cursor-pointer ml-0.5"
+                            aria-label={`Remove ${item}`}
+                            className="p-1 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-400 hover:text-slate-600 transition-all cursor-pointer ml-0.5"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -544,7 +549,7 @@ export default function SearchBar({
                           setShowSuggestions(false);
                           setIsFocused(false);
                         }}
-                        className="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:border-[#e3000f]/60 hover:bg-[#e3000f]/5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-[#e3000f] transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                        className="px-3 py-1.5 min-h-[36px] rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:border-[#e3000f]/60 hover:bg-[#e3000f]/5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-[#e3000f] transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
                       >
                         <Sparkles className="w-3 h-3 text-amber-500" />
                         <span>{query}</span>
@@ -571,7 +576,7 @@ export default function SearchBar({
                           setShowSuggestions(false);
                           setIsFocused(false);
                         }}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:border-teal-500/50 hover:bg-teal-50/50 dark:hover:bg-teal-950/30 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-600 dark:hover:text-teal-400 transition-all cursor-pointer shadow-2xs"
+                        className="px-3 py-1.5 min-h-[36px] rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:border-teal-500/50 hover:bg-teal-50/50 dark:hover:bg-teal-950/30 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-teal-600 dark:hover:text-teal-400 transition-all cursor-pointer shadow-2xs"
                       >
                         {city}
                       </button>
@@ -583,18 +588,18 @@ export default function SearchBar({
               /* ACTIVE RESULTS STATE: Category Tabs & Rich Item Previews */
               <div>
                 {/* Category Filter Tabs Bar */}
-                <div className="flex items-center gap-1.5 px-4 pt-3.5 pb-2.5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-950/40 overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-1.5 px-3 sm:px-4 pt-3 pb-2.5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-950/40 overflow-x-auto no-scrollbar">
                   <button
                     type="button"
                     onClick={() => setActiveTab("all")}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 min-h-[36px] rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                       activeTab === "all"
                         ? "bg-[#e3000f] text-white shadow-xs"
                         : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700"
                     }`}
                   >
                     <span>All</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${activeTab === "all" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-500"}`}>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold tabular-nums ${activeTab === "all" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-500"}`}>
                       {counts.all}
                     </span>
                   </button>
@@ -602,7 +607,7 @@ export default function SearchBar({
                   <button
                     type="button"
                     onClick={() => setActiveTab("attractions")}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 min-h-[36px] rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                       activeTab === "attractions"
                         ? "bg-[#e3000f] text-white shadow-xs"
                         : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700"
@@ -610,7 +615,7 @@ export default function SearchBar({
                   >
                     <Landmark className="w-3 h-3" />
                     <span>Attractions</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${activeTab === "attractions" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-500"}`}>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold tabular-nums ${activeTab === "attractions" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-500"}`}>
                       {counts.attractions}
                     </span>
                   </button>
@@ -618,7 +623,7 @@ export default function SearchBar({
                   <button
                     type="button"
                     onClick={() => setActiveTab("cities")}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 min-h-[36px] rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                       activeTab === "cities"
                         ? "bg-[#e3000f] text-white shadow-xs"
                         : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700"
@@ -626,7 +631,7 @@ export default function SearchBar({
                   >
                     <MapPin className="w-3 h-3" />
                     <span>Cities</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${activeTab === "cities" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-500"}`}>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold tabular-nums ${activeTab === "cities" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-500"}`}>
                       {counts.cities}
                     </span>
                   </button>
@@ -634,7 +639,7 @@ export default function SearchBar({
                   <button
                     type="button"
                     onClick={() => setActiveTab("activities")}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 min-h-[36px] rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                       activeTab === "activities"
                         ? "bg-[#e3000f] text-white shadow-xs"
                         : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700"
@@ -642,7 +647,7 @@ export default function SearchBar({
                   >
                     <Compass className="w-3 h-3" />
                     <span>Activities</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${activeTab === "activities" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-500"}`}>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold tabular-nums ${activeTab === "activities" ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-500"}`}>
                       {counts.activities}
                     </span>
                   </button>
@@ -650,7 +655,7 @@ export default function SearchBar({
 
                 {/* Suggestions List */}
                 {displayedSuggestions.length > 0 ? (
-                  <div className="max-h-[480px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
+                  <div className="max-h-[55dvh] sm:max-h-[440px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
                     {displayedSuggestions.map((item, idx) => {
                       const isSelected = idx === selectedIndex;
                       const isDestination = (item as any).type === "destination";
@@ -666,42 +671,42 @@ export default function SearchBar({
                             key={`dest-${dest.id || dest.name}`}
                             type="button"
                             onClick={() => handleSuggestionClick(dest)}
-                            className={`w-full flex items-center justify-between px-5 py-3 transition-colors text-left group cursor-pointer ${
+                            className={`w-full flex items-center justify-between px-3.5 sm:px-5 py-3 transition-colors text-left group cursor-pointer ${
                               isSelected
                                 ? "bg-slate-100 dark:bg-slate-800"
                                 : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                             }`}
                           >
-                            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
                               <SuggestionImage
                                 src={dest.imageUrl}
                                 alt={dest.name}
                                 fallbackIcon={MapPin}
-                                className="w-12 h-12 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs group-hover:scale-105 transition-transform"
+                                className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs group-hover:scale-105 transition-transform"
                               />
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 mb-0.5">
+                                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                                   <span className="text-[10px] font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 px-1.5 py-0.5 rounded border border-teal-200/60 dark:border-teal-800/60">
                                     Destination
                                   </span>
                                   {countryName && (
-                                    <span className="text-[11px] text-slate-400 font-medium">
+                                    <span className="text-[11px] text-slate-400 font-medium truncate">
                                       {countryName}
                                     </span>
                                   )}
                                 </div>
-                                <h4 className="text-[14px] font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#e3000f] transition-colors truncate">
+                                <h4 className="text-[13px] sm:text-[14px] font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#e3000f] transition-colors truncate">
                                   {highlightText(dest.name, searchQuery)}
                                 </h4>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
                                   {dest.attractionsCount
                                     ? `${dest.attractionsCount} Experiences available`
                                     : "Explore top attractions & tours"}
                                 </p>
                               </div>
                             </div>
-                            <span className="text-[11px] font-bold text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 px-2.5 py-1 rounded-md border border-teal-200/60 dark:border-teal-800/60 shrink-0 ml-3 flex items-center gap-1 group-hover:bg-teal-600 group-hover:text-white transition-colors">
-                              <span>Explore</span>
+                            <span className="text-[11px] font-bold text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 px-2.5 py-1 rounded-md border border-teal-200/60 dark:border-teal-800/60 shrink-0 ml-2 sm:ml-3 flex items-center gap-1 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                              <span className="hidden sm:inline">Explore</span>
                               <ArrowRight className="w-3 h-3" />
                             </span>
                           </button>
@@ -722,51 +727,51 @@ export default function SearchBar({
                           key={`attraction-${attr.id}`}
                           type="button"
                           onClick={() => handleSuggestionClick(attr)}
-                          className={`w-full flex items-center justify-between px-5 py-3 transition-colors text-left group cursor-pointer ${
+                          className={`w-full flex items-center justify-between px-3.5 sm:px-5 py-3 transition-colors text-left group cursor-pointer ${
                             isSelected
                               ? "bg-slate-100 dark:bg-slate-800"
                               : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                           }`}
                         >
-                          <div className="flex items-center gap-3.5 min-w-0 flex-1 mr-3">
+                          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1 mr-2 sm:mr-3">
                             <SuggestionImage
                               src={attr.imageUrl}
                               alt={attr.name}
                               fallbackIcon={Landmark}
-                              className="w-14 h-14 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs group-hover:scale-102 transition-transform"
+                              className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs group-hover:scale-102 transition-transform"
                             />
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 text-[11px] font-medium mb-0.5">
+                              <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] font-medium mb-0.5 flex-wrap">
                                 <span className="font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">
                                   {attr.category || "Experience"}
                                 </span>
                                 {attr.rating && (
-                                  <span className="flex items-center gap-0.5 text-amber-500 font-bold text-[11px]">
+                                  <span className="flex items-center gap-0.5 text-amber-500 font-bold text-[11px] tabular-nums">
                                     <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                                     <span>{attr.rating}</span>
                                     {attr.reviewsCount && (
-                                      <span className="text-[10px] text-slate-400 font-normal">
+                                      <span className="hidden sm:inline text-[10px] text-slate-400 font-normal">
                                         ({attr.reviewsCount.toLocaleString()})
                                       </span>
                                     )}
                                   </span>
                                 )}
                               </div>
-                              <h4 className="text-[14px] font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#e3000f] transition-colors line-clamp-1 leading-snug">
+                              <h4 className="text-[13px] sm:text-[14px] font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#e3000f] transition-colors line-clamp-1 leading-snug">
                                 {highlightText(attr.name, searchQuery)}
                               </h4>
                               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1 mt-0.5 truncate">
                                 <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                                <span>{highlightText(attr.location || attr.city, searchQuery)}</span>
+                                <span className="truncate">{highlightText(attr.location || attr.city, searchQuery)}</span>
                               </p>
                             </div>
                           </div>
 
-                          <div className="text-right shrink-0">
+                          <div className="text-right shrink-0 tabular-nums">
                             <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block uppercase tracking-wider">
                               From
                             </span>
-                            <span className="text-[14px] font-black text-slate-900 dark:text-white group-hover:text-[#e3000f] transition-colors block">
+                            <span className="text-[13px] sm:text-[14px] font-black text-slate-900 dark:text-white group-hover:text-[#e3000f] transition-colors block">
                               {formatPrice(displayPrice)}
                             </span>
                             {hasDiscount && (
@@ -794,13 +799,16 @@ export default function SearchBar({
                 <button
                   type="button"
                   onClick={handleSearch}
-                  className="w-full py-3.5 px-5 bg-slate-50/90 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-750 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer group"
+                  className="w-full py-3.5 px-4 sm:px-5 bg-slate-50/90 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-750 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer group"
                 >
-                  <span className="flex items-center gap-2">
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#e3000f]" />
-                    <span>Open full search results with filters for <strong className="text-[#e3000f]">"{searchQuery}"</strong></span>
+                  <span className="flex items-center gap-2 min-w-0 truncate">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#e3000f] shrink-0" />
+                    <span className="truncate">
+                      <span className="hidden sm:inline">Open full search results for </span>
+                      <strong className="text-[#e3000f]">"{searchQuery}"</strong>
+                    </span>
                   </span>
-                  <span className="flex items-center gap-1.5 text-[#e3000f] font-extrabold group-hover:translate-x-1 transition-transform">
+                  <span className="flex items-center gap-1.5 text-[#e3000f] font-extrabold group-hover:translate-x-1 transition-transform shrink-0 tabular-nums">
                     <span>View all ({counts.all})</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </span>

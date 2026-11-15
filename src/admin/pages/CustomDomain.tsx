@@ -230,7 +230,7 @@ export default function CustomDomain() {
   return (
     <div className="space-y-6 pb-16 font-sans">
       {/* Top Banner Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 p-6 md:p-8 rounded-3xl text-white shadow-xl border border-slate-800 relative overflow-hidden">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 p-5 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl text-white shadow-xl border border-slate-800 relative overflow-hidden">
         <div className="absolute right-0 top-0 translate-x-12 -translate-y-8 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="space-y-2 relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-xs font-semibold tracking-wide border border-sky-400/20">
@@ -330,11 +330,11 @@ export default function CustomDomain() {
                 </select>
               </div>
 
-              <div className="pt-2 flex flex-col gap-2">
+              <div className="pt-2 flex flex-col gap-2.5">
                 <button
                   type="submit"
                   disabled={saving}
-                  className="w-full py-2.5 px-4 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl text-xs md:text-sm shadow-md shadow-sky-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full min-h-[44px] py-2.5 px-4 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl text-xs md:text-sm shadow-md shadow-sky-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {saving ? (
                     <>
@@ -354,7 +354,7 @@ export default function CustomDomain() {
                     type="button"
                     onClick={handleVerifyDns}
                     disabled={verifying}
-                    className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-xs md:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full min-h-[44px] py-2.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-xs md:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <RefreshCw className={`w-4 h-4 ${verifying ? 'animate-spin text-sky-500' : ''}`} />
                     <span>{verifying ? 'Checking DNS Propagation...' : 'Check DNS & Verify Now'}</span>
@@ -457,25 +457,25 @@ export default function CustomDomain() {
           )}
 
           {/* Required DNS Records Table Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-sky-500" />
+              <div className="min-w-0">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 break-words">
+                  <Layers className="w-5 h-5 text-sky-500 shrink-0" />
                   <span>Required DNS Records for {currentDomain}</span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Copy and add these records to your domain DNS settings (in Cloudflare, GoDaddy, Namecheap, etc.)
                 </p>
               </div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs text-slate-600 dark:text-slate-300 font-medium">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs text-slate-600 dark:text-slate-300 font-medium w-fit shrink-0">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                 <span>SSL Validated</span>
               </div>
             </div>
 
-            {/* Table of Records */}
-            <div className="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800">
+            {/* Desktop Table of Records */}
+            <div className="hidden lg:block overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-200/80 dark:border-slate-800">
                   <tr>
@@ -556,7 +556,7 @@ export default function CustomDomain() {
                       <td className="py-3.5 px-4 font-semibold text-slate-800 dark:text-slate-200">@ (Root)</td>
                       <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300 font-sans">
                         {provider === 'cloudflare' ? (
-                          <span>Target: <span className="font-mono">{targetHost}</span> (with Cloudflare Proxy)</span>
+                          <span>Target: <span className="font-mono break-all">{targetHost}</span> (with Cloudflare Proxy)</span>
                         ) : (
                           <span>Forward <span className="font-mono font-medium">http://{currentDomain}</span> to <span className="font-mono font-medium text-sky-600 dark:text-sky-400">https://www.{currentDomain}</span></span>
                         )}
@@ -571,6 +571,87 @@ export default function CustomDomain() {
               </table>
             </div>
 
+            {/* Mobile & Tablet Stacked DNS Record Cards */}
+            <div className="lg:hidden space-y-3">
+              {/* Record 1 Card */}
+              <div className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 space-y-2.5 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/40 px-2.5 py-0.5 rounded-md border border-sky-200/60 dark:border-sky-800/60">
+                    CNAME
+                  </span>
+                  <span className="text-slate-400">Host: <strong className="font-mono text-slate-700 dark:text-slate-200">{isApex ? 'www' : subdomain}</strong> · TTL: Auto</span>
+                </div>
+                <p className="font-mono text-[11px] text-slate-700 dark:text-slate-300 break-all bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                  {targetHost}
+                </p>
+                <button
+                  onClick={() => handleCopy(targetHost, 'rec_cname')}
+                  className="w-full min-h-[40px] inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 text-sky-600 dark:text-sky-300 rounded-xl text-xs font-bold transition-all cursor-pointer border border-sky-200 dark:border-sky-800/50"
+                >
+                  {copiedId === 'rec_cname' ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Copied Target</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy Target</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Record 2 Card */}
+              <div className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 space-y-2.5 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 rounded-md border border-amber-200/60 dark:border-amber-800/60">
+                    TXT
+                  </span>
+                  <span className="text-slate-400">Host: <strong className="font-mono text-slate-700 dark:text-slate-200">{isApex ? '@' : `_tiqsey-challenge`}</strong></span>
+                </div>
+                <p className="font-mono text-[11px] text-slate-700 dark:text-slate-300 break-all bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                  {verificationToken}
+                </p>
+                <button
+                  onClick={() => handleCopy(verificationToken, 'rec_txt')}
+                  className="w-full min-h-[40px] inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 rounded-xl text-xs font-bold transition-all cursor-pointer border border-amber-200 dark:border-amber-800/50"
+                >
+                  {copiedId === 'rec_txt' ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Copied Value</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy Value</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Record 3 Card */}
+              {isApex && (
+                <div className="p-3.5 rounded-2xl border border-sky-200/70 dark:border-sky-900/50 bg-sky-50/40 dark:bg-sky-950/15 space-y-2 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono font-bold text-slate-700 dark:text-slate-200">
+                      {provider === 'cloudflare' ? 'CNAME (Flattened)' : 'URL Redirect'}
+                    </span>
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">Recommended</span>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-300 break-all">
+                    Host: <strong className="font-mono">@ (Root)</strong> →{' '}
+                    {provider === 'cloudflare' ? (
+                      <span className="font-mono">{targetHost} (Cloudflare Proxy)</span>
+                    ) : (
+                      <span>Forward <span className="font-mono">http://{currentDomain}</span> to <span className="font-mono text-sky-600 dark:text-sky-400">https://www.{currentDomain}</span></span>
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 flex items-start gap-2.5">
               <Info className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
               <p className="leading-relaxed">
@@ -580,7 +661,7 @@ export default function CustomDomain() {
           </div>
 
           {/* Registrar Instructions Tabs */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
@@ -637,7 +718,7 @@ export default function CustomDomain() {
             </div>
 
             {/* Guide Content */}
-            <div className="space-y-4 pt-1">
+            <div className="space-y-4 pt-1 break-words">
               {activeGuideTab === 'cloudflare' && (
                 <div className="space-y-3.5 text-xs text-slate-600 dark:text-slate-300">
                   <div className="p-3 bg-sky-50/50 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-900/40 rounded-2xl flex items-center gap-2 text-sky-900 dark:text-sky-200 font-semibold">
@@ -651,7 +732,7 @@ export default function CustomDomain() {
                     </li>
                     <li className="font-medium">
                       Navigate to the <strong>DNS</strong> tab and click <strong>Add record</strong>:
-                      <div className="mt-2 ml-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1 font-mono text-[11px]">
+                      <div className="mt-2 sm:ml-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1 font-mono text-[11px] break-all">
                         <p><span className="text-slate-400">Type:</span> <strong>CNAME</strong></p>
                         <p><span className="text-slate-400">Name:</span> <strong>@</strong> (or <strong>www</strong>)</p>
                         <p><span className="text-slate-400">Target:</span> <strong>{targetHost}</strong></p>
@@ -663,8 +744,8 @@ export default function CustomDomain() {
                     </li>
                     <li className="font-medium">
                       In Cloudflare <strong>Rules</strong> → <strong>Origin Rules</strong> (optional):
-                      <span className="block text-slate-500 dark:text-slate-400 mt-0.5 ml-4">
-                        If your DNS is set to Proxied, add an Origin Rule to override the Host header to <span className="font-mono text-slate-800 dark:text-slate-200 font-semibold">{targetHost}</span> so Cloud Run routes traffic directly.
+                      <span className="block text-slate-500 dark:text-slate-400 mt-0.5 sm:ml-4 break-words">
+                        If your DNS is set to Proxied, add an Origin Rule to override the Host header to <span className="font-mono text-slate-800 dark:text-slate-200 font-semibold break-all">{targetHost}</span> so Cloud Run routes traffic directly.
                       </span>
                     </li>
                     <li className="font-medium">
@@ -682,7 +763,7 @@ export default function CustomDomain() {
                     </li>
                     <li className="font-medium">
                       Scroll to <strong>DNS Records</strong> and click <strong>Add New Record</strong>:
-                      <div className="mt-2 ml-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1 font-mono text-[11px]">
+                      <div className="mt-2 sm:ml-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1 font-mono text-[11px] break-all">
                         <p><span className="text-slate-400">Type:</span> <strong>CNAME</strong></p>
                         <p><span className="text-slate-400">Name:</span> <strong>www</strong></p>
                         <p><span className="text-slate-400">Value:</span> <strong>{targetHost}</strong></p>
@@ -691,7 +772,7 @@ export default function CustomDomain() {
                     </li>
                     <li className="font-medium">
                       Add the verification TXT record:
-                      <div className="mt-2 ml-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1 font-mono text-[11px]">
+                      <div className="mt-2 sm:ml-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1 font-mono text-[11px] break-all">
                         <p><span className="text-slate-400">Type:</span> <strong>TXT</strong></p>
                         <p><span className="text-slate-400">Name:</span> <strong>@</strong></p>
                         <p><span className="text-slate-400">Value:</span> <strong>{verificationToken}</strong></p>
@@ -699,7 +780,7 @@ export default function CustomDomain() {
                     </li>
                     <li className="font-medium">
                       Set up <strong>Domain Forwarding</strong> (for apex/root domain):
-                      <span className="block text-slate-500 dark:text-slate-400 mt-0.5 ml-4">
+                      <span className="block text-slate-500 dark:text-slate-400 mt-0.5 sm:ml-4 break-words">
                         In GoDaddy under <strong>Forwarding</strong>, forward <span className="font-mono">http://{currentDomain}</span> to <span className="font-mono text-sky-600 dark:text-sky-400">https://www.{currentDomain}</span> with redirect type <strong>Permanent (301)</strong>.
                       </span>
                     </li>
@@ -715,7 +796,7 @@ export default function CustomDomain() {
                     </li>
                     <li className="font-medium">
                       Go to the <strong>Advanced DNS</strong> tab and click <strong>Add New Record</strong>:
-                      <div className="mt-2 ml-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1 font-mono text-[11px]">
+                      <div className="mt-2 sm:ml-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1 font-mono text-[11px] break-all">
                         <p><span className="text-slate-400">Type:</span> <strong>CNAME Record</strong></p>
                         <p><span className="text-slate-400">Host:</span> <strong>www</strong></p>
                         <p><span className="text-slate-400">Target:</span> <strong>{targetHost}</strong></p>
@@ -724,7 +805,7 @@ export default function CustomDomain() {
                     </li>
                     <li className="font-medium">
                       Set up URL Redirect for apex:
-                      <div className="mt-2 ml-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1 font-mono text-[11px]">
+                      <div className="mt-2 sm:ml-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1 font-mono text-[11px] break-all">
                         <p><span className="text-slate-400">Type:</span> <strong>URL Redirect Record</strong></p>
                         <p><span className="text-slate-400">Host:</span> <strong>@</strong></p>
                         <p><span className="text-slate-400">Value:</span> <strong>https://www.{currentDomain}</strong> (Permanent 301)</p>
@@ -740,9 +821,9 @@ export default function CustomDomain() {
                     For any DNS provider (AWS Route 53, Hostinger, Squarespace, Porkbun, OVH):
                   </p>
                   <ol className="space-y-2 list-decimal list-inside pl-1 leading-relaxed">
-                    <li>Create a <strong>CNAME record</strong> pointing your desired subdomain (<span className="font-mono">www</span> or <span className="font-mono">tickets</span>) to <span className="font-mono font-semibold">{targetHost}</span>.</li>
-                    <li>Add the ownership <strong>TXT record</strong> with value <span className="font-mono font-semibold">{verificationToken}</span>.</li>
-                    <li>If using the root domain (<span className="font-mono">@</span>), set an ALIAS / ANAME record pointing to <span className="font-mono font-semibold">{targetHost}</span> or configure HTTP domain forwarding to <span className="font-mono">https://www.{currentDomain}</span>.</li>
+                    <li>Create a <strong>CNAME record</strong> pointing your desired subdomain (<span className="font-mono">www</span> or <span className="font-mono">tickets</span>) to <span className="font-mono font-semibold break-all">{targetHost}</span>.</li>
+                    <li>Add the ownership <strong>TXT record</strong> with value <span className="font-mono font-semibold break-all">{verificationToken}</span>.</li>
+                    <li>If using the root domain (<span className="font-mono">@</span>), set an ALIAS / ANAME record pointing to <span className="font-mono font-semibold break-all">{targetHost}</span> or configure HTTP domain forwarding to <span className="font-mono break-all">https://www.{currentDomain}</span>.</li>
                   </ol>
                 </div>
               )}
@@ -754,21 +835,21 @@ export default function CustomDomain() {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 max-w-md w-full max-h-[90dvh] overflow-y-auto border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
-              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/50 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/50 flex items-center justify-center shrink-0">
                 <AlertCircle className="w-5 h-5" />
               </div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Disconnect Custom Domain?</h3>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Are you sure you want to remove the custom domain <strong className="text-slate-900 dark:text-white">{settings?.domain}</strong>? The application will immediately revert to the default Cloud Run URL.
+              Are you sure you want to remove the custom domain <strong className="text-slate-900 dark:text-white break-all">{settings?.domain}</strong>? The application will immediately revert to the default Cloud Run URL.
             </p>
-            <div className="flex items-center justify-end gap-2.5 pt-2">
+            <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs cursor-pointer transition-colors"
+                className="min-h-[42px] px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs cursor-pointer transition-colors"
               >
                 Cancel
               </button>
@@ -776,7 +857,7 @@ export default function CustomDomain() {
                 type="button"
                 onClick={handleDeleteDomain}
                 disabled={saving}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-sm cursor-pointer transition-colors disabled:opacity-50"
+                className="min-h-[42px] px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-sm cursor-pointer transition-colors disabled:opacity-50"
               >
                 {saving ? 'Disconnecting...' : 'Yes, Disconnect Domain'}
               </button>

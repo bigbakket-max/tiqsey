@@ -261,7 +261,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
   const featuredPost = posts.find(post => (!post.status || post.status === 'Published') && post.id === "paris-secrets") || posts.find(post => !post.status || post.status === 'Published');
 
   return (
-    <div className="py-8 md:py-12 bg-[#F8FAFC] dark:bg-slate-950 min-h-screen text-slate-800 dark:text-slate-100 transition-colors duration-300">
+    <div className="py-6 sm:py-8 md:py-12 pb-24 lg:pb-12 bg-[#F8FAFC] dark:bg-slate-950 min-h-[100dvh] text-slate-800 dark:text-slate-100 transition-colors duration-300">
       {/* Toast Notification */}
       <AnimatePresence>
         {showShareToast && (
@@ -269,9 +269,9 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 font-semibold text-sm"
+            className="fixed bottom-24 lg:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-50 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-5 py-3 rounded-xl shadow-2xl flex items-center justify-center sm:justify-start gap-2 font-semibold text-sm"
           >
-            <Check className="w-4 h-4 text-emerald-500 stroke-[3px]" />
+            <Check className="w-4 h-4 text-emerald-500 stroke-[3px] shrink-0" />
             {t('copiedToClipboard', 'Link copied to clipboard!')}
           </motion.div>
         )}
@@ -311,12 +311,12 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                   </div>
 
                   {/* Main Headline */}
-                  <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.15]">
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.15]">
                     {t('blogHeroTitle', 'Your Ultimate Travel Journal')}
                   </h1>
 
                   {/* Subtitle */}
-                  <p className="mt-3.5 text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed max-w-xl">
+                  <p className="mt-3 sm:mt-3.5 text-sm sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed max-w-xl">
                     {t('blogHeroSubtitle', 'Inspiring guides, local secrets, cultural stories and practical travel tips to fuel your next adventure.')}
                   </p>
                 </div>
@@ -419,51 +419,55 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                     </div>
 
                     {/* Author & Action Row */}
-                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 mt-6 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                    <div className="pt-5 sm:pt-6 border-t border-slate-100 dark:border-slate-800 mt-6 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <img
                           src={featuredPost.author.avatarUrl}
                           alt={featuredPost.author.name}
-                          className="w-10 h-10 rounded-full object-cover ring-2 ring-rose-100 dark:ring-slate-700"
+                          className="w-10 h-10 rounded-full object-cover ring-2 ring-rose-100 dark:ring-slate-700 shrink-0"
                           referrerPolicy="no-referrer"
+                          decoding="async"
                         />
-                        <div>
-                          <p className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-none">
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-none truncate">
                             {featuredPost.author.name}
                           </p>
-                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 truncate">
                             {featuredPost.author.role}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <button
                           onClick={(e) => handleLike(e, featuredPost.id)}
-                          className={`p-2 rounded-full border transition-all ${
+                          className={`w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border transition-all cursor-pointer ${
                             likedPosts.includes(featuredPost.id)
                               ? "bg-rose-50 border-rose-100 text-rose-500 dark:bg-rose-950/20 dark:border-rose-900/40"
                               : "border-slate-200 dark:border-slate-700 text-slate-400 hover:text-rose-500 hover:border-rose-200"
                           }`}
                           title="Like Post"
+                          aria-label="Like Post"
                         >
                           <Heart className={`w-4 h-4 ${likedPosts.includes(featuredPost.id) ? "fill-current" : ""}`} />
                         </button>
                         <button
                           onClick={(e) => handleBookmark(e, featuredPost.id)}
-                          className={`p-2 rounded-full border transition-all ${
+                          className={`w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border transition-all cursor-pointer ${
                             bookmarkedPosts.includes(featuredPost.id)
                               ? "bg-rose-50 border-rose-200 text-[#FF385C]"
                               : "border-slate-200 dark:border-slate-700 text-slate-400 hover:text-[#FF385C] hover:border-rose-200"
                           }`}
                           title="Save Bookmark"
+                          aria-label="Save Bookmark"
                         >
                           <Bookmark className={`w-4 h-4 ${bookmarkedPosts.includes(featuredPost.id) ? "fill-current" : ""}`} />
                         </button>
                         <button
                           onClick={(e) => handleShare(e, featuredPost)}
-                          className="p-2 rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all"
+                          className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
                           title="Share Link"
+                          aria-label="Share Link"
                         >
                           <Share2 className="w-4 h-4" />
                         </button>
@@ -474,7 +478,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
               )}
 
               {/* Filters & Search Bar */}
-              <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-150/70 dark:border-slate-800 flex flex-col md:flex-row gap-4 justify-between items-center">
+              <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-150/70 dark:border-slate-800 flex flex-col md:flex-row gap-3.5 md:gap-4 justify-between items-stretch md:items-center">
                 {/* Category Tags with Icons */}
                 <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none select-none">
                   {categoryConfigs.map(({ label, key, icon: IconComponent }) => {
@@ -483,7 +487,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                       <button
                         key={label}
                         onClick={() => setSelectedCategory(label)}
-                        className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+                        className={`px-3.5 sm:px-4 min-h-[40px] rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 ${
                           isActive
                             ? "bg-[#FF385C] text-white shadow-sm shadow-[#FF385C]/20"
                             : "bg-slate-50 hover:bg-slate-100 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-300"
@@ -594,47 +598,52 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                         </div>
 
                         {/* Footer details */}
-                        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/40 dark:bg-slate-900/40">
-                          <div className="flex items-center gap-2.5">
+                        <div className="px-5 sm:px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 bg-slate-50/40 dark:bg-slate-900/40">
+                          <div className="flex items-center gap-2.5 min-w-0">
                             <img
                               src={post.author.avatarUrl}
                               alt={post.author.name}
-                              className="w-8 h-8 rounded-full object-cover ring-2 ring-rose-50 dark:ring-slate-700"
+                              className="w-8 h-8 rounded-full object-cover ring-2 ring-rose-50 dark:ring-slate-700 shrink-0"
                               referrerPolicy="no-referrer"
+                              loading="lazy"
+                              decoding="async"
                             />
-                            <div className="text-left">
-                              <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 leading-none">
+                            <div className="text-left min-w-0">
+                              <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 leading-none truncate">
                                 {post.author.name}
                               </span>
-                              <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 block leading-none">
+                              <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 block leading-none truncate">
                                 {post.author.role.split(" & ")[0]}
                               </span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 shrink-0">
                             <button
                               onClick={(e) => handleLike(e, post.id)}
-                              className={`p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${
+                              className={`w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer ${
                                 isLiked ? "text-rose-500" : "text-slate-400"
                               }`}
                               title="Like"
+                              aria-label="Like"
                             >
                               <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
                             </button>
                             <button
                               onClick={(e) => handleBookmark(e, post.id)}
-                              className={`p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${
+                              className={`w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer ${
                                 isBookmarked ? "text-[#FF385C]" : "text-slate-400"
                               }`}
                               title="Bookmark"
+                              aria-label="Bookmark"
                             >
                               <Bookmark className={`w-4 h-4 ${isBookmarked ? "fill-current" : ""}`} />
                             </button>
                             <button
                               onClick={(e) => handleShare(e, post)}
-                              className="p-1.5 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors"
+                              className="w-9 h-9 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                               title="Share"
+                              aria-label="Share"
                             >
                               <Share2 className="w-4 h-4" />
                             </button>
@@ -676,10 +685,10 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
               className="max-w-[840px] mx-auto"
             >
               {/* Reading mode header bar */}
-              <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200/60 dark:border-slate-850/60">
+              <div className="flex flex-wrap items-center justify-between gap-2.5 mb-6 sm:mb-8 pb-4 border-b border-slate-200/60 dark:border-slate-850/60">
                 <button
                   onClick={closePostDetails}
-                  className="flex items-center gap-2 py-2 px-3.5 text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-[#FF385C] dark:hover:text-[#FF385C] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm transition-all cursor-pointer group"
+                  className="flex items-center gap-2 min-h-[40px] px-3.5 text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-[#FF385C] dark:hover:text-[#FF385C] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm transition-all cursor-pointer group"
                 >
                   <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
                   {t('backToBlog', 'Back to Journal')}
@@ -688,7 +697,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                 <div className="flex items-center gap-2">
                   <button
                     onClick={(e) => handleLike(e, selectedPost.id)}
-                    className={`flex items-center gap-1.5 py-2 px-3.5 text-xs font-extrabold rounded-xl border transition-all ${
+                    className={`flex items-center gap-1.5 min-h-[40px] px-3.5 text-xs font-extrabold rounded-xl border transition-all cursor-pointer ${
                       likedPosts.includes(selectedPost.id)
                         ? "bg-rose-50 border-rose-100 text-rose-500 dark:bg-rose-950/20 dark:border-rose-900/40"
                         : "bg-white border-slate-200 text-slate-500 hover:text-rose-500 dark:bg-slate-900 dark:border-slate-800"
@@ -700,7 +709,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
 
                   <button
                     onClick={(e) => handleBookmark(e, selectedPost.id)}
-                    className={`flex items-center gap-1.5 py-2 px-3.5 text-xs font-extrabold rounded-xl border transition-all ${
+                    className={`flex items-center gap-1.5 min-h-[40px] px-3.5 text-xs font-extrabold rounded-xl border transition-all cursor-pointer ${
                       bookmarkedPosts.includes(selectedPost.id)
                         ? "bg-rose-50 border-rose-200 text-[#FF385C] dark:bg-rose-950/30"
                         : "bg-white border-slate-200 text-slate-500 hover:text-[#FF385C] dark:bg-slate-900 dark:border-slate-800"
@@ -712,8 +721,9 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
 
                   <button
                     onClick={(e) => handleShare(e, selectedPost)}
-                    className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white shadow-sm transition-all"
+                    className="w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white shadow-sm transition-all cursor-pointer"
                     title={t('shareArticle', 'Share Article Link')}
+                    aria-label={t('shareArticle', 'Share Article Link')}
                   >
                     <Share2 className="w-4 h-4" />
                   </button>
@@ -727,7 +737,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                     {selectedPost.category}
                   </span>
 
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
+                  <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
                     {selectedPost.title}
                   </h1>
 
@@ -737,8 +747,9 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                       <img
                         src={selectedPost.author.avatarUrl}
                         alt={selectedPost.author.name}
-                        className="w-11 h-11 rounded-full object-cover ring-2 ring-rose-100 dark:ring-slate-700"
+                        className="w-11 h-11 rounded-full object-cover ring-2 ring-rose-100 dark:ring-slate-700 shrink-0"
                         referrerPolicy="no-referrer"
+                        decoding="async"
                       />
                       <div className="text-left">
                         <p className="font-extrabold text-sm text-slate-800 dark:text-slate-100 leading-none">
@@ -765,17 +776,18 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                 </div>
 
                 {/* Hero Image */}
-                <div className="rounded-3xl overflow-hidden h-[300px] sm:h-[420px] shadow-sm relative bg-slate-100 dark:bg-slate-800">
+                <div className="rounded-2xl sm:rounded-3xl overflow-hidden h-[220px] sm:h-[360px] md:h-[420px] shadow-sm relative bg-slate-100 dark:bg-slate-800">
                   <img
                     src={selectedPost.imageUrl}
                     alt={selectedPost.title}
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
+                    decoding="async"
                   />
                 </div>
 
                 {/* Article Prose Content */}
-                <div className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-base sm:text-lg space-y-6 pt-4 font-normal markdown-body">
+                <div className="prose prose-slate dark:prose-invert max-w-none break-words overflow-x-auto text-slate-700 dark:text-slate-300 leading-relaxed text-base sm:text-lg space-y-6 pt-4 font-normal markdown-body">
                   <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
                     {(selectedPost.content || []).join('\n\n')}
                   </Markdown>

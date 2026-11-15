@@ -149,6 +149,8 @@ export default function BannerCard({
             <img 
               src={banner.customImageUrl} 
               alt={banner.title || 'Promotional Banner'}
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
               className={`w-full h-full ${fitClass} object-center group-hover/card:scale-[1.015] transition-transform duration-300 rounded-2xl`}
             />
@@ -185,6 +187,7 @@ export default function BannerCard({
             alt={banner.title || 'Play Passes'} 
             className="absolute inset-0 w-full h-full object-cover object-center group-hover/card:scale-105 transition-transform duration-700 ease-out z-0"
             loading="lazy"
+            decoding="async"
           />
         )}
 
@@ -268,7 +271,7 @@ export default function BannerCard({
               type="button"
               onClick={(e) => handleCopy(e, banner.promoCode || '')}
               title="Copy coupon code"
-              className="px-2 py-0.5 rounded bg-slate-950/80 hover:bg-slate-950 border border-yellow-400/40 text-[10px] text-white flex items-center gap-1 font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
+              className="px-2.5 py-1 rounded bg-slate-950/80 hover:bg-slate-950 border border-yellow-400/40 text-[10px] text-white flex items-center gap-1 font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
             >
               {copiedCode === banner.promoCode ? (
                 <>

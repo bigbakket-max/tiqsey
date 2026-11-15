@@ -760,7 +760,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   const isEditorEmpty = !value || value.trim() === "" || value === "<p></p>";
 
   const containerClasses = isFullscreen
-    ? "fixed inset-0 z-[9999] bg-white dark:bg-slate-950 flex flex-col p-6 animate-in fade-in duration-200"
+    ? "fixed inset-0 z-[9999] bg-white dark:bg-slate-950 flex flex-col p-3 sm:p-6 pb-safe animate-in fade-in duration-200"
     : `w-full rounded-2xl border transition-all duration-200 bg-white dark:bg-slate-950 overflow-hidden shadow-xs ${
         isFocused 
           ? "border-[#5fa6d9] ring-2 ring-[#5fa6d9]/15" 
@@ -808,7 +808,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
             </button>
 
             {showTemplatesDropdown && (
-              <div className="absolute right-0 mt-1.5 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-[999] overflow-hidden py-1.5 animate-in fade-in slide-in-from-top-1">
+              <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-[calc(100vw-48px)] max-w-80 sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-[999] overflow-hidden py-1.5 animate-in fade-in slide-in-from-top-1">
                 <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Package Presets
@@ -853,7 +853,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           </div>
 
           {/* Mode Switcher Tabs */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-x-auto no-scrollbar max-w-full">
             <button
               type="button"
               onClick={() => {
@@ -865,7 +865,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                 }
                 setViewMode("visual-list");
               }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 viewMode === "visual-list"
                   ? "bg-white dark:bg-slate-850 text-[#5fa6d9] shadow-xs"
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
@@ -886,7 +886,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                 }
                 setViewMode("editor");
               }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 viewMode === "editor"
                   ? "bg-white dark:bg-slate-850 text-[#5fa6d9] shadow-xs"
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
@@ -904,7 +904,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                 }
                 setViewMode("preview");
               }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 viewMode === "preview"
                   ? "bg-white dark:bg-slate-850 text-[#5fa6d9] shadow-xs"
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
@@ -922,7 +922,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                 }
                 setViewMode("html");
               }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 viewMode === "html"
                   ? "bg-white dark:bg-slate-850 text-[#5fa6d9] shadow-xs"
                   : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
@@ -960,7 +960,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
 
         {/* UNIFIED STREAMLINED TOOLBAR (Only shown in editor mode) */}
         {viewMode === "editor" && (
-          <div className="flex flex-wrap items-center gap-1.5 p-2.5 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/70 dark:border-slate-800/80 select-none">
+          <div className="flex flex-wrap items-center gap-1.5 p-2 sm:p-2.5 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/70 dark:border-slate-800/80 select-none">
             
             {/* UNDO / REDO GROUP */}
             <div className="flex items-center">
@@ -1409,7 +1409,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                 </button>
 
                 {showLineHeightDropdown && (
-                  <div className="absolute right-0 mt-1.5 w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-[999] overflow-hidden py-1 animate-in fade-in slide-in-from-top-1">
+                  <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-[999] overflow-hidden py-1 animate-in fade-in slide-in-from-top-1">
                     {lineHeights.map((lh) => {
                       const currentLineHeightValue = editor?.getAttributes('textStyle').lineHeight || "1.5";
                       const isActive = currentLineHeightValue === lh.value;
@@ -1501,7 +1501,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                 </button>
 
                 {showCalloutDropdown && (
-                  <div className="absolute right-0 mt-1.5 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-[999] overflow-hidden py-1.5 animate-in fade-in slide-in-from-top-1">
+                  <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-[999] overflow-hidden py-1.5 animate-in fade-in slide-in-from-top-1">
                     <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase text-slate-400">
                       Insert Policy Box
                     </div>
@@ -1916,7 +1916,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
 
           {/* 2. LIVE CUSTOMER EXPERIENCE PREVIEW */}
           {viewMode === "preview" && (
-            <div className="p-6 bg-slate-50/70 dark:bg-slate-900/40 min-h-[260px] space-y-4">
+            <div className="p-4 sm:p-6 bg-slate-50/70 dark:bg-slate-900/40 min-h-[260px] space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Eye className="w-4 h-4 text-[#5fa6d9]" />
@@ -2097,7 +2097,7 @@ export const TabbedWysiwygEditor: React.FC<TabbedWysiwygEditorProps> = ({
   if (!activeTab) return null;
 
   return (
-    <div className="bg-slate-50/50 dark:bg-slate-900/10 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 space-y-3.5">
+    <div className="bg-slate-50/50 dark:bg-slate-900/10 rounded-2xl p-3 sm:p-4 border border-slate-200/80 dark:border-slate-800 space-y-3.5">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pb-2 border-b border-slate-200/70 dark:border-slate-800/80">
         <h3 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
           <Layers className="w-3.5 h-3.5 text-[#5fa6d9]" />
@@ -2105,7 +2105,7 @@ export const TabbedWysiwygEditor: React.FC<TabbedWysiwygEditorProps> = ({
         </h3>
         
         {/* Tab selection buttons */}
-        <div className="flex flex-wrap gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
+        <div className="flex overflow-x-auto no-scrollbar gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200/60 dark:border-slate-800/60 max-w-full">
           {tabs.map((tab) => {
             const isActive = tab.key === activeTabKey;
             return (
@@ -2113,7 +2113,7 @@ export const TabbedWysiwygEditor: React.FC<TabbedWysiwygEditorProps> = ({
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTabKey(tab.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   isActive 
                     ? "bg-white dark:bg-slate-900 text-[#5fa6d9] shadow-xs border border-slate-200/80 dark:border-slate-800" 
                     : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"

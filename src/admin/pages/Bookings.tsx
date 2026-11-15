@@ -964,7 +964,7 @@ export default function Bookings() {
 
   if (selectedBooking) {
     return (
-      <div className="w-full mx-auto pb-12 pl-12 pr-4 sm:pl-12 sm:pr-6 lg:pl-12 lg:pr-8">
+      <div className="w-full mx-auto pb-24 md:pb-12 pl-7 sm:pl-12 pr-3 sm:pr-6 lg:pl-12 lg:pr-8 overflow-x-clip">
         <BookingDetailsView
           booking={selectedBooking}
           onBack={() => {
@@ -980,7 +980,7 @@ export default function Bookings() {
   }
 
   return (
-    <div className="space-y-5 w-full mx-auto pb-12 pl-12 pr-4 sm:pl-12 sm:pr-6 lg:pl-12 lg:pr-8">
+    <div className="space-y-5 w-full mx-auto pb-24 md:pb-12 pl-7 sm:pl-12 pr-3 sm:pr-6 lg:pl-12 lg:pr-8 overflow-x-clip">
       {/* Toast Alert Notification */}
       <AnimatePresence>
         {showToast && (
@@ -988,11 +988,11 @@ export default function Bookings() {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-4 right-4 z-50 flex items-center gap-2.5 px-4 py-3 rounded-lg shadow-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 font-sans"
+            className="fixed top-16 md:top-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-2.5 px-4 py-3 rounded-lg shadow-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 font-sans"
           >
-            {toastType === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-            {toastType === 'error' && <XCircle className="w-5 h-5 text-red-500" />}
-            {toastType === 'info' && <AlertCircle className="w-5 h-5 text-[#5fa6d9]" />}
+            {toastType === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />}
+            {toastType === 'error' && <XCircle className="w-5 h-5 text-red-500 shrink-0" />}
+            {toastType === 'info' && <AlertCircle className="w-5 h-5 text-[#5fa6d9] shrink-0" />}
             <span className="text-xs font-semibold">{toastMessage}</span>
           </motion.div>
         )}
@@ -1016,21 +1016,22 @@ export default function Bookings() {
       )}
 
       {/* Control Panel: Search, Refresh, Filter Triggers */}
-      <div className="flex flex-row items-center justify-between gap-4 w-full">
-        {/* Search Bar matching screenshot */}
-        <div className="relative flex-1 max-w-[400px]">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7da7c4]" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full">
+        {/* Search Bar */}
+        <div className="relative w-full sm:flex-1 sm:max-w-[400px]">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7da7c4]" />
           <input
             type="text"
             placeholder="Search by name, email, phone, PNR or order ID"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 rounded-md pl-11 pr-4 py-2.5 text-[13px] font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#5fa6d9] dark:focus:border-[#5fa6d9] placeholder:text-[#7da7c4] shadow-sm"
+            className="w-full min-h-[40px] bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 rounded-md pl-10 pr-12 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#5fa6d9] dark:focus:border-[#5fa6d9] placeholder:text-[#7da7c4] shadow-sm"
           />
           {searchQuery && (
             <button 
+              type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-[13px] font-bold cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold cursor-pointer py-1"
             >
               Clear
             </button>
@@ -1038,9 +1039,9 @@ export default function Bookings() {
         </div>
 
         {/* Refresh and Filter buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto">
           {/* Database status badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-md text-[11px] font-bold">
+          <div className="hidden lg:flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-md text-[11px] font-bold">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span>Database Connected</span>
             <span className="text-[10px] text-emerald-700/60 dark:text-emerald-300/60 font-mono">(Live SQLite)</span>
@@ -1050,7 +1051,7 @@ export default function Bookings() {
             type="button"
             onClick={loadBookings}
             disabled={isRefreshing}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/90 dark:border-slate-800/80 rounded-md text-[13px] font-semibold text-[#0a3560] dark:text-slate-300 transition-colors cursor-pointer shadow-sm"
+            className="flex-1 sm:flex-none min-h-[40px] flex items-center justify-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/90 dark:border-slate-800/80 rounded-md text-[13px] font-semibold text-[#0a3560] dark:text-slate-300 transition-colors cursor-pointer shadow-sm"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#5fa6d9]' : 'text-[#7da7c4]'}`} />
             Refresh
@@ -1059,7 +1060,7 @@ export default function Bookings() {
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center gap-1.5 px-4 py-2.5 border rounded-md text-[13px] font-semibold transition-all cursor-pointer shadow-sm ${
+            className={`flex-1 sm:flex-none min-h-[40px] flex items-center justify-center gap-1.5 px-4 py-2 border rounded-md text-[13px] font-semibold transition-all cursor-pointer shadow-sm ${
               showFilters || cityFilter !== 'All'
                 ? 'bg-[#5fa6d9]/10 border-[#5fa6d9] text-[#5fa6d9]' 
                 : 'bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800/80 text-[#0a3560] dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -1186,10 +1187,10 @@ export default function Bookings() {
             filteredBookings.map((booking) => (
               <div
                 key={booking.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 rounded-md relative overflow-visible pl-6 sm:pl-8 pr-4 sm:pr-6 py-4 shadow-sm transition-all hover:shadow-md"
+                className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 rounded-md relative overflow-visible pl-4 sm:pl-8 pr-4 sm:pr-6 py-4 shadow-sm transition-all hover:shadow-md"
               >
-                {/* Left Vertical Tab containing White lightbulb icon sticking out to the left as per screenshot */}
-                <div className={`absolute right-full top-1/2 -translate-y-1/2 w-8 h-12 rounded-l-xl flex items-center justify-center text-white shadow-sm transition-all ${
+                {/* Left Vertical Tab containing White lightbulb icon sticking out to the left */}
+                <div className={`absolute right-full top-1/2 -translate-y-1/2 w-6 sm:w-8 h-10 sm:h-12 rounded-l-lg sm:rounded-l-xl flex items-center justify-center text-white shadow-sm transition-all ${
                   booking.status === 'pending' ? 'bg-[#ff9500]' :
                   booking.status === 'confirmed' ? 'bg-emerald-500' :
                   booking.status === 'completed' ? 'bg-sky-500' :
@@ -1197,57 +1198,57 @@ export default function Bookings() {
                   booking.status === 'rejected' ? 'bg-slate-400' :
                   'bg-slate-400 dark:bg-slate-600'
                 }`}>
-                  <Lightbulb className="w-4 h-4 text-white" strokeWidth={2.5} />
+                  <Lightbulb className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" strokeWidth={2.5} />
                 </div>
 
                 {/* Grid content */}
-                <div className="space-y-2 font-sans">
+                <div className="space-y-3 sm:space-y-2 font-sans">
                   {/* ROW 1: General identifiers */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-dashed border-slate-200/80 dark:border-slate-800/60">
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-dashed border-slate-200/80 dark:border-slate-800/60">
                     {/* ID, Name, Timestamp */}
-                    <div className="flex flex-wrap items-center gap-y-2">
+                    <div className="grid grid-cols-1 sm:flex sm:flex-wrap sm:items-center gap-3 sm:gap-y-2 w-full sm:w-auto">
                       {/* Order ID */}
-                      <div className="w-[180px] border-r border-slate-200/80 dark:border-slate-700/60 pr-4">
+                      <div className="sm:w-[165px] lg:w-[180px] sm:border-r border-slate-200/80 dark:border-slate-700/60 sm:pr-4 min-w-0">
                         <div className="flex items-center gap-1.5 text-[11px] text-[#889aa8] font-medium">
-                          <FileText className="w-3.5 h-3.5 text-[#a8b8c8]" />
+                          <FileText className="w-3.5 h-3.5 text-[#a8b8c8] shrink-0" />
                           Order ID
                         </div>
-                        <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 mt-1">
+                        <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 mt-1 truncate tabular-nums">
                           {booking.orderId}
                         </p>
                       </div>
 
                       {/* Customer Name */}
-                      <div className="w-[180px] border-r border-slate-200/80 dark:border-slate-700/60 px-4">
+                      <div className="sm:w-[165px] lg:w-[180px] sm:border-r border-slate-200/80 dark:border-slate-700/60 sm:px-4 min-w-0">
                         <div className="flex items-center gap-1.5 text-[11px] text-[#889aa8] font-medium">
-                          <User className="w-3.5 h-3.5 text-[#a8b8c8]" />
+                          <User className="w-3.5 h-3.5 text-[#a8b8c8] shrink-0" />
                           Customer Name
                         </div>
-                        <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 mt-1">
+                        <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 mt-1 truncate">
                           {booking.customerName}
                         </p>
                       </div>
 
                       {/* Created At */}
-                      <div className="px-4">
+                      <div className="sm:px-4 min-w-0">
                         <div className="flex items-center gap-1.5 text-[11px] text-[#889aa8] font-medium">
-                          <PenTool className="w-3.5 h-3.5 text-[#a8b8c8]" />
+                          <PenTool className="w-3.5 h-3.5 text-[#a8b8c8] shrink-0" />
                           Created At
                         </div>
-                        <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 mt-1">
+                        <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 mt-1 tabular-nums">
                           {booking.createdAt}
                         </p>
                       </div>
                     </div>
 
-                    {/* View Details button matching exactly the placement and color theme of the screenshot */}
+                    {/* View Details button */}
                     <button
                       type="button"
                       onClick={() => {
                         handleSelectBooking(booking);
                         setNewTravelDate(booking.bookingDate);
                       }}
-                      className="px-5 py-2 bg-[#5fa6d9] hover:bg-[#4ea0d6]/90 text-white text-[12px] font-bold rounded-md transition-all cursor-pointer shadow-sm active:scale-95 flex items-center gap-1"
+                      className="w-full sm:w-auto min-h-[40px] px-5 py-2 bg-[#5fa6d9] hover:bg-[#4ea0d6]/90 text-white text-[12px] font-bold rounded-md transition-all cursor-pointer shadow-sm active:scale-95 flex items-center justify-center gap-1 shrink-0"
                     >
                       View Details
                       <ChevronRight className="w-4 h-4" />
@@ -1255,10 +1256,10 @@ export default function Bookings() {
                   </div>
 
                   {/* ROW 2: Activity Title, Subtitle, PNR, Travelers, Travel Date, Status Badge */}
-                  <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between pt-2">
+                  <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between pt-1">
                     {/* Attraction details */}
-                    <div className="flex-1 min-w-0 pr-4">
-                      <h3 className="text-[14px] font-semibold text-slate-800 dark:text-white leading-tight truncate">
+                    <div className="flex-1 min-w-0 sm:pr-4">
+                      <h3 className="text-[14px] font-semibold text-slate-800 dark:text-white leading-snug line-clamp-2 sm:truncate">
                         {booking.attractionName}
                       </h3>
                       <p className="text-[12px] text-[#889aa8] font-medium mt-1 truncate">
@@ -1267,44 +1268,44 @@ export default function Bookings() {
                     </div>
 
                     {/* Booking specifics and Status Badge */}
-                    <div className="flex flex-wrap items-center gap-x-6 lg:gap-x-12 gap-y-3">
-                      <div className="flex items-center gap-x-4 lg:gap-x-8">
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-3 lg:gap-x-10">
+                      <div className="flex flex-wrap items-center gap-x-5 sm:gap-x-6 lg:gap-x-8 gap-y-2.5">
                         {/* PNR */}
-                        <div className="w-20">
+                        <div className="min-w-[72px]">
                           <div className="flex items-center gap-1.5 text-[11px] text-[#889aa8] font-medium">
                             <Ticket className="w-3.5 h-3.5 text-[#a8b8c8]" />
                             PNR
                           </div>
-                          <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1 tracking-wide">
+                          <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1 tracking-wide tabular-nums">
                             {booking.bookingRef}
                           </p>
                         </div>
 
                         {/* Travelers */}
-                        <div className="w-20">
+                        <div className="min-w-[64px]">
                           <div className="flex items-center gap-1.5 text-[11px] text-[#889aa8] font-medium">
                             <Users className="w-3.5 h-3.5 text-[#a8b8c8]" />
                             Travelers
                           </div>
-                          <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1">
+                          <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1 tabular-nums">
                             {booking.travelers}
                           </p>
                         </div>
 
                         {/* Date of Travel */}
-                        <div className="w-28">
+                        <div className="min-w-[96px]">
                           <div className="flex items-center gap-1.5 text-[11px] text-[#889aa8] font-medium">
                             <Calendar className="w-3.5 h-3.5 text-[#a8b8c8]" />
                             Date of Travel
                           </div>
-                          <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1">
+                          <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1 tabular-nums">
                             {booking.bookingDate && !isNaN(new Date(booking.bookingDate).getTime()) ? new Date(booking.bookingDate).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : booking.bookingDate || '--'}
                           </p>
                         </div>
                       </div>
 
-                      {/* Status Badge & External Icon Link matching screenshot */}
-                      <div className="flex items-center justify-start lg:justify-end gap-2.5 min-w-[140px]">
+                      {/* Status Badge & External Icon Link */}
+                      <div className="flex items-center justify-start lg:justify-end gap-2 sm:min-w-[140px]">
                       {booking.status === 'pending' && (
                         <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-orange-500/10 text-orange-600 border border-orange-200/50 uppercase tracking-wider">
                           PENDING
@@ -1337,10 +1338,11 @@ export default function Bookings() {
 
                       {/* Small external link indicator to open booking details in a new tab */}
                       <a 
-                        href={`/secure-panel/bookings?orderId=${encodeURIComponent(booking.orderId)}`}
+                        href={`/#/secure-panel/bookings?orderId=${encodeURIComponent(booking.orderId)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#8892a0] hover:text-[#5fa6d9] transition-colors p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
+                        className="text-[#8892a0] hover:text-[#5fa6d9] transition-colors p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex items-center justify-center min-w-[36px] min-h-[36px]"
+                        title="Open booking in new tab"
                       >
                         <ExternalLink className="w-4 h-4" strokeWidth={2.5} />
                       </a>
@@ -1349,15 +1351,15 @@ export default function Bookings() {
                 </div>
 
                   {/* ROW 3: Vendor Payable, Total Amount, Collected/Authorized, Direct Booking button */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
-                    <div className="flex flex-wrap items-center gap-x-12 gap-y-2">
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3 sm:gap-4 pt-2 border-t border-slate-100 dark:border-slate-800/60 sm:border-t-0">
+                    <div className="flex flex-wrap items-center gap-x-6 sm:gap-x-10 lg:gap-x-12 gap-y-2.5">
                       {/* Vendor Payable */}
                       <div>
                         <div className="flex items-center gap-1.5 text-[11px] text-[#889aa8] font-medium">
                           <Wallet className="w-3.5 h-3.5 text-[#a8b8c8]" />
                           Vendor Payable
                         </div>
-                        <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1">
+                        <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1 tabular-nums">
                           {booking.vendorPayable}
                         </p>
                       </div>
@@ -1368,7 +1370,7 @@ export default function Bookings() {
                           <Wallet className="w-3.5 h-3.5 text-[#a8b8c8]" />
                           Total Amount
                         </div>
-                        <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1">
+                        <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1 tabular-nums">
                           {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
                             new Intl.NumberFormat('en-US', {
                               style: 'currency',
@@ -1388,7 +1390,7 @@ export default function Bookings() {
                           <Wallet className="w-3.5 h-3.5 text-[#a8b8c8]" />
                           Collected/Authorized
                         </div>
-                        <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1">
+                        <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-300 mt-1 tabular-nums">
                           {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
                             new Intl.NumberFormat('en-US', {
                               style: 'currency',
@@ -1403,11 +1405,11 @@ export default function Bookings() {
                       </div>
                     </div>
 
-                    {/* Direct Booking button matching screenshot */}
+                    {/* Direct Booking button */}
                     <button
                       type="button"
                       onClick={() => triggerToast(`Connecting direct API to operator for booking reference: ${booking.bookingRef}`, 'info')}
-                      className="border border-[#7da7c4] text-[#4a7295] bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 text-[12px] font-semibold rounded-md px-4 py-2 transition-colors cursor-pointer shadow-sm"
+                      className="w-full sm:w-auto min-h-[40px] border border-[#7da7c4] text-[#4a7295] dark:text-[#7da7c4] bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 text-[12px] font-semibold rounded-md px-4 py-2 transition-colors cursor-pointer shadow-sm"
                     >
                       Direct Booking
                     </button>
@@ -1448,13 +1450,15 @@ export default function Bookings() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative w-full max-w-sm bg-white dark:bg-slate-900 shadow-2xl h-full flex flex-col"
+              className="relative w-[calc(100vw-24px)] sm:w-full max-w-sm bg-white dark:bg-slate-900 shadow-2xl h-full flex flex-col"
             >
               {/* Header */}
-              <div className="flex items-center gap-3 p-5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3 p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
                 <button
+                  type="button"
                   onClick={handleCloseDrawer}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-2 -ml-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                  aria-label="Close filters"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1462,30 +1466,30 @@ export default function Bookings() {
               </div>
 
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
                 
                 {/* Created At */}
                 <div>
                   <label className="block text-[11px] font-black text-slate-800 dark:text-slate-200 mb-2">Created At</label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                     <div className="relative flex-1">
                       <input 
                         type="date" 
                         value={drawerCreatedAtStart}
                         onChange={(e) => setDrawerCreatedAtStart(e.target.value)}
                         onClick={(e) => (e.currentTarget as any).showPicker?.()}
-                        className="w-full pl-3 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:border-slate-400 text-slate-600 dark:text-slate-300" 
+                        className="w-full min-h-[38px] pl-3 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:border-slate-400 text-slate-600 dark:text-slate-300" 
                       />
                       <Calendar className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
-                    <span className="text-slate-400 text-xs">→</span>
+                    <span className="hidden sm:inline text-slate-400 text-xs">→</span>
                     <div className="relative flex-1">
                       <input 
                         type="date" 
                         value={drawerCreatedAtEnd}
                         onChange={(e) => setDrawerCreatedAtEnd(e.target.value)}
                         onClick={(e) => (e.currentTarget as any).showPicker?.()}
-                        className="w-full pl-3 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:border-slate-400 text-slate-600 dark:text-slate-300" 
+                        className="w-full min-h-[38px] pl-3 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:border-slate-400 text-slate-600 dark:text-slate-300" 
                       />
                       <Calendar className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
@@ -1495,25 +1499,25 @@ export default function Bookings() {
                 {/* Invoice Due Date */}
                 <div>
                   <label className="block text-[11px] font-black text-slate-800 dark:text-slate-200 mb-2">Invoice Due Date</label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                     <div className="relative flex-1">
                       <input 
                         type="date" 
                         value={drawerInvoiceDueStart}
                         onChange={(e) => setDrawerInvoiceDueStart(e.target.value)}
                         onClick={(e) => (e.currentTarget as any).showPicker?.()}
-                        className="w-full pl-3 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:border-slate-400 text-slate-600 dark:text-slate-300" 
+                        className="w-full min-h-[38px] pl-3 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:border-slate-400 text-slate-600 dark:text-slate-300" 
                       />
                       <Calendar className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
-                    <span className="text-slate-400 text-xs">→</span>
+                    <span className="hidden sm:inline text-slate-400 text-xs">→</span>
                     <div className="relative flex-1">
                       <input 
                         type="date" 
                         value={drawerInvoiceDueEnd}
                         onChange={(e) => setDrawerInvoiceDueEnd(e.target.value)}
                         onClick={(e) => (e.currentTarget as any).showPicker?.()}
-                        className="w-full pl-3 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:border-slate-400 text-slate-600 dark:text-slate-300" 
+                        className="w-full min-h-[38px] pl-3 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:border-slate-400 text-slate-600 dark:text-slate-300" 
                       />
                       <Calendar className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
@@ -1523,25 +1527,25 @@ export default function Bookings() {
                 {/* Date Of Travel */}
                 <div>
                   <label className="block text-[11px] font-black text-slate-800 dark:text-slate-200 mb-2">Date Of Travel</label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                     <div className="relative flex-1">
                       <input 
                         type="date" 
                         value={drawerTravelStart}
                         onChange={(e) => setDrawerTravelStart(e.target.value)}
                         onClick={(e) => (e.currentTarget as any).showPicker?.()}
-                        className="w-full pl-3 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:border-slate-400 text-slate-600 dark:text-slate-300" 
+                        className="w-full min-h-[38px] pl-3 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:border-slate-400 text-slate-600 dark:text-slate-300" 
                       />
                       <Calendar className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
-                    <span className="text-slate-400 text-xs">→</span>
+                    <span className="hidden sm:inline text-slate-400 text-xs">→</span>
                     <div className="relative flex-1">
                       <input 
                         type="date" 
                         value={drawerTravelEnd}
                         onChange={(e) => setDrawerTravelEnd(e.target.value)}
                         onClick={(e) => (e.currentTarget as any).showPicker?.()}
-                        className="w-full pl-3 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:border-slate-400 text-slate-600 dark:text-slate-300" 
+                        className="w-full min-h-[38px] pl-3 pr-8 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:border-slate-400 text-slate-600 dark:text-slate-300" 
                       />
                       <Calendar className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
@@ -1660,6 +1664,7 @@ export default function Bookings() {
               {/* Footer Actions */}
               <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-end gap-3 mt-auto">
                 <button
+                  type="button"
                   onClick={() => {
                     setCityFilter('All');
                     setSelectedStatusTab('all');
@@ -1684,11 +1689,12 @@ export default function Bookings() {
                     setAppliedTravelStart('');
                     setAppliedTravelEnd('');
                   }}
-                  className="px-6 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="flex-1 sm:flex-none min-h-[40px] px-5 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   Clear All
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setAppliedDrawerTypes(drawerTypes);
                     setAppliedDrawerStatuses(drawerStatuses);
@@ -1702,7 +1708,7 @@ export default function Bookings() {
                     setAppliedTravelEnd(drawerTravelEnd);
                     setShowFilters(false);
                   }}
-                  className="px-6 py-2 text-xs font-bold text-white bg-[#5fa6d9] hover:bg-[#4ea0d6]/90 rounded-md transition-colors shadow-sm cursor-pointer"
+                  className="flex-1 sm:flex-none min-h-[40px] px-5 py-2 text-xs font-bold text-white bg-[#5fa6d9] hover:bg-[#4ea0d6]/90 rounded-md transition-colors shadow-sm cursor-pointer"
                 >
                   Apply
                 </button>

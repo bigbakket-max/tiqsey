@@ -61,14 +61,14 @@ export default function TermsAndConditionsPage({ onBackToHome }: TermsAndConditi
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 pb-20">
+    <div className="min-h-[100dvh] bg-gray-50 text-gray-900 pb-24 lg:pb-20 overflow-x-clip">
       {/* Hero Header */}
-      <div className="bg-slate-900 text-white pt-12 pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="bg-slate-900 text-white pt-8 sm:pt-12 pb-10 sm:pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-brand/20 via-transparent to-slate-950 pointer-events-none" />
         <div className="max-w-7xl mx-auto relative z-10">
           <button
             onClick={onBackToHome}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3.5 py-2 rounded-lg transition-all mb-8 border border-slate-700/60 cursor-pointer"
+            className="min-h-[44px] inline-flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-3.5 py-2 rounded-lg transition-all mb-6 sm:mb-8 border border-slate-700/60 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             {t('backToHome', 'Back to Home')}
@@ -79,17 +79,17 @@ export default function TermsAndConditionsPage({ onBackToHome }: TermsAndConditi
               <Scale className="w-3.5 h-3.5" />
               Legal & Service Terms
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4">
               {t('termsAndConditions', 'Terms & Conditions')}
             </h1>
-            <p className="text-lg text-gray-300 leading-relaxed mb-6">
+            <p className="text-base sm:text-lg text-gray-300 leading-relaxed mb-6">
               Welcome to Tiqsey. These Terms and Conditions govern your access to and use of the Tiqsey website, mobile interfaces, ticket booking engine, and customer support services.
             </p>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400 border-t border-slate-800 pt-4">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-gray-400 border-t border-slate-800 pt-4">
               <span><strong>Last Updated:</strong> July 29, 2026</span>
-              <span>•</span>
+              <span className="hidden sm:inline">•</span>
               <span><strong>Effective Date:</strong> January 1, 2026</span>
-              <span>•</span>
+              <span className="hidden sm:inline">•</span>
               <span className="text-emerald-400 flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Official Service Agreement
               </span>
@@ -99,12 +99,12 @@ export default function TermsAndConditionsPage({ onBackToHome }: TermsAndConditi
       </div>
 
       {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
 
           {/* Sticky Sidebar Navigation */}
           <div className="lg:col-span-4 xl:col-span-3">
-            <div className="sticky top-24 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-2">
+            <div className="lg:sticky lg:top-24 bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-sm space-y-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 px-2">
                 Table of Contents
               </h3>
@@ -113,14 +113,14 @@ export default function TermsAndConditionsPage({ onBackToHome }: TermsAndConditi
                   <button
                     key={sec.id}
                     onClick={() => scrollToSection(sec.id)}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between ${
+                    className={`w-full min-h-[42px] text-left px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-2 cursor-pointer ${
                       activeSection === sec.id
                         ? "bg-brand text-white shadow-sm font-semibold"
                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                     }`}
                   >
-                    <span>{sec.title}</span>
-                    <ChevronRight className={`w-4 h-4 opacity-70 ${activeSection === sec.id ? "text-white" : "text-gray-400"}`} />
+                    <span className="truncate">{sec.title}</span>
+                    <ChevronRight className={`w-4 h-4 shrink-0 opacity-70 ${activeSection === sec.id ? "text-white" : "text-gray-400"}`} />
                   </button>
                 ))}
               </nav>
@@ -143,8 +143,8 @@ export default function TermsAndConditionsPage({ onBackToHome }: TermsAndConditi
           </div>
 
           {/* Main Legal Document Content */}
-          <div className="lg:col-span-8 xl:col-span-9 space-y-10">
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-10 shadow-sm space-y-12">
+          <div className="lg:col-span-8 xl:col-span-9 space-y-8 sm:space-y-10 min-w-0">
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-10 shadow-sm space-y-10 sm:space-y-12 break-words">
 
               {/* Section 1 */}
               <section id="acceptance" className="scroll-mt-28">
@@ -364,7 +364,7 @@ export default function TermsAndConditionsPage({ onBackToHome }: TermsAndConditi
                   </div>
                   <a
                     href="mailto:support@tiqsey.com"
-                    className="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all text-sm shrink-0 shadow-lg shadow-brand/20"
+                    className="min-h-[44px] inline-flex items-center justify-center px-5 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all text-sm shrink-0 shadow-lg shadow-brand/20"
                   >
                     Contact support@tiqsey.com
                   </a>
@@ -372,10 +372,10 @@ export default function TermsAndConditionsPage({ onBackToHome }: TermsAndConditi
               </section>
 
               {/* Back to Home CTA */}
-              <div className="pt-6 text-center">
+              <div className="pt-4 sm:pt-6 text-center">
                 <button
                   onClick={onBackToHome}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 transition-all text-sm shadow-sm"
+                  className="min-h-[44px] inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 transition-all text-sm shadow-sm cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Return to Tiqsey Home

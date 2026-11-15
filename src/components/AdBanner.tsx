@@ -87,10 +87,10 @@ export default function AdBanner({ onSelectDestination, onNavigate }: AdBannerPr
   // 2 cards -> sm:grid-cols-2 max-w-4xl
   // >4 cards -> lg:grid-cols-4 or scrollable
   const gridColsClass = 
-    banners.length === 1 ? 'grid-cols-1 max-w-xl mx-auto' :
-    banners.length === 2 ? 'grid-cols-1 sm:grid-cols-2 max-w-4xl mx-auto' :
-    banners.length === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-    'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4';
+    banners.length === 1 ? 'sm:grid-cols-1 sm:max-w-xl sm:mx-auto' :
+    banners.length === 2 ? 'sm:grid-cols-2 sm:max-w-4xl sm:mx-auto' :
+    banners.length === 3 ? 'sm:grid-cols-2 lg:grid-cols-3' :
+    'sm:grid-cols-2 lg:grid-cols-4';
 
   return (
     <section className="py-6 sm:py-8 overflow-hidden select-none bg-transparent" id="promotional-banner">
@@ -104,14 +104,14 @@ export default function AdBanner({ onSelectDestination, onNavigate }: AdBannerPr
               <span>{t('exclusiveOffersDeals', 'Exclusive Offers & Best Deals')}</span>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
                 {t('activitiesPromotions', 'Activities Promotions')}
               </h2>
               
               <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>{banners.length} {t('deals', 'Offers')}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="tabular-nums">{banners.length} {t('deals', 'Offers')}</span>
               </span>
             </div>
           </div>
@@ -119,12 +119,12 @@ export default function AdBanner({ onSelectDestination, onNavigate }: AdBannerPr
           {/* Navigation Controls */}
           <div className="flex items-center gap-2 self-start sm:self-end">
             {banners.length > 4 && (
-              <div className="flex items-center gap-1.5">
+              <div className="hidden sm:flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleScroll('left')}
                   disabled={!canScrollLeft}
-                  className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
+                  className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all ${
                     canScrollLeft 
                       ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white hover:bg-slate-100 shadow-xs active:scale-95 cursor-pointer'
                       : 'bg-slate-100 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-600 opacity-50 cursor-not-allowed'
@@ -137,7 +137,7 @@ export default function AdBanner({ onSelectDestination, onNavigate }: AdBannerPr
                   type="button"
                   onClick={() => handleScroll('right')}
                   disabled={!canScrollRight}
-                  className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
+                  className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all ${
                     canScrollRight 
                       ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white hover:bg-slate-100 shadow-xs active:scale-95 cursor-pointer'
                       : 'bg-slate-100 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-600 opacity-50 cursor-not-allowed'
@@ -159,7 +159,7 @@ export default function AdBanner({ onSelectDestination, onNavigate }: AdBannerPr
                   el?.scrollIntoView({ behavior: 'smooth' });
                 }
               }}
-              className="inline-flex items-center gap-1 text-xs font-bold text-[#e3000f] hover:text-[#e00015] transition-colors group cursor-pointer"
+              className="inline-flex items-center gap-1 text-xs font-bold text-[#e3000f] hover:text-[#e00015] transition-colors group cursor-pointer min-h-[36px]"
             >
               <span>{t('viewAllOffers', 'View all deals')}</span>
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -167,14 +167,14 @@ export default function AdBanner({ onSelectDestination, onNavigate }: AdBannerPr
           </div>
         </div>
 
-        {/* Promotions Balanced Grid & Scrollable Container */}
+        {/* Promotions Balanced Grid (sm+) & Horizontal Snap Carousel (mobile) */}
         <div 
           ref={scrollContainerRef}
           onScroll={checkScroll}
-          className={`grid ${gridColsClass} gap-4 sm:gap-5 overflow-x-auto sm:overflow-x-visible pb-2 sm:pb-0 scroll-smooth no-scrollbar`}
+          className={`flex sm:grid ${gridColsClass} gap-3.5 sm:gap-5 overflow-x-auto sm:overflow-x-visible pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory scroll-smooth no-scrollbar`}
         >
           {banners.map((banner) => (
-            <div key={banner.id} className="w-full min-w-[260px] sm:min-w-0">
+            <div key={banner.id} className="w-[82vw] max-w-[320px] shrink-0 snap-start sm:w-full sm:max-w-none">
               <BannerCard 
                 banner={banner} 
                 onSelectDestination={onSelectDestination}

@@ -128,29 +128,35 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
   }, [booking.status]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-[640px] max-h-[calc(100vh-32px)] md:max-h-[85vh] flex flex-col overflow-hidden border border-slate-200/80 dark:border-slate-800 animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-[640px] max-h-[90dvh] flex flex-col overflow-hidden border border-slate-200/80 dark:border-slate-800 animate-in zoom-in-95 duration-150">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Allocate Service</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+          <h2 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">Allocate Service</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-2 -mr-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+            aria-label="Close modal"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
           
           {/* Booking Info Header Row */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[22px] font-medium tracking-tight text-slate-900 dark:text-slate-100">{booking.bookingRef}</span>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-lg sm:text-[22px] font-medium tracking-tight text-slate-900 dark:text-slate-100 truncate tabular-nums">{booking.bookingRef}</span>
                 <button 
+                  type="button"
                   onClick={handleCopy} 
                   title="Copy booking reference"
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shrink-0"
                 >
                   {copied ? (
                     <Check className="w-4 h-4 text-emerald-500" />
@@ -159,18 +165,18 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
                   )}
                 </button>
               </div>
-              <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${badgeStyle} tracking-wide`}>
+              <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${badgeStyle} tracking-wide shrink-0`}>
                 {badgeText}
               </span>
             </div>
             
             {/* Travelers & Booking Date */}
-            <div className="flex items-center gap-3 text-[14px] font-medium">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[13px] sm:text-[14px] font-medium">
               <div className="flex items-center gap-1.5 text-[#3b82f6]">
-                <Users className="w-4 h-4 text-slate-400" />
+                <Users className="w-4 h-4 text-slate-400 shrink-0" />
                 <span>{booking.travelers || 4} Adults {booking.children ? `${booking.children} Child` : '1 Child'}</span>
               </div>
-              <span className="text-slate-200 dark:text-slate-700">|</span>
+              <span className="hidden sm:inline text-slate-200 dark:text-slate-700">|</span>
               <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
                 <Calendar className="w-4 h-4 text-slate-400" />
                 <span>
@@ -197,18 +203,18 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
 
           {/* Customer Details section */}
           <div className="pt-4 mt-2 border-t border-dashed border-slate-200 dark:border-slate-800">
-            <h3 className="text-[14px] font-bold text-slate-900 dark:text-slate-100 mb-2">CUSTOMER DETAILS</h3>
-            <div className="flex items-center text-[14px] text-slate-600 dark:text-slate-400 font-medium">
+            <h3 className="text-[13px] sm:text-[14px] font-bold text-slate-900 dark:text-slate-100 mb-2">CUSTOMER DETAILS</h3>
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] sm:text-[14px] text-slate-600 dark:text-slate-400 font-medium">
               <span className="text-slate-800 dark:text-slate-200 font-semibold">{booking.customerName || 'Bob Johnson'}</span>
-              <span className="mx-3 text-slate-200 dark:text-slate-700">|</span>
-              <span>{booking.customerPhone || '+1(555) 349-2041'}</span>
-              <span className="mx-3 text-slate-200 dark:text-slate-700">|</span>
-              <span>{booking.customerEmail || 'bob.johnson@example.com'}</span>
+              <span className="hidden sm:inline text-slate-200 dark:text-slate-700">|</span>
+              <span className="tabular-nums">{booking.customerPhone || '+1(555) 349-2041'}</span>
+              <span className="hidden sm:inline text-slate-200 dark:text-slate-700">|</span>
+              <span className="break-all">{booking.customerEmail || 'bob.johnson@example.com'}</span>
             </div>
           </div>
 
           {/* Form Fields Grid */}
-          <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             
             {/* Service Type */}
             <div className="relative">
@@ -390,15 +396,15 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
-          <div className="flex items-center gap-3 flex-1 mr-4">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
             
             {/* Vendor Selection Reason Select */}
-            <div className="relative flex-1 max-w-[200px]">
+            <div className="relative flex-1 sm:max-w-[200px]">
               <select 
                 value={bestService}
                 onChange={(e) => setBestService(e.target.value)}
-                className={`w-full appearance-none border border-slate-200 dark:border-slate-800 rounded-md px-3 py-1.5 text-xs bg-slate-50/50 dark:bg-slate-850 focus:outline-none focus:ring-1 focus:ring-blue-500 pr-8 h-[34px] ${
+                className={`w-full appearance-none border border-slate-200 dark:border-slate-800 rounded-md px-3 py-1.5 text-xs bg-slate-50/50 dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 pr-8 h-[38px] ${
                   bestService === '' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300 font-medium'
                 }`}
               >
@@ -414,7 +420,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
             </div>
 
             {/* Total Vendor Payable Input Group */}
-            <div className="flex border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden bg-[#f7f7f7] dark:bg-slate-800 h-[34px] flex-1 max-w-[220px]">
+            <div className="flex border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden bg-[#f7f7f7] dark:bg-slate-800 h-[38px] flex-1 sm:max-w-[220px]">
               <div className="bg-[#f1f3f5] dark:bg-slate-700 px-3.5 text-xs font-bold text-slate-400 dark:text-slate-300 flex items-center justify-center border-r border-slate-200 dark:border-slate-800 select-none min-w-[50px]">
                 {currency || 'INR'}
               </div>
@@ -423,15 +429,16 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
                 value={payableAmount} 
                 onChange={(e) => setPayableAmount(e.target.value)}
                 placeholder="Total Vendor Payable" 
-                className="w-full px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 bg-[#f7f7f7] dark:bg-slate-800 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
+                className="w-full px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 bg-[#f7f7f7] dark:bg-slate-800 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none tabular-nums"
               />
             </div>
 
           </div>
 
           <button 
+            type="button"
             onClick={handleSave}
-            className={`px-6 py-1.5 text-white text-xs font-bold rounded-md transition-all h-[34px] flex items-center justify-center min-w-[76px] shadow-sm active:scale-[0.98] ${saveButtonBg}`}
+            className={`w-full sm:w-auto px-6 py-2 text-white text-xs font-bold rounded-md transition-all h-[38px] flex items-center justify-center min-w-[84px] shadow-sm active:scale-[0.98] cursor-pointer ${saveButtonBg}`}
           >
             Save
           </button>

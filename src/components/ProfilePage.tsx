@@ -77,23 +77,23 @@ export default function ProfilePage({ onBackToHome }: ProfilePageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans py-8 sm:py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+    <div className="min-h-[100dvh] bg-[#f8fafc] dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans py-6 sm:py-12 pb-24 lg:pb-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
       <div className="max-w-6xl mx-auto">
         
         {/* Navigation Back Button */}
         <button
           onClick={onBackToHome}
-          className="inline-flex items-center gap-2 mb-8 text-sm font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors group cursor-pointer"
+          className="inline-flex items-center gap-2 mb-6 sm:mb-8 min-h-[40px] text-sm font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors group cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
           Back to Home
         </button>
 
         {/* Main 2-Column Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-stretch">
           
           {/* Left Card: Profile Details & Active Avatar */}
-          <div className="lg:col-span-4 bg-white dark:bg-slate-900 rounded-[28px] p-6 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col items-center justify-between text-center space-y-6">
+          <div className="lg:col-span-4 bg-white dark:bg-slate-900 rounded-[24px] sm:rounded-[28px] p-5 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col items-center justify-between text-center space-y-6">
             
             {/* Top Badge: PROFILE PAGE */}
             <div className="w-full text-left">
@@ -105,12 +105,13 @@ export default function ProfilePage({ onBackToHome }: ProfilePageProps) {
 
             {/* Profile Avatar Frame with Red Glowing Ring and Edit Pencil Button */}
             <div className="relative my-2">
-              <div className="w-40 h-40 sm:w-44 sm:h-44 rounded-full p-1 ring-2 ring-[#FF385C] shadow-[0_0_35px_rgba(255,56,92,0.25)] flex items-center justify-center bg-white dark:bg-slate-900">
+              <div className="w-32 h-32 sm:w-40 sm:h-44 rounded-full p-1 ring-2 ring-[#FF385C] shadow-[0_0_35px_rgba(255,56,92,0.25)] flex items-center justify-center bg-white dark:bg-slate-900">
                 <img
                   src={selectedAvatarUrl}
                   alt={user.name}
                   className="w-full h-full rounded-full object-cover"
                   referrerPolicy="no-referrer"
+                  decoding="async"
                 />
               </div>
 
@@ -124,16 +125,16 @@ export default function ProfilePage({ onBackToHome }: ProfilePageProps) {
             </div>
 
             {/* User Name & Email Badge */}
-            <div className="space-y-3 w-full">
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-wide uppercase">
+            <div className="space-y-3 w-full min-w-0">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-wide uppercase truncate">
                 {user.name || "SYSTEM ADMIN"}
               </h1>
 
               {/* Verified Email Pill */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 text-xs font-medium text-slate-600 dark:text-slate-300">
-                <Mail className="w-3.5 h-3.5 text-slate-400" />
-                <span>{user.email || "admin@tiqsey.com"}</span>
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-500 text-white" />
+              <div className="inline-flex items-center gap-2 max-w-full px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="truncate">{user.email || "admin@tiqsey.com"}</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-500 text-white shrink-0" />
               </div>
             </div>
 
@@ -143,14 +144,14 @@ export default function ProfilePage({ onBackToHome }: ProfilePageProps) {
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="py-3 px-5 bg-gradient-to-r from-[#FF385C] to-[#E00B41] text-white rounded-full font-bold text-sm hover:shadow-lg hover:shadow-rose-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 shadow-md shadow-rose-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                  className="min-h-[44px] py-2.5 px-4 bg-gradient-to-r from-[#FF385C] to-[#E00B41] text-white rounded-full font-bold text-sm hover:shadow-lg hover:shadow-rose-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 shadow-md shadow-rose-500/20 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   <span>{isSaving ? "SAVING..." : "SAVE"}</span>
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="py-3 px-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-full font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="min-h-[44px] py-2.5 px-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-full font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                   <span>CANCEL</span>
@@ -203,7 +204,7 @@ export default function ProfilePage({ onBackToHome }: ProfilePageProps) {
               </div>
 
               {/* 24 Avatars in 6-Column Grid */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 sm:gap-6 py-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-5 py-2">
                 {TRAVEL_AVATARS.map((avatar) => {
                   const isSelected = selectedAvatarUrl === avatar.url;
                   return (

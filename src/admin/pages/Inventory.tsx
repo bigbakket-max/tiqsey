@@ -754,6 +754,22 @@ export default function Inventory() {
   const [quickHighlightsList, setQuickHighlightsList] = useState<string[]>([]);
   const [quickHighlightNewText, setQuickHighlightNewText] = useState("");
 
+  // In-app Toast & Confirmation Dialog (replaces window.alert / window.confirm)
+  const [inventoryToast, setInventoryToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    variant?: "danger" | "warning";
+    onConfirm: () => void;
+  } | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+  const triggerInventoryToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setInventoryToast({ message, type });
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setInventoryToast(null), 4000);
+  };
+
   useEffect(() => {
     if (isEditRoute && id) {
       if (loadedIdRef.current === id) return;
@@ -1376,18 +1392,26 @@ export default function Inventory() {
 
   // Handle delete operation
   const handleDeleteClick = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this attraction? This will instantly sync with the main website catalogue.")) {
-      const itemToDelete = attractions.find((a) => a.id === id);
-      if (itemToDelete) {
-        registerUsedProductId(itemToDelete.id);
-        if (itemToDelete.productId) registerUsedProductId(itemToDelete.productId);
-        registerUsedProductId(getDisplayProductId(itemToDelete));
+    const itemToDelete = attractions.find((a) => a.id === id);
+    setConfirmDialog({
+      title: "Delete Activity?",
+      message: `Are you sure you want to delete "${itemToDelete?.name || "this attraction"}"? This will instantly sync with the main website catalogue.`,
+      confirmLabel: "Delete Activity",
+      variant: "danger",
+      onConfirm: () => {
+        if (itemToDelete) {
+          registerUsedProductId(itemToDelete.id);
+          if (itemToDelete.productId) registerUsedProductId(itemToDelete.productId);
+          registerUsedProductId(getDisplayProductId(itemToDelete));
+        }
+        const updated = attractions.filter((a) => a.id !== id);
+        setAttractions(updated);
+        syncCustomAttractions(updated);
+        fetch(`/api/inventory/attractions/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
+        setConfirmDialog(null);
+        triggerInventoryToast("Activity deleted and catalog synced.", "success");
       }
-      const updated = attractions.filter((a) => a.id !== id);
-      setAttractions(updated);
-      syncCustomAttractions(updated);
-      fetch(`/api/inventory/attractions/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
-    }
+    });
   };
 
   // Toggle available/unavailable status
@@ -1429,9 +1453,21 @@ export default function Inventory() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim()) return alert("Activity Name is required");
-    if (!city.trim()) return alert("City is required");
-    if (!imageUrl.trim()) return alert("Image URL or Uploaded image is required");
+    if (!name.trim()) {
+      setActiveTab("Primary");
+      triggerInventoryToast("Activity Name is required.", "error");
+      return;
+    }
+    if (!city.trim()) {
+      setActiveTab("Primary");
+      triggerInventoryToast("City is required.", "error");
+      return;
+    }
+    if (!imageUrl.trim()) {
+      setActiveTab("Gallary");
+      triggerInventoryToast("Image URL or uploaded cover image is required.", "error");
+      return;
+    }
 
     // Variant-Level Booking Mode Validations
     for (const v of variants) {
@@ -1440,12 +1476,14 @@ export default function Inventory() {
         if (!vUrl) {
           setActiveTab("Variants");
           setEditingVariantId(v.id);
-          return alert(`Validation Error: Variant "${v.name}" is configured in Affiliate Mode, but no affiliate booking URL was provided. Please enter the partner URL.`);
+          triggerInventoryToast(`Variant "${v.name}" is in Affiliate Mode but has no booking URL. Please enter the partner URL.`, "error");
+          return;
         }
         if (!isValidAffiliateUrl(vUrl)) {
           setActiveTab("Variants");
           setEditingVariantId(v.id);
-          return alert(`Validation Error: The affiliate booking URL for variant "${v.name}" is invalid. It must start with http:// or https:// (or contain dynamic placeholders like {activity_id}).`);
+          triggerInventoryToast(`Affiliate URL for "${v.name}" must start with http:// or https:// (or dynamic placeholders).`, "error");
+          return;
         }
       }
     }
@@ -1454,14 +1492,16 @@ export default function Inventory() {
     const hasManualVariants = variants.length === 0 || variants.some(v => v.bookingMode !== 'affiliate');
     if (hasManualVariants) {
       if (!price || Number(price) <= 0) {
-        setActiveTab("Pricing");
-        return alert("Validation Error: Valid original price is required for Manual Booking activities/variants.");
+        setActiveTab("Primary");
+        triggerInventoryToast("Valid original price is required for Manual Booking activities/variants.", "error");
+        return;
       }
       const hasOperatingDays = selectedDays && selectedDays.length > 0;
       const hasVariantRules = variants && variants.length > 0 && variants.some(v => v.rules && v.rules.length > 0);
       if (!hasOperatingDays && !hasVariantRules) {
-        setActiveTab("Operating Schedule");
-        return alert("Validation Error: An activity with Manual variants cannot be published without a valid availability configuration. Please configure operating days or variant inventory rules.");
+        setActiveTab("Primary");
+        triggerInventoryToast("Configure at least one operating day or variant inventory rule before saving.", "error");
+        return;
       }
     }
 
@@ -1710,12 +1750,21 @@ export default function Inventory() {
 
   const handleBulkDelete = () => {
     if (selectedProductIds.length === 0) return;
-    if (window.confirm(`Are you sure you want to delete ${selectedProductIds.length} selected activities? This cannot be undone.`)) {
-      const updated = attractions.filter(a => !selectedProductIds.includes(a.id));
-      setAttractions(updated);
-      syncCustomAttractions(updated);
-      setSelectedProductIds([]);
-    }
+    const count = selectedProductIds.length;
+    setConfirmDialog({
+      title: `Delete ${count} Selected ${count === 1 ? "Activity" : "Activities"}?`,
+      message: `Are you sure you want to permanently remove ${count} selected ${count === 1 ? "activity" : "activities"} from your catalog? This cannot be undone.`,
+      confirmLabel: `Delete ${count} Items`,
+      variant: "danger",
+      onConfirm: () => {
+        const updated = attractions.filter(a => !selectedProductIds.includes(a.id));
+        setAttractions(updated);
+        syncCustomAttractions(updated);
+        setSelectedProductIds([]);
+        setConfirmDialog(null);
+        triggerInventoryToast(`${count} ${count === 1 ? "activity" : "activities"} removed.`, "success");
+      }
+    });
   };
 
   const handleCopyTableId = (displayId: string) => {
@@ -1754,8 +1803,8 @@ export default function Inventory() {
     return (
       <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs relative">
         {/* Status Tabs Bar */}
-        <div className="px-6 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
+        <div className="px-3 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
             {[
               { id: 'all', label: 'All Products', count: stats.total },
               { id: 'active', label: 'Active', count: stats.activeCount },
@@ -1770,14 +1819,14 @@ export default function Inventory() {
                   key={tab.id}
                   type="button"
                   onClick={() => setStatusTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3 py-2 sm:py-1.5 min-h-[36px] rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0 ${
                     isActive 
                       ? 'bg-blue-600 text-white shadow-xs' 
                       : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200/80 dark:border-slate-800'
                   }`}
                 >
                   <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono tabular-nums ${
                     isActive ? 'bg-white/20 text-white font-black' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                   }`}>
                     {tab.count}
@@ -1789,22 +1838,22 @@ export default function Inventory() {
         </div>
 
         {/* Filter and Search Bar */}
-        <div className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-slate-800 flex flex-col lg:flex-row gap-3.5 items-stretch lg:items-center justify-between">
+        <div className="p-3 sm:p-5 border-b border-slate-200/80 dark:border-slate-800 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
           {/* Search Input with Clear Button */}
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 lg:max-w-md">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <input
               type="text"
               placeholder="Search product name, ID, city, or category..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-xl pl-10 pr-9 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 dark:text-slate-200 placeholder-slate-400"
+              className="w-full min-h-[40px] bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-xl pl-10 pr-9 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 dark:text-slate-200 placeholder-slate-400"
             />
             {searchQuery && (
               <button 
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1.5 rounded-full cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -1812,11 +1861,11 @@ export default function Inventory() {
           </div>
 
           {/* Geography & Category Filters */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 hide-scrollbar">
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex items-center gap-2">
             <select
               value={selectedRegion}
               onChange={(e) => setSelectedRegion(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
+              className="w-full lg:w-auto min-h-[40px] sm:min-h-[36px] bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="All">All Regions</option>
               {regions.filter(r => r !== "All").map((reg) => (
@@ -1827,7 +1876,7 @@ export default function Inventory() {
             <select
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
+              className="w-full lg:w-auto min-h-[40px] sm:min-h-[36px] bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="All">All Cities</option>
               {locations.filter(l => l !== "All").map((loc) => (
@@ -1838,7 +1887,7 @@ export default function Inventory() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
+              className="w-full lg:w-auto min-h-[40px] sm:min-h-[36px] bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="All">All Categories</option>
               {categories.filter(c => c !== "All").map((cat) => (
@@ -1856,7 +1905,7 @@ export default function Inventory() {
                   setStatusTab("all");
                   setSearchQuery("");
                 }}
-                className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-sky-400 px-2 py-1.5 transition-colors cursor-pointer shrink-0"
+                className="sm:col-span-3 lg:col-span-1 min-h-[36px] text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-sky-400 px-3 py-1.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 lg:bg-transparent transition-colors cursor-pointer shrink-0 text-center"
               >
                 Clear Filters
               </button>
@@ -1864,8 +1913,249 @@ export default function Inventory() {
           </div>
         </div>
 
-      {/* Responsive Real-Time High-Density Catalogue Table */}
-      <div className="overflow-x-auto">
+      {/* Mobile Stacked Cards Catalogue (< lg) */}
+      <div className="lg:hidden">
+        {filteredAndSortedAttractions.length === 0 ? (
+          <div className="text-center py-14 px-4 bg-slate-50/20 dark:bg-slate-950/10">
+            <Compass className="w-11 h-11 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
+            <p className="text-base font-black text-slate-800 dark:text-white">No Activities Match Filters</p>
+            <p className="text-xs text-slate-400 mt-1">
+              Try relaxing your search query or switching tabs to review other operational inventory items.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Select-All & Sort Bar */}
+            <div className="px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 text-xs">
+              <label className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-300 cursor-pointer select-none min-h-[36px]">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer"
+                />
+                <span>Select Page ({paginatedAttractions.length})</span>
+              </label>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleSort("name")}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
+                    sortBy === "name"
+                      ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-sky-400 border-blue-200 dark:border-blue-800"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800"
+                  }`}
+                >
+                  <span>Name</span>
+                  <ArrowUpDown className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSort("price")}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
+                    sortBy === "price"
+                      ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-sky-400 border-blue-200 dark:border-blue-800"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800"
+                  }`}
+                >
+                  <span>Price</span>
+                  <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {paginatedAttractions.map((attr) => {
+                const isSelected = selectedProductIds.includes(attr.id);
+                const hasDiscount = attr.discountPrice !== undefined && attr.discountPrice > 0;
+                const discountPercent = hasDiscount
+                  ? Math.round(((attr.price - attr.discountPrice!) / attr.price) * 100)
+                  : 0;
+                const displayId = getDisplayProductId(attr);
+                const isCopied = copiedTableId === displayId;
+                const liveUrl = `${window.location.origin}/#/attraction/${attr.customSlug || attr.id}`;
+                const vars = (attr.variants || []).filter(Boolean);
+                const affiliateVars = vars.filter(v => v?.bookingMode === 'affiliate');
+                const manualVars = vars.filter(v => v?.bookingMode !== 'affiliate');
+
+                return (
+                  <div
+                    key={attr.id}
+                    className={`p-3.5 sm:p-4 space-y-3 transition-colors ${
+                      isSelected ? "bg-blue-50/50 dark:bg-blue-950/25" : "bg-white dark:bg-slate-900"
+                    }`}
+                  >
+                    {/* Top: Checkbox + Image + Title + Live Link */}
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleRowSelection(attr.id)}
+                        className="mt-1 w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer shrink-0"
+                        aria-label={`Select ${attr.name}`}
+                      />
+                      <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 dark:border-slate-800 shrink-0">
+                        <img
+                          src={attr.imageUrl}
+                          alt={attr.name}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                        {hasDiscount && (
+                          <div className="absolute top-0 left-0 bg-emerald-500 text-white font-black text-[8px] px-1 py-0.5 rounded-br-md">
+                            DEAL
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-slate-900 dark:text-white font-bold text-sm leading-snug line-clamp-2">
+                            {attr.name}
+                          </p>
+                          <a
+                            href={liveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-sky-400 shrink-0"
+                            title="View Live Product in new tab"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyTableId(displayId)}
+                            className="inline-flex items-center gap-1 font-mono text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded cursor-pointer"
+                          >
+                            {isCopied ? <Check className="w-2.5 h-2.5 text-emerald-600" /> : <Copy className="w-2.5 h-2.5" />}
+                            <span>ID: {displayId}</span>
+                          </button>
+                          <span className="flex items-center text-[11px] text-amber-500 font-bold gap-0.5 tabular-nums">
+                            <Star className="w-3 h-3 fill-amber-500 stroke-amber-500" />
+                            {attr.rating || 4.8}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Meta Badges: City, Category, Booking Mode */}
+                    <div className="flex flex-wrap items-center gap-1.5 pl-8">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                        <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                        {attr.city}
+                      </span>
+                      <span className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-sky-300 text-[11px] font-bold px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-900/40">
+                        {attr.category}
+                      </span>
+                      {vars.length > 0 ? (
+                        affiliateVars.length > 0 && manualVars.length > 0 ? (
+                          <span className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-indigo-200/60 dark:border-indigo-800/40">
+                            Mixed ({manualVars.length}M / {affiliateVars.length}A)
+                          </span>
+                        ) : affiliateVars.length > 0 ? (
+                          <span className="inline-flex items-center gap-1 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-purple-200/60 dark:border-purple-800/40">
+                            {affiliateVars[0].affiliateConfig?.vendorName || "Affiliate"}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-blue-200/60 dark:border-blue-800/40">
+                            Manual ({manualVars.length})
+                          </span>
+                        )
+                      ) : attr.bookingMode === 'affiliate' ? (
+                        <span className="inline-flex items-center gap-1 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-purple-200/60 dark:border-purple-800/40">
+                          {attr.affiliateConfig?.vendorName || "Affiliate"}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-blue-200/60 dark:border-blue-800/40">
+                          Manual
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Price + Status Toggle + Touch Actions */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800/70 pl-8">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {hasDiscount ? (
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm font-mono tabular-nums">
+                              {(attr.currency || "EUR").toUpperCase()} {attr.discountPrice?.toFixed(2)}
+                            </span>
+                            <span className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-[10px] font-black px-1.5 py-0.5 rounded tabular-nums">
+                              -{discountPercent}%
+                            </span>
+                            <span className="text-slate-400 text-[10px] line-through font-mono tabular-nums">
+                              {attr.price.toFixed(2)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-900 dark:text-white font-black text-sm font-mono tabular-nums">
+                            {(attr.currency || "EUR").toUpperCase()} {attr.price.toFixed(2)}
+                          </span>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleToggleAvailability(attr.id)}
+                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            attr.isAvailable !== false ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
+                          }`}
+                          aria-label={`Toggle availability for ${attr.name}`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out ${
+                              attr.isAvailable !== false ? "translate-x-5" : "translate-x-0"
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenQuickHighlights(attr)}
+                          className="min-w-[40px] min-h-[40px] flex items-center justify-center text-amber-600 dark:text-amber-400 bg-amber-50/70 dark:bg-amber-950/30 rounded-lg transition-colors cursor-pointer"
+                          title="Edit Highlights"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDuplicateFromTable(attr)}
+                          className="min-w-[40px] min-h-[40px] flex items-center justify-center text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                          title="Duplicate Activity"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleEditClick(attr)}
+                          className="min-h-[40px] px-3 flex items-center gap-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                          title="Edit Activity"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(attr.id)}
+                          className="min-w-[40px] min-h-[40px] flex items-center justify-center text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg transition-colors cursor-pointer"
+                          title="Delete Activity"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Responsive Real-Time High-Density Catalogue Table (Desktop lg+) */}
+      <div className="hidden lg:block overflow-x-auto">
         <table className="w-full text-left text-sm min-w-[1050px] table-fixed">
           <colgroup>
             <col className="w-[4%]" />
@@ -2174,10 +2464,10 @@ export default function Inventory() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 15 }}
             transition={{ duration: 0.18 }}
-            className="m-4 p-3 bg-slate-900 dark:bg-slate-950 text-white rounded-xl shadow-xl border border-slate-800 flex items-center justify-between gap-4 flex-wrap"
+            className="m-3 sm:m-4 p-3 sm:p-4 bg-slate-900 dark:bg-slate-950 text-white rounded-xl shadow-xl border border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4"
           >
             <div className="flex items-center gap-2.5">
-              <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+              <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold tabular-nums shrink-0">
                 {selectedProductIds.length}
               </span>
               <span className="text-xs font-semibold text-slate-200">
@@ -2188,28 +2478,28 @@ export default function Inventory() {
               <button
                 type="button"
                 onClick={() => handleBulkSetAvailability(true)}
-                className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                className="min-h-[38px] px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <Check className="w-3.5 h-3.5" /> Mark Active
               </button>
               <button
                 type="button"
                 onClick={() => handleBulkSetAvailability(false)}
-                className="px-3 py-1.5 text-xs font-bold bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                className="min-h-[38px] px-3 py-1.5 text-xs font-bold bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 Mark Paused
               </button>
               <button
                 type="button"
                 onClick={handleBulkDelete}
-                className="px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                className="min-h-[38px] px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <Trash2 className="w-3.5 h-3.5" /> Delete Selected
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedProductIds([])}
-                className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="min-h-[38px] px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
                 Deselect All
               </button>
@@ -2263,20 +2553,20 @@ export default function Inventory() {
     return (
       <div className="space-y-6 animate-in fade-in duration-200 text-left">
         {/* Header/Controls Row */}
-        <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex justify-between items-center gap-4">
-          <div className="flex items-center gap-3">
+        <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setEditingVariantId(null)}
-              className="p-2 bg-[#5fa6d9]/10 text-[#5fa6d9] hover:bg-[#5fa6d9]/20 rounded-lg transition-colors cursor-pointer"
+              className="p-2 min-w-[38px] min-h-[38px] flex items-center justify-center bg-[#5fa6d9]/10 text-[#5fa6d9] hover:bg-[#5fa6d9]/20 rounded-lg transition-colors cursor-pointer shrink-0"
               title="Back to Variants"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 bg-[#5fa6d9]/15 text-[#5fa6d9] text-[9px] font-black tracking-wider uppercase rounded">Variant Editor</span>
-                <h4 className="font-bold text-[14px] text-slate-900 dark:text-white">
+            <div className="min-w-0">
+              <div className="flex items-center flex-wrap gap-2">
+                <span className="px-2 py-0.5 bg-[#5fa6d9]/15 text-[#5fa6d9] text-[9px] font-black tracking-wider uppercase rounded shrink-0">Variant Editor</span>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate">
                   Editing Variant: {activeVariant.name || "Untitled"}
                 </h4>
               </div>
@@ -2285,7 +2575,7 @@ export default function Inventory() {
           <button
             type="button"
             onClick={() => setEditingVariantId(null)}
-            className="flex items-center gap-1.5 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white text-xs font-bold px-3 py-1.5 rounded-md transition-colors cursor-pointer"
+            className="w-full sm:w-auto min-h-[38px] flex items-center justify-center gap-1.5 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white text-xs font-bold px-3.5 py-2 rounded-md transition-colors cursor-pointer shrink-0"
           >
             <Check className="w-3.5 h-3.5" /> Done Editing
           </button>
@@ -2645,7 +2935,7 @@ export default function Inventory() {
                             );
                           })()}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                           <input
                             type="url"
                             value={activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl || ""}
@@ -2663,25 +2953,22 @@ export default function Inventory() {
                             className="flex-1 bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 rounded-md px-3.5 py-2.5 text-xs font-mono text-slate-800 dark:text-white focus:outline-none focus:border-purple-500"
                           />
                           {(activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl) && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const rawUrl = activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl || "";
-                                const testUrl = resolveAffiliateUrlTokens(rawUrl, {
-                                  activityId: editingAttraction?.id || "eiffel-tower-sample",
-                                  variantId: activeVariant.id,
-                                  currency: currencyCode || "EUR",
-                                  city: city || "Paris",
-                                  trackingParams: activeVariant.affiliateConfig?.trackingParams
-                                });
-                                window.open(testUrl, '_blank', 'noopener,noreferrer');
-                              }}
-                              className="px-3 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-xs font-bold flex items-center gap-1.5 shrink-0 transition-colors shadow-xs cursor-pointer"
+                            <a
+                              href={resolveAffiliateUrlTokens(activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl || "", {
+                                activityId: editingAttraction?.id || "eiffel-tower-sample",
+                                variantId: activeVariant.id,
+                                currency: currencyCode || "EUR",
+                                city: city || "Paris",
+                                trackingParams: activeVariant.affiliateConfig?.trackingParams
+                              })}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="min-h-[40px] px-3 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 transition-colors shadow-xs"
                               title="Open and test resolved URL in new tab"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                               Test Link
-                            </button>
+                            </a>
                           )}
                         </div>
 
@@ -2924,25 +3211,23 @@ export default function Inventory() {
 
                   {(activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl) && (
                     <div className="pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const testUrl = resolveAffiliateUrlTokens(
-                            activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl || "",
-                            {
-                              activityId: editingAttraction?.id || "activity-sample",
-                              variantId: activeVariant.id,
-                              currency: currencyCode || "EUR",
-                              city: city || ""
-                            }
-                          );
-                          window.open(testUrl, '_blank', 'noopener,noreferrer');
-                        }}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95"
+                      <a
+                        href={resolveAffiliateUrlTokens(
+                          activeVariant.affiliateConfig?.affiliateUrl || activeVariant.affiliateUrl || "",
+                          {
+                            activityId: editingAttraction?.id || "activity-sample",
+                            variantId: activeVariant.id,
+                            currency: currencyCode || "EUR",
+                            city: city || ""
+                          }
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                         <span>Test Guest Redirect to Main Website</span>
-                      </button>
+                      </a>
                     </div>
                   )}
                 </div>
@@ -2958,7 +3243,7 @@ export default function Inventory() {
                   </div>
                   
                   {/* Save Changes Button with Status */}
-                  <div className="flex items-center gap-3 self-end sm:self-auto">
+                  <div className="flex items-center gap-3 self-stretch sm:self-auto justify-end">
                     {isCalendarSaved && (
                       <span className="text-[10px] text-emerald-500 font-extrabold flex items-center gap-1 animate-pulse">
                         <Check className="w-3.5 h-3.5" /> All Changes Synced!
@@ -2969,9 +3254,9 @@ export default function Inventory() {
                       onClick={() => {
                         setIsCalendarSaved(true);
                         setTimeout(() => setIsCalendarSaved(false), 2000);
-                        alert("Calendar inventory and pricing settings successfully saved.");
+                        triggerInventoryToast("Calendar inventory and pricing settings updated.", "success");
                       }}
-                      className="bg-[#5fa6d9] hover:bg-[#4b95cc] text-white px-3.5 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-sm shadow-[#5fa6d9]/10 active:scale-95"
+                      className="min-h-[38px] bg-[#5fa6d9] hover:bg-[#4b95cc] text-white px-3.5 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-sm shadow-[#5fa6d9]/10 active:scale-95"
                     >
                       <Save className="w-3.5 h-3.5" /> Save Changes
                     </button>
@@ -3109,17 +3394,18 @@ export default function Inventory() {
                 </div>
 
                 {/* Calendar Grid & Days Header */}
-                <div className="p-4 space-y-2">
-                  <div className="grid grid-cols-7 gap-2 text-center">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                      <span key={day} className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest py-1">
-                        {day}
-                      </span>
-                    ))}
-                  </div>
+                <div className="p-3 sm:p-4 overflow-x-auto no-scrollbar">
+                  <div className="min-w-[540px] space-y-2">
+                    <div className="grid grid-cols-7 gap-2 text-center">
+                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+                        <span key={day} className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest py-1">
+                          {day}
+                        </span>
+                      ))}
+                    </div>
 
-                  {/* Calendar Days Cells Grid */}
-                  <div className="grid grid-cols-7 gap-2 min-h-[300px]">
+                    {/* Calendar Days Cells Grid */}
+                    <div className="grid grid-cols-7 gap-2 min-h-[300px]">
                     {(() => {
                       const daysInMonth = new Date(currentCalendarYear, currentCalendarMonth + 1, 0).getDate();
                       const firstDayIndex = new Date(currentCalendarYear, currentCalendarMonth, 1).getDay();
@@ -3227,6 +3513,7 @@ export default function Inventory() {
                       }
                       return cells;
                     })()}
+                    </div>
                   </div>
                 </div>
 
@@ -3705,7 +3992,7 @@ export default function Inventory() {
                           item.id === activeVariant.id ? { ...item, rules: uniqueRules } : item
                         );
                         setVariants(updated);
-                        alert(`Successfully populated all days for ${MONTHS_OF_YEAR[currentCalendarMonth]} ${currentCalendarYear} with existing timeslots, default price: ${selectedCurrencyObj.symbol}${pVal} and limit: 100.`);
+                        triggerInventoryToast(`Populated ${MONTHS_OF_YEAR[currentCalendarMonth]} ${currentCalendarYear} slots (${selectedCurrencyObj.symbol}${pVal}, limit 100).`, "success");
                       }}
                       className="w-full text-left px-3 py-2 text-xs font-bold rounded border bg-white hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                     >
@@ -3748,7 +4035,7 @@ export default function Inventory() {
                           item.id === activeVariant.id ? { ...item, rules: uniqueRules } : item
                         );
                         setVariants(updated);
-                        alert(`Successfully populated all timeslots for selected date(s) with default price: ${selectedCurrencyObj.symbol}${pVal} and limit: 100.`);
+                        triggerInventoryToast(`Populated selected date(s) with default price ${selectedCurrencyObj.symbol}${pVal} and limit 100.`, "success");
                         setSelectedCalendarDays([]);
                       }}
                       className="w-full text-left px-3 py-2 text-xs font-bold rounded border bg-white hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-45 disabled:cursor-not-allowed transition-colors cursor-pointer"
@@ -3765,15 +4052,24 @@ export default function Inventory() {
                       type="button"
                       disabled={!(activeVariant.rules && activeVariant.rules.length > 0)}
                       onClick={() => {
-                        if (window.confirm(`Are you sure you want to clear all slots and rules for the month of ${MONTHS_OF_YEAR[currentCalendarMonth]} ${currentCalendarYear}?`)) {
-                          const monthPrefix = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, "0")}`;
-                          const updatedRules = (activeVariant.rules || []).filter(r => !r.date.startsWith(monthPrefix));
-                          
-                          const updated = variants.map(item => 
-                            item.id === activeVariant.id ? { ...item, rules: updatedRules } : item
-                          );
-                          setVariants(updated);
-                        }
+                        const monthLabel = `${MONTHS_OF_YEAR[currentCalendarMonth]} ${currentCalendarYear}`;
+                        const monthPrefix = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, "0")}`;
+                        const targetVariantId = activeVariant.id;
+                        setConfirmDialog({
+                          title: `Clear ${monthLabel} Rules?`,
+                          message: `Are you sure you want to clear all slots and rules for ${monthLabel}?`,
+                          confirmLabel: "Clear Month Rules",
+                          variant: "warning",
+                          onConfirm: () => {
+                            setVariants(prev => prev.map(item =>
+                              item.id === targetVariantId
+                                ? { ...item, rules: (item.rules || []).filter(r => !r.date.startsWith(monthPrefix)) }
+                                : item
+                            ));
+                            setConfirmDialog(null);
+                            triggerInventoryToast(`Cleared rules for ${monthLabel}.`, "info");
+                          }
+                        });
                       }}
                       className="w-full text-left px-3 py-2 text-xs font-bold rounded border bg-rose-50/25 hover:bg-rose-50 dark:bg-rose-950/5 dark:hover:bg-rose-950/20 border-rose-200/40 text-rose-500 disabled:opacity-45 disabled:cursor-not-allowed transition-all cursor-pointer"
                     >
@@ -3785,12 +4081,20 @@ export default function Inventory() {
                       type="button"
                       disabled={!(activeVariant.rules && activeVariant.rules.length > 0)}
                       onClick={() => {
-                        if (window.confirm("Are you sure you want to completely erase ALL scheduling and pricing rules for this variant? This is irreversible.")) {
-                          const updated = variants.map(item => 
-                            item.id === activeVariant.id ? { ...item, rules: [] } : item
-                          );
-                          setVariants(updated);
-                        }
+                        const targetVariantId = activeVariant.id;
+                        setConfirmDialog({
+                          title: "Clear All Variant Rules?",
+                          message: "Are you sure you want to completely erase ALL scheduling and pricing rules for this variant? This cannot be undone.",
+                          confirmLabel: "Clear All Rules",
+                          variant: "danger",
+                          onConfirm: () => {
+                            setVariants(prev => prev.map(item =>
+                              item.id === targetVariantId ? { ...item, rules: [] } : item
+                            ));
+                            setConfirmDialog(null);
+                            triggerInventoryToast("All variant rules cleared.", "info");
+                          }
+                        });
                       }}
                       className="w-full text-left px-3 py-2 text-xs font-black rounded border bg-red-500/10 hover:bg-red-500/15 border-red-500/20 text-red-600 dark:text-red-400 disabled:opacity-45 disabled:cursor-not-allowed transition-all cursor-pointer"
                     >
@@ -3967,10 +4271,17 @@ export default function Inventory() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (window.confirm(`Are you sure you want to delete timeslot "${slot}" from the list?`)) {
-                                  setAvailableBulkTimeSlots(availableBulkTimeSlots.filter((s) => s !== slot));
-                                  setBulkTimeSlots(bulkTimeSlots.filter((s) => s !== slot));
-                                }
+                                setConfirmDialog({
+                                  title: `Remove Timeslot "${slot}"?`,
+                                  message: `Remove "${slot}" from the bulk generator preset slots list?`,
+                                  confirmLabel: "Remove Slot",
+                                  variant: "warning",
+                                  onConfirm: () => {
+                                    setAvailableBulkTimeSlots(prev => prev.filter((s) => s !== slot));
+                                    setBulkTimeSlots(prev => prev.filter((s) => s !== slot));
+                                    setConfirmDialog(null);
+                                  }
+                                });
                               }}
                               className="p-1.5 pr-2.5 hover:text-red-500 dark:hover:text-red-400 text-slate-300 dark:text-slate-600 transition-colors cursor-pointer"
                               title="Delete timeslot"
@@ -3982,7 +4293,7 @@ export default function Inventory() {
                       })}
                     </div>
 
-                    <div className="mt-2.5 flex items-center gap-2 max-w-sm">
+                    <div className="mt-2.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 max-w-sm">
                       <input
                         type="text"
                         placeholder="Add custom slot e.g. 10:30 AM"
@@ -4003,7 +4314,7 @@ export default function Inventory() {
                             }
                           }
                         }}
-                        className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-[#5fa6d9]"
+                        className="flex-1 min-h-[38px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-[#5fa6d9]"
                       />
                       <button
                         type="button"
@@ -4019,18 +4330,18 @@ export default function Inventory() {
                             setCustomBulkTimeSlot("");
                           }
                         }}
-                        className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3.5 py-1.5 rounded text-xs font-bold transition-colors"
+                        className="min-h-[38px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3.5 py-1.5 rounded text-xs font-bold transition-colors cursor-pointer"
                       >
                         Add Slot
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-slate-200/60 dark:border-slate-800/60 pt-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-200/60 dark:border-slate-800/60 pt-3">
                     <div className="text-[10px] text-slate-400 font-semibold">
                       Selected: <span className="font-bold text-[#5fa6d9]">{bulkDays.length} operating days</span> & <span className="font-bold text-[#5fa6d9]">{bulkTimeSlots.length} timeslots</span>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => {
@@ -4044,7 +4355,7 @@ export default function Inventory() {
                           setBulkInventoryType("custom");
                           setBulkInventory(50);
                         }}
-                        className="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-200/40 rounded transition-colors"
+                        className="min-h-[38px] px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-200/40 rounded transition-colors cursor-pointer"
                       >
                         Reset
                       </button>
@@ -4052,24 +4363,24 @@ export default function Inventory() {
                         type="button"
                         onClick={() => {
                           if (bulkTimeSlots.length === 0) {
-                            alert("Please select at least one timeslot to generate.");
+                            triggerInventoryToast("Please select at least one timeslot to generate.", "error");
                             return;
                           }
                           if (bulkDays.length === 0) {
-                            alert("Please select at least one operating day.");
+                            triggerInventoryToast("Please select at least one operating day.", "error");
                             return;
                           }
                           const start = new Date(bulkStartDate);
                           const end = new Date(bulkEndDate);
                           if (start > end) {
-                            alert("Start date must be before or equal to End date.");
+                            triggerInventoryToast("Start date must be before or equal to End date.", "error");
                             return;
                           }
 
                           const diffTime = Math.abs(end.getTime() - start.getTime());
                           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                           if (diffDays > 90) {
-                            alert("For performance, please limit bulk slot generation to a maximum of 90 days at a time.");
+                            triggerInventoryToast("Please limit bulk slot generation to a maximum of 90 days at a time.", "error");
                             return;
                           }
 
@@ -4112,9 +4423,9 @@ export default function Inventory() {
                           const updated = variants.map(item => item.id === activeVariant.id ? { ...item, rules: uniqueRules } : item);
                           setVariants(updated);
                           setIsBulkGenOpen(false);
-                          alert(`Bulk range timeslots generated successfully for ${rulesToAdd.length} slot combinations!`);
+                          triggerInventoryToast(`Generated ${rulesToAdd.length} slot combinations successfully!`, "success");
                         }}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-1.5 rounded text-xs font-bold transition-all shadow-md flex items-center gap-1 cursor-pointer"
+                        className="min-h-[38px] bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-1.5 rounded text-xs font-bold transition-all shadow-md flex items-center gap-1 cursor-pointer"
                       >
                         <Sparkles className="w-3.5 h-3.5" /> Generate Slots
                       </button>
@@ -4149,14 +4460,14 @@ export default function Inventory() {
     };
 
   return (
-    <div className="space-y-8 w-full mx-auto pb-12">
+    <div className="space-y-6 sm:space-y-8 w-full mx-auto pb-24 md:pb-12">
       {!isModalOpen ? (
         <>
           {/* Top Header Panel */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-slate-900 via-[#102738] to-slate-900 p-6 rounded-lg text-white shadow-xl relative overflow-hidden">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-slate-900 via-[#102738] to-slate-900 p-4 sm:p-6 rounded-lg text-white shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#5fa6d9]/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
         <div className="z-10">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             <span className="bg-[#5fa6d9] text-white text-[10px] font-black tracking-widest px-2.5 py-1 rounded-md uppercase">
               Operational Catalogue
             </span>
@@ -4166,14 +4477,14 @@ export default function Inventory() {
             </span>
             <span className="text-[10px] text-slate-300 font-bold">Auto-sync Active</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight mt-2">Inventory Control Center</h1>
-          <p className="text-slate-300 text-sm mt-1 max-w-2xl">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight mt-2">Inventory Control Center</h1>
+          <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl">
             Add, update, or remove activity details, custom pricing, discount vouchers, and daily capacities. All modifications synchronize instantly across user search fields.
           </p>
         </div>
         <button
           onClick={handleAddClick}
-          className="z-10 flex items-center gap-2 bg-[#5fa6d9] text-white px-6 py-3 rounded-lg font-black hover:bg-[#4b95cc] active:scale-95 transition-all shadow-lg hover:shadow-[#5fa6d9]/20 text-sm cursor-pointer"
+          className="z-10 w-full sm:w-auto min-h-[42px] flex items-center justify-center gap-2 bg-[#5fa6d9] text-white px-6 py-3 rounded-lg font-black hover:bg-[#4b95cc] active:scale-95 transition-all shadow-lg hover:shadow-[#5fa6d9]/20 text-sm cursor-pointer shrink-0"
         >
           <Plus className="w-5 h-5" />
           Add Activity
@@ -4315,14 +4626,14 @@ export default function Inventory() {
       ) : (
         <div className="animate-in slide-in-from-bottom-4 duration-300">
           {/* Top Sticky Toolbar - Aligned to scroll container top */}
-          <div className="-mt-5 -mx-4 lg:-mx-8 px-4 lg:px-8 py-3.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky -top-5 lg:-top-5 z-30 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+          <div className="-mt-3 sm:-mt-5 -mx-3 sm:-mx-4 lg:-mx-8 px-3 sm:px-4 lg:px-8 py-3 sm:py-3.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 md:-top-5 z-30 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5 sm:mb-6">
             {/* Left Column: Breadcrumbs, Title, Product ID & Status */}
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center flex-wrap gap-2 text-xs">
                 <button
                   type="button"
                   onClick={() => navigate("/inventory")}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-md transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-md transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Inventory</span>
@@ -4331,7 +4642,7 @@ export default function Inventory() {
                 <span className="font-semibold text-slate-500 dark:text-slate-400">
                   {editingAttraction ? "Edit Product" : "New Product"}
                 </span>
-                <span className="text-slate-300 dark:text-slate-700">/</span>
+                <span className="text-slate-300 dark:text-slate-700 hidden xs:inline">/</span>
                 
                 {/* 1-Click Copy Product ID Badge */}
                 <button
@@ -4347,14 +4658,14 @@ export default function Inventory() {
                   className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
                   title="Click to copy Product ID"
                 >
-                  <span>Product ID: {editingAttraction ? (editingAttraction.productId || getDisplayProductId(editingAttraction)) : assignedProductId}</span>
+                  <span>ID: {editingAttraction ? (editingAttraction.productId || getDisplayProductId(editingAttraction)) : assignedProductId}</span>
                   {isCopiedId ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-slate-400" />}
                   {isCopiedId && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-sans font-bold">Copied!</span>}
                 </button>
               </div>
 
-              <div className="flex items-center flex-wrap gap-3">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight truncate max-w-2xl">
+              <div className="flex items-center flex-wrap gap-2.5 sm:gap-3">
+                <h1 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight truncate max-w-2xl">
                   {name || (editingAttraction ? editingAttraction.name : "New Product")}
                 </h1>
 
@@ -4400,17 +4711,17 @@ export default function Inventory() {
             </div>
 
             {/* Right Column: Actions (Live Storefront Link, Duplicate, Discard, Save) */}
-            <div className="flex items-center flex-wrap gap-2.5 shrink-0">
+            <div className="flex items-center flex-wrap gap-2 shrink-0">
               {editingAttraction && (
                 <a
                   href={`/#/attraction/${encodeURIComponent(editingAttraction.customSlug || editingAttraction.id)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                  className="min-h-[38px] inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 rounded-lg transition-colors shadow-2xs cursor-pointer"
                   title="View this product on the public customer storefront"
                 >
                   <ExternalLink className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                  <span>View Live Product</span>
+                  <span>View Live</span>
                 </a>
               )}
 
@@ -4418,7 +4729,7 @@ export default function Inventory() {
                 <button
                   type="button"
                   onClick={handleDuplicateProduct}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                  className="min-h-[38px] inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 rounded-lg transition-colors shadow-2xs cursor-pointer"
                   title="Clone this attraction as a new draft"
                 >
                   <Copy className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
@@ -4429,12 +4740,19 @@ export default function Inventory() {
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm("Discard unsaved changes and return to Inventory?")) {
-                    loadedIdRef.current = null;
-                    navigate("/inventory");
-                  }
+                  setConfirmDialog({
+                    title: "Discard Unsaved Changes?",
+                    message: "Any unsaved edits to this activity will be lost. Return to the Inventory list?",
+                    confirmLabel: "Discard & Exit",
+                    variant: "warning",
+                    onConfirm: () => {
+                      loadedIdRef.current = null;
+                      setConfirmDialog(null);
+                      navigate("/inventory");
+                    }
+                  });
                 }}
-                className="px-3.5 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                className="min-h-[38px] px-3 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
               >
                 Discard
               </button>
@@ -4442,7 +4760,7 @@ export default function Inventory() {
               <button
                 type="submit"
                 form="attraction-form"
-                className="flex items-center gap-1.5 bg-[#e3000f] hover:bg-[#c9000d] text-white px-5 py-2 rounded-lg font-bold transition-all shadow-sm hover:shadow-[#e3000f]/20 active:scale-98 text-xs cursor-pointer"
+                className="min-h-[38px] flex items-center gap-1.5 bg-[#e3000f] hover:bg-[#c9000d] text-white px-4 sm:px-5 py-2 rounded-lg font-bold transition-all shadow-sm hover:shadow-[#e3000f]/20 active:scale-98 text-xs cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>Save Changes</span>
@@ -4458,7 +4776,7 @@ export default function Inventory() {
               {/* Form Input Section */}
               <form id="attraction-form" onSubmit={handleSave} className="w-full flex flex-col sm:flex-row border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
                 {/* Vertical Tabs Sidebar */}
-                <div className="flex flex-row sm:flex-col sm:w-60 bg-slate-50 dark:bg-slate-950/40 border-b sm:border-b-0 sm:border-r border-slate-200 dark:border-slate-800/80 p-4 gap-1.5 text-sm font-bold text-slate-400 shrink-0 overflow-x-auto sm:overflow-x-visible">
+                <div className="flex flex-row sm:flex-col sm:w-56 md:w-60 bg-slate-50 dark:bg-slate-950/40 border-b sm:border-b-0 sm:border-r border-slate-200 dark:border-slate-800/80 p-3 sm:p-4 gap-1.5 text-sm font-bold text-slate-400 shrink-0 overflow-x-auto no-scrollbar sm:overflow-x-visible">
                   {[
                     { key: "Primary", label: "Primary Details", icon: <Home className="w-4 h-4" /> },
                     { key: "Variants", label: "Ticket Variants", count: variants.length, icon: <Layers className="w-4 h-4" /> },
@@ -4471,7 +4789,7 @@ export default function Inventory() {
                         key={tab.key}
                         type="button"
                         onClick={() => setActiveTab(tab.key)}
-                        className={`py-2.5 px-3.5 rounded-xl text-left transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center justify-between gap-2.5 ${
+                        className={`min-h-[40px] py-2 px-3.5 rounded-xl text-left transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center justify-between gap-2.5 ${
                           isActive
                             ? "bg-[#e3000f]/10 text-[#e3000f] font-black border border-[#e3000f]/20 dark:bg-[#e3000f]/20"
                             : "hover:bg-slate-100/80 dark:hover:bg-slate-900/60 hover:text-slate-700 dark:hover:text-slate-200"
@@ -4482,7 +4800,7 @@ export default function Inventory() {
                           <span>{tab.label}</span>
                         </div>
                         {tab.count !== undefined && (
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold tabular-nums ${
                             isActive
                               ? "bg-[#e3000f] text-white"
                               : "bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
@@ -4495,7 +4813,7 @@ export default function Inventory() {
                   })}
                 </div>
                 
-                <div className="flex-1 p-6 lg:p-10 space-y-8">
+                <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-8">
                   {/* TAB 1: Primary */}
                   {activeTab === "Primary" && (
                     <div className="space-y-6 animate-in fade-in duration-300">
@@ -4686,7 +5004,7 @@ export default function Inventory() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold">
                               <button
                                 type="button"
@@ -4740,7 +5058,7 @@ export default function Inventory() {
                                           key={idx} 
                                           className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 group hover:border-[#5fa6d9]/50 transition-colors"
                                         >
-                                          <span className="w-6 text-center font-bold text-xs text-[#e3000f] shrink-0">
+                                          <span className="w-5 text-center font-bold text-xs text-[#e3000f] shrink-0">
                                             •
                                           </span>
                                           <input
@@ -4752,9 +5070,9 @@ export default function Inventory() {
                                               setHighlightsInput(updated.join('\n'));
                                             }}
                                             placeholder="Enter highlight bullet text..."
-                                            className="flex-1 bg-transparent border-0 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-0 px-1"
+                                            className="flex-1 min-w-0 bg-transparent border-0 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-0 px-1"
                                           />
-                                          <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                                          <div className="flex items-center gap-1 shrink-0">
                                             <button
                                               type="button"
                                               disabled={idx === 0}
@@ -4766,7 +5084,7 @@ export default function Inventory() {
                                                 updated[idx] = temp;
                                                 setHighlightsInput(updated.join('\n'));
                                               }}
-                                              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
+                                              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
                                               title="Move up"
                                             >
                                               <ChevronUp className="w-3.5 h-3.5" />
@@ -4782,7 +5100,7 @@ export default function Inventory() {
                                                 updated[idx] = temp;
                                                 setHighlightsInput(updated.join('\n'));
                                               }}
-                                              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
+                                              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
                                               title="Move down"
                                             >
                                               <ChevronDown className="w-3.5 h-3.5" />
@@ -4793,7 +5111,7 @@ export default function Inventory() {
                                                 const updated = items.filter((_, i) => i !== idx);
                                                 setHighlightsInput(updated.join('\n'));
                                               }}
-                                              className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded cursor-pointer"
+                                              className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded cursor-pointer"
                                               title="Delete highlight"
                                             >
                                               <Trash2 className="w-3.5 h-3.5" />
@@ -4805,7 +5123,7 @@ export default function Inventory() {
                                   )}
 
                                   {/* Add new highlight item */}
-                                  <div className="flex items-center gap-2 pt-1">
+                                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
                                     <input
                                       type="text"
                                       value={newHighlightText}
@@ -4821,7 +5139,7 @@ export default function Inventory() {
                                         }
                                       }}
                                       placeholder="Add a new highlight bullet point (e.g. Skip-the-line entrance ticket included)..."
-                                      className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#5fa6d9]"
+                                      className="flex-1 min-h-[38px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#5fa6d9]"
                                     />
                                     <button
                                       type="button"
@@ -4832,7 +5150,7 @@ export default function Inventory() {
                                           setNewHighlightText("");
                                         }
                                       }}
-                                      className="flex items-center gap-1.5 px-3 py-2 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0"
+                                      className="min-h-[38px] flex items-center justify-center gap-1.5 px-3 py-2 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0"
                                     >
                                       <Plus className="w-3.5 h-3.5" />
                                       <span>Add Highlight</span>
@@ -5226,7 +5544,7 @@ export default function Inventory() {
                                         className="fixed inset-0 z-10" 
                                         onClick={() => setIsDurationDropdownOpen(false)}
                                       />
-                                      <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl z-20 p-4 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                                      <div className="absolute right-0 sm:left-0 mt-1.5 w-[min(16rem,calc(100vw-3rem))] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl z-20 p-4 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
                                         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                                             <Clock className="w-3.5 h-3.5 text-[#5fa6d9]" />
@@ -5632,10 +5950,10 @@ export default function Inventory() {
 
                         {/* Interactive Google SERP Card Preview */}
                         <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200/70 dark:border-slate-800/80 space-y-1.5">
-                          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                            <div className="w-4 h-4 rounded-full bg-[#e3000f] text-white flex items-center justify-center text-[9px] font-black">T</div>
+                          <div className="flex items-center flex-wrap gap-1.5 text-xs text-slate-600 dark:text-slate-400">
+                            <div className="w-4 h-4 rounded-full bg-[#e3000f] text-white flex items-center justify-center text-[9px] font-black shrink-0">T</div>
                             <span className="font-medium text-slate-700 dark:text-slate-300">Tiqsey</span>
-                            <span className="text-slate-400">https://tiqsey.com › attraction › {customSlug || (editingAttraction ? editingAttraction.id : "ticket")}</span>
+                            <span className="text-slate-400 break-all">https://tiqsey.com › attraction › {customSlug || (editingAttraction ? editingAttraction.id : "ticket")}</span>
                           </div>
                           <h4 className="text-sm font-semibold text-[#1a0dab] dark:text-[#8ab4f8] hover:underline cursor-pointer">
                             {(seoTitle || name || "Activity Name")} | Official Tickets & Tours | Tiqsey
@@ -5720,7 +6038,7 @@ export default function Inventory() {
                       renderVariantEditor()
                     ) : (
                       <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800/60">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                         <div>
                           <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Ticket Variants & Options</h3>
                           <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Configure custom age policies, included perks, and specific date/timeslot pricing rules.</p>
@@ -5739,7 +6057,7 @@ export default function Inventory() {
                             };
                             setVariants([...variants, newVariant]);
                           }}
-                          className="flex items-center gap-1.5 bg-[#5fa6d9] hover:bg-[#4b95c8] text-white text-xs font-black px-3 py-1.5 rounded-md transition-all shadow-sm cursor-pointer"
+                          className="w-full sm:w-auto min-h-[38px] flex items-center justify-center gap-1.5 bg-[#5fa6d9] hover:bg-[#4b95c8] text-white text-xs font-black px-3 py-1.5 rounded-md transition-all shadow-sm cursor-pointer shrink-0"
                         >
                           <Plus className="w-3.5 h-3.5" /> Add Variant
                         </button>
@@ -5847,8 +6165,8 @@ export default function Inventory() {
                           {variants.map((v) => {
                               return (
                                 <div key={v.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm transition-shadow hover:shadow-md">
-                                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800/60">
-                                      <div className="flex items-center gap-3.5 flex-wrap">
+                                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800/60">
+                                      <div className="flex items-center gap-2.5 flex-wrap min-w-0">
                                          <h4 className="font-bold text-[15px] text-slate-800 dark:text-white">{v.name}</h4>
                                          {v.bookingMode === 'affiliate' ? (
                                            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/80 px-2.5 py-0.5 rounded-full" title={`Partner URL: ${v.affiliateConfig?.affiliateUrl || v.affiliateUrl || "Not set"}`}>
@@ -5876,31 +6194,40 @@ export default function Inventory() {
                                            </span>
                                          )}
                                       </div>
-                                      <div className="flex items-center gap-1.5">
-                                        <button type="button" onClick={() => setEditingVariantId(v.id)} className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer" title="Edit Variant">
-                                          <Edit className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Edit</span>
+                                      <div className="flex items-center flex-wrap gap-1.5 shrink-0">
+                                        <button type="button" onClick={() => setEditingVariantId(v.id)} className="min-h-[36px] flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer" title="Edit Variant">
+                                          <Edit className="w-3.5 h-3.5" /> <span>Edit</span>
                                         </button>
                                         <button type="button" onClick={() => {
                                           const cloned = {...v, id: `var-${Date.now()}`, name: v.name + " (Copy)"};
                                           setVariants([...variants, cloned]);
-                                        }} className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer" title="Clone Variant">
+                                        }} className="min-h-[36px] flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer" title="Clone Variant">
                                           <Copy className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Clone</span>
                                         </button>
                                         <button type="button" onClick={() => {
                                           const updated = variants.map(item => item.id === v.id ? { ...item, isActive: v.isActive === false ? true : false } : item);
                                           setVariants(updated);
-                                        }} className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer" title={v.isActive === false ? "Make Active" : "Make Inactive"}>
+                                        }} className="min-h-[36px] flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer" title={v.isActive === false ? "Make Active" : "Make Inactive"}>
                                           {v.isActive === false ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />} <span className="hidden sm:inline">{v.isActive === false ? "Active" : "Inactive"}</span>
                                         </button>
                                         <button type="button" onClick={() => {
-                                          if (window.confirm(`Are you sure you want to delete this variant?`)) {
-                                            setVariants(variants.filter(item => item.id !== v.id));
-                                          }
-                                        }} className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors cursor-pointer" title="Delete Variant">
+                                          setConfirmDialog({
+                                            title: "Delete Variant?",
+                                            message: `Are you sure you want to delete ticket variant "${v.name}"?`,
+                                            confirmLabel: "Delete Variant",
+                                            variant: "danger",
+                                            onConfirm: () => {
+                                              setVariants(prev => prev.filter(item => item.id !== v.id));
+                                              setConfirmDialog(null);
+                                              triggerInventoryToast("Variant removed.", "info");
+                                            }
+                                          });
+                                        }} className="min-h-[36px] flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors cursor-pointer" title="Delete Variant">
                                           <Trash2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Delete</span>
-                                        </button>                                      </div>
+                                        </button>
+                                      </div>
                                    </div>
-                                   <div className="px-5 py-3.5 flex flex-wrap items-center gap-x-8 gap-y-3 text-[13px]">
+                                   <div className="px-4 sm:px-5 py-3.5 flex flex-wrap items-center gap-x-6 sm:gap-x-8 gap-y-2.5 text-[13px]">
                                      <div className="flex items-center gap-1.5"><span className="text-slate-400/90 font-medium">Price:</span> <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedCurrencyObj.symbol}{(v.basePrice || (v.rules && v.rules.length > 0 ? v.rules[0].price : 0)).toFixed(2)}</span></div>
                                      <div className="flex items-center gap-1.5"><span className="text-slate-400/90 font-medium">Duration:</span> <span className="font-semibold text-slate-700 dark:text-slate-300">{v.duration || "2 Hours"}</span></div>
                                      <div className="flex items-center gap-1.5"><span className="text-slate-400/90 font-medium">Language:</span> <span className="font-semibold text-slate-700 dark:text-slate-300">{v.language || "English"}</span></div>
@@ -5934,8 +6261,8 @@ export default function Inventory() {
                     <div className="space-y-6 animate-in fade-in duration-300">
                       
                       {/* PRODUCT GALLERY CARD */}
-                      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xs">
-                        <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-6">
+                      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-8 shadow-xs">
+                        <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-5 sm:mb-6">
                           Product Gallery
                         </h3>
                         
@@ -5947,7 +6274,7 @@ export default function Inventory() {
                           }}
                           onDragLeave={() => setIsGalleryDragging(false)}
                           onDrop={handleGalleryDrop}
-                          className={`rounded-2xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-200 ${
+                          className={`rounded-2xl p-6 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-200 ${
                             isGalleryDragging
                               ? "bg-sky-50 dark:bg-sky-950/30 border-2 border-dashed border-sky-400"
                               : "bg-slate-50/50 dark:bg-slate-950/20 hover:bg-slate-50 dark:hover:bg-slate-950/40"
@@ -5970,8 +6297,8 @@ export default function Inventory() {
                             Upload JPG, PNG, WEBP · Maximum 10 MB per image
                           </p>
 
-                          <div className="flex flex-col items-center gap-2">
-                            <label className="inline-flex items-center justify-center px-6 py-2 rounded-full text-xs font-semibold bg-[#e0f2fe] text-[#0284c7] hover:bg-[#bae6fd] dark:bg-sky-950/50 dark:text-sky-400 dark:hover:bg-sky-900/60 cursor-pointer transition-colors shadow-2xs">
+                          <div className="flex flex-col items-center gap-2 w-full">
+                            <label className="min-h-[40px] inline-flex items-center justify-center px-6 py-2 rounded-full text-xs font-semibold bg-[#e0f2fe] text-[#0284c7] hover:bg-[#bae6fd] dark:bg-sky-950/50 dark:text-sky-400 dark:hover:bg-sky-900/60 cursor-pointer transition-colors shadow-2xs">
                               <span>Upload Media</span>
                               <input
                                 type="file"
@@ -5991,7 +6318,7 @@ export default function Inventory() {
                             </button>
 
                             {showGalleryUrlInput && (
-                              <div className="flex items-center gap-2 mt-2 w-full max-w-md">
+                              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-2 w-full max-w-md">
                                 <input
                                   type="text"
                                   value={newUrlInput}
@@ -6003,12 +6330,12 @@ export default function Inventory() {
                                       handleAddUrlToGallery();
                                     }
                                   }}
-                                  className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-sky-500"
+                                  className="flex-1 min-h-[38px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-sky-500"
                                 />
                                 <button
                                   type="button"
                                   onClick={handleAddUrlToGallery}
-                                  className="px-3 py-1.5 bg-[#0284c7] hover:bg-[#0369a1] text-white rounded-lg text-xs font-semibold transition-colors"
+                                  className="min-h-[38px] px-4 py-1.5 bg-[#0284c7] hover:bg-[#0369a1] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                                 >
                                   Add
                                 </button>
@@ -6018,7 +6345,7 @@ export default function Inventory() {
                         </div>
 
                         {/* Product Images Header */}
-                        <div className="flex items-center justify-between mt-8 mb-5">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mt-8 mb-5">
                           <h3 className="text-base font-semibold text-slate-900 dark:text-white">
                             Product Images ({galleryUrls.length})
                           </h3>
@@ -6028,7 +6355,7 @@ export default function Inventory() {
                         </div>
 
                         {galleryUrls.length === 0 ? (
-                          <div className="border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-10 text-center bg-slate-50/20 dark:bg-slate-950/5">
+                          <div className="border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 sm:p-10 text-center bg-slate-50/20 dark:bg-slate-950/5">
                             <Image className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
                             <p className="text-xs text-slate-500 font-medium">No media uploaded yet for this product.</p>
                             <p className="text-[11px] text-slate-400 mt-1">Upload photos using the area above.</p>
@@ -6057,12 +6384,12 @@ export default function Inventory() {
                                       referrerPolicy="no-referrer"
                                     />
                                     
-                                    {/* Action overlay on hover */}
-                                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {/* Action overlay: always visible on touch/mobile, hover-revealed on desktop */}
+                                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                       <button
                                         type="button"
                                         onClick={() => deleteGalleryItem(index)}
-                                        className="p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-full backdrop-blur-xs transition-colors cursor-pointer"
+                                        className="p-2 bg-black/65 hover:bg-red-600 text-white rounded-full backdrop-blur-xs transition-colors cursor-pointer"
                                         title="Delete image"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
@@ -6274,21 +6601,21 @@ export default function Inventory() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end items-center px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 gap-3">
+            <div className="flex flex-wrap justify-end items-center px-4 sm:px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 gap-3">
               <button
                 type="button"
                 onClick={() => {
                   loadedIdRef.current = null;
                   navigate("/inventory");
                 }}
-                className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="min-h-[40px] px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 form="attraction-form"
-                className="flex items-center gap-1.5 bg-[#e3000f] hover:bg-[#c9000d] text-white px-5 py-2.5 rounded-lg font-bold transition-all shadow-sm hover:shadow-[#e3000f]/20 active:scale-98 text-xs cursor-pointer"
+                className="min-h-[40px] flex items-center gap-1.5 bg-[#e3000f] hover:bg-[#c9000d] text-white px-5 py-2.5 rounded-lg font-bold transition-all shadow-sm hover:shadow-[#e3000f]/20 active:scale-98 text-xs cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5" />
                 Save Changes
@@ -6301,16 +6628,16 @@ export default function Inventory() {
 
       {/* Quick Highlights Modal (Direct Edit from Table) */}
       {quickHighlightsAttr && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90dvh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+            <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="w-1.5 h-6 bg-[#e3000f] rounded-sm shrink-0" />
-                <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <div className="min-w-0">
+                  <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center flex-wrap gap-2">
                     Edit Highlights
-                    <span className="text-xs bg-red-50 dark:bg-red-950/60 text-[#e3000f] px-2 py-0.5 rounded font-mono font-bold truncate max-w-[280px]">
+                    <span className="text-xs bg-red-50 dark:bg-red-950/60 text-[#e3000f] px-2 py-0.5 rounded font-mono font-bold truncate max-w-[170px] sm:max-w-[280px]">
                       {quickHighlightsAttr.name}
                     </span>
                   </h3>
@@ -6322,15 +6649,15 @@ export default function Inventory() {
               <button
                 type="button"
                 onClick={() => setQuickHighlightsAttr(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 overflow-y-auto space-y-4 flex-1">
-              <div className="flex items-center justify-between">
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   Highlight Bullet Points ({quickHighlightsList.length})
                 </span>
@@ -6361,9 +6688,9 @@ export default function Inventory() {
                         updated[idx] = e.target.value;
                         setQuickHighlightsList(updated);
                       }}
-                      className="flex-1 bg-transparent border-0 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-0 px-1"
+                      className="flex-1 min-w-0 bg-transparent border-0 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-0 px-1"
                     />
-                    <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
                         disabled={idx === 0}
@@ -6375,7 +6702,7 @@ export default function Inventory() {
                           updated[idx] = temp;
                           setQuickHighlightsList(updated);
                         }}
-                        className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
+                        className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
                         title="Move up"
                       >
                         <ChevronUp className="w-3.5 h-3.5" />
@@ -6391,7 +6718,7 @@ export default function Inventory() {
                           updated[idx] = temp;
                           setQuickHighlightsList(updated);
                         }}
-                        className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
+                        className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
                         title="Move down"
                       >
                         <ChevronDown className="w-3.5 h-3.5" />
@@ -6401,7 +6728,7 @@ export default function Inventory() {
                         onClick={() => {
                           setQuickHighlightsList(quickHighlightsList.filter((_, i) => i !== idx));
                         }}
-                        className="p-1 text-rose-500 hover:text-rose-700 rounded cursor-pointer"
+                        className="p-1.5 text-rose-500 hover:text-rose-700 rounded cursor-pointer"
                         title="Delete highlight"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -6417,7 +6744,7 @@ export default function Inventory() {
               </div>
 
               {/* Add Bullet */}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
                 <input
                   type="text"
                   value={quickHighlightNewText}
@@ -6432,7 +6759,7 @@ export default function Inventory() {
                     }
                   }}
                   placeholder="Type a new highlight bullet point and press Enter..."
-                  className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#5fa6d9]"
+                  className="flex-1 min-h-[38px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#5fa6d9]"
                 />
                 <button
                   type="button"
@@ -6442,7 +6769,7 @@ export default function Inventory() {
                       setQuickHighlightNewText("");
                     }
                   }}
-                  className="flex items-center gap-1 px-3 py-2 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0"
+                  className="min-h-[38px] flex items-center justify-center gap-1 px-3 py-2 bg-[#5fa6d9] hover:bg-[#4b95cc] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add</span>
@@ -6474,18 +6801,18 @@ export default function Inventory() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50">
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800/80 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 bg-slate-50/50 dark:bg-slate-900/50">
               <button
                 type="button"
                 onClick={() => setQuickHighlightsAttr(null)}
-                className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="min-h-[40px] px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveQuickHighlights}
-                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
+                className="min-h-[40px] flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>Save Highlights</span>
@@ -6497,15 +6824,15 @@ export default function Inventory() {
 
       {/* Save Confirmation Modal */}
       {showSaveConfirm && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
           <div 
-            className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col"
+            className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90dvh] overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col"
             role="dialog"
             aria-modal="true"
           >
             {/* Modal Header */}
-            <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800/80 flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3.5">
+            <div className="p-4 sm:p-6 pb-4 border-b border-slate-100 dark:border-slate-800/80 flex items-start justify-between gap-4 shrink-0">
+              <div className="flex items-center gap-3.5 min-w-0">
                 <div className="w-11 h-11 rounded-xl bg-[#e3000f]/10 dark:bg-[#e3000f]/20 text-[#e3000f] flex items-center justify-center shrink-0 border border-[#e3000f]/20 shadow-xs">
                   <Save className="w-5 h-5" />
                 </div>
@@ -6522,7 +6849,7 @@ export default function Inventory() {
                 type="button"
                 disabled={isSavingConfirm}
                 onClick={() => setShowSaveConfirm(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shrink-0"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -6530,7 +6857,7 @@ export default function Inventory() {
             </div>
 
             {/* Modal Body - Product Summary Card */}
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
               {/* Product Preview Card */}
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 flex items-center gap-3.5">
                 <img
@@ -6539,7 +6866,7 @@ export default function Inventory() {
                   className="w-14 h-14 rounded-lg object-cover border border-slate-200/80 dark:border-slate-800 shrink-0 bg-slate-100 dark:bg-slate-800"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center flex-wrap gap-2 mb-1">
                     <span className="font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800">
                       ID: {editingAttraction ? (editingAttraction.productId || getDisplayProductId(editingAttraction)) : assignedProductId}
                     </span>
@@ -6564,22 +6891,22 @@ export default function Inventory() {
               </div>
 
               {/* Quick Details Stats Grid */}
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="grid grid-cols-1 xs:grid-cols-3 sm:grid-cols-3 gap-2 text-center">
                 <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Base Price</p>
-                  <p className="text-sm font-mono font-black text-slate-900 dark:text-white mt-0.5">
+                  <p className="text-sm font-mono font-black text-slate-900 dark:text-white mt-0.5 tabular-nums">
                     {selectedCurrencyObj?.code || "EUR"} {price ? Number(price).toFixed(2) : "0.00"}
                   </p>
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Variants</p>
-                  <p className="text-sm font-mono font-black text-slate-900 dark:text-white mt-0.5">
+                  <p className="text-sm font-mono font-black text-slate-900 dark:text-white mt-0.5 tabular-nums">
                     {variants.length} {variants.length === 1 ? "Option" : "Options"}
                   </p>
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Media Gallery</p>
-                  <p className="text-sm font-mono font-black text-slate-900 dark:text-white mt-0.5">
+                  <p className="text-sm font-mono font-black text-slate-900 dark:text-white mt-0.5 tabular-nums">
                     {galleryUrls.length} {galleryUrls.length === 1 ? "Photo" : "Photos"}
                   </p>
                 </div>
@@ -6595,12 +6922,12 @@ export default function Inventory() {
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="p-4 bg-slate-50/80 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-end gap-2.5">
+            <div className="p-4 bg-slate-50/80 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800/80 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 shrink-0">
               <button
                 type="button"
                 disabled={isSavingConfirm}
                 onClick={() => setShowSaveConfirm(false)}
-                className="px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                className="min-h-[40px] px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
               >
                 No, Keep Editing
               </button>
@@ -6608,7 +6935,7 @@ export default function Inventory() {
                 type="button"
                 disabled={isSavingConfirm}
                 onClick={executeSave}
-                className="px-5 py-2 bg-[#e3000f] hover:bg-[#c9000d] text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow-[#e3000f]/20 active:scale-98 cursor-pointer flex items-center gap-2 disabled:opacity-75"
+                className="min-h-[40px] px-5 py-2 bg-[#e3000f] hover:bg-[#c9000d] text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow-[#e3000f]/20 active:scale-98 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-75"
               >
                 {isSavingConfirm ? (
                   <>
@@ -6626,6 +6953,98 @@ export default function Inventory() {
           </div>
         </div>
       )}
+
+      {/* Generic In-App Confirm Dialog */}
+      {confirmDialog && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90dvh] flex flex-col overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  confirmDialog.variant === "danger"
+                    ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400"
+                    : "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400"
+                }`}>
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  {confirmDialog.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmDialog(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed overflow-y-auto">
+              {confirmDialog.message}
+            </div>
+            <div className="p-4 bg-slate-50/80 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setConfirmDialog(null)}
+                className="min-h-[40px] px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDialog.onConfirm}
+                className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-bold text-white transition-colors cursor-pointer ${
+                  confirmDialog.variant === "danger"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-amber-600 hover:bg-amber-700"
+                }`}
+              >
+                {confirmDialog.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-App Floating Toast Notification */}
+      <AnimatePresence>
+        {inventoryToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className={`fixed bottom-20 md:bottom-6 right-4 left-4 sm:left-auto z-50 max-w-md px-4 py-3 rounded-xl shadow-xl border flex items-start gap-2.5 text-xs font-bold ${
+              inventoryToast.type === "error"
+                ? "bg-red-600 text-white border-red-500"
+                : inventoryToast.type === "success"
+                ? "bg-emerald-600 text-white border-emerald-500"
+                : "bg-slate-900 dark:bg-slate-800 text-white border-slate-700"
+            }`}
+          >
+            {inventoryToast.type === "error" ? (
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            ) : inventoryToast.type === "success" ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+            ) : (
+              <Info className="w-4 h-4 shrink-0 mt-0.5" />
+            )}
+            <span className="flex-1 leading-relaxed">{inventoryToast.message}</span>
+            <button
+              type="button"
+              onClick={() => setInventoryToast(null)}
+              className="p-0.5 opacity-80 hover:opacity-100 cursor-pointer shrink-0"
+              aria-label="Dismiss notification"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

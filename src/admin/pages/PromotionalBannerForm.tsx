@@ -142,6 +142,7 @@ export default function PromotionalBannerForm() {
 
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -415,7 +416,13 @@ export default function PromotionalBannerForm() {
   };
 
   const handleDelete = () => {
-    if (isEditing && id && window.confirm('Are you sure you want to permanently delete this banner?')) {
+    if (isEditing && id) {
+      setShowDeleteModal(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (isEditing && id) {
       deleteBanner(id);
       navigate('/promotional-banners');
     }
@@ -453,10 +460,10 @@ export default function PromotionalBannerForm() {
   };
 
   return (
-    <div className="space-y-6 pb-20 max-w-7xl mx-auto">
+    <div className="space-y-6 pb-24 lg:pb-20 max-w-7xl mx-auto overflow-x-clip">
       {/* Toast Notification */}
       {notification && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl text-white shadow-2xl text-sm font-medium animate-in fade-in slide-in-from-bottom-4 duration-200 ${
+        <div className={`fixed bottom-20 md:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex items-center gap-2 px-4 py-3 rounded-xl text-white shadow-2xl text-sm font-medium animate-in fade-in slide-in-from-bottom-4 duration-200 ${
           notification.type === 'error' ? 'bg-red-600' : 'bg-slate-900 dark:bg-white dark:text-slate-900'
         }`}>
           {notification.type === 'error' ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
@@ -466,21 +473,21 @@ export default function PromotionalBannerForm() {
 
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
-        <div className="flex items-center gap-3">
+        <div className="flex items-start sm:items-center gap-3">
           <button
             type="button"
             onClick={() => navigate('/promotional-banners')}
-            className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs"
+            className="p-2.5 min-w-[42px] min-h-[42px] flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs shrink-0"
             title="Back to Promotional Banners"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/40 hidden sm:flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
             <Megaphone className="w-5 h-5" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 {isEditing ? 'Edit Promotional Banner' : 'Create Promotional Banner'}
               </h1>
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
@@ -497,13 +504,13 @@ export default function PromotionalBannerForm() {
           </div>
         </div>
 
-        <div className="flex items-center flex-wrap gap-2.5">
+        <div className="flex items-center flex-wrap gap-2">
           {/* Live Storefront Preview */}
           <a
             href="/#/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3.5 min-h-[40px] rounded-xl text-xs font-bold text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-2xs"
             title="Open customer storefront in a new tab"
           >
             <ExternalLink className="w-3.5 h-3.5" />
@@ -514,7 +521,7 @@ export default function PromotionalBannerForm() {
           <button
             type="button"
             onClick={() => setIsActive(!isActive)}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+            className={`inline-flex items-center gap-1.5 px-3 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer border ${
               isActive
                 ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
@@ -529,7 +536,7 @@ export default function PromotionalBannerForm() {
             <button
               type="button"
               onClick={handleDelete}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border border-red-200 dark:border-red-900/40 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 min-h-[40px] rounded-xl text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border border-red-200 dark:border-red-900/40 transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Delete</span>
@@ -539,7 +546,7 @@ export default function PromotionalBannerForm() {
           <button
             type="button"
             onClick={() => navigate('/promotional-banners')}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-2xs cursor-pointer"
+            className="px-4 min-h-[40px] rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-2xs cursor-pointer"
           >
             Cancel
           </button>
@@ -547,7 +554,7 @@ export default function PromotionalBannerForm() {
           <button
             type="button"
             onClick={() => handleSave()}
-            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer hover:shadow-md"
+            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 min-h-[40px] rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer hover:shadow-md"
           >
             <Save className="w-4 h-4" />
             <span>Save & Publish</span>
@@ -1328,11 +1335,11 @@ export default function PromotionalBannerForm() {
         </form>
 
         {/* Right Column: Sticky Live WYSIWYG Preview */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="sticky top-6 space-y-5">
+        <div className="lg:col-span-5 space-y-6 min-w-0">
+          <div className="lg:sticky lg:top-6 space-y-5">
             
             {/* Live Preview Card */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-5 shadow-2xs space-y-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-4 overflow-hidden">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
                   <Eye className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
@@ -1571,6 +1578,43 @@ export default function PromotionalBannerForm() {
         </div>
 
       </div>
+
+      {/* Delete Banner Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  Delete Promotional Banner?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Are you sure you want to permanently delete this banner? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 min-h-[42px] rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="px-4 min-h-[42px] rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors cursor-pointer"
+              >
+                Delete Permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

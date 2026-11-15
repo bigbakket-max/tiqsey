@@ -49,6 +49,7 @@ const MarqueeCard = ({ attraction, onClick }: { attraction: Attraction; onClick?
           alt={attraction.name}
           className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
           loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
           onError={handleImageError}
         />
@@ -56,7 +57,7 @@ const MarqueeCard = ({ attraction, onClick }: { attraction: Attraction; onClick?
         {/* Top Badges */}
         <div className="absolute top-2 inset-x-2 flex items-center justify-between pointer-events-none">
           {discountPercent > 0 ? (
-            <span className="bg-[#e3000f] text-white text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+            <span className="bg-[#e3000f] text-white text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1 tabular-nums">
               <Flame className="w-2.5 h-2.5 fill-white stroke-none" />
               -{discountPercent}%
             </span>
@@ -68,7 +69,7 @@ const MarqueeCard = ({ attraction, onClick }: { attraction: Attraction; onClick?
             <div />
           )}
 
-          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-2 py-0.5 rounded-full text-[11px] font-black text-slate-900 dark:text-slate-100 flex items-center gap-1 shadow-md border border-slate-100 dark:border-slate-800">
+          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-2 py-0.5 rounded-full text-[11px] font-black text-slate-900 dark:text-slate-100 flex items-center gap-1 shadow-md border border-slate-100 dark:border-slate-800 tabular-nums">
             <Star className="w-3 h-3 fill-amber-400 stroke-amber-400 shrink-0" />
             <span>{attraction.rating ? attraction.rating.toFixed(1) : "4.8"}</span>
           </div>
@@ -90,7 +91,7 @@ const MarqueeCard = ({ attraction, onClick }: { attraction: Attraction; onClick?
             <Ticket className="w-2.5 h-2.5" />
             <span>Instant</span>
           </div>
-          <div className="text-right">
+          <div className="text-right tabular-nums">
             <span className="text-[9px] block font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">From</span>
             <span className="text-xs sm:text-sm font-black text-brand dark:text-brand-light leading-none">
               {formatPrice(attraction.discountPrice || attraction.price, attraction.currency)}

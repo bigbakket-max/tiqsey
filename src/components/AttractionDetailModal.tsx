@@ -868,7 +868,7 @@ export default function AttractionDetailModal({
       });
 
       if (!resolvedUrl) {
-        alert("Affiliate booking URL is not configured yet for this activity. Please try again later.");
+        setCheckoutError("Affiliate booking URL is not configured yet for this activity. Please try again later.");
         return;
       }
 
@@ -1488,7 +1488,7 @@ export default function AttractionDetailModal({
   }
 
   return (
-    <div id="booking-detail-modal-root" className="bg-slate-50 dark:bg-slate-950 font-sans min-h-screen pb-16">
+    <div id="booking-detail-modal-root" className="bg-slate-50 dark:bg-slate-950 font-sans min-h-[100dvh] pb-28 lg:pb-16 overflow-x-clip">
       <Helmet>
         <title>{`${attraction.name} Tickets & Tours | Tiqsey`}</title>
         <meta name="description" content={attraction.description || `Book ${attraction.name} tickets online with best price guarantee and skip-the-line options.`} />
@@ -1498,25 +1498,26 @@ export default function AttractionDetailModal({
       </Helmet>
       
       {/* Top pristine Header Navigation bar */}
-      <div id="booking-sticky-header" className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-4 py-3 shadow-xs">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div id="booking-sticky-header" className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-3 sm:px-4 py-2 sm:py-2.5 shadow-xs">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <button 
             id="back-list-btn"
             onClick={onClose}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-750 dark:text-slate-350 hover:text-brand transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-750 dark:text-slate-350 hover:text-brand transition-colors cursor-pointer min-h-[40px] px-2 -ml-1 rounded-lg active:bg-slate-100 dark:active:bg-slate-800"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to exploring
+            <ArrowLeft className="w-4 h-4 shrink-0" />
+            <span>Back to exploring</span>
           </button>
           
-          <h1 className="hidden sm:block text-xs font-black uppercase text-gray-400 tracking-wider font-mono">
+          <h1 className="hidden sm:block text-xs font-black uppercase text-gray-400 tracking-wider font-mono truncate">
             Secure Booking Portal
           </h1>
 
           <button 
             id="close-icon-btn"
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-850 text-gray-600 dark:text-slate-350 transition-all active:scale-95 cursor-pointer"
+            aria-label="Close booking view"
+            className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-slate-850 text-gray-600 dark:text-slate-350 transition-all active:scale-95 cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1563,9 +1564,8 @@ export default function AttractionDetailModal({
                 <div className="flex lg:hidden items-center gap-2 absolute top-3 right-3 z-20">
                   <motion.button
                     whileTap={{ scale: 0.85 }}
-                    whileHover={{ scale: 1.05 }}
                     onClick={(e) => { e.stopPropagation(); handleShare(); }}
-                    className="flex items-center justify-center w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs cursor-pointer"
+                    className="flex items-center justify-center w-10 h-10 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs cursor-pointer"
                     title="Share Activity"
                     aria-label="Share Activity"
                   >
@@ -1574,9 +1574,8 @@ export default function AttractionDetailModal({
 
                   <motion.button
                     whileTap={{ scale: 0.85 }}
-                    whileHover={{ scale: 1.05 }}
                     onClick={(e) => { e.stopPropagation(); toggleWishlist(attraction); }}
-                    className="flex items-center justify-center w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs cursor-pointer"
+                    className="flex items-center justify-center w-10 h-10 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/60 dark:border-slate-800/60 backdrop-blur-xs cursor-pointer"
                     title={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
                     aria-label={isWishlisted(attraction.id) ? "Remove from Wishlist" : "Save to Wishlist"}
                   >
@@ -1589,6 +1588,16 @@ export default function AttractionDetailModal({
                     />
                   </motion.button>
                 </div>
+
+                {/* Mobile/Tablet photo count pill */}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); openLightbox(0); }}
+                  className="lg:hidden absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/70 hover:bg-black/85 backdrop-blur-sm text-white text-xs font-bold shadow-md border border-white/15 cursor-pointer"
+                >
+                  <Images className="w-3.5 h-3.5" />
+                  <span className="tabular-nums">{galleryImages.length} Photos</span>
+                </button>
               </div>
 
               {/* COLUMN 2: 2x2 Grid of 4 Photos (Right, 5 cols on lg+) */}
@@ -1719,27 +1728,27 @@ export default function AttractionDetailModal({
                   </div>
 
                   {/* Visual Step Indicator Progress Bar */}
-                  <div className="flex items-center gap-2 select-none text-[11px] font-bold tracking-wider uppercase font-mono bg-slate-100 dark:bg-slate-900 px-4 py-2 rounded-full border border-gray-200 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 select-none text-[10px] sm:text-[11px] font-bold tracking-wider uppercase font-mono bg-slate-100 dark:bg-slate-900 px-3 sm:px-4 py-2 rounded-full border border-gray-200 dark:border-slate-800 self-start sm:self-auto">
                     <span className="text-slate-400 dark:text-slate-500">1. Tickets</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
                     <span className="text-brand">2. Details</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
                     <span className="text-slate-400 dark:text-slate-500">3. Confirmation</span>
                   </div>
                 </div>
 
                 {/* Form Split Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                   
                   {/* Left Column - Form Fields (8 cols) */}
-                  <div className="lg:col-span-8 space-y-6 order-2 lg:order-1">
+                  <div className="lg:col-span-8 space-y-6 order-2 lg:order-1 min-w-0">
                     
                     {/* STEP A: Select Visit Date (High-Fidelity Interactive Calendar) */}
-                    <div id="visit-date-section" className="bg-white dark:bg-slate-900 p-6 rounded-[24px] border border-gray-200 dark:border-slate-800 space-y-4 shadow-3xs">
+                    <div id="visit-date-section" className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-[24px] border border-gray-200 dark:border-slate-800 space-y-4 shadow-3xs">
                       <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
                         <div className="flex items-center gap-2.5">
                           <div className="w-[6px] h-[22px] bg-[#e3000f] rounded-sm shrink-0" />
-                          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                          <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                             1. Select Visit Date<span className="text-[#e3000f] ml-1">*</span>
                           </h3>
                         </div>
@@ -1747,26 +1756,27 @@ export default function AttractionDetailModal({
                       </div>
 
                       {/* Display Selected Date elegantly */}
-                      <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-gray-100 dark:border-slate-850 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Calendar className="w-5 h-5 text-[#e3000f]" />
-                          <div>
+                      <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-gray-100 dark:border-slate-850 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Calendar className="w-5 h-5 text-[#e3000f] shrink-0" />
+                          <div className="min-w-0">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Selected Travel Date</span>
-                            <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{formattedDate}</span>
+                            <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200 truncate block">{formattedDate}</span>
                           </div>
                         </div>
-                        <span className="text-xs font-bold text-[#00875a] bg-[#00875a]/10 px-2.5 py-1 rounded-md">
+                        <span className="text-[11px] sm:text-xs font-bold text-[#00875a] bg-[#00875a]/10 px-2.5 py-1 rounded-md">
                           Available & Instant Confirmation
                         </span>
                       </div>
 
                       {/* Render Calendar inline so they can see and click */}
-                      <div className="border border-gray-150 dark:border-slate-800 rounded-2xl p-4 max-w-md mx-auto bg-slate-50/50 dark:bg-slate-950/40">
-                        <div className="flex items-center justify-between mb-4">
+                      <div className="border border-gray-150 dark:border-slate-800 rounded-2xl p-2.5 sm:p-4 max-w-md mx-auto bg-slate-50/50 dark:bg-slate-950/40">
+                        <div className="flex items-center justify-between mb-3 sm:mb-4">
                           <button
                             type="button"
                             onClick={handlePrevMonth}
-                            className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-900 border border-transparent hover:border-gray-200 dark:hover:border-slate-800 transition-colors cursor-pointer"
+                            aria-label="Previous month"
+                            className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-slate-900 border border-transparent hover:border-gray-200 dark:hover:border-slate-800 transition-colors cursor-pointer"
                           >
                             <ChevronLeft className="w-4 h-4" />
                           </button>
@@ -1776,21 +1786,22 @@ export default function AttractionDetailModal({
                           <button
                             type="button"
                             onClick={handleNextMonth}
-                            className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-900 border border-transparent hover:border-gray-200 dark:hover:border-slate-800 transition-colors cursor-pointer"
+                            aria-label="Next month"
+                            className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-slate-900 border border-transparent hover:border-gray-200 dark:hover:border-slate-800 transition-colors cursor-pointer"
                           >
                             <ChevronRight className="w-4 h-4" />
                           </button>
                         </div>
 
                         {/* Calendar grid */}
-                        <div className="grid grid-cols-7 gap-1 text-center text-xs font-extrabold text-slate-400 dark:text-slate-500 mb-2">
+                        <div className="grid grid-cols-7 gap-1 text-center text-[11px] sm:text-xs font-extrabold text-slate-400 dark:text-slate-500 mb-2">
                           <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
                         </div>
 
-                        <div className="grid grid-cols-7 gap-1.5">
+                        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
                           {calendarDays.map((day, i) => {
                             if (day === null) {
-                              return <div key={`empty-${i}`} className="w-full h-14" />;
+                              return <div key={`empty-${i}`} className="w-full h-12 sm:h-14" />;
                             }
                             
                             const monthStr = String(calendarMonth + 1).padStart(2, '0');
@@ -1834,7 +1845,7 @@ export default function AttractionDetailModal({
                             const convertedPrice = dayPrice * currency.rate;
                             const formattedCellPrice = `${currencySymbol} ${convertedPrice.toFixed(1)}`;
 
-                            let btnClasses = "w-full h-14 rounded-xl flex flex-col justify-center items-center transition-all cursor-pointer text-center select-none border shadow-3xs";
+                            let btnClasses = "w-full h-12 sm:h-14 rounded-xl flex flex-col justify-center items-center transition-all cursor-pointer text-center select-none border shadow-3xs px-0.5 overflow-hidden";
                             
                             if (isSelected) {
                               btnClasses += " bg-[#e3000f] text-white border-[#e3000f] hover:bg-[#c93022]";
@@ -1855,11 +1866,11 @@ export default function AttractionDetailModal({
                                 onClick={() => handleSelectDay(day)}
                                 className={btnClasses}
                               >
-                                <span className={`text-xs sm:text-sm font-extrabold ${isSelected ? 'text-white' : isDisabled ? 'text-slate-300 dark:text-slate-700' : 'text-slate-850 dark:text-white'}`}>
+                                <span className={`text-xs sm:text-sm font-extrabold tabular-nums ${isSelected ? 'text-white' : isDisabled ? 'text-slate-300 dark:text-slate-700' : 'text-slate-850 dark:text-white'}`}>
                                   {day}
                                 </span>
                                 {!isDisabled && (
-                                  <span className={`text-[8.5px] font-bold tracking-tight mt-0.5 ${isSelected ? 'text-white/90' : isFillingFast ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
+                                  <span className={`text-[7.5px] sm:text-[8.5px] font-bold tracking-tight mt-0.5 tabular-nums truncate max-w-full ${isSelected ? 'text-white/90' : isFillingFast ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
                                     {formattedCellPrice}
                                   </span>
                                 )}
@@ -1883,16 +1894,16 @@ export default function AttractionDetailModal({
                     </div>
 
                     {/* STEP B: Select Time Slot */}
-                    <div className={`bg-white dark:bg-slate-900 p-6 rounded-[24px] border border-gray-200 dark:border-slate-800 space-y-4 shadow-3xs transition-opacity duration-300 ${!bookingDate ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                    <div className={`bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-[24px] border border-gray-200 dark:border-slate-800 space-y-4 shadow-3xs transition-opacity duration-300 ${!bookingDate ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                       <div 
-                        className="flex items-center justify-between flex-wrap gap-2 cursor-pointer select-none"
+                        className="flex items-center justify-between flex-wrap gap-2 cursor-pointer select-none min-h-[40px]"
                         onClick={() => {
                           if (bookingDate) setIsTimeSlotExpanded(!isTimeSlotExpanded);
                         }}
                       >
                         <div className="flex items-center gap-2.5">
                           <div className="w-[6px] h-[22px] bg-[#e3000f] rounded-sm shrink-0" />
-                          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                          <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                             2. Select Entry Time Slot
                           </h3>
                         </div>
@@ -1938,7 +1949,7 @@ export default function AttractionDetailModal({
                               : (dynamicSlots[0] || '11:00 AM');
 
                             return (
-                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
                                 {dynamicSlots.map((time) => {
                                   const isSelected = selectedTimeSlot === time || (activeTimeSlot === time && !dynamicSlots.includes(selectedTimeSlot));
                                   const slotTimeObj = parseTimeSlot(time);
@@ -1960,7 +1971,6 @@ export default function AttractionDetailModal({
                                     else if (attraction.leadTimeUnit === 'days') leadTimeInMinutes = (attraction.leadTimeValue || 0) * 24 * 60;
                                   }
                                   
-                                  const isPastBasic = totalMinutesDiff < 0;
                                   const isCutoffPast = totalMinutesDiff < leadTimeInMinutes;
                                   const isSlotPast = isCutoffPast;
 
@@ -1986,7 +1996,7 @@ export default function AttractionDetailModal({
                                       type="button"
                                       disabled={isSlotPast || isSoldOut}
                                       onClick={() => setSelectedTimeSlot(time)}
-                                      className={`py-3 px-4 rounded-xl border-2 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                                      className={`py-3 px-3 sm:px-4 min-h-[52px] rounded-xl border-2 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                                         isSlotPast || isSoldOut
                                           ? 'border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-950/25 opacity-40 cursor-not-allowed pointer-events-none'
                                           : isSelected
@@ -1994,7 +2004,7 @@ export default function AttractionDetailModal({
                                             : 'border-slate-250 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
                                       }`}
                                     >
-                                      <span className={`text-sm font-black ${(isSlotPast || isSoldOut) ? 'text-slate-400 dark:text-slate-600 line-through font-normal' : isSelected ? 'text-[#e3000f]' : 'text-slate-850 dark:text-slate-100'}`}>
+                                      <span className={`text-sm font-black tabular-nums ${(isSlotPast || isSoldOut) ? 'text-slate-400 dark:text-slate-600 line-through font-normal' : isSelected ? 'text-[#e3000f]' : 'text-slate-850 dark:text-slate-100'}`}>
                                         {time}
                                       </span>
                                       {isSlotPast ? (
@@ -2003,10 +2013,10 @@ export default function AttractionDetailModal({
                                         </span>
                                       ) : isSoldOut ? (
                                         <span className="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider flex items-center gap-0.5">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block shrink-0 animate-pulse" /> Sold Out
+                                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block shrink-0" /> Sold Out
                                         </span>
                                       ) : (
-                                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-0.5">
+                                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-0.5 tabular-nums">
                                           <span className="w-1 h-1 rounded-full bg-emerald-500 inline-block" /> {remainingInventory !== -1 ? `${remainingInventory} Left` : 'Available'}
                                         </span>
                                       )}
@@ -2021,40 +2031,42 @@ export default function AttractionDetailModal({
                     </div>
 
                     {/* STEP C: Number of Travelers */}
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-[24px] border border-gray-200 dark:border-slate-800 space-y-4 shadow-3xs">
+                    <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-[24px] border border-gray-200 dark:border-slate-800 space-y-4 shadow-3xs">
                       <div className="flex items-center gap-2.5">
                         <div className="w-[6px] h-[22px] bg-[#e3000f] rounded-sm shrink-0" />
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                        <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                           3. Number of Travelers<span className="text-[#e3000f] ml-1">*</span>
                         </h3>
                       </div>
 
                       <div className="space-y-3.5">
                         {/* Adult Ticket */}
-                        <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-950/40 rounded-2xl border border-gray-150 dark:border-slate-850">
-                          <div className="space-y-0.5">
+                        <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 bg-slate-50/50 dark:bg-slate-950/40 rounded-2xl border border-gray-150 dark:border-slate-850">
+                          <div className="space-y-0.5 min-w-0">
                             <span className="text-sm font-extrabold text-slate-850 dark:text-white block">Adult Ticket</span>
                             <span className="text-xs text-slate-400 block">Age 13–99 years</span>
                           </div>
                           
                           {/* Stepper block */}
-                          <div className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 shadow-3xs select-none">
+                          <div className="flex items-center gap-2 sm:gap-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-1.5 shadow-3xs select-none shrink-0">
                             <button
                               type="button"
+                              aria-label="Decrease adult tickets"
                               disabled={guestCount <= 1}
                               onClick={() => setGuestCount(prev => Math.max(1, prev - 1))}
-                              className="w-8 h-8 rounded-lg border border-gray-150 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                              className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg border border-gray-150 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                             >
                               -
                             </button>
-                            <span className="w-6 text-center font-black text-slate-850 dark:text-white text-base">
+                            <span className="w-6 text-center font-black text-slate-850 dark:text-white text-base tabular-nums">
                               {guestCount}
                             </span>
                             <button
                               type="button"
+                              aria-label="Increase adult tickets"
                               disabled={guestCount >= 10}
                               onClick={() => setGuestCount(prev => Math.min(10, prev + 1))}
-                              className="w-8 h-8 rounded-lg border border-gray-150 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                              className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg border border-gray-150 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                             >
                               +
                             </button>
@@ -2062,30 +2074,32 @@ export default function AttractionDetailModal({
                         </div>
 
                         {/* Child Ticket */}
-                        <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-950/40 rounded-2xl border border-gray-150 dark:border-slate-850">
-                          <div className="space-y-0.5">
+                        <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 bg-slate-50/50 dark:bg-slate-950/40 rounded-2xl border border-gray-150 dark:border-slate-850">
+                          <div className="space-y-0.5 min-w-0">
                             <span className="text-sm font-extrabold text-slate-850 dark:text-white block">Child Ticket</span>
                             <span className="text-xs text-slate-400 block">Age 4–12 years (40% off)</span>
                           </div>
                           
                           {/* Stepper block */}
-                          <div className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 shadow-3xs select-none">
+                          <div className="flex items-center gap-2 sm:gap-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-1.5 shadow-3xs select-none shrink-0">
                             <button
                               type="button"
+                              aria-label="Decrease child tickets"
                               disabled={childCount <= 0}
                               onClick={() => setChildCount(prev => Math.max(0, prev - 1))}
-                              className="w-8 h-8 rounded-lg border border-gray-150 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                              className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg border border-gray-150 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                             >
                               -
                             </button>
-                            <span className="w-6 text-center font-black text-slate-850 dark:text-white text-base">
+                            <span className="w-6 text-center font-black text-slate-850 dark:text-white text-base tabular-nums">
                               {childCount}
                             </span>
                             <button
                               type="button"
+                              aria-label="Increase child tickets"
                               disabled={childCount >= 10}
                               onClick={() => setChildCount(prev => Math.min(10, prev + 1))}
-                              className="w-8 h-8 rounded-lg border border-gray-150 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                              className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg border border-gray-150 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                             >
                               +
                             </button>
@@ -2311,8 +2325,8 @@ export default function AttractionDetailModal({
                   </div>
 
                   {/* Right Column - Order Summary Panel (4 cols) */}
-                  <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-6 order-1 lg:order-2">
-                    <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-gray-200 dark:border-slate-800 p-6 shadow-sm select-none">
+                  <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-6 order-1 lg:order-2 min-w-0">
+                    <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-gray-200 dark:border-slate-800 p-4 sm:p-6 shadow-sm select-none">
                       <h4 className="text-base font-black text-[#111e38] dark:text-white uppercase tracking-wider border-b border-gray-100 dark:border-slate-850 pb-3.5 mb-4 font-mono">
                         Booking Summary
                       </h4>
@@ -2330,8 +2344,9 @@ export default function AttractionDetailModal({
                           className="w-16 h-16 object-cover rounded-xl shrink-0 border border-gray-200 dark:border-slate-850 shadow-3xs" 
                           alt="Selected Attraction" 
                           referrerPolicy="no-referrer" 
+                          decoding="async"
                         />
-                        <div className="space-y-0.5">
+                        <div className="space-y-0.5 min-w-0">
                           <span className="text-[9px] font-black uppercase text-brand tracking-widest block">Secure Ticket Portal</span>
                           <h5 className="text-xs font-extrabold text-slate-900 dark:text-white leading-tight line-clamp-1">
                             {attraction.name}
@@ -2367,7 +2382,7 @@ export default function AttractionDetailModal({
                           <span>
                             {guestCount} x Adult Ticket
                           </span>
-                          <span>
+                          <span className="tabular-nums">
                             {currency.code} {((pricePerItem * guestCount) * currency.rate).toFixed(2)}
                           </span>
                         </div>
@@ -2376,14 +2391,14 @@ export default function AttractionDetailModal({
                             <span>
                               {childCount} x {t('childTicket', 'Child Ticket')}
                             </span>
-                            <span>
+                            <span className="tabular-nums">
                               {currency.code} {((childPricePerItem * childCount) * currency.rate).toFixed(2)}
                             </span>
                           </div>
                         )}
                         <div className="flex justify-between font-bold text-slate-500 dark:text-slate-400">
                           <span>{t('bookingFee', 'Booking Fee')}</span>
-                          <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
+                          <span className="text-emerald-600 dark:text-emerald-400 font-extrabold tabular-nums">
                             {currency.code} 0.00
                           </span>
                         </div>
@@ -2394,7 +2409,7 @@ export default function AttractionDetailModal({
                         {promoDiscount > 0 && (
                           <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400">
                             <span>{t('promoDiscount', 'Promo Discount')}</span>
-                            <span>-{currency.code} {(promoDiscount * currency.rate).toFixed(2)}</span>
+                            <span className="tabular-nums">-{currency.code} {(promoDiscount * currency.rate).toFixed(2)}</span>
                           </div>
                         )}
                       </div>
@@ -2407,12 +2422,12 @@ export default function AttractionDetailModal({
                             placeholder={t('promoCode', 'Promo Code')}
                             value={promoCode}
                             onChange={(e) => setPromoCode(e.target.value)}
-                            className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#e3000f] focus:border-transparent transition-all"
+                            className="flex-1 min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#e3000f] focus:border-transparent transition-all"
                           />
                           <button
                             type="button"
                             onClick={handleApplyPromo}
-                            className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
+                            className="shrink-0 min-h-[42px] bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors cursor-pointer"
                           >
                             {t('apply', 'Apply')}
                           </button>
@@ -2611,15 +2626,15 @@ export default function AttractionDetailModal({
                           </div>
                         )}
 
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-start gap-3 flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
                             {/* Radio indicator */}
                             <div className="w-4.5 h-4.5 rounded-full border-2 border-[#e3000f] flex items-center justify-center shrink-0 mt-0.5">
                               {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#e3000f]" />}
                             </div>
 
-                            <div className="space-y-1">
-                              <h4 className="text-base font-bold text-slate-900 dark:text-white leading-snug">
+                            <div className="space-y-1 min-w-0">
+                              <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug">
                                 {pkg.name}
                               </h4>
                               <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
@@ -2632,7 +2647,7 @@ export default function AttractionDetailModal({
                                   e.stopPropagation();
                                   setExpandedPackageId(isExpanded ? "" : pkg.id);
                                 }}
-                                className="text-xs font-bold text-[#e3000f] hover:underline cursor-pointer flex items-center gap-1 uppercase pt-0.5"
+                                className="text-xs font-bold text-[#e3000f] hover:underline cursor-pointer flex items-center gap-1 uppercase py-1"
                               >
                                 <span>{isExpanded ? "HIDE DETAILS" : "VIEW DETAILS"}</span>
                                 <span className="text-[9px]">{isExpanded ? "▲" : "▼"}</span>
@@ -2641,14 +2656,14 @@ export default function AttractionDetailModal({
                           </div>
 
                           {/* Red Book Now Pill Button */}
-                          <div className="shrink-0">
+                          <div className="shrink-0 w-full sm:w-auto">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleBookNow(pkg);
                               }}
-                              className="bg-[#e3000f] hover:bg-[#c7000d] active:scale-95 text-white text-xs font-bold py-2 px-5 rounded-full flex items-center gap-2 uppercase shadow-sm transition-all cursor-pointer whitespace-nowrap"
+                              className="w-full sm:w-auto justify-center min-h-[42px] bg-[#e3000f] hover:bg-[#c7000d] active:scale-95 text-white text-xs font-bold py-2.5 px-5 rounded-full flex items-center gap-2 uppercase shadow-sm transition-all cursor-pointer whitespace-nowrap"
                             >
                               <span>BOOK NOW</span>
                               <span className="w-4.5 h-4.5 rounded-full bg-white text-[#e3000f] flex items-center justify-center shrink-0">
@@ -3304,7 +3319,7 @@ export default function AttractionDetailModal({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-150 dark:border-slate-800 overflow-hidden z-10 p-6 flex flex-col gap-5 select-none"
+              className="relative w-full max-w-md max-h-[90dvh] overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-150 dark:border-slate-800 z-10 p-5 sm:p-6 flex flex-col gap-5 select-none"
             >
               {/* Header */}
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -3316,7 +3331,8 @@ export default function AttractionDetailModal({
                 </div>
                 <button
                   onClick={() => setIsShareModalOpen(false)}
-                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer"
+                  aria-label="Close share dialog"
+                  className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -3471,7 +3487,7 @@ export default function AttractionDetailModal({
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-50 max-w-sm bg-slate-900/95 dark:bg-slate-950/95 text-white p-4 rounded-2xl shadow-2xl border border-slate-700/80 backdrop-blur-md flex items-start gap-3"
+            className="fixed bottom-24 lg:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-50 sm:max-w-sm bg-slate-900/95 dark:bg-slate-950/95 text-white p-4 rounded-2xl shadow-2xl border border-slate-700/80 backdrop-blur-md flex items-start gap-3"
           >
             <div className="w-9 h-9 rounded-xl bg-brand/20 text-brand flex items-center justify-center shrink-0 mt-0.5 border border-brand/30">
               <ExternalLink className="w-4 h-4" />
@@ -3497,7 +3513,8 @@ export default function AttractionDetailModal({
             <button
               type="button"
               onClick={() => setAffiliateNotice(null)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+              aria-label="Close notification"
+              className="text-slate-400 hover:text-white p-1.5 rounded-lg transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -3529,7 +3546,7 @@ export default function AttractionDetailModal({
                 <button
                   type="button"
                   onClick={closeLightbox}
-                  className="p-2 sm:p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  className="w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
                   title="Close Gallery (Esc)"
                   aria-label="Close Gallery"
                 >
@@ -3544,7 +3561,7 @@ export default function AttractionDetailModal({
               <button
                 type="button"
                 onClick={prevLightboxImage}
-                className="absolute left-3 sm:left-6 z-20 p-2.5 sm:p-3 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 backdrop-blur-xs transition-all hover:scale-110 active:scale-95 cursor-pointer"
+                className="absolute left-3 sm:left-6 z-20 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 backdrop-blur-xs transition-all hover:scale-110 active:scale-95 cursor-pointer"
                 title="Previous Image (Left arrow)"
                 aria-label="Previous Image"
               >
@@ -3552,7 +3569,7 @@ export default function AttractionDetailModal({
               </button>
 
               {/* Main Active Image */}
-              <div className="relative max-w-5xl max-h-[70vh] sm:max-h-[75vh] w-full h-full flex items-center justify-center">
+              <div className="relative max-w-5xl max-h-[68dvh] sm:max-h-[75dvh] w-full h-full flex items-center justify-center">
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={activeLightboxIndex}
@@ -3564,6 +3581,7 @@ export default function AttractionDetailModal({
                     transition={{ duration: 0.2 }}
                     className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
                     referrerPolicy="no-referrer"
+                    decoding="async"
                   />
                 </AnimatePresence>
               </div>
@@ -3572,7 +3590,7 @@ export default function AttractionDetailModal({
               <button
                 type="button"
                 onClick={nextLightboxImage}
-                className="absolute right-3 sm:right-6 z-20 p-2.5 sm:p-3 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 backdrop-blur-xs transition-all hover:scale-110 active:scale-95 cursor-pointer"
+                className="absolute right-3 sm:right-6 z-20 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 backdrop-blur-xs transition-all hover:scale-110 active:scale-95 cursor-pointer"
                 title="Next Image (Right arrow)"
                 aria-label="Next Image"
               >
@@ -3581,7 +3599,7 @@ export default function AttractionDetailModal({
             </div>
 
             {/* Bottom Thumbnail Strip */}
-            <div className="px-4 sm:px-6 py-3 bg-black/50 backdrop-blur-sm border-t border-white/10 overflow-x-auto flex items-center justify-center gap-2 sm:gap-3 z-10">
+            <div className="px-4 sm:px-6 py-3 pb-safe bg-black/50 backdrop-blur-sm border-t border-white/10 overflow-x-auto flex items-center justify-start sm:justify-center gap-2 sm:gap-3 z-10">
               {galleryImages.map((img, idx) => (
                 <button
                   key={`thumb-${idx}`}
@@ -3605,6 +3623,54 @@ export default function AttractionDetailModal({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Mobile/Tablet Sticky Bottom Booking Bar */}
+      {!bookingFormStep && !bookingSuccess && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800/80 px-4 py-2.5 pb-safe shadow-[0_-6px_24px_rgba(15,23,42,0.08)]">
+          <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block leading-tight">
+                Starting from
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-lg sm:text-xl font-black text-[#e3000f] tabular-nums leading-tight">
+                  {currency.code} {Math.round((pricePerItem || attraction.price) * currency.rate)}
+                </span>
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                  / person
+                </span>
+              </div>
+            </div>
+
+            {attraction?.isAvailable === false ? (
+              <button
+                type="button"
+                disabled
+                className="min-h-[44px] px-5 bg-slate-300 dark:bg-slate-700 text-white text-xs font-bold rounded-full cursor-not-allowed shrink-0"
+              >
+                Unavailable
+              </button>
+            ) : (
+              (() => {
+                const pkg = selectedPackage as any;
+                const isAffiliate =
+                  (pkg?.bookingMode === 'affiliate') ||
+                  (attraction?.bookingMode === 'affiliate' && pkg?.bookingMode !== 'manual');
+                return (
+                  <button
+                    type="button"
+                    onClick={isAffiliate ? () => handleBookNow(selectedPackage) : handleScrollToPackages}
+                    className="min-h-[44px] px-6 bg-[#e3000f] hover:bg-[#c7000d] active:scale-95 text-white text-xs sm:text-sm font-extrabold rounded-full shadow-md flex items-center justify-center gap-2 uppercase tracking-wider shrink-0 cursor-pointer"
+                  >
+                    <span>BOOK NOW</span>
+                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                );
+              })()
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

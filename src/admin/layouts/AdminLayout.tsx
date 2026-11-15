@@ -40,10 +40,12 @@ export default function AdminLayout() {
   }, [location.pathname]);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const isCollapsed = sidebarCollapsed;
@@ -169,7 +171,7 @@ export default function AdminLayout() {
           title={collapsed ? "Home" : undefined}
           className={({ isActive }) =>
             `flex items-center transition-all duration-150 text-sm group ${
-              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : 'w-full gap-2.5 px-3 py-2 rounded-xl'
+              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : `w-full gap-2.5 px-3 ${isMobile ? 'py-2.5' : 'py-2'} rounded-xl`
             } ${
               isActive 
                 ? 'bg-sky-500/20 text-white font-bold border border-sky-400/40 shadow-xs shadow-sky-500/10' 
@@ -450,16 +452,25 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-[#F8F9FC] dark:bg-slate-950 font-sans antialiased text-slate-900 dark:text-slate-100 overflow-hidden">
+    <div className="flex flex-col h-[100dvh] bg-[#F8F9FC] dark:bg-slate-950 font-sans antialiased text-slate-900 dark:text-slate-100 overflow-hidden">
       {/* Top Header */}
-      <header className="h-13 bg-gradient-to-r from-[#1e40af] via-[#2563eb] to-[#0284c7] dark:from-[#0f172a] dark:via-[#1e3a5f] dark:to-[#0284c7] border-b border-white/20 dark:border-slate-800 flex items-center justify-between px-4 lg:px-6 z-30 shrink-0 relative shadow-sm">
-        <div className="flex items-center gap-3">
+      <header className="h-14 md:h-13 bg-gradient-to-r from-[#1e40af] via-[#2563eb] to-[#0284c7] dark:from-[#0f172a] dark:via-[#1e3a5f] dark:to-[#0284c7] border-b border-white/20 dark:border-slate-800 flex items-center justify-between px-3 sm:px-4 lg:px-6 z-30 shrink-0 relative shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Mobile Sidebar Toggle */}
+          <button 
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Open navigation menu"
+            className="w-10 h-10 flex items-center justify-center text-blue-100 hover:text-white md:hidden hover:bg-white/10 rounded-xl shrink-0 cursor-pointer active:scale-95"
+          >
+            <Menu className="w-5 h-5" strokeWidth={2.2} />
+          </button>
+
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
             <div className="text-white shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-white/15 backdrop-blur-xs shadow-inner">
-              <PlaneTakeoff className="w-5 h-5" strokeWidth={2.5} />
+              <PlaneTakeoff className="w-4.5 h-4.5 sm:w-5 sm:h-5" strokeWidth={2.5} />
             </div>
-            <span className="text-lg font-black tracking-wider text-white">TIQSEY</span>
+            <span className="text-base sm:text-lg font-black tracking-wider text-white">TIQSEY</span>
           </div>
 
           {/* Desktop Sidebar Toggle */}
@@ -470,17 +481,9 @@ export default function AdminLayout() {
           >
             <Menu className="w-5 h-5" strokeWidth={2.2} />
           </button>
-
-          {/* Mobile Sidebar Toggle */}
-          <button 
-            onClick={() => setMobileMenuOpen(true)}
-            className="p-1.5 text-blue-100 md:hidden hover:bg-white/10 rounded-lg shrink-0 cursor-pointer active:scale-95"
-          >
-            <Menu className="w-5 h-5" strokeWidth={2.2} />
-          </button>
         </div>
 
-        {/* Global Search Bar */}
+        {/* Global Search Bar (Desktop) */}
         <div className="absolute left-1/2 -translate-x-1/2 max-w-md w-full hidden md:block px-4">
           <form onSubmit={handleGlobalSearch} className="relative group">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -503,27 +506,44 @@ export default function AdminLayout() {
         </div>
 
         {/* Header Right Actions */}
-        <div className="flex items-center gap-2 relative">
+        <div className="flex items-center gap-1.5 sm:gap-2 relative shrink-0">
+          {/* Mobile Search Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              const next = !mobileSearchOpen;
+              setMobileSearchOpen(next);
+              if (next) {
+                setTimeout(() => mobileSearchInputRef.current?.focus(), 60);
+              }
+            }}
+            aria-label="Toggle search"
+            className="md:hidden w-10 h-10 flex items-center justify-center text-blue-100 hover:text-white hover:bg-white/10 rounded-xl transition-all cursor-pointer active:scale-95"
+          >
+            {mobileSearchOpen ? <X className="w-4.5 h-4.5" /> : <Search className="w-4.5 h-4.5" />}
+          </button>
+
           <a
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-white/15 hover:bg-white/25 transition-all duration-150 border border-white/25 shadow-xs hover:shadow-sm active:scale-95"
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 min-h-[38px] rounded-xl text-xs font-bold text-white bg-white/15 hover:bg-white/25 transition-all duration-150 border border-white/25 shadow-xs hover:shadow-sm active:scale-95"
             title="Open Live Public Website in New Tab"
           >
             <Globe className="w-3.5 h-3.5" />
-            <span>Live Site</span>
-            <ExternalLink className="w-3 h-3 opacity-70" />
+            <span className="hidden sm:inline">Live Site</span>
+            <ExternalLink className="w-3 h-3 opacity-70 hidden sm:inline" />
           </a>
 
           {/* Notifications Dropdown */}
           <div className="relative" ref={notificationRef}>
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 text-blue-100 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-150 cursor-pointer active:scale-95"
+              aria-label="Notifications"
+              className="relative w-10 h-10 flex items-center justify-center text-blue-100 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-150 cursor-pointer active:scale-95"
               title="Notifications"
             >
-              <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-[#2563eb]" />
+              <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-[#2563eb]" />
               <Bell className="w-4.5 h-4.5" />
             </button>
 
@@ -534,7 +554,7 @@ export default function AdminLayout() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -8 }}
                   transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-                  className="absolute right-0 mt-2 w-84 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-4"
+                  className="fixed sm:absolute right-3 sm:right-0 top-16 sm:top-auto sm:mt-2 w-[calc(100vw-24px)] max-w-[340px] sm:w-84 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-4"
                 >
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                     <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
@@ -547,14 +567,14 @@ export default function AdminLayout() {
                   <div className="py-2.5 space-y-2 text-xs">
                     <div className="p-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/50 transition-colors">
                       <p className="font-bold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                        <Sparkles className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                         Promotional Banners Live
                       </p>
                       <p className="text-[11px] text-sky-700 dark:text-sky-400 mt-1">Ready-made graphics and interactive coupons are active on the storefront.</p>
                     </div>
                     <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 transition-colors">
                       <p className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                         Inventory Catalog Synced
                       </p>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">All tour products, variants, and pricing tiers synchronized with storage.</p>
@@ -566,6 +586,45 @@ export default function AdminLayout() {
           </div>
         </div>
       </header>
+
+      {/* Expandable Mobile Global Search Bar */}
+      <AnimatePresence>
+        {mobileSearchOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 py-2.5 z-20 overflow-hidden shrink-0"
+          >
+            <form
+              onSubmit={(e) => {
+                handleGlobalSearch(e);
+                setMobileSearchOpen(false);
+              }}
+              className="relative flex items-center gap-2"
+            >
+              <div className="relative flex-1">
+                <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  ref={mobileSearchInputRef}
+                  type="text"
+                  value={globalSearch}
+                  onChange={(e) => setGlobalSearch(e.target.value)}
+                  className="block w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  placeholder="Search PNR, order, product, blog..."
+                />
+              </div>
+              <button
+                type="submit"
+                className="min-h-[42px] px-4 bg-blue-600 text-white text-xs font-bold rounded-xl shrink-0 cursor-pointer"
+              >
+                Go
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Shell Viewport */}
       <div className="flex flex-1 overflow-hidden">
@@ -618,12 +677,12 @@ export default function AdminLayout() {
         {/* Main Content Area */}
         <div className="relative flex-1 flex flex-col h-full overflow-hidden min-w-0 bg-[#F8F9FC] dark:bg-slate-950">
           {/* Breadcrumbs Bar */}
-          <div className="h-9 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between px-4 lg:px-8 shrink-0 shadow-xs">
-            <nav className="flex text-xs font-medium text-slate-500" aria-label="Breadcrumb">
-              <ol className="inline-flex items-center space-x-1 md:space-x-1.5">
+          <div className="min-h-[36px] py-1.5 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 px-3 sm:px-4 lg:px-8 shrink-0 shadow-xs">
+            <nav className="flex text-xs font-medium text-slate-500 overflow-x-auto no-scrollbar min-w-0" aria-label="Breadcrumb">
+              <ol className="inline-flex items-center space-x-1 md:space-x-1.5 whitespace-nowrap">
                 {getBreadcrumbs().map((crumb, index) => (
                   <li key={crumb.name} className="inline-flex items-center">
-                    {index > 0 && <ChevronRight className="w-3 h-3 mx-1 text-slate-400" />}
+                    {index > 0 && <ChevronRight className="w-3 h-3 mx-1 text-slate-400 shrink-0" />}
                     <NavLink 
                       to={crumb.path}
                       className={`flex items-center gap-1 transition-colors duration-150 ${
@@ -632,21 +691,21 @@ export default function AdminLayout() {
                           : 'hover:text-blue-600 dark:hover:text-sky-400 cursor-pointer'
                       }`}
                     >
-                      {crumb.icon && <crumb.icon className="w-3.5 h-3.5 text-slate-400" />}
+                      {crumb.icon && <crumb.icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
                       <span className="capitalize">{crumb.name}</span>
                     </NavLink>
                   </li>
                 ))}
               </ol>
             </nav>
-            <div className="hidden sm:flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+            <div className="hidden sm:flex items-center gap-2 text-[11px] text-slate-400 font-mono shrink-0">
               <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
               <span>Catalog Active</span>
             </div>
           </div>
 
           {/* Page Content with Smooth Animated Route Transitions */}
-          <main className="flex-1 overflow-y-auto p-4 lg:pt-5 lg:pb-8 lg:px-8">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 pb-24 md:pb-8 lg:pt-5 lg:px-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
@@ -654,12 +713,74 @@ export default function AdminLayout() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                className="w-full"
+                className="w-full min-w-0"
               >
                 <Outlet />
               </motion.div>
             </AnimatePresence>
           </main>
+
+          {/* Admin Mobile Bottom Quick-Nav Bar */}
+          <nav
+            aria-label="Admin mobile quick navigation"
+            className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
+          >
+            <div className="grid grid-cols-5 h-16 px-1">
+              <NavLink
+                to="/"
+                end
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center gap-0.5 min-h-[44px] rounded-xl text-[10px] font-bold transition-colors ${
+                    isActive ? 'text-blue-600 dark:text-sky-400' : 'text-slate-500 dark:text-slate-400'
+                  }`
+                }
+              >
+                <Home className="w-5 h-5" />
+                <span>Overview</span>
+              </NavLink>
+              <NavLink
+                to="/inventory"
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center gap-0.5 min-h-[44px] rounded-xl text-[10px] font-bold transition-colors ${
+                    isActive ? 'text-blue-600 dark:text-sky-400' : 'text-slate-500 dark:text-slate-400'
+                  }`
+                }
+              >
+                <Box className="w-5 h-5" />
+                <span>Products</span>
+              </NavLink>
+              <NavLink
+                to="/bookings"
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center gap-0.5 min-h-[44px] rounded-xl text-[10px] font-bold transition-colors ${
+                    isActive ? 'text-blue-600 dark:text-sky-400' : 'text-slate-500 dark:text-slate-400'
+                  }`
+                }
+              >
+                <FileText className="w-5 h-5" />
+                <span>Bookings</span>
+              </NavLink>
+              <NavLink
+                to="/blog"
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center gap-0.5 min-h-[44px] rounded-xl text-[10px] font-bold transition-colors ${
+                    isActive ? 'text-blue-600 dark:text-sky-400' : 'text-slate-500 dark:text-slate-400'
+                  }`
+                }
+              >
+                <Text className="w-5 h-5" />
+                <span>Blog</span>
+              </NavLink>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                className="flex flex-col items-center justify-center gap-0.5 min-h-[44px] rounded-xl text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+              >
+                <Menu className="w-5 h-5" />
+                <span>Menu</span>
+              </button>
+            </div>
+          </nav>
         </div>
       </div>
     </div>

@@ -37,6 +37,7 @@ export default function Blog() {
   // Multi-selection & Copy state
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
   const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'single'; post: BlogPost } | { type: 'bulk' } | null>(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -132,10 +133,18 @@ export default function Blog() {
 
   const handleBulkDelete = () => {
     if (selectedPostIds.length === 0) return;
-    if (window.confirm(`Are you sure you want to delete ${selectedPostIds.length} selected blog posts? This cannot be undone.`)) {
+    setDeleteConfirm({ type: 'bulk' });
+  };
+
+  const confirmDeleteAction = () => {
+    if (!deleteConfirm) return;
+    if (deleteConfirm.type === 'bulk') {
       selectedPostIds.forEach(id => deletePost(id));
       setSelectedPostIds([]);
+    } else {
+      deletePost(deleteConfirm.post.id);
     }
+    setDeleteConfirm(null);
   };
 
   const handleTogglePostStatus = (post: BlogPost) => {
@@ -218,8 +227,8 @@ export default function Blog() {
       {/* Table Container Card */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs relative">
         {/* Status Tabs Bar */}
-        <div className="px-6 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
+        <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
             {[
               { id: 'all', label: 'All Posts', count: stats.total },
               { id: 'published', label: 'Published', count: stats.published },
@@ -235,14 +244,14 @@ export default function Blog() {
                     setStatusTab(tab.id as any);
                     setCurrentPage(1);
                   }}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3.5 min-h-[38px] rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0 ${
                     isActive 
                       ? 'bg-blue-600 text-white shadow-xs' 
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
                   }`}
                 >
                   <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono tabular-nums ${
                     isActive 
                       ? 'bg-blue-700/80 text-white' 
                       : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
@@ -256,7 +265,7 @@ export default function Blog() {
         </div>
 
         {/* Search & Filters Row */}
-        <div className="p-4 border-b border-slate-200/80 dark:border-slate-800 flex flex-col md:flex-row gap-3 justify-between items-center bg-white dark:bg-slate-900">
+        <div className="p-4 border-b border-slate-200/80 dark:border-slate-800 flex flex-col md:flex-row gap-3 justify-between items-stretch md:items-center bg-white dark:bg-slate-900">
           <div className="relative w-full md:max-w-md">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-slate-400" />
@@ -269,13 +278,14 @@ export default function Blog() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-9 py-2 text-xs font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors placeholder-slate-400 text-slate-800 dark:text-slate-200" 
+              className="w-full bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-10 py-2.5 text-xs font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors placeholder-slate-400 text-slate-800 dark:text-slate-200" 
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm("")}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 min-w-[36px] justify-center"
+                aria-label="Clear search"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -283,15 +293,15 @@ export default function Blog() {
           </div>
 
           <div className="flex items-center gap-2.5 w-full md:w-auto flex-wrap">
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs">
-              <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 min-h-[40px] text-xs flex-1 sm:flex-initial">
+              <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <select 
                 value={categoryFilter}
                 onChange={(e) => {
                   setCategoryFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-transparent border-none text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer pr-2"
+                className="bg-transparent border-none text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer pr-2 w-full"
               >
                 <option value="all">All Categories</option>
                 {categories.map(cat => (
@@ -304,7 +314,7 @@ export default function Blog() {
               <button
                 type="button"
                 onClick={clearAllFilters}
-                className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-sky-400 px-2 py-1.5 transition-colors cursor-pointer shrink-0"
+                className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-sky-400 px-3 min-h-[40px] transition-colors cursor-pointer shrink-0"
               >
                 Clear Filters
               </button>
@@ -312,8 +322,8 @@ export default function Blog() {
           </div>
         </div>
 
-        {/* High-Density Real-Time Table */}
-        <div className="overflow-x-auto">
+        {/* High-Density Real-Time Desktop Table */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left text-sm min-w-[950px] table-fixed">
             <colgroup>
               <col className="w-[4%]" />
@@ -542,11 +552,7 @@ export default function Blog() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => {
-                                if (window.confirm(`Are you sure you want to delete "${post.title}"?`)) {
-                                  deletePost(post.id);
-                                }
-                              }}
+                              onClick={() => setDeleteConfirm({ type: 'single', post })}
                               className="p-1.5 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors group cursor-pointer"
                               title="Delete Post"
                             >
@@ -563,6 +569,188 @@ export default function Blog() {
           </table>
         </div>
 
+        {/* Mobile Stacked Cards (< lg) */}
+        <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
+          {paginatedPosts.length > 0 && (
+            <div className="px-4 py-2.5 bg-slate-50/70 dark:bg-slate-950/40 flex items-center justify-between text-xs font-bold text-slate-500">
+              <label className="flex items-center gap-2.5 cursor-pointer min-h-[36px]">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer"
+                />
+                <span>Select all on page</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => handleSort(sortBy === 'date' ? 'title' : 'date')}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+              >
+                <ArrowUpDown className="w-3 h-3" />
+                <span>Sort: {sortBy === 'date' ? 'Date' : 'Title'}</span>
+              </button>
+            </div>
+          )}
+
+          {filteredAndSortedPosts.length === 0 ? (
+            <div className="text-center py-14 px-4">
+              <BookOpen className="w-10 h-10 text-slate-300 dark:text-slate-700 mx-auto mb-2.5" />
+              <p className="text-sm font-black text-slate-800 dark:text-white">No Blog Posts Match Filters</p>
+              <p className="text-xs text-slate-400 mt-1">
+                Try clearing search terms or selecting another status tab.
+              </p>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="mt-3 inline-flex items-center gap-1.5 px-4 min-h-[40px] bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-sky-400 rounded-xl text-xs font-bold"
+                >
+                  Clear All Filters
+                </button>
+              )}
+            </div>
+          ) : (
+            paginatedPosts.map((post) => {
+              const isSelected = selectedPostIds.includes(post.id);
+              const isPublished = !post.status || post.status === 'Published';
+              const isScheduled = post.status === 'Scheduled';
+              const isCopied = copiedPostId === post.id;
+              const liveStorefrontUrl = `${window.location.origin}/#/blog?post=${encodeURIComponent(post.id)}`;
+
+              return (
+                <div
+                  key={post.id}
+                  className={`p-4 space-y-3 transition-colors ${
+                    isSelected ? 'bg-blue-50/40 dark:bg-blue-950/20' : ''
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleToggleRowSelection(post.id)}
+                      className="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer shrink-0"
+                    />
+                    <div className="w-16 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 dark:border-slate-800 shrink-0">
+                      <img
+                        src={post.imageUrl}
+                        alt={post.title}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug line-clamp-2">
+                          {post.title}
+                        </h3>
+                        <a
+                          href={liveStorefrontUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 -mt-1 text-slate-400 hover:text-blue-600 dark:hover:text-sky-400 shrink-0"
+                          title="View Live Post on storefront"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPostId(post.id)}
+                          className="inline-flex items-center gap-1 font-mono text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded"
+                        >
+                          {isCopied ? <Check className="w-2.5 h-2.5 text-emerald-600" /> : <Copy className="w-2.5 h-2.5" />}
+                          <span className="truncate max-w-[120px]">{post.id}</span>
+                        </button>
+                        {post.readTime && (
+                          <span className="flex items-center text-[11px] text-slate-400 font-semibold gap-1">
+                            <Clock className="w-3 h-3" />
+                            {post.readTime}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 text-xs">
+                    <div>
+                      <span className="block text-[10px] uppercase tracking-wider font-bold text-slate-400">Category</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-200">{post.category || 'General'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] uppercase tracking-wider font-bold text-slate-400">Author & City</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-200 truncate block">
+                        {post.author?.name || 'Editorial Team'} · {post.city || 'Global'}
+                      </span>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <span className="block text-[10px] uppercase tracking-wider font-bold text-slate-400">Published</span>
+                      <span className="font-medium text-slate-600 dark:text-slate-400 tabular-nums">
+                        {post.publishedAt?.includes('T')
+                          ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                          : (post.publishedAt || 'Unpublished')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                    <div className="flex items-center gap-2 select-none">
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePostStatus(post)}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          isPublished ? 'bg-emerald-500' : isScheduled ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-700'
+                        }`}
+                        aria-label={`Toggle publication for ${post.title}`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out ${
+                            isPublished || isScheduled ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                      <span className={`text-[11px] font-black uppercase tracking-wider ${
+                        isPublished ? 'text-emerald-600 dark:text-emerald-400' : isScheduled ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
+                      }`}>
+                        {isPublished ? 'LIVE' : isScheduled ? 'SCHED' : 'DRAFT'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicatePost(post)}
+                        className="w-10 h-10 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-blue-600 bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors"
+                        title="Duplicate Post as Draft"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/blog/${post.id}`)}
+                        className="w-10 h-10 flex items-center justify-center text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 rounded-xl transition-colors"
+                        title="Edit Post"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirm({ type: 'single', post })}
+                        className="w-10 h-10 flex items-center justify-center text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl transition-colors"
+                        title="Delete Post"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
         {/* Floating Bulk Actions Bar */}
         <AnimatePresence>
           {isSomeSelected && (
@@ -571,42 +759,42 @@ export default function Blog() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 15 }}
               transition={{ duration: 0.18 }}
-              className="m-4 p-3 bg-slate-900 dark:bg-slate-950 text-white rounded-xl shadow-xl border border-slate-800 flex items-center justify-between gap-4 flex-wrap"
+              className="m-3 sm:m-4 p-3 sm:p-3.5 bg-slate-900 dark:bg-slate-950 text-white rounded-xl shadow-xl border border-slate-800 flex items-center justify-between gap-3 flex-wrap"
             >
               <div className="flex items-center gap-2.5">
-                <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold tabular-nums">
                   {selectedPostIds.length}
                 </span>
                 <span className="text-xs font-semibold text-slate-200">
                   posts selected on this page
                 </span>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => handleBulkSetStatus('Published')}
-                  className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="px-3 min-h-[38px] text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <Check className="w-3.5 h-3.5" /> Bulk Publish
                 </button>
                 <button
                   type="button"
                   onClick={() => handleBulkSetStatus('Draft')}
-                  className="px-3 py-1.5 text-xs font-bold bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="px-3 min-h-[38px] text-xs font-bold bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <Bookmark className="w-3.5 h-3.5" /> Set as Draft
                 </button>
                 <button
                   type="button"
                   onClick={handleBulkDelete}
-                  className="px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="px-3 min-h-[38px] text-xs font-bold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> Delete Selected
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedPostIds([])}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  className="px-3 min-h-[38px] text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
                 >
                   Deselect All
                 </button>
@@ -627,6 +815,54 @@ export default function Blog() {
           />
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    {deleteConfirm.type === 'bulk'
+                      ? `Delete ${selectedPostIds.length} Selected Posts?`
+                      : 'Delete Blog Post?'}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {deleteConfirm.type === 'bulk'
+                      ? `Are you sure you want to permanently remove ${selectedPostIds.length} blog posts? This cannot be undone.`
+                      : `Are you sure you want to permanently delete "${deleteConfirm.post.title}"? This action cannot be undone.`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  className="px-4 min-h-[42px] rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteAction}
+                  className="px-4 min-h-[42px] rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors cursor-pointer"
+                >
+                  Delete Permanently
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

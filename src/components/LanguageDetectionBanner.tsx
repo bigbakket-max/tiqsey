@@ -42,27 +42,32 @@ export default function LanguageDetectionBanner() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
             <button
+              type="button"
               onClick={applyDetectedLanguage}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#e3000f] hover:bg-[#c5000d] text-white font-bold text-xs transition-colors cursor-pointer shadow-xs active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[38px] rounded-md bg-[#e3000f] hover:bg-[#c5000d] text-white font-bold text-xs transition-colors cursor-pointer shadow-xs active:scale-95"
             >
               <Check className="w-3.5 h-3.5" />
               <span>Switch to {detectedBrowserLanguage.nativeName}</span>
             </button>
-            <button
-              onClick={dismissLanguagePrompt}
-              className="px-2.5 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer font-medium"
-            >
-              Keep {language.name}
-            </button>
-            <button
-              onClick={dismissLanguagePrompt}
-              aria-label="Close language suggestion"
-              className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer ml-1"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={dismissLanguagePrompt}
+                className="px-2.5 py-1.5 min-h-[38px] rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer font-medium"
+              >
+                Keep {language.name}
+              </button>
+              <button
+                type="button"
+                onClick={dismissLanguagePrompt}
+                aria-label="Close language suggestion"
+                className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer rounded-md hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </motion.aside>

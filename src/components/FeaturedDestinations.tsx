@@ -179,6 +179,7 @@ export default function FeaturedDestinations({
                     className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-108"
                     referrerPolicy="no-referrer"
                     loading="lazy"
+                    decoding="async"
                   />
 
                   {/* Gradient overlay for readability */}
@@ -189,7 +190,7 @@ export default function FeaturedDestinations({
                     <h3 className="text-white text-base sm:text-lg md:text-xl font-black leading-tight tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                       {dest.name}
                     </h3>
-                    <p className="text-white/80 text-[11px] sm:text-xs font-medium mt-0.5 sm:mt-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+                    <p className="text-white/80 text-[11px] sm:text-xs font-medium mt-0.5 sm:mt-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] tabular-nums">
                       {dest.attractionsCount || "150+"} Experiences
                     </p>
                   </div>

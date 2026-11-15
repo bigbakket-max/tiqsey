@@ -86,7 +86,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
   };
 
   return (
-    <div className="min-h-screen w-full relative bg-[#edf5fc] overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6 font-sans select-none">
+    <div className="min-h-[100dvh] w-full relative bg-[#edf5fc] overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6 font-sans select-none">
       
       {/* Background soft wavy aesthetic curves matching the design */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden select-none">
@@ -130,7 +130,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
         </div>
 
         {/* Crisp White Card */}
-        <div className="w-full bg-white rounded-2xl sm:rounded-3xl shadow-[0_15px_45px_rgba(15,35,60,0.06)] border border-[#e2eaf2] p-7 sm:p-9 transition-all duration-300">
+        <div className="w-full bg-white rounded-2xl sm:rounded-3xl shadow-[0_15px_45px_rgba(15,35,60,0.06)] border border-[#e2eaf2] p-5 sm:p-9 transition-all duration-300">
           
           <p className="text-center text-[#627d98] text-sm font-normal mb-6">
             Please fill in your unique admin login details below
@@ -208,7 +208,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#9fb3c8] hover:text-[#486581] cursor-pointer transition-colors"
+                  className="absolute inset-y-0 right-0 w-11 flex items-center justify-center text-[#9fb3c8] hover:text-[#486581] cursor-pointer transition-colors"
                   tabIndex={-1}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
@@ -226,7 +226,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
               <button
                 type="button"
                 onClick={() => setShowForgotModal(true)}
-                className="text-xs font-semibold text-[#1d64db] hover:text-[#154fa8] hover:underline cursor-pointer transition-colors"
+                className="min-h-[36px] text-xs font-semibold text-[#1d64db] hover:text-[#154fa8] hover:underline cursor-pointer transition-colors"
               >
                 Forgot password?
               </button>
@@ -237,7 +237,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 px-6 bg-[#1d64db] hover:bg-[#1755be] active:bg-[#12449a] text-white font-semibold rounded-xl text-sm transition-all shadow-[0_4px_14px_rgba(29,100,219,0.3)] hover:shadow-[0_6px_20px_rgba(29,100,219,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-65 disabled:cursor-not-allowed"
+                className="w-full min-h-[48px] py-3.5 px-6 bg-[#1d64db] hover:bg-[#1755be] active:bg-[#12449a] text-white font-semibold rounded-xl text-sm transition-all shadow-[0_4px_14px_rgba(29,100,219,0.3)] hover:shadow-[0_6px_20px_rgba(29,100,219,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-65 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
@@ -269,20 +269,21 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
       {/* Forgot Password Modal */}
       {showForgotModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 relative">
+          <div className="bg-white rounded-2xl max-w-sm w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-slate-200 relative">
             <button
               onClick={() => setShowForgotModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
+              aria-label="Close modal"
+              className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
-            <h3 className="text-base font-bold text-slate-900 mb-2">
+            <h3 className="text-base font-bold text-slate-900 mb-2 pr-8">
               Administrator Password Recovery
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
               To reset your administrator credentials or regain access, please use the master credentials:
             </p>
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono space-y-1 mb-4">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono space-y-1 mb-4 break-all">
               <div>Email: <span className="font-bold text-[#1d64db]">bigbakket@gmail.com</span></div>
               <div>Password: <span className="font-bold text-[#1d64db]">bigbakket@admin@1997</span></div>
             </div>
@@ -291,7 +292,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
                 quickFill('bigbakket@gmail.com');
                 setShowForgotModal(false);
               }}
-              className="w-full py-2.5 px-4 bg-[#1d64db] text-white text-xs font-semibold rounded-xl hover:bg-[#1755be] transition-colors cursor-pointer"
+              className="w-full min-h-[44px] py-2.5 px-4 bg-[#1d64db] text-white text-xs font-semibold rounded-xl hover:bg-[#1755be] transition-colors cursor-pointer"
             >
               Auto-fill & Close
             </button>

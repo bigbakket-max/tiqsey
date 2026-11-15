@@ -127,22 +127,22 @@ export default function Analytics() {
     <div className="space-y-6 pb-12">
       {/* Toast */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl border border-slate-700 text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
-          <Zap className="w-4 h-4 text-amber-400" />
-          <span>{toastMessage}</span>
+        <div className="fixed bottom-20 md:bottom-6 right-4 left-4 sm:left-auto sm:right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl border border-slate-700 text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
+          <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="truncate">{toastMessage}</span>
         </div>
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">AI Operations & Autonomous Sub-Agents</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage and orchestrate automated sub-agents handling catalog, pricing, and orders.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white">AI Operations & Autonomous Sub-Agents</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">Manage and orchestrate automated sub-agents handling catalog, pricing, and orders.</p>
         </div>
         <button
           onClick={() => {
             showToast("All AI Sub-Agents synchronized successfully.");
           }}
-          className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-xs self-start sm:self-auto"
+          className="min-h-[42px] w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
         >
           <RefreshCw className="w-4 h-4" />
           <span>Sync All Agents</span>
@@ -244,7 +244,7 @@ export default function Analytics() {
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => toggleAgentStatus(agent.id)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-colors ${
+                  className={`flex-1 min-h-[40px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                     agent.status === 'Active'
                       ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300'
                       : 'bg-emerald-600 hover:bg-emerald-700 text-white'
@@ -255,8 +255,9 @@ export default function Analytics() {
                 </button>
                 <button 
                   onClick={() => setSelectedAgent(agent)}
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+                  className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                   title="Configure Agent"
+                  aria-label="Configure Agent"
                 >
                   <Settings2 className="w-4 h-4" />
                 </button>
@@ -269,7 +270,7 @@ export default function Analytics() {
       {/* Agent Details / Configuration Modal */}
       {selectedAgent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <BrainCircuit className="w-5 h-5 text-blue-600" />

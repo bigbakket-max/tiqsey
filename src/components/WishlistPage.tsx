@@ -296,8 +296,8 @@ export default function WishlistPage({
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#F4F7F9] dark:bg-slate-950 transition-colors duration-300 font-sans pb-16 flex flex-col items-center justify-center px-4">
-        <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200/60 dark:border-slate-800/60 shadow-xl text-center space-y-6">
+      <div className="min-h-[100dvh] bg-[#F4F7F9] dark:bg-slate-950 transition-colors duration-300 font-sans pb-24 lg:pb-16 flex flex-col items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/60 dark:border-slate-800/60 shadow-xl text-center space-y-6">
           <div className="flex justify-center">
             <div className="w-16 h-16 bg-rose-50 dark:bg-rose-950/30 text-[#e3000f] rounded-full flex items-center justify-center">
               <Lock className="w-7 h-7" />
@@ -316,14 +316,14 @@ export default function WishlistPage({
           <div className="pt-2 flex flex-col gap-3">
             <button
               onClick={onNavigateToSignIn}
-              className="w-full py-3 px-5 bg-[#e3000f] hover:bg-[#e00015] text-white font-bold rounded-xl transition-colors text-sm shadow-sm cursor-pointer"
+              className="w-full min-h-[44px] py-3 px-5 bg-[#e3000f] hover:bg-[#e00015] text-white font-bold rounded-xl transition-colors text-sm shadow-sm cursor-pointer"
               id="wishlist-signin-btn"
             >
               {t('signIn', 'Sign In')}
             </button>
             <button
               onClick={onBackToHome}
-              className="w-full py-3 px-5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm cursor-pointer"
+              className="w-full min-h-[44px] py-3 px-5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm cursor-pointer"
               id="wishlist-back-btn"
             >
               {t('returnToHome', 'Return to Home')}
@@ -335,28 +335,28 @@ export default function WishlistPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F7F9] dark:bg-slate-950 transition-colors duration-300 font-sans pb-16">
+    <div className="min-h-[100dvh] bg-[#F4F7F9] dark:bg-slate-950 transition-colors duration-300 font-sans pb-24 lg:pb-16 overflow-x-clip">
       {/* Header section with ambient glow */}
-      <div className="relative bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800/80 pt-8 pb-10 overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[300px] bg-brand/5 blur-[100px] rounded-full pointer-events-none" />
-        <div className="absolute -left-10 bottom-0 w-[300px] h-[200px] bg-rose-500/5 blur-[80px] rounded-full pointer-events-none" />
+      <div className="relative bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800/80 pt-6 sm:pt-8 pb-8 sm:pb-10 overflow-hidden">
+        <div className="absolute top-0 right-0 w-full max-w-[500px] h-[300px] bg-brand/5 blur-[100px] rounded-full pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 w-full max-w-[300px] h-[200px] bg-rose-500/5 blur-[80px] rounded-full pointer-events-none" />
 
-        <div className="max-w-[1400px] mx-auto px-6 md:px-10">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10">
           {/* Breadcrumb / Back Navigation */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <button
               onClick={onBackToHome}
-              className="group flex items-center gap-2 text-xs font-black text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 uppercase tracking-widest transition-colors cursor-pointer"
+              className="group min-h-[40px] flex items-center gap-2 text-xs font-black text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 uppercase tracking-widest transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
               <span>Back to home</span>
             </button>
 
             {wishlist.length > 0 && (
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <button
                   onClick={handleShare}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 transition-all border border-slate-200/60 dark:border-slate-700/60 shadow-xs cursor-pointer active:scale-95"
+                  className="min-h-[40px] flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 transition-all border border-slate-200/60 dark:border-slate-700/60 shadow-xs cursor-pointer active:scale-95"
                 >
                   {copied ? (
                     <>
@@ -374,7 +374,7 @@ export default function WishlistPage({
                 {!isViewingShared && (
                   <button
                     onClick={() => setShowClearConfirm(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-rose-50 dark:bg-rose-950/20 text-[#e3000f] dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/40 transition-all border border-rose-100/60 dark:border-rose-900/40 shadow-xs cursor-pointer active:scale-95"
+                    className="min-h-[40px] flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold bg-rose-50 dark:bg-rose-950/20 text-[#e3000f] dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/40 transition-all border border-rose-100/60 dark:border-rose-900/40 shadow-xs cursor-pointer active:scale-95"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Clear All</span>
@@ -404,12 +404,12 @@ export default function WishlistPage({
               </p>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0 bg-slate-50 dark:bg-slate-950 px-4 py-3 rounded-2xl border border-slate-100 dark:border-slate-850 select-none">
-              <div className="flex flex-col items-end pr-3 border-r border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between sm:justify-start gap-4 sm:gap-3 shrink-0 w-full md:w-auto bg-slate-50 dark:bg-slate-950 px-4 py-3 rounded-2xl border border-slate-100 dark:border-slate-850 select-none">
+              <div className="flex flex-col items-start sm:items-end pr-3 border-r border-slate-200 dark:border-slate-800">
                 <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   Total Saved
                 </span>
-                <span className="text-xl font-black text-slate-850 dark:text-slate-150">
+                <span className="text-xl font-black text-slate-850 dark:text-slate-150 tabular-nums">
                   {activeWishlist.length} Items
                 </span>
               </div>
@@ -417,7 +417,7 @@ export default function WishlistPage({
                 <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   Unique Cities
                 </span>
-                <span className="text-xl font-black text-[#e3000f]">
+                <span className="text-xl font-black text-[#e3000f] tabular-nums">
                   {Math.max(0, cities.length - 1)}
                 </span>
               </div>
@@ -427,7 +427,7 @@ export default function WishlistPage({
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-[1400px] mx-auto px-6 md:px-10 mt-10">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10 mt-8 sm:mt-10">
         <AnimatePresence>
           {activeWishlist.length === 0 ? (
             <motion.div
@@ -507,7 +507,7 @@ export default function WishlistPage({
                       <span className="text-[10px] font-black uppercase tracking-widest text-white/70 block">
                         Potential Discount Savings
                       </span>
-                      <span className="text-3xl sm:text-4xl font-black mt-0.5 block">
+                      <span className="text-3xl sm:text-4xl font-black mt-0.5 block tabular-nums">
                         {formatPrice(stats.savings, "EUR")}
                       </span>
                     </div>
@@ -519,7 +519,7 @@ export default function WishlistPage({
               )}
 
               {/* Horizontal Filters Panel */}
-              <div className="bg-white dark:bg-slate-900 rounded-[28px] p-6 border border-slate-200/50 dark:border-slate-800/60 shadow-xs select-none">
+              <div className="bg-white dark:bg-slate-900 rounded-[24px] sm:rounded-[28px] p-4 sm:p-6 border border-slate-200/50 dark:border-slate-800/60 shadow-xs select-none">
                 {/* Row 1: Search Input + Sorting */}
                 <div className="flex flex-col md:flex-row items-end justify-between gap-6 pb-2">
                   <div className="w-full md:flex-1">
@@ -735,22 +735,22 @@ export default function WishlistPage({
 
       {/* Confirmation Modal for Clearing All */}
       {showClearConfirm && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
           <div
             onClick={() => setShowClearConfirm(false)}
             className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
           />
-          <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 dark:border-slate-800 animate-fadeIn font-sans">
+          <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[90dvh] overflow-y-auto shadow-2xl border border-slate-100 dark:border-slate-800 animate-fadeIn font-sans">
             <h3 className="text-lg font-black text-slate-900 dark:text-slate-50 tracking-tight">
               Clear saved favorites?
             </h3>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2.5 leading-relaxed">
               This will remove all items currently saved in your catalog. You won't be able to recover them unless you re-add them.
             </p>
-            <div className="flex items-center justify-end gap-3 mt-6">
+            <div className="flex flex-wrap items-center justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowClearConfirm(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -759,7 +759,7 @@ export default function WishlistPage({
                   clearWishlist();
                   setShowClearConfirm(false);
                 }}
-                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-[#e3000f] hover:bg-opacity-90 shadow-sm transition-all cursor-pointer"
+                className="min-h-[44px] px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-[#e3000f] hover:bg-opacity-90 shadow-sm transition-all cursor-pointer"
               >
                 Clear Entire List
               </button>
@@ -770,12 +770,12 @@ export default function WishlistPage({
 
       {/* Share Modal */}
       {showShareModal && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center px-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 animate-fadeIn">
           <div
             onClick={() => setShowShareModal(false)}
             className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
           />
-          <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-100 dark:border-slate-800 font-sans z-10">
+          <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-8 max-w-lg w-full max-h-[90dvh] overflow-y-auto shadow-2xl border border-slate-100 dark:border-slate-800 font-sans z-10">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-[#e3000f]/10 dark:bg-red-950/40 text-[#e3000f] rounded-xl">
@@ -808,13 +808,13 @@ export default function WishlistPage({
                 onClick={(e) => {
                   (e.target as HTMLInputElement).select();
                 }}
-                className="w-full bg-transparent border-none text-xs font-mono font-medium text-slate-600 dark:text-slate-350 focus:outline-none py-1 select-all"
+                className="min-w-0 flex-1 bg-transparent border-none text-xs font-mono font-medium text-slate-600 dark:text-slate-350 focus:outline-none py-1 select-all"
               />
               <button
                 onClick={() => {
                   fallbackCopy(shareLink);
                 }}
-                className="h-9 px-4 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-[#e3000f] hover:bg-opacity-95 shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+                className="min-h-[40px] h-10 px-4 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-[#e3000f] hover:bg-opacity-95 shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
               >
                 {copied ? (
                   <>
@@ -841,7 +841,7 @@ export default function WishlistPage({
             <div className="flex items-center justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowShareModal(false)}
-                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer border border-transparent hover:border-slate-200/50 dark:hover:border-slate-700/50"
+                className="min-h-[44px] px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer border border-transparent hover:border-slate-200/50 dark:hover:border-slate-700/50"
               >
                 Close
               </button>

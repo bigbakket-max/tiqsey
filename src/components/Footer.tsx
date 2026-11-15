@@ -73,12 +73,12 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
   };
 
   return (
-    <footer className="bg-[#040a17] text-white pt-12 pb-8 border-t border-slate-800/60 relative overflow-hidden font-sans">
+    <footer className="bg-[#040a17] text-white pt-10 sm:pt-12 pb-24 lg:pb-8 border-t border-slate-800/60 relative overflow-hidden font-sans">
       {/* Subtle ambient glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[400px] bg-red-600/5 blur-[140px] rounded-full pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1100px] h-[300px] sm:h-[400px] bg-red-600/5 blur-[100px] sm:blur-[140px] rounded-full pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 relative z-10">
-        <div className="bg-[#071124] rounded-2xl md:rounded-3xl p-6 sm:p-8 md:p-10 border border-slate-800/80 shadow-2xl">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 md:px-10 relative z-10">
+        <div className="bg-[#071124] rounded-2xl md:rounded-3xl p-5 sm:p-8 md:p-10 border border-slate-800/80 shadow-2xl">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6 pb-10 border-b border-slate-800/80">
             
             {/* Column 1: Brand & Support Card (4 cols) */}

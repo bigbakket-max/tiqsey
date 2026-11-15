@@ -117,13 +117,13 @@ export default function HotDeals({
       />
 
       {/* Radiant Glowing Orbs */}
-      <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-gradient-to-br from-orange-500/25 via-pink-600/20 to-purple-800/30 rounded-full blur-[110px] pointer-events-none" />
-      <div className="absolute top-1/3 left-10 w-[500px] h-[400px] bg-purple-700/20 rounded-full blur-[130px] pointer-events-none" />
-      <div className="absolute bottom-0 left-1/3 w-[600px] h-[250px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="hidden sm:block absolute top-0 right-0 w-[340px] md:w-[550px] h-[340px] md:h-[550px] bg-gradient-to-br from-orange-500/25 via-pink-600/20 to-purple-800/30 rounded-full blur-[110px] pointer-events-none" />
+      <div className="hidden md:block absolute top-1/3 left-10 w-[500px] h-[400px] bg-purple-700/20 rounded-full blur-[130px] pointer-events-none" />
+      <div className="hidden md:block absolute bottom-0 left-1/3 w-[600px] h-[250px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
         {/* Deal Header Block */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 sm:mb-8">
           <div>
             {/* Eyebrow Pill */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-amber-400 text-xs font-black uppercase tracking-wider mb-3 backdrop-blur-md shadow-sm">
@@ -131,7 +131,7 @@ export default function HotDeals({
               <span>{t("exploreMore", "EXPLORE MORE")}</span>
             </div>
 
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight text-white">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight text-white">
               Hot Deals on{" "}
               <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">
                 Experiences
@@ -145,7 +145,7 @@ export default function HotDeals({
           {onViewAll && (
             <button
               onClick={onViewAll}
-              className="group self-start md:self-auto flex items-center gap-2 px-6 py-2.5 rounded-full border border-orange-500/60 bg-white/5 hover:bg-orange-500/20 text-orange-400 hover:text-orange-300 font-bold text-xs uppercase tracking-wider transition-all duration-300 backdrop-blur-sm select-none cursor-pointer shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 active:scale-95"
+              className="group self-start md:self-auto flex items-center gap-2 px-5 sm:px-6 py-2.5 min-h-[44px] rounded-full border border-orange-500/60 bg-white/5 hover:bg-orange-500/20 text-orange-400 hover:text-orange-300 font-bold text-xs uppercase tracking-wider transition-all duration-300 backdrop-blur-sm select-none cursor-pointer shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 active:scale-95"
             >
               <span>{t("viewAllDeals", "VIEW ALL DEALS")}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -155,12 +155,12 @@ export default function HotDeals({
 
         {/* Dynamic Horizontal Scroll Container with floating arrows */}
         <div className="relative group/slider">
-          {/* Left Floating Arrow */}
+          {/* Left Floating Arrow (Desktop/Tablet) */}
           <button
             type="button"
             onClick={scrollLeft}
             disabled={!showLeftScroll}
-            className={`absolute left-0 md:-left-5 top-[45%] -translate-y-1/2 z-40 w-11 h-11 rounded-full bg-[#131938]/95 backdrop-blur-md border border-orange-500/40 flex items-center justify-center text-orange-400 hover:text-white hover:bg-orange-500 hover:border-orange-500 shadow-[0_8px_20px_rgba(0,0,0,0.5)] active:scale-90 transition-all duration-300 select-none cursor-pointer ${
+            className={`hidden md:flex absolute -left-5 top-[45%] -translate-y-1/2 z-40 w-11 h-11 rounded-full bg-[#131938]/95 backdrop-blur-md border border-orange-500/40 items-center justify-center text-orange-400 hover:text-white hover:bg-orange-500 hover:border-orange-500 shadow-[0_8px_20px_rgba(0,0,0,0.5)] active:scale-90 transition-all duration-300 select-none cursor-pointer ${
               !showLeftScroll
                 ? "opacity-0 pointer-events-none scale-90"
                 : "opacity-100 hover:scale-105"
@@ -170,12 +170,12 @@ export default function HotDeals({
             <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
           </button>
 
-          {/* Right Floating Arrow */}
+          {/* Right Floating Arrow (Desktop/Tablet) */}
           <button
             type="button"
             onClick={scrollRight}
             disabled={!showRightScroll}
-            className={`absolute right-0 md:-right-5 top-[45%] -translate-y-1/2 z-40 w-11 h-11 rounded-full bg-[#131938]/95 backdrop-blur-md border border-orange-500/40 flex items-center justify-center text-orange-400 hover:text-white hover:bg-orange-500 hover:border-orange-500 shadow-[0_8px_20px_rgba(0,0,0,0.5)] active:scale-90 transition-all duration-300 select-none cursor-pointer ${
+            className={`hidden md:flex absolute -right-5 top-[45%] -translate-y-1/2 z-40 w-11 h-11 rounded-full bg-[#131938]/95 backdrop-blur-md border border-orange-500/40 items-center justify-center text-orange-400 hover:text-white hover:bg-orange-500 hover:border-orange-500 shadow-[0_8px_20px_rgba(0,0,0,0.5)] active:scale-90 transition-all duration-300 select-none cursor-pointer ${
               !showRightScroll
                 ? "opacity-0 pointer-events-none scale-90"
                 : "opacity-100 hover:scale-105"
@@ -190,7 +190,7 @@ export default function HotDeals({
             layout
             ref={scrollRef}
             onScroll={checkScroll}
-            className="flex flex-row overflow-x-auto pb-4 gap-5 md:gap-6 snap-x snap-mandatory scroll-smooth no-scrollbar -mx-4 px-4 md:mx-0 md:px-0"
+            className="flex flex-row overflow-x-auto pb-4 gap-4 sm:gap-5 md:gap-6 snap-x snap-mandatory scroll-smooth no-scrollbar -mx-4 px-4 md:mx-0 md:px-0"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             <AnimatePresence mode="popLayout">
@@ -209,13 +209,16 @@ export default function HotDeals({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.4 }}
-                    className="group relative bg-[#131838]/85 hover:bg-[#181f45] backdrop-blur-md rounded-2xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.4)] hover:shadow-[0_20px_50px_rgba(249,115,22,0.18)] border border-white/10 hover:border-orange-500/40 flex flex-col h-full transform hover:-translate-y-1.5 transition-all duration-300 w-[290px] sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] shrink-0 snap-start"
+                    onClick={() => onViewAttraction(attr.id)}
+                    className="group cursor-pointer relative bg-[#131838]/85 hover:bg-[#181f45] backdrop-blur-md rounded-2xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.4)] hover:shadow-[0_20px_50px_rgba(249,115,22,0.18)] border border-white/10 hover:border-orange-500/40 flex flex-col h-full transform hover:-translate-y-1.5 transition-all duration-300 w-[82vw] max-w-[300px] sm:max-w-none sm:w-[calc(50%-10px)] lg:w-[calc(25%-18px)] shrink-0 snap-start"
                   >
                     {/* Top image and badge overlay */}
                     <div className="relative aspect-[4/3] overflow-hidden">
                       <img
                         src={attr.imageUrl}
                         alt={attr.name}
+                        loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           const target = e.currentTarget;
                           if (!target.src.includes('photo-1512470876302')) {
@@ -232,17 +235,23 @@ export default function HotDeals({
                       {/* Deal sticker badge */}
                       <div className="absolute top-3 left-3 z-20 flex items-center gap-1 bg-amber-400 text-slate-950 font-black text-[10px] uppercase tracking-wide px-2.5 py-1 rounded-md shadow-md">
                         <Zap className="w-3 h-3 fill-slate-950 stroke-none" />
-                        <span>SAVE {discountRatio}%</span>
+                        <span className="tabular-nums">SAVE {discountRatio}%</span>
                       </div>
 
                       {/* Heart/Wishlist Button */}
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleWishlist(attr);
                         }}
-                        className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center shadow-md border border-white/20 hover:bg-rose-950/40 text-zinc-300 transition-all active:scale-90 group/fav cursor-pointer"
+                        className="absolute top-2.5 right-2.5 z-20 w-10 h-10 sm:w-9 sm:h-9 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center shadow-md border border-white/20 hover:bg-rose-950/40 text-zinc-300 transition-all active:scale-90 group/fav cursor-pointer"
                         title={
+                          isWishlisted(attr.id)
+                            ? "Remove from Wishlist"
+                            : "Save to Wishlist"
+                        }
+                        aria-label={
                           isWishlisted(attr.id)
                             ? "Remove from Wishlist"
                             : "Save to Wishlist"
@@ -294,7 +303,7 @@ export default function HotDeals({
 
                         {/* Deal stats bar */}
                         <div className="flex items-center gap-4 text-xs font-semibold text-slate-300 border-t border-white/10 w-full py-2.5">
-                          <div className="flex items-center gap-1 text-amber-400 font-bold">
+                          <div className="flex items-center gap-1 text-amber-400 font-bold tabular-nums">
                             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
                             <span>{attr.rating || "4.8"}</span>
                           </div>
@@ -306,8 +315,8 @@ export default function HotDeals({
                       </div>
 
                       {/* Footer pricing and action CTA button */}
-                      <div className="flex items-center justify-between mt-auto pt-3 border-t border-white/10">
-                        <div className="flex flex-col">
+                      <div className="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-white/10">
+                        <div className="flex flex-col tabular-nums">
                           <div className="text-lg sm:text-xl font-black text-amber-400 tracking-tight">
                             {formatPrice(
                               attr.discountPrice || attr.price,
@@ -323,8 +332,12 @@ export default function HotDeals({
 
                         {/* Dynamic CTA button */}
                         <button
-                          onClick={() => onViewAttraction(attr.id)}
-                          className="bg-gradient-to-r from-[#FF5500] via-[#FF6611] to-[#FF7733] hover:from-[#ff4400] hover:to-[#ff6622] text-white font-black text-xs uppercase tracking-wider px-3.5 sm:px-4 py-2.5 rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 active:scale-95 transition-all flex items-center gap-1 select-none cursor-pointer"
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewAttraction(attr.id);
+                          }}
+                          className="bg-gradient-to-r from-[#FF5500] via-[#FF6611] to-[#FF7733] hover:from-[#ff4400] hover:to-[#ff6622] text-white font-black text-xs uppercase tracking-wider px-3.5 sm:px-4 min-h-[40px] sm:min-h-[42px] rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 active:scale-95 transition-all flex items-center gap-1 select-none cursor-pointer shrink-0"
                         >
                           <span>BOOK DEAL</span>
                           <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -338,27 +351,32 @@ export default function HotDeals({
           </motion.div>
 
           {/* Dot Pagination indicators */}
-          <div className="flex items-center justify-center gap-1.5 mt-4">
+          <div className="flex items-center justify-center gap-1 mt-3 sm:mt-4">
             {dealAttractions.slice(0, Math.min(6, dealAttractions.length)).map((_, i) => (
               <button
                 key={`dot-${i}`}
+                type="button"
                 onClick={() => {
                   if (scrollRef.current) {
                     const cardWidth =
                       scrollRef.current.firstElementChild?.clientWidth || 300;
                     scrollRef.current.scrollTo({
-                      left: i * (cardWidth + 24),
+                      left: i * (cardWidth + 20),
                       behavior: "smooth",
                     });
                   }
                 }}
-                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                  activeSlideIndex === i
-                    ? "w-6 bg-amber-400"
-                    : "w-1.5 bg-white/20 hover:bg-white/40"
-                }`}
+                className="min-w-[28px] min-h-[36px] flex items-center justify-center cursor-pointer"
                 aria-label={`Go to slide ${i + 1}`}
-              />
+              >
+                <span
+                  className={`block h-1.5 rounded-full transition-all duration-300 ${
+                    activeSlideIndex === i
+                      ? "w-6 bg-amber-400"
+                      : "w-1.5 bg-white/25 hover:bg-white/45"
+                  }`}
+                />
+              </button>
             ))}
           </div>
         </div>

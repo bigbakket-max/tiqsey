@@ -87,6 +87,7 @@ export default function BookingDetailsView({
   const [newPassengerEmail, setNewPassengerEmail] = useState('');
   const [newPassengerType, setNewPassengerType] = useState<'Adult' | 'Child'>('Adult');
   const [showAllocateVendorModal, setShowAllocateVendorModal] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const triggerToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToastMessage(message);
@@ -174,7 +175,7 @@ export default function BookingDetailsView({
   return (
     <div 
       style={{ '--color-brand': '#5fa6d9' } as React.CSSProperties}
-      className="space-y-6 w-full pb-16 px-4 md:px-6 font-sans text-slate-800 dark:text-slate-100"
+      className="space-y-6 w-full pb-24 md:pb-16 px-1 sm:px-4 md:px-6 font-sans text-slate-800 dark:text-slate-100"
     >
       
       {/* Toast alert */}
@@ -184,21 +185,22 @@ export default function BookingDetailsView({
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-4 right-4 z-50 flex items-center gap-2.5 px-4 py-3 rounded-lg shadow-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 font-sans"
+            className="fixed top-16 md:top-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-2.5 px-4 py-3 rounded-lg shadow-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 font-sans"
           >
-            {toastType === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-            {toastType === 'info' && <Info className="w-5 h-5 text-blue-500" />}
-            {toastType === 'error' && <AlertTriangle className="w-5 h-5 text-brand" />}
+            {toastType === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />}
+            {toastType === 'info' && <Info className="w-5 h-5 text-blue-500 shrink-0" />}
+            {toastType === 'error' && <AlertTriangle className="w-5 h-5 text-brand shrink-0" />}
             <span className="text-xs font-semibold">{toastMessage}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Navigation / Header Area */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <button
+          type="button"
           onClick={onBack}
-          className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#5fa6d9] transition-colors cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-1.5 shadow-sm"
+          className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#5fa6d9] transition-colors cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-2 min-h-[38px] shadow-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Bookings List
@@ -209,26 +211,27 @@ export default function BookingDetailsView({
       </div>
 
       {/* 1. ORDER SUMMARY CARD & PAYMENTS LIST */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-5 shadow-sm space-y-6">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-4 sm:p-5 shadow-sm space-y-6">
         {/* Order Summary Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <h3 className="text-[15px] font-bold tracking-tight text-slate-800 dark:text-slate-200">Order Summary</h3>
           <button 
+            type="button"
             onClick={() => setShowPayments(!showPayments)}
-            className="self-start sm:self-auto border border-brand hover:bg-brand/5 dark:hover:bg-brand/10 text-brand px-4 py-1.5 rounded-md text-[13px] font-medium transition-colors cursor-pointer"
+            className="self-start sm:self-auto border border-brand hover:bg-brand/5 dark:hover:bg-brand/10 text-brand px-4 py-1.5 min-h-[36px] rounded-md text-[13px] font-medium transition-colors cursor-pointer"
           >
             {showPayments ? 'Hide Payments' : 'View Payments'}
           </button>
         </div>
 
-                {/* Order Summary Metrics */}
-        <div className="flex flex-wrap gap-x-10 gap-y-6 pt-2">
-          <div className="flex flex-col leading-tight">
+        {/* Order Summary Metrics */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-x-6 sm:gap-x-10 gap-y-4 sm:gap-y-6 pt-2">
+          <div className="flex flex-col leading-tight min-w-0 col-span-2 sm:col-span-1">
             <div className="flex items-center gap-1.5 mb-1">
-              <FileText className="w-3.5 h-3.5 text-[#94a3b8]" />
+              <FileText className="w-3.5 h-3.5 text-[#94a3b8] shrink-0" />
               <span className="text-[11px] font-medium text-[#94a3b8]">Order ID / Number</span>
             </div>
-            <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 select-all">{booking.order_number || booking.orderId || 'OD822954911803214'}</span>
+            <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 select-all break-all tabular-nums">{booking.order_number || booking.orderId || 'OD822954911803214'}</span>
           </div>
           
           <div className="flex flex-col leading-tight">
@@ -411,10 +414,10 @@ export default function BookingDetailsView({
       </div>
 
       {/* 3. ACTIVE BOOKING CARD */}
-      <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 shadow-sm space-y-5">
+      <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-6 shadow-sm space-y-5">
         
         {/* Left Orange Tag Badge */}
-        <div className={`absolute right-full top-6 w-11 h-14 ${statusColors.bgColor} rounded-tl-2xl rounded-bl-2xl rounded-tr-none rounded-br-none flex items-center justify-center shadow-md ${statusColors.shadowColor} z-10 translate-x-[1px]`}>
+        <div className={`absolute right-full top-6 w-6 sm:w-9 lg:w-11 h-10 sm:h-12 lg:h-14 ${statusColors.bgColor} rounded-tl-xl sm:rounded-tl-2xl rounded-bl-xl sm:rounded-bl-2xl rounded-tr-none rounded-br-none flex items-center justify-center shadow-md ${statusColors.shadowColor} z-10 translate-x-[1px]`}>
           {statusColors.icon}
         </div>
 
@@ -430,15 +433,15 @@ export default function BookingDetailsView({
           </div>
 
             {/* Badges line & Actions buttons Row */}
-            <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+              <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge status={booking.status} />
-                <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 border border-slate-200 dark:border-slate-700/80">
+                <span className="px-2.5 py-0.5 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80">
                   Direct Booking
                 </span>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <select
                   value={booking.status}
                   onChange={(e) => {
@@ -446,7 +449,7 @@ export default function BookingDetailsView({
                     onUpdateStatus(booking.id, newSt);
                     triggerToast(`Booking status updated to ${newSt.toUpperCase()}`, "success");
                   }}
-                  className="bg-white dark:bg-slate-850 border border-slate-250 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-[11px] font-bold rounded-md px-2.5 py-1.5 focus:outline-none focus:border-[#5fa6d9] cursor-pointer"
+                  className="min-h-[36px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-md px-2.5 py-1.5 focus:outline-none focus:border-[#5fa6d9] cursor-pointer"
                 >
                   <option value="confirmed">Confirmed</option>
                   <option value="pending">Pending</option>
@@ -457,24 +460,20 @@ export default function BookingDetailsView({
                 {booking.status !== 'cancelled' && (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (window.confirm("Are you sure you want to cancel this booking?")) {
-                        onUpdateStatus(booking.id, 'cancelled');
-                        triggerToast("Booking marked as CANCELLED.", "info");
-                      }
-                    }}
-                    className="border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 px-3 py-1.5 rounded-md text-[11px] font-bold transition-colors shadow-sm cursor-pointer"
+                    onClick={() => setShowCancelConfirm(true)}
+                    className="min-h-[36px] border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 px-3 py-1.5 rounded-md text-xs font-bold transition-colors shadow-sm cursor-pointer"
                   >
                     Cancel
                   </button>
                 )}
                 {booking.status !== 'confirmed' && (
                   <button 
+                    type="button"
                     onClick={() => {
                       onUpdateStatus(booking.id, 'confirmed');
                       triggerToast("Booking marked as CONFIRMED successfully!", "success");
                     }}
-                    className="bg-brand hover:opacity-90 text-white px-3 py-1.5 rounded-md text-[11px] font-black transition-colors cursor-pointer shadow-sm"
+                    className="min-h-[36px] bg-brand hover:opacity-90 text-white px-3.5 py-1.5 rounded-md text-xs font-black transition-colors cursor-pointer shadow-sm"
                   >
                     Confirm
                   </button>
@@ -549,57 +548,89 @@ export default function BookingDetailsView({
             <div className="flex items-center gap-2">
               <h4 className="text-[14px] font-semibold text-slate-800 dark:text-slate-200">Booking Contents</h4>
               <button 
+                type="button"
                 onClick={() => triggerToast("Directing to package configurations and inventory allocations edit panel...", "info")}
-                className="text-orange-500 text-[11px] font-bold hover:underline"
+                className="text-orange-500 text-[11px] font-bold hover:underline cursor-pointer"
               >
                 Edit
               </button>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-[11px]">
-                <thead>
-                  <tr className="text-slate-400 dark:text-slate-500 font-normal">
-                    <th className="pb-3 pl-4 font-normal text-left">Inventory Type</th>
-                    <th className="pb-3 px-3 font-normal text-center">Units</th>
-                    <th className="pb-3 px-3 font-normal text-center">Price per Unit</th>
-                    <th className="pb-3 pr-4 font-normal text-right">Total Price</th>
-                  </tr>
-                </thead>
-                <tbody className="text-slate-700 dark:text-slate-300">
-                  {(() => {
-                    const units = booking.travelers || 2;
-                    const currentPrice = booking.totalPrice || 133.431;
-                    const pricePerUnit = currentPrice / units;
-                    const discountPercent = 6;
-                    const struckThroughPrice = currentPrice * 1.060451;
+            {(() => {
+              const units = booking.travelers || 2;
+              const currentPrice = booking.totalPrice || 133.431;
+              const pricePerUnit = currentPrice / units;
+              const discountPercent = 6;
+              const struckThroughPrice = currentPrice * 1.060451;
 
-                    return (
-                      <tr className="bg-slate-50/60 dark:bg-slate-900/20 rounded-lg overflow-hidden">
-                        <td className="py-4 pl-4 rounded-l-lg text-slate-600 dark:text-slate-400 text-xs font-normal text-left">Adult</td>
-                        <td className="py-4 px-3 text-center text-slate-800 dark:text-slate-100 text-xs font-normal">{units}</td>
-                        <td className="py-4 px-3 text-center text-slate-600 dark:text-slate-400 text-xs font-normal">CAD {pricePerUnit.toFixed(3)}</td>
-                        <td className="py-4 pr-4 rounded-r-lg text-right">
-                          <div className="inline-flex items-center gap-2.5 text-left">
-                            <div className="flex flex-col">
-                              <span className="line-through text-slate-400 dark:text-slate-500 text-[10px] font-normal leading-tight mb-0.5">
-                                CAD {struckThroughPrice.toFixed(3)}
-                              </span>
-                              <span className="text-slate-800 dark:text-slate-200 text-xs font-semibold leading-tight">
-                                CAD {currentPrice.toFixed(3)}
+              return (
+                <>
+                  {/* Mobile Stacked Card View (< lg) */}
+                  <div className="lg:hidden bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200/70 dark:border-slate-800">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase text-slate-400">Inventory Type</p>
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">Adult</p>
+                      </div>
+                      <span className="bg-[#bbf7d0]/70 text-[#166534] dark:bg-emerald-950/40 dark:text-emerald-400 px-2 py-0.5 text-[11px] font-bold rounded-md">
+                        -{discountPercent}% OFF
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-medium">Units</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-100 mt-0.5 tabular-nums">{units}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-medium">Price / Unit</p>
+                        <p className="font-semibold text-slate-600 dark:text-slate-300 mt-0.5 tabular-nums">CAD {pricePerUnit.toFixed(2)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-slate-400 font-medium">Total Price</p>
+                        <p className="line-through text-slate-400 text-[10px] tabular-nums">CAD {struckThroughPrice.toFixed(2)}</p>
+                        <p className="font-extrabold text-slate-900 dark:text-white tabular-nums">CAD {currentPrice.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop Table View (>= lg) */}
+                  <div className="hidden lg:block overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-[11px]">
+                      <thead>
+                        <tr className="text-slate-400 dark:text-slate-500 font-normal">
+                          <th className="pb-3 pl-4 font-normal text-left">Inventory Type</th>
+                          <th className="pb-3 px-3 font-normal text-center">Units</th>
+                          <th className="pb-3 px-3 font-normal text-center">Price per Unit</th>
+                          <th className="pb-3 pr-4 font-normal text-right">Total Price</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-slate-700 dark:text-slate-300">
+                        <tr className="bg-slate-50/60 dark:bg-slate-900/20 rounded-lg overflow-hidden">
+                          <td className="py-4 pl-4 rounded-l-lg text-slate-600 dark:text-slate-400 text-xs font-normal text-left">Adult</td>
+                          <td className="py-4 px-3 text-center text-slate-800 dark:text-slate-100 text-xs font-normal tabular-nums">{units}</td>
+                          <td className="py-4 px-3 text-center text-slate-600 dark:text-slate-400 text-xs font-normal tabular-nums">CAD {pricePerUnit.toFixed(3)}</td>
+                          <td className="py-4 pr-4 rounded-r-lg text-right">
+                            <div className="inline-flex items-center gap-2.5 text-left">
+                              <div className="flex flex-col">
+                                <span className="line-through text-slate-400 dark:text-slate-500 text-[10px] font-normal leading-tight mb-0.5 tabular-nums">
+                                  CAD {struckThroughPrice.toFixed(3)}
+                                </span>
+                                <span className="text-slate-800 dark:text-slate-200 text-xs font-semibold leading-tight tabular-nums">
+                                  CAD {currentPrice.toFixed(3)}
+                                </span>
+                              </div>
+                              <span className="bg-[#bbf7d0]/70 text-[#166534] dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.5 text-[10px] font-bold rounded-md leading-none">
+                                {discountPercent}%
                               </span>
                             </div>
-                            <span className="bg-[#bbf7d0]/70 text-[#166534] dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.5 text-[10px] font-bold rounded-md leading-none">
-                              {discountPercent}%
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })()}
-                </tbody>
-              </table>
-            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -776,8 +807,71 @@ export default function BookingDetailsView({
             )}
           </AnimatePresence>
 
-          {/* Passengers Table Grid Layout matching PDF exactly */}
-          <div className="overflow-x-auto rounded-lg border border-slate-150 dark:border-slate-850">
+          {/* Passengers Mobile Cards (< lg) */}
+          <div className="lg:hidden space-y-3">
+            {passengersList.map((pass, index) => {
+              const dobString = pass.dob || '1999-09-29';
+              const dob = new Date(dobString);
+              let computedAge: string | number = '-';
+              if (!isNaN(dob.getTime())) {
+                const today = new Date();
+                let age = today.getFullYear() - dob.getFullYear();
+                const m = today.getMonth() - dob.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+                  age--;
+                }
+                computedAge = age >= 0 ? age : '-';
+              }
+              return (
+                <div key={index} className="bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-200/70 dark:border-slate-800">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 truncate">{pass.name}</span>
+                      {index === 0 && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-400 text-amber-950 tracking-wider shrink-0">
+                          PRIMARY
+                        </span>
+                      )}
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => triggerToast(`Uploading passport attachments for passenger ${index+1}...`, "info")}
+                      className="text-brand font-bold text-xs hover:underline cursor-pointer px-2.5 py-1.5 rounded-md bg-brand/5 border border-brand/20 min-h-[36px]"
+                    >
+                      + Add Passport
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="col-span-2 min-w-0">
+                      <p className="text-[10px] font-bold uppercase text-slate-400">Email</p>
+                      <p className="font-semibold text-slate-700 dark:text-slate-200 break-all select-all mt-0.5">{pass.email || 'alyshaawaluddin@gmail.com'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-slate-400">Phone</p>
+                      <p className="font-semibold text-slate-700 dark:text-slate-200 tabular-nums mt-0.5">{pass.phoneCode || '+61'} {pass.phone || '0459515313'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-slate-400">Gender & Age</p>
+                      <p className="font-semibold text-slate-700 dark:text-slate-200 uppercase mt-0.5 tabular-nums">
+                        {pass.gender || 'male'} • <span className="text-[#5fa6d9]">{computedAge} yrs</span>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-slate-400">First / Last Name</p>
+                      <p className="font-semibold text-slate-700 dark:text-slate-200 mt-0.5">{pass.firstName || 'Jacob'} {pass.lastName || 'davis'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-slate-400">Date of Birth</p>
+                      <p className="font-mono font-semibold text-slate-700 dark:text-slate-200 tabular-nums mt-0.5">{pass.dob || '1999-09-29'}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Passengers Table Grid Layout Desktop (>= lg) */}
+          <div className="hidden lg:block overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-500 font-black text-[10px] uppercase border-b border-slate-100 dark:border-slate-800">
@@ -798,6 +892,7 @@ export default function BookingDetailsView({
                   <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors">
                     <td className="py-3 px-3">
                       <button 
+                        type="button"
                         onClick={() => triggerToast(`Uploading passport attachments for passenger ${index+1}...`, "info")}
                         className="text-brand font-bold hover:underline cursor-pointer"
                       >
@@ -815,13 +910,13 @@ export default function BookingDetailsView({
                       </div>
                     </td>
                     <td className="py-3 px-3 break-all select-all">{pass.email || 'alyshaawaluddin@gmail.com'}</td>
-                    <td className="py-3 px-3">{pass.phone || '0459515313'}</td>
-                    <td className="py-3 px-3 text-center">{pass.phoneCode || '+61'}</td>
+                    <td className="py-3 px-3 tabular-nums">{pass.phone || '0459515313'}</td>
+                    <td className="py-3 px-3 text-center tabular-nums">{pass.phoneCode || '+61'}</td>
                     <td className="py-3 px-3">{pass.firstName || 'Jacob'}</td>
                     <td className="py-3 px-3">{pass.lastName || 'davis'}</td>
                     <td className="py-3 px-3 uppercase text-[10px]">{pass.gender || 'male'}</td>
-                    <td className="py-3 px-3 font-mono">{pass.dob || '1999-09-29'}</td>
-                    <td className="py-3 px-3 text-center font-bold text-[#5fa6d9] dark:text-[#7da7c4] font-mono">
+                    <td className="py-3 px-3 font-mono tabular-nums">{pass.dob || '1999-09-29'}</td>
+                    <td className="py-3 px-3 text-center font-bold text-[#5fa6d9] dark:text-[#7da7c4] font-mono tabular-nums">
                       {(() => {
                         const dobString = pass.dob || '1999-09-29';
                         const dob = new Date(dobString);
@@ -851,7 +946,7 @@ export default function BookingDetailsView({
         <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
 
         {/* Payment Metrics Cards Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-3.5">
           {/* Total Amount */}
           <div className="bg-[#f8fafc] dark:bg-slate-950/40 p-4 rounded-xl border border-slate-150 dark:border-slate-800/80 min-h-[90px] flex flex-col justify-between">
             <div>
@@ -942,7 +1037,56 @@ export default function BookingDetailsView({
             <span>PAYMENT PARTS</span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile Stacked Card for Payment Parts (< lg) */}
+          <div className="lg:hidden bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200/70 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Part #1</span>
+                <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 text-[10px] font-black tracking-wider uppercase">
+                  PAID
+                </span>
+              </div>
+              <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tabular-nums">
+                <EurToInrTooltip 
+                  amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 66)} 
+                  bookingDate={booking.bookingDate} 
+                  currency={booking.paymentCurrency || "USD"}
+                >
+                  {booking.paymentCurrency && booking.paymentPrice !== undefined ? (
+                    new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: booking.paymentCurrency,
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    }).format(booking.paymentPrice)
+                  ) : (
+                    `USD ${booking.totalPrice || 66}`
+                  )}
+                </EurToInrTooltip>
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <p className="text-[10px] font-bold uppercase text-slate-400">Paid On</p>
+                <p className="font-semibold text-slate-700 dark:text-slate-300 tabular-nums mt-0.5">{booking.bookingDate || '30 Jun 2026'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase text-slate-400">Due Date</p>
+                <p className="font-semibold text-slate-700 dark:text-slate-300 tabular-nums mt-0.5">{booking.bookingDate || '30 Jun 2026'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase text-slate-400">Pay To</p>
+                <p className="font-semibold text-slate-700 dark:text-slate-300 mt-0.5">portal</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[10px] font-bold uppercase text-slate-400">Collected in Payment</p>
+                <p className="font-mono text-[#e3000f] font-bold select-all break-all mt-0.5">chk_d9119e3p124cb543ns8g</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Table for Payment Parts (>= lg) */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="text-[#94a3b8] dark:text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -957,8 +1101,8 @@ export default function BookingDetailsView({
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-300">
                 <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors">
-                  <td className="py-4 pr-3 font-medium text-slate-600 dark:text-slate-400">1</td>
-                  <td className="py-4 px-3 font-extrabold text-slate-900 dark:text-slate-100">
+                  <td className="py-4 pr-3 font-medium text-slate-600 dark:text-slate-400 tabular-nums">1</td>
+                  <td className="py-4 px-3 font-extrabold text-slate-900 dark:text-slate-100 tabular-nums">
                     <EurToInrTooltip 
                       amount={booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 66)} 
                       bookingDate={booking.bookingDate} 
@@ -976,8 +1120,8 @@ export default function BookingDetailsView({
                       )}
                     </EurToInrTooltip>
                   </td>
-                  <td className="py-4 px-3 font-medium text-slate-600 dark:text-slate-400">{booking.bookingDate || '30 Jun 2026'}</td>
-                  <td className="py-4 px-3 font-medium text-slate-600 dark:text-slate-400">{booking.bookingDate || '30 Jun 2026'}</td>
+                  <td className="py-4 px-3 font-medium text-slate-600 dark:text-slate-400 tabular-nums">{booking.bookingDate || '30 Jun 2026'}</td>
+                  <td className="py-4 px-3 font-medium text-slate-600 dark:text-slate-400 tabular-nums">{booking.bookingDate || '30 Jun 2026'}</td>
                   <td className="py-4 px-3">
                     <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 text-[10px] font-black tracking-wider uppercase">
                       PAID
@@ -1065,7 +1209,7 @@ export default function BookingDetailsView({
 
             <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-5 gap-y-6 gap-x-4 pt-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-y-4 sm:gap-y-6 gap-x-4 pt-6">
               <div className="flex items-center gap-1.5">
                 <span className="text-[12px] font-medium text-[#94a3b8]">GST:</span>
                 <span className="text-[12px] font-bold text-slate-800 dark:text-slate-300">{currencyToUse} 0</span>
@@ -1139,46 +1283,50 @@ export default function BookingDetailsView({
             <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold mt-0.5">Total Vendor Payable: USD 0</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button 
+              type="button"
               onClick={() => setShowAllocateVendorModal(true)}
-              className="border border-brand hover:bg-brand/5 dark:hover:bg-brand/10 px-3.5 py-1.5 rounded text-xs font-bold text-brand transition-colors cursor-pointer"
+              className="min-h-[36px] border border-brand hover:bg-brand/5 dark:hover:bg-brand/10 px-3.5 py-1.5 rounded text-xs font-bold text-brand transition-colors cursor-pointer"
             >
               + Allocate New Vendor
             </button>
             <button 
+              type="button"
               disabled 
-              className="border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 px-3.5 py-1.5 rounded text-xs font-bold bg-slate-50 dark:bg-slate-950/20 cursor-not-allowed"
+              className="min-h-[36px] border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 px-3.5 py-1.5 rounded text-xs font-bold bg-slate-50 dark:bg-slate-950/20 cursor-not-allowed"
             >
               Freeze Vendors
             </button>
           </div>
         </div>
 
-        <div className="p-8 text-center text-xs font-semibold text-slate-400 bg-slate-50/50 dark:bg-slate-950/10 border border-dashed border-slate-150 dark:border-slate-850 rounded-lg">
+        <div className="p-6 sm:p-8 text-center text-xs font-semibold text-slate-400 bg-slate-50/50 dark:bg-slate-950/10 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
           No vendor information Found.<br />
           <span className="font-normal text-[11px] text-slate-400 mt-1 block">All services for this vendor have been removed or not allocated yet.</span>
         </div>
       </div>
 
       {/* 11. ALLOT VOUCHERS CARD */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-5 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg p-4 sm:p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100 dark:border-slate-800">
           <div>
             <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Allot Vouchers</h3>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold mt-0.5">Manage and view voucher distribution details for travelers.</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button 
+              type="button"
               onClick={() => triggerToast("Registering new digital voucher distribution entry...", "info")}
-              className="border border-brand hover:bg-brand/5 dark:hover:bg-brand/10 px-3.5 py-1.5 rounded text-xs font-bold text-brand transition-colors cursor-pointer"
+              className="min-h-[36px] border border-brand hover:bg-brand/5 dark:hover:bg-brand/10 px-3.5 py-1.5 rounded text-xs font-bold text-brand transition-colors cursor-pointer"
             >
               + Allocate New Event
             </button>
             <button 
+              type="button"
               disabled 
-              className="border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 px-3.5 py-1.5 rounded text-xs font-bold bg-slate-50 dark:bg-slate-950/20 cursor-not-allowed"
+              className="min-h-[36px] border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 px-3.5 py-1.5 rounded text-xs font-bold bg-slate-50 dark:bg-slate-950/20 cursor-not-allowed"
             >
               Freeze Event
             </button>
@@ -1207,8 +1355,8 @@ export default function BookingDetailsView({
         </button>
 
         {!sectionsCollapsed.metaData && (
-          <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-            <div className="flex flex-wrap gap-x-12 gap-y-8">
+          <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-5">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
                   <FileText className="w-4 h-4" />
@@ -1351,49 +1499,49 @@ export default function BookingDetailsView({
         </button>
 
         {!sectionsCollapsed.utmParams && (
-          <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-            <div className="flex flex-wrap gap-x-12 gap-y-8">
-              <div className="flex items-center gap-3">
+          <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-5">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
                   <FileText className="w-4 h-4" />
                 </div>
-                <div className="flex flex-col leading-tight">
+                <div className="flex flex-col leading-tight min-w-0">
                   <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">UTM Campaign</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">110622-100-Google-TTD-Referral</span>
+                  <span className="text-[13px] text-slate-700 dark:text-slate-300 break-all">110622-100-Google-TTD-Referral</span>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
                   <FileText className="w-4 h-4" />
                 </div>
-                <div className="flex flex-col leading-tight">
+                <div className="flex flex-col leading-tight min-w-0">
                   <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">UTM Medium</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">110622-110-Google-TTD-Referral</span>
+                  <span className="text-[13px] text-slate-700 dark:text-slate-300 break-all">110622-110-Google-TTD-Referral</span>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
                   <FileText className="w-4 h-4" />
                 </div>
-                <div className="flex flex-col leading-tight">
+                <div className="flex flex-col leading-tight min-w-0">
                   <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">UTM Source</span>
-                  <span className="text-[13px] text-slate-700 dark:text-slate-300">110622-111-Google-TTD-Referral</span>
+                  <span className="text-[13px] text-slate-700 dark:text-slate-300 break-all">110622-111-Google-TTD-Referral</span>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
                   <FileText className="w-4 h-4" />
                 </div>
-                <div className="flex flex-col leading-tight">
+                <div className="flex flex-col leading-tight min-w-0">
                   <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">UTM Term</span>
                   <span className="text-[13px] text-slate-500 dark:text-slate-400">--</span>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-md bg-[#f8fafc] dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-[#94a3b8] shrink-0">
                   <FileText className="w-4 h-4" />
                 </div>
-                <div className="flex flex-col leading-tight">
+                <div className="flex flex-col leading-tight min-w-0">
                   <span className="text-[11px] font-medium text-[#94a3b8] mb-0.5">UTM Content</span>
                   <span className="text-[13px] text-slate-500 dark:text-slate-400">--</span>
                 </div>
@@ -1406,6 +1554,7 @@ export default function BookingDetailsView({
       {/* 14. RESELLER INFORMATION COLLAPSIBLE CARD */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-lg overflow-hidden shadow-sm">
         <button
+          type="button"
           onClick={() => toggleCollapse('resellerInfo')}
           className="w-full flex items-center justify-between p-4 font-extrabold text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer"
         >
@@ -1414,21 +1563,21 @@ export default function BookingDetailsView({
         </button>
 
         {!sectionsCollapsed.resellerInfo && (
-          <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 space-y-6">
-            <div className="flex flex-wrap gap-x-24 gap-y-8">
-              <div className="flex flex-col leading-tight">
+          <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 space-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-5">
+              <div className="flex flex-col leading-tight min-w-0">
                 <span className="text-[11px] font-medium text-[#94a3b8] mb-1">Reseller Name</span>
                 <span className="text-[13px] font-bold text-slate-800 dark:text-slate-300">Tiqsey</span>
               </div>
-              <div className="flex flex-col leading-tight">
+              <div className="flex flex-col leading-tight min-w-0">
                 <span className="text-[11px] font-medium text-[#94a3b8] mb-1">Reseller Email</span>
-                <span className="text-[13px] font-bold text-slate-800 dark:text-slate-300">info@tiqsey.com</span>
+                <span className="text-[13px] font-bold text-slate-800 dark:text-slate-300 break-all">info@tiqsey.com</span>
               </div>
-              <div className="flex flex-col leading-tight">
+              <div className="flex flex-col leading-tight min-w-0">
                 <span className="text-[11px] font-medium text-[#94a3b8] mb-1">Reseller Phone</span>
-                <span className="text-[13px] font-bold text-slate-800 dark:text-slate-300">9916134180</span>
+                <span className="text-[13px] font-bold text-slate-800 dark:text-slate-300 tabular-nums">9916134180</span>
               </div>
-              <div className="flex flex-col leading-tight">
+              <div className="flex flex-col leading-tight min-w-0">
                 <span className="text-[11px] font-medium text-[#94a3b8] mb-1">Invoice Ref</span>
                 <span className="text-[13px] font-bold text-slate-500 dark:text-slate-400">--</span>
               </div>
@@ -1445,6 +1594,59 @@ export default function BookingDetailsView({
           </div>
         )}
       </div>
+
+      {/* Cancel Confirmation Modal (replaces window.confirm) */}
+      <AnimatePresence>
+        {showCancelConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-sm w-full max-h-[90dvh] flex flex-col overflow-hidden"
+            >
+              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
+                    <AlertTriangle className="w-4 h-4" />
+                  </span>
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Cancel Booking?</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Are you sure you want to cancel booking <strong className="font-bold text-slate-900 dark:text-white">{booking.bookingRef}</strong> for <strong className="font-bold text-slate-900 dark:text-white">{booking.customerName}</strong>?
+              </div>
+              <div className="p-4 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="min-h-[38px] px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Keep Booking
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onUpdateStatus(booking.id, 'cancelled');
+                    setShowCancelConfirm(false);
+                    triggerToast("Booking marked as CANCELLED.", "info");
+                  }}
+                  className="min-h-[38px] px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg cursor-pointer shadow-xs"
+                >
+                  Yes, Cancel Booking
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AllocateVendorModal 
         isOpen={showAllocateVendorModal} 

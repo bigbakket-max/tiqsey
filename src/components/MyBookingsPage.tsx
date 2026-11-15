@@ -154,18 +154,18 @@ export default function MyBookingsPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F7F9] dark:bg-slate-950 transition-colors duration-300 font-sans pb-16">
+    <div className="min-h-[100dvh] bg-[#F4F7F9] dark:bg-slate-950 transition-colors duration-300 font-sans pb-24 lg:pb-16">
       {/* Header section with ambient glow */}
-      <div className="relative bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800/80 pt-8 pb-10 overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[300px] bg-brand/5 blur-[100px] rounded-full pointer-events-none" />
-        <div className="absolute -left-10 bottom-0 w-[300px] h-[200px] bg-indigo-500/5 blur-[80px] rounded-full pointer-events-none" />
+      <div className="relative bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800/80 pt-6 sm:pt-8 pb-8 sm:pb-10 overflow-hidden">
+        <div className="absolute top-0 right-0 w-full max-w-[500px] h-[240px] sm:h-[300px] bg-brand/5 blur-[100px] rounded-full pointer-events-none" />
+        <div className="absolute -left-10 bottom-0 w-full max-w-[300px] h-[200px] bg-indigo-500/5 blur-[80px] rounded-full pointer-events-none" />
 
-        <div className="max-w-6xl mx-auto px-6 md:px-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10">
           {/* Back Navigation */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-5 sm:mb-6">
             <button
               onClick={onBackToHome}
-              className="group flex items-center gap-2 text-xs font-black text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 uppercase tracking-widest transition-colors cursor-pointer"
+              className="group flex items-center gap-2 min-h-[40px] text-xs font-black text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 uppercase tracking-widest transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
               <span>{t('backToHome', 'Back to Home')}</span>
@@ -182,7 +182,7 @@ export default function MyBookingsPage({
                   {t('reservationHub', 'Reservation Hub')}
                 </span>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-slate-50">
+              <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-slate-50">
                 {t('myTickets', 'My tickets')}
               </h1>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2 max-w-2xl">
@@ -190,12 +190,12 @@ export default function MyBookingsPage({
               </p>
             </div>
 
-            <div className="flex items-center gap-4 shrink-0 bg-slate-50 dark:bg-slate-950 px-5 py-4 rounded-2xl border border-slate-100 dark:border-slate-850 select-none">
-              <div className="flex flex-col items-end pr-4 border-r border-slate-200 dark:border-slate-850">
+            <div className="flex items-center justify-between sm:justify-start gap-4 w-full md:w-auto shrink-0 bg-slate-50 dark:bg-slate-950 px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl border border-slate-100 dark:border-slate-850 select-none">
+              <div className="flex flex-col items-start sm:items-end pr-4 border-r border-slate-200 dark:border-slate-850">
                 <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   {t('upcoming', 'Upcoming')}
                 </span>
-                <span className="text-xl font-black text-slate-800 dark:text-slate-100">
+                <span className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100 tabular-nums">
                   {categorizedBookings.pending.length + categorizedBookings.upcoming.length} {t('active', 'Active')}
                 </span>
               </div>
@@ -203,7 +203,7 @@ export default function MyBookingsPage({
                 <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   {t('completed', 'Completed')}
                 </span>
-                <span className="text-xl font-black text-emerald-500">
+                <span className="text-lg sm:text-xl font-black text-emerald-500 tabular-nums">
                   {categorizedBookings.completed.length} {t('done', 'Done')}
                 </span>
               </div>
@@ -213,7 +213,7 @@ export default function MyBookingsPage({
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-6xl mx-auto px-6 md:px-10 mt-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 mt-6 sm:mt-10">
         <div className="space-y-8">
           {/* Navigation Tabs */}
           <div className="flex items-center gap-2 border-b border-slate-200/60 dark:border-slate-800/80 pb-px overflow-x-auto scrollbar-none">
@@ -413,11 +413,11 @@ export default function MyBookingsPage({
                       </div>
 
                       {/* Bottom Row: Actions with a dividing border */}
-                      <div className="border-t border-slate-150 dark:border-slate-800/80 pt-3 flex items-center justify-between gap-3">
+                      <div className="border-t border-slate-150 dark:border-slate-800/80 pt-3 flex flex-wrap items-center justify-between gap-3">
                         {/* Left Actions: Download PDF Voucher */}
                         <button
                           onClick={() => setSelectedBookingForTicket(booking)}
-                          className="text-[#0070bc] hover:text-[#005c9e] hover:underline text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          className="text-[#0070bc] hover:text-[#005c9e] hover:underline text-xs font-bold flex items-center gap-1.5 min-h-[38px] cursor-pointer transition-colors"
                         >
                           <span>↓</span>
                           <span>Download PDF voucher</span>
@@ -428,7 +428,7 @@ export default function MyBookingsPage({
                           {(isUpcoming || isPending) && (
                             <button
                               onClick={() => setCancellingBookingId(booking.id)}
-                              className="text-xs font-bold text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                              className="text-xs font-bold text-slate-400 hover:text-red-600 min-h-[38px] px-2 transition-colors cursor-pointer"
                             >
                               Cancel Booking
                             </button>
@@ -523,7 +523,7 @@ export default function MyBookingsPage({
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col font-sans z-10 animate-fadeIn"
+              className="relative bg-white dark:bg-slate-900 w-full max-w-md max-h-[90dvh] rounded-[28px] sm:rounded-[32px] overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col font-sans z-10 animate-fadeIn"
             >
               {/* Top Cover Block with Image */}
               <div className="h-32 bg-slate-100 relative shrink-0">
@@ -737,7 +737,7 @@ export default function MyBookingsPage({
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 dark:border-slate-800 font-sans z-10"
+              className="relative bg-white dark:bg-slate-900 w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl p-5 sm:p-8 shadow-2xl border border-slate-100 dark:border-slate-800 font-sans z-10"
             >
               <h3 className="text-xl font-black text-slate-900 dark:text-slate-50 tracking-tight flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-500 animate-pulse" />

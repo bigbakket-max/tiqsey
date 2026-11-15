@@ -104,13 +104,13 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
   ];
 
   return (
-    <div id="about-us-page-root" className="bg-[#FAFBFD] dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen font-sans pb-20">
+    <div id="about-us-page-root" className="bg-[#FAFBFD] dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-[100dvh] font-sans pb-24 lg:pb-20 overflow-x-clip">
       
       {/* Top Header Back Bar */}
-      <div className="max-w-7xl mx-auto px-6 pt-6 pb-2">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 sm:pt-6 pb-2">
         <button
           onClick={onBackToHome}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
+          className="min-h-[40px] inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
           <span>{t('backToHome', 'Back to Home')}</span>
@@ -118,19 +118,19 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
       </div>
 
       {/* ================= HERO SECTION ================= */}
-      <section className="max-w-7xl mx-auto px-6 py-8 lg:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 lg:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
           
           {/* Left Column: Hero Text & Key Value Props */}
           <div className="lg:col-span-6 flex flex-col justify-center">
             
             {/* Eyebrow badge */}
-            <div className="inline-flex items-center gap-2 bg-rose-50 dark:bg-rose-950/40 text-[#FF385C] font-extrabold text-xs tracking-wider uppercase px-3.5 py-1.5 rounded-full w-max mb-6">
+            <div className="inline-flex items-center gap-2 bg-rose-50 dark:bg-rose-950/40 text-[#FF385C] font-extrabold text-xs tracking-wider uppercase px-3.5 py-1.5 rounded-full w-max mb-5 sm:mb-6">
               <span className="w-2 h-2 rounded-full bg-[#FF385C]" />
               {t('aboutUs', 'About Us')}
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.15] mb-6">
+            <h1 className="text-3xl sm:text-5xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.15] mb-5 sm:mb-6">
               {t('discoverTheWorld', 'Discover the world. One experience at a time.')}
             </h1>
 
@@ -180,7 +180,7 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
           </div>
 
           {/* Right Column: Floating Collage with Dotted Paths */}
-          <div className="lg:col-span-6 relative min-h-[460px] sm:min-h-[520px] flex items-center justify-center">
+          <div className="lg:col-span-6 relative min-h-[360px] sm:min-h-[520px] flex items-center justify-center">
             
             {/* Background dotted flight path SVG */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none text-slate-300 dark:text-slate-700/80" viewBox="0 0 500 520" fill="none">
@@ -188,45 +188,49 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
               <path d="M 410 140 Q 430 220 390 320" stroke="currentColor" strokeWidth="2" strokeDasharray="5 5" />
               <path d="M 90 350 Q 150 420 230 430" stroke="currentColor" strokeWidth="2" strokeDasharray="5 5" />
             </svg>
-            <Plane className="absolute top-[48px] right-[85px] sm:right-[105px] w-5 h-5 text-slate-400 dark:text-slate-500 rotate-[35deg] pointer-events-none" />
+            <Plane className="hidden sm:block absolute top-[48px] right-[85px] sm:right-[105px] w-5 h-5 text-slate-400 dark:text-slate-500 rotate-[35deg] pointer-events-none" />
 
-            <div className="relative w-full max-w-[480px] sm:max-w-[520px] h-[450px] sm:h-[500px] mx-auto">
+            <div className="relative w-full max-w-[300px] sm:max-w-[520px] h-[350px] sm:h-[500px] mx-auto">
               {/* Image 1: Tall Vertical Capsule Pill (Left) */}
-              <div className="absolute left-0 top-6 sm:top-8 w-[145px] sm:w-[180px] h-[270px] sm:h-[320px] rounded-[80px] sm:rounded-[100px] overflow-hidden shadow-xl border-4 border-white dark:border-slate-800 z-10 transition-transform duration-300 hover:scale-105">
+              <div className="absolute left-0 top-4 sm:top-8 w-[112px] sm:w-[180px] h-[205px] sm:h-[320px] rounded-[60px] sm:rounded-[100px] overflow-hidden shadow-xl border-4 border-white dark:border-slate-800 z-10 transition-transform duration-300 hover:scale-105">
                 <img
                   src="https://images.unsplash.com/photo-1527631746610-bca00a040d60?auto=format&fit=crop&q=80&w=600"
                   alt="Traveler exploring mountains and balloons"
                   className="w-full h-full object-cover"
+                  decoding="async"
                   referrerPolicy="no-referrer"
                 />
               </div>
 
               {/* Image 2: Top Right Landscape Box */}
-              <div className="absolute right-2 sm:right-6 top-0 w-[165px] sm:w-[205px] h-[120px] sm:h-[145px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg border-4 border-white dark:border-slate-800 z-10 transition-transform duration-300 hover:scale-105">
+              <div className="absolute right-1 sm:right-6 top-0 w-[132px] sm:w-[205px] h-[94px] sm:h-[145px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg border-4 border-white dark:border-slate-800 z-10 transition-transform duration-300 hover:scale-105">
                 <img
                   src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600"
                   alt="Tropical ocean and sunset beach"
                   className="w-full h-full object-cover"
+                  decoding="async"
                   referrerPolicy="no-referrer"
                 />
               </div>
 
               {/* Image 3: Bottom Center Landscape Box */}
-              <div className="absolute left-[105px] sm:left-[135px] bottom-0 w-[165px] sm:w-[195px] h-[115px] sm:h-[135px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg border-4 border-white dark:border-slate-800 z-20 transition-transform duration-300 hover:scale-105">
+              <div className="absolute left-[72px] sm:left-[135px] bottom-0 w-[135px] sm:w-[195px] h-[92px] sm:h-[135px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg border-4 border-white dark:border-slate-800 z-20 transition-transform duration-300 hover:scale-105">
                 <img
                   src="https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&q=80&w=600"
                   alt="Colosseum in Rome"
                   className="w-full h-full object-cover"
+                  decoding="async"
                   referrerPolicy="no-referrer"
                 />
               </div>
 
               {/* Image 4: Tall Vertical Capsule Pill (Far Right) */}
-              <div className="absolute right-0 bottom-4 sm:bottom-6 w-[145px] sm:w-[175px] h-[255px] sm:h-[300px] rounded-[80px] sm:rounded-[100px] overflow-hidden shadow-xl border-4 border-white dark:border-slate-800 z-10 transition-transform duration-300 hover:scale-105">
+              <div className="absolute right-0 bottom-3 sm:bottom-6 w-[112px] sm:w-[175px] h-[195px] sm:h-[300px] rounded-[60px] sm:rounded-[100px] overflow-hidden shadow-xl border-4 border-white dark:border-slate-800 z-10 transition-transform duration-300 hover:scale-105">
                 <img
                   src="https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&q=80&w=600"
                   alt="Colorful coastal village Cinque Terre"
                   className="w-full h-full object-cover"
+                  decoding="async"
                   referrerPolicy="no-referrer"
                 />
               </div>
@@ -239,7 +243,7 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
 
       {/* ================= OUR STORY SECTION ================= */}
       <ScrollReveal>
-        <section className="max-w-6xl mx-auto px-6 py-16">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
           
           {/* Section Header */}
           <div className="text-center max-w-3xl mx-auto mb-12">
@@ -311,7 +315,7 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
 
       {/* ================= WHY CHOOSE TIQSEY? SECTION ================= */}
       <ScrollReveal>
-        <section className="max-w-6xl mx-auto px-6 py-16">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
           
           <div className="text-center mb-12">
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-wider inline-block relative pb-2">
@@ -366,22 +370,22 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
           </div>
 
           {/* Stats Bar */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-8 grid grid-cols-2 lg:grid-cols-4 gap-8 text-center divide-y lg:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
-            <div className="pt-4 lg:pt-0">
-              <span className="block text-3xl sm:text-4xl font-extrabold text-[#FF385C]">30+</span>
-              <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2 uppercase tracking-wide">{t('countries', 'Countries')}</span>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-6 sm:p-8 grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 text-center lg:divide-x divide-slate-100 dark:divide-slate-800">
+            <div>
+              <span className="block text-2xl sm:text-4xl font-extrabold text-[#FF385C] tabular-nums">30+</span>
+              <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1.5 sm:mt-2 uppercase tracking-wide">{t('countries', 'Countries')}</span>
             </div>
-            <div className="pt-4 lg:pt-0">
-              <span className="block text-3xl sm:text-4xl font-extrabold text-[#FF385C]">25,000+</span>
-              <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2 uppercase tracking-wide">{t('experiences', 'Experiences')}</span>
+            <div>
+              <span className="block text-2xl sm:text-4xl font-extrabold text-[#FF385C] tabular-nums">25,000+</span>
+              <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1.5 sm:mt-2 uppercase tracking-wide">{t('experiences', 'Experiences')}</span>
             </div>
-            <div className="pt-4 lg:pt-0">
-              <span className="block text-3xl sm:text-4xl font-extrabold text-[#FF385C]">4.8/5</span>
-              <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2 uppercase tracking-wide">{t('averageRating', 'Average Rating')}</span>
+            <div>
+              <span className="block text-2xl sm:text-4xl font-extrabold text-[#FF385C] tabular-nums">4.8/5</span>
+              <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1.5 sm:mt-2 uppercase tracking-wide">{t('averageRating', 'Average Rating')}</span>
             </div>
-            <div className="pt-4 lg:pt-0">
-              <span className="block text-3xl sm:text-4xl font-extrabold text-[#FF385C]">2M+</span>
-              <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2 uppercase tracking-wide">{t('happyTravelers', 'Happy Travelers')}</span>
+            <div>
+              <span className="block text-2xl sm:text-4xl font-extrabold text-[#FF385C] tabular-nums">2M+</span>
+              <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1.5 sm:mt-2 uppercase tracking-wide">{t('happyTravelers', 'Happy Travelers')}</span>
             </div>
           </div>
 
@@ -390,9 +394,9 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
 
       {/* ================= POPULAR DESTINATIONS SECTION ================= */}
       <ScrollReveal>
-        <section className="max-w-6xl mx-auto px-6 py-16">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
           
-          <div className="text-center mb-12">
+          <div className="text-center mb-10 sm:mb-12">
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-wider inline-block relative pb-2">
               {t('popularDestinations', 'POPULAR DESTINATIONS')}
               <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#FF385C] rounded-full" />
@@ -400,16 +404,18 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
           </div>
 
           {/* 10 Grid Items (2 rows of 5 on desktop) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-5 mb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5 mb-10">
             {destinations.map((dest, idx) => (
               <div
                 key={idx}
                 onClick={onExploreActivities}
-                className="group relative h-[180px] sm:h-[210px] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
+                className="group relative h-[165px] sm:h-[210px] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
               >
                 <img
                   src={dest.image}
                   alt={dest.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   referrerPolicy="no-referrer"
                 />
@@ -427,7 +433,7 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
           <div className="text-center">
             <button
               onClick={onExploreActivities}
-              className="inline-flex items-center gap-2 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-semibold px-6 py-3 rounded-full shadow-sm text-sm transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+              className="min-h-[44px] inline-flex items-center gap-2 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-semibold px-6 py-3 rounded-full shadow-sm text-sm transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
             >
               <span>{t('exploreAllDestinations', 'Explore All Destinations')}</span>
               <ArrowRight className="w-4 h-4" />
@@ -439,11 +445,11 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
 
       {/* ================= CTA BANNER SECTION ================= */}
       <ScrollReveal>
-        <section className="max-w-6xl mx-auto px-6 py-12">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
           <div className="relative bg-slate-900 text-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl flex flex-col md:flex-row items-stretch min-h-[260px]">
             
             {/* Left Solid Red Container with Top-Right Curved Corner */}
-            <div className="relative w-full md:w-[58%] bg-[#FF385C] p-8 sm:p-10 lg:p-12 z-10 flex flex-col justify-center md:rounded-tr-[80px] lg:rounded-tr-[100px] shrink-0">
+            <div className="relative w-full md:w-[58%] bg-[#FF385C] p-6 sm:p-10 lg:p-12 z-10 flex flex-col justify-center md:rounded-tr-[80px] lg:rounded-tr-[100px] shrink-0">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mb-3 sm:mb-4 text-white">
                 {t('readyToExploreWorld', 'Ready to explore the world?')}
               </h2>
@@ -453,7 +459,7 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
               <div>
                 <button
                   onClick={onExploreActivities}
-                  className="inline-flex items-center gap-2.5 bg-white text-[#FF385C] hover:bg-slate-50 font-bold px-6 sm:px-7 py-3 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 text-xs sm:text-sm cursor-pointer"
+                  className="min-h-[44px] inline-flex items-center gap-2.5 bg-white text-[#FF385C] hover:bg-slate-50 font-bold px-6 sm:px-7 py-3 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 text-xs sm:text-sm cursor-pointer"
                 >
                   <span>{t('exploreNow', 'Start Exploring')}</span>
                   <ArrowRight className="w-4 h-4 text-[#FF385C]" />
@@ -462,10 +468,12 @@ export default function AboutPage({ onBackToHome, onExploreActivities, onSelectA
             </div>
 
             {/* Right Image Fill */}
-            <div className="relative w-full md:absolute md:right-0 md:top-0 md:bottom-0 md:w-[48%] lg:w-[50%] h-[220px] md:h-auto overflow-hidden z-0">
+            <div className="relative w-full md:absolute md:right-0 md:top-0 md:bottom-0 md:w-[48%] lg:w-[50%] h-[200px] sm:h-[220px] md:h-auto overflow-hidden z-0">
               <img
                 src="https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&q=80&w=1000"
                 alt="Couple standing on a cliff overlooking Horseshoe Bend canyon and winding river"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover object-center"
                 referrerPolicy="no-referrer"
               />

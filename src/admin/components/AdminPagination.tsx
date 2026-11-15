@@ -75,10 +75,10 @@ export const AdminPagination: React.FC<AdminPaginationProps> = ({
 
   return (
     <div
-      className={`flex flex-wrap items-center justify-center sm:justify-end gap-2.5 sm:gap-3.5 p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs select-none ${className}`}
+      className={`flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-3.5 p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs select-none ${className}`}
     >
       {/* Total items: Total 558840 items */}
-      <div className="text-xs font-normal text-slate-800 dark:text-slate-200 shrink-0 mr-0.5">
+      <div className="text-xs font-normal text-slate-800 dark:text-slate-200 shrink-0 mr-0.5 tabular-nums">
         Total {totalItems} {itemUnitName}
       </div>
 
@@ -88,13 +88,13 @@ export const AdminPagination: React.FC<AdminPaginationProps> = ({
         onClick={handlePrev}
         disabled={currentPage <= 1}
         aria-label="Previous page"
-        className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-orange-500 dark:text-slate-400 dark:hover:text-orange-400 disabled:text-slate-300 dark:disabled:text-slate-700 disabled:hover:text-slate-300 disabled:cursor-not-allowed transition-colors cursor-pointer"
+        className="w-9 h-9 sm:w-7 sm:h-7 flex items-center justify-center text-slate-400 hover:text-orange-500 dark:text-slate-400 dark:hover:text-orange-400 disabled:text-slate-300 dark:disabled:text-slate-700 disabled:hover:text-slate-300 disabled:cursor-not-allowed transition-colors cursor-pointer rounded-md"
       >
         <ChevronLeft className="w-4 h-4" />
       </button>
 
       {/* Number Buttons */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center justify-center gap-1.5">
         {pages.map((page, idx) => {
           if (page === "...") {
             return (
@@ -115,7 +115,7 @@ export const AdminPagination: React.FC<AdminPaginationProps> = ({
               key={`page-${pageNum}`}
               type="button"
               onClick={() => onPageChange(pageNum)}
-              className={`min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs rounded-md transition-all cursor-pointer ${
+              className={`min-w-[36px] h-9 sm:min-w-[28px] sm:h-7 px-2 sm:px-1.5 flex items-center justify-center text-xs rounded-md transition-all cursor-pointer tabular-nums ${
                 isActive
                   ? "border border-[#f97316] text-[#f97316] font-semibold bg-white dark:bg-slate-900 shadow-2xs"
                   : "border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:border-[#f97316] hover:text-[#f97316]"
@@ -133,7 +133,7 @@ export const AdminPagination: React.FC<AdminPaginationProps> = ({
         onClick={handleNext}
         disabled={currentPage >= totalPages}
         aria-label="Next page"
-        className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-orange-500 dark:text-slate-400 dark:hover:text-orange-400 disabled:text-slate-300 dark:disabled:text-slate-700 disabled:hover:text-slate-300 disabled:cursor-not-allowed transition-colors cursor-pointer"
+        className="w-9 h-9 sm:w-7 sm:h-7 flex items-center justify-center text-slate-400 hover:text-orange-500 dark:text-slate-400 dark:hover:text-orange-400 disabled:text-slate-300 dark:disabled:text-slate-700 disabled:hover:text-slate-300 disabled:cursor-not-allowed transition-colors cursor-pointer rounded-md"
       >
         <ChevronRight className="w-4 h-4" />
       </button>
@@ -148,7 +148,7 @@ export const AdminPagination: React.FC<AdminPaginationProps> = ({
               onItemsPerPageChange(newSize);
               onPageChange(1);
             }}
-            className="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-normal rounded-md pl-2.5 pr-6 py-1 hover:border-[#f97316] focus:outline-none focus:border-[#f97316] transition-colors cursor-pointer shadow-2xs"
+            className="h-9 sm:h-auto appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-normal rounded-md pl-2.5 pr-6 py-1 hover:border-[#f97316] focus:outline-none focus:border-[#f97316] transition-colors cursor-pointer shadow-2xs"
           >
             {pageSizeOptions.map((opt) => (
               <option key={opt} value={opt}>

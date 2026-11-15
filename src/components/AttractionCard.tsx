@@ -51,10 +51,12 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
       className="group flex flex-col cursor-pointer bg-white dark:bg-slate-950 rounded-2xl overflow-hidden shadow-[0_8px_30px_-10px_rgba(0,0,0,0.05)] hover:shadow-[0_16px_36px_-8px_rgba(0,0,0,0.1)] hover:scale-[1.02] hover:-translate-y-1 transition-all duration-500 border border-slate-100/80 dark:border-slate-850 relative h-full animate-fadeIn"
       onClick={() => onClick?.(attr.id)}
     >
-      <div className="relative aspect-[1.5/1] overflow-hidden rounded-t-2xl">
+      <div className="relative aspect-[1.5/1] overflow-hidden rounded-t-2xl bg-slate-100 dark:bg-slate-900">
         <img 
           src={imgSrc} 
           alt={attr.name}
+          loading="lazy"
+          decoding="async"
           onError={handleImageError}
           className={`relative z-10 w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110 ${attr.isAvailable === false ? 'grayscale opacity-70' : ''}`}
           referrerPolicy="no-referrer"
@@ -65,13 +67,14 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
         
         {/* Wishlist Floating Button */}
         <motion.button
+          type="button"
           whileTap={{ scale: 0.85 }}
           whileHover={{ scale: 1.05 }}
           onClick={(e) => {
             e.stopPropagation();
             toggleWishlist(attr);
           }}
-          className="absolute top-3 right-3 z-25 flex items-center justify-center w-8.5 h-8.5 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/50 dark:border-slate-800/50 backdrop-blur-xs transition-colors cursor-pointer group/fav"
+          className="absolute top-2.5 right-2.5 z-25 flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-md border border-slate-100/50 dark:border-slate-800/50 backdrop-blur-xs transition-colors cursor-pointer group/fav"
           title={isFav ? "Remove from Wishlist" : "Save to Wishlist"}
           aria-label={isFav ? "Remove from Wishlist" : "Save to Wishlist"}
         >
@@ -97,20 +100,20 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
         ) : attr.discountPrice ? (
           <div className="absolute top-3 left-3 z-20 flex items-center bg-black/80 rounded-full p-0.5 shadow-md select-none border border-white/5">
             <div className="flex items-center gap-1 bg-[#e3000f] text-white rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider">
-              <Flame className="w-2.5 h-2.5 fill-white stroke-none animate-pulse" />
+              <Flame className="w-2.5 h-2.5 fill-white stroke-none" />
               <span>Hot Deal</span>
             </div>
-            <span className="text-white font-extrabold px-2 text-[10px] tracking-tight">
+            <span className="text-white font-extrabold px-2 text-[10px] tracking-tight tabular-nums">
               -{Math.round(((attr.price - attr.discountPrice) / attr.price) * 100)}%
             </span>
           </div>
         ) : null}
       </div>
 
-      <div className="flex-1 flex flex-col p-5">
-        <p className="text-slate-400 dark:text-slate-500 text-[10px] font-extrabold uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-          <span>{attr.city}</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-350 dark:bg-slate-700" />
+      <div className="flex-1 flex flex-col p-4 sm:p-5">
+        <p className="text-slate-400 dark:text-slate-500 text-[10px] font-extrabold uppercase tracking-widest mb-1.5 flex items-center gap-1.5 flex-wrap">
+          <span className="truncate max-w-[140px]">{attr.city}</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-350 dark:bg-slate-700 shrink-0" />
           <span className="whitespace-nowrap">{attr.category}</span>
         </p>
         
@@ -124,9 +127,9 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
           </p>
         )}
 
-        <div className="mt-auto flex items-end justify-between w-full pt-4 border-t border-slate-100 dark:border-slate-800/60">
+        <div className="mt-auto flex items-end justify-between w-full pt-3.5 sm:pt-4 border-t border-slate-100 dark:border-slate-800/60">
           {/* Enhanced Golden Rating Badge */}
-          <div className="flex items-center gap-1 px-2.5 py-1 bg-[#FFF9EB] dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 rounded-full h-7">
+          <div className="flex items-center gap-1 px-2.5 py-1 bg-[#FFF9EB] dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 rounded-full h-7 tabular-nums">
             <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
             <span className="text-[11px] font-black text-amber-900 dark:text-amber-200 leading-none">{attr.rating}</span>
             <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold leading-none">({attr.reviewsCount?.toLocaleString()})</span>
@@ -143,7 +146,7 @@ export default function AttractionCard({ attr, onClick, size = 'md' }: Props) {
               </span>
             </div>
           ) : (
-            <div className="text-right flex flex-col items-end shrink-0 select-none">
+            <div className="text-right flex flex-col items-end shrink-0 select-none tabular-nums">
               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
                 From
               </span>

@@ -206,7 +206,7 @@ export default function FaviconManagement() {
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Toast Notification */}
       {notification && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-20 md:bottom-6 right-4 left-4 sm:left-auto sm:right-6 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200">
           <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border ${
             notification.type === 'success' 
               ? 'bg-emerald-50 dark:bg-emerald-950/90 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800'
@@ -217,10 +217,11 @@ export default function FaviconManagement() {
             {notification.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />}
             {notification.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />}
             {notification.type === 'info' && <Info className="w-5 h-5 text-sky-600 dark:text-sky-400 shrink-0" />}
-            <span>{notification.message}</span>
+            <span className="flex-1 min-w-0 break-words">{notification.message}</span>
             <button 
               onClick={() => setNotification(null)}
-              className="ml-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              aria-label="Dismiss notification"
+              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -229,15 +230,15 @@ export default function FaviconManagement() {
       )}
 
       {/* Top Header & Overview */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md">
+          <div className="flex items-start sm:items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md shrink-0">
               <Globe className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Website Favicon</h1>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">Website Favicon</h1>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/40">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Live in Production
@@ -251,12 +252,12 @@ export default function FaviconManagement() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
           <a
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
+            className="min-h-[40px] inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
             title="Inspect on live public site"
           >
             <ExternalLink className="w-3.5 h-3.5" />
@@ -265,7 +266,7 @@ export default function FaviconManagement() {
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-sm cursor-pointer active:scale-95"
+            className="min-h-[40px] inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-sm cursor-pointer active:scale-95"
           >
             <Upload className="w-3.5 h-3.5" />
             <span>Replace Favicon</span>
@@ -274,7 +275,7 @@ export default function FaviconManagement() {
           {isCustomActive && (
             <button
               onClick={() => setShowResetModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900/80 transition-colors cursor-pointer"
+              className="min-h-[40px] inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900/80 transition-colors cursor-pointer"
               title="Reset to default brand favicon"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -285,7 +286,8 @@ export default function FaviconManagement() {
           <button
             onClick={loadFavicon}
             disabled={isLoading}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+            aria-label="Reload favicon settings"
+            className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
             title="Reload from server"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -454,25 +456,25 @@ export default function FaviconManagement() {
 
             {/* Metadata Table */}
             <div className="space-y-2 text-xs">
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800/80">
+              <div className="flex flex-wrap items-center justify-between gap-2 py-1.5 border-b border-slate-100 dark:border-slate-800/80">
                 <span className="text-slate-500 dark:text-slate-400">MIME Content Type:</span>
                 <span className="font-mono text-slate-800 dark:text-slate-200 font-bold">{activeFavicon.mimeType || 'image/png'}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800/80">
-                <span className="text-slate-500 dark:text-slate-400">Relative URL:</span>
-                <span className="font-mono text-slate-800 dark:text-slate-200 truncate max-w-[200px]" title={activeFavicon.url}>
+              <div className="flex flex-wrap items-center justify-between gap-2 py-1.5 border-b border-slate-100 dark:border-slate-800/80">
+                <span className="text-slate-500 dark:text-slate-400 shrink-0">Relative URL:</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200 truncate min-w-0 max-w-full sm:max-w-[200px]" title={activeFavicon.url}>
                   {activeFavicon.url}
                 </span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800/80">
+              <div className="flex flex-wrap items-center justify-between gap-2 py-1.5 border-b border-slate-100 dark:border-slate-800/80">
                 <span className="text-slate-500 dark:text-slate-400">Apple Touch Support:</span>
                 <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
                   <Check className="w-3.5 h-3.5" /> Supported (180×180)
                 </span>
               </div>
-              <div className="flex justify-between py-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 py-1.5">
                 <span className="text-slate-500 dark:text-slate-400">Managed By:</span>
-                <span className="text-slate-800 dark:text-slate-200 font-medium">{activeFavicon.updatedBy || 'admin@tiqsey.com'}</span>
+                <span className="text-slate-800 dark:text-slate-200 font-medium break-all">{activeFavicon.updatedBy || 'admin@tiqsey.com'}</span>
               </div>
             </div>
           </div>
@@ -567,8 +569,8 @@ export default function FaviconManagement() {
                   </div>
 
                   {/* Active Tab Mockup */}
-                  <div className="flex items-center gap-1 max-w-sm">
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-t-xl text-xs font-medium border-t border-x ${
+                  <div className="flex items-center gap-1 max-w-full overflow-hidden">
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-t-xl text-xs font-medium border-t border-x min-w-0 max-w-full ${
                       previewTheme === 'dark' 
                         ? 'bg-[#282c34] border-slate-700/60 text-white' 
                         : 'bg-white border-slate-300 text-slate-900 shadow-xs'
@@ -579,7 +581,7 @@ export default function FaviconManagement() {
                         className="w-4 h-4 rounded-xs shrink-0 object-contain"
                         onError={(e) => { (e.target as HTMLImageElement).src = '/favicon.png'; }}
                       />
-                      <span className="truncate max-w-[170px] font-bold">Tiqsey - Best Attractions & Experiences</span>
+                      <span className="truncate max-w-[150px] sm:max-w-[170px] font-bold">Tiqsey - Best Attractions & Experiences</span>
                       <X className="w-3 h-3 text-slate-400 hover:text-slate-600 shrink-0 ml-1 cursor-pointer" />
                     </div>
 
@@ -771,7 +773,7 @@ export default function FaviconManagement() {
       {/* Reset Confirmation Modal */}
       {showResetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
               <RotateCcw className="w-6 h-6" />
             </div>
@@ -785,14 +787,14 @@ export default function FaviconManagement() {
               <button
                 onClick={() => setShowResetModal(false)}
                 disabled={isResetting}
-                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleResetToDefault}
                 disabled={isResetting}
-                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
               >
                 {isResetting ? (
                   <>

@@ -521,7 +521,7 @@ export default function ActivitiesPage({
   }
 
   return (
-    <div className="bg-[#fcfcfa] dark:bg-slate-950 min-h-screen pb-12 transition-colors duration-300">
+    <div className="bg-[#fcfcfa] dark:bg-slate-950 min-h-screen pb-24 lg:pb-12 transition-colors duration-300">
       <Helmet>
         <title>{seoTitle}</title>
         <meta name="description" content={seoDescription} />
@@ -529,7 +529,7 @@ export default function ActivitiesPage({
         <meta property="og:description" content={seoDescription} />
       </Helmet>
       {/* Dynamic Animated Hero Header */}
-      <div className="relative w-full h-[280px] md:h-[350px] bg-slate-950 overflow-hidden mb-0">
+      <div className="relative w-full h-[260px] sm:h-[300px] md:h-[350px] bg-slate-950 overflow-hidden mb-0">
         <div
           key={heroImage}
           className="absolute inset-0 overflow-hidden"
@@ -547,32 +547,38 @@ export default function ActivitiesPage({
             referrerPolicy="no-referrer"
           />
           {/* Subtle overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/30 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/30 pointer-events-none" />
           
           {/* Manual slide indicator dots */}
           {heroImages.length > 1 && (
-            <div className="absolute bottom-5 right-5 z-20 flex gap-2">
+            <div className="absolute bottom-4 right-4 z-20 flex gap-1.5">
               {heroImages.map((_, idx) => (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => setCurrentHeroIndex(idx)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    idx === currentHeroIndex
-                      ? "bg-brand w-4 h-2 shadow-xs"
-                      : "bg-white/40 hover:bg-white/75"
-                  }`}
+                  className="min-w-[28px] min-h-[28px] flex items-center justify-center cursor-pointer"
                   title={`View image ${idx + 1}`}
                   aria-label={`View slide ${idx + 1}`}
-                />
+                >
+                  <span
+                    className={`block h-2 rounded-full transition-all duration-300 ${
+                      idx === currentHeroIndex
+                        ? "bg-brand w-5 shadow-xs"
+                        : "bg-white/40 hover:bg-white/75 w-2"
+                    }`}
+                  />
+                </button>
               ))}
             </div>
           )}
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 h-full flex flex-col justify-end pb-8">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 h-full flex flex-col justify-end pb-7 sm:pb-8">
           <button
+            type="button"
             onClick={onBack}
-            className="absolute top-5 left-4 md:left-6 flex items-center gap-2 text-xs font-bold text-white/90 hover:text-white transition-all bg-black/40 hover:bg-black/60 px-4 py-2 rounded-full backdrop-blur-md border border-white/10 group select-none shadow-md"
+            className="absolute top-4 sm:top-5 left-4 md:left-6 flex items-center gap-2 text-xs font-bold text-white/90 hover:text-white transition-all bg-black/45 hover:bg-black/65 px-4 min-h-[40px] rounded-full backdrop-blur-md border border-white/10 group select-none shadow-md cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
             <span>Return to Explore</span>
@@ -582,16 +588,16 @@ export default function ActivitiesPage({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="max-w-2xl"
+            className="max-w-2xl pr-8 sm:pr-0"
           >
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-brand/90 text-white rounded-full text-[9px] font-black uppercase tracking-widest mb-3 shadow-md">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-brand/90 text-white rounded-full text-[9px] font-black uppercase tracking-widest mb-2.5 sm:mb-3 shadow-md">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Curated Experiences</span>
             </div>
-            <h1 className="text-3xl md:text-5xl font-serif font-bold text-white tracking-tight leading-tight mb-3 capitalize">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-serif font-bold text-white tracking-tight leading-tight mb-2 sm:mb-3 capitalize">
               {destination}
             </h1>
-            <p className="text-xs md:text-sm text-white/80 font-medium leading-relaxed max-w-xl">
+            <p className="text-xs md:text-sm text-white/80 font-medium leading-relaxed max-w-xl line-clamp-2 sm:line-clamp-none">
               {isKnownDestination
                 ? `Immerse yourself in a refined suite of high-fidelity cultural tours, local secrets, and premium events curated in ${destination}.`
                 : `Showing matching highlights and unique experiences tailored to your request for "${destination}".`}
@@ -601,17 +607,17 @@ export default function ActivitiesPage({
       </div>
 
       {/* Main Workspace Frame */}
-      <div className="max-w-7xl mx-auto pb-20 px-4 md:px-6 mt-8">
-        <Breadcrumb items={breadcrumbItems} className="mb-6" />
+      <div className="max-w-7xl mx-auto pb-8 px-4 md:px-6 mt-6 sm:mt-8">
+        <Breadcrumb items={breadcrumbItems} className="mb-5 sm:mb-6" />
 
         {/* Bento Stats Ribbon Bar */}
         {cityStats && !isLoading && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
             <div className="bg-white dark:bg-slate-900 border border-slate-100/80 dark:border-slate-800/80 rounded-2xl p-4 flex items-center gap-4 shadow-xs">
               <div className="w-10 h-10 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
                 <Compass className="w-5 h-5" />
               </div>
-              <div>
+              <div className="tabular-nums">
                 <span className="block text-[10px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-wider">
                   Available Tours
                 </span>
@@ -625,7 +631,7 @@ export default function ActivitiesPage({
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
                 <Award className="w-5 h-5" />
               </div>
-              <div>
+              <div className="tabular-nums">
                 <span className="block text-[10px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-wider">
                   Quality Assurance
                 </span>
@@ -639,7 +645,7 @@ export default function ActivitiesPage({
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
                 <Tag className="w-5 h-5" />
               </div>
-              <div>
+              <div className="tabular-nums">
                 <span className="block text-[10px] uppercase font-black text-slate-400 dark:text-slate-500 tracking-wider">
                   Starting Rate
                 </span>
@@ -653,9 +659,9 @@ export default function ActivitiesPage({
 
         {/* Unified Search, Filter & Sorting Control Center */}
         <div className="flex flex-col gap-6 w-full">
-          <div className="bg-white dark:bg-slate-900 rounded-[28px] p-6 border border-slate-200/50 dark:border-slate-800/60 shadow-xs select-none">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[28px] p-4 sm:p-6 border border-slate-200/50 dark:border-slate-800/60 shadow-xs select-none">
             {/* Row 1: Search Input + Sorting */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 pb-3">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 pb-3">
               <div className="w-full md:flex-1">
                 <SearchBar
                   isCompact={true}
@@ -668,14 +674,15 @@ export default function ActivitiesPage({
                 />
               </div>
 
-              <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto justify-end">
+              <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto justify-between md:justify-end">
                 <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 dark:text-slate-500">
                   {t('sortBy', 'SORT BY')}:
                 </span>
-                <div className="relative flex items-center bg-slate-50/50 dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl px-3 h-10 shadow-xs transition-all focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10">
+                <div className="relative flex items-center bg-slate-50/50 dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl px-3 h-11 sm:h-10 flex-1 md:flex-initial shadow-xs transition-all focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10">
                   <select
                     value={selectedSort}
                     onChange={(e) => setSelectedSort(e.target.value as any)}
+                    aria-label="Sort activities"
                     className="appearance-none bg-transparent text-xs font-black text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer pr-6 h-full w-full select-none"
                   >
                     <option

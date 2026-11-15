@@ -32,6 +32,7 @@ import PrivacyPolicyPage from "./components/PrivacyPolicyPage";
 import CookiePolicyPage from "./components/CookiePolicyPage";
 import TermsAndConditionsPage from "./components/TermsAndConditionsPage";
 import LanguageDetectionBanner from "./components/LanguageDetectionBanner";
+import MobileBottomNav from "./components/MobileBottomNav";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -670,6 +671,27 @@ export default function App() {
             />
           )}
         </AnimatePresence>
+
+        {!selectedAttractionId && !wishlistOpen && (
+          <MobileBottomNav
+            activePage={currentPage}
+            activeDestination={selectedDestination}
+            onExplore={navigateHome}
+            onWishlistOpen={() => setWishlistOpen(true)}
+            onNavigate={(page) => {
+              if (page === "home") {
+                navigateHome();
+              } else {
+                setSelectedDestination(null);
+                setSelectedAttractionId(null);
+                setActiveCategoryFilter(null);
+                setCurrentPage(page);
+                window.history.pushState({}, "", `/${page}`);
+                window.scrollTo(0, 0);
+              }
+            }}
+          />
+        )}
       </div>
     </ErrorBoundary>
   );

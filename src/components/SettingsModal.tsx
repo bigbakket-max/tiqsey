@@ -145,7 +145,7 @@ export default function SettingsModal({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="w-full max-w-[840px] h-[670px] max-h-[92vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col font-sans border border-slate-200/80 dark:border-slate-800 transition-colors duration-300"
+              className="w-full max-w-[840px] h-[min(670px,90dvh)] max-h-[90dvh] bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col font-sans border border-slate-200/80 dark:border-slate-800 transition-colors duration-300"
               id="settings-modal-container"
               role="dialog"
               aria-modal="true"
@@ -154,24 +154,25 @@ export default function SettingsModal({
               {/* STICKY TOP CONTROL PANEL */}
               <div className="sticky top-0 bg-white dark:bg-slate-900 z-20 shrink-0 flex flex-col border-b border-slate-100 dark:border-slate-800/80 transition-colors duration-300">
                 {/* Tab Switcher & Close */}
-                <div className="flex items-center justify-between px-6 sm:px-8 pt-5">
-                  <div className="flex gap-6 sm:gap-8" id="modal-title">
+                <div className="flex items-center justify-between px-4 sm:px-8 pt-4 sm:pt-5 gap-2">
+                  <div className="flex gap-4 sm:gap-8 overflow-x-auto no-scrollbar" id="modal-title">
                     {/* Language Tab */}
                     <button
+                      type="button"
                       onClick={() => {
                         setActiveTab('language');
                         setSearchQuery('');
                       }}
-                      className={`pb-3.5 text-base sm:text-[17px] font-bold tracking-tight relative cursor-pointer outline-none select-none transition-colors duration-200 flex items-center gap-2 ${
+                      className={`pb-3.5 min-h-[44px] text-sm sm:text-[17px] font-bold tracking-tight relative cursor-pointer outline-none select-none transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
                         activeTab === 'language'
                           ? 'text-slate-950 dark:text-white font-extrabold'
                           : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
                       }`}
                       id="tab-language"
                     >
-                      <Globe className="w-4.5 h-4.5" />
+                      <Globe className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" />
                       <span>{t('language', 'Language')}</span>
-                      <span className="text-[11px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full">
+                      <span className="text-[11px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full tabular-nums">
                         {languages.length}
                       </span>
                       {activeTab === 'language' && (
@@ -185,20 +186,21 @@ export default function SettingsModal({
 
                     {/* Currency Tab */}
                     <button
+                      type="button"
                       onClick={() => {
                         setActiveTab('currency');
                         setSearchQuery('');
                       }}
-                      className={`pb-3.5 text-base sm:text-[17px] font-bold tracking-tight relative cursor-pointer outline-none select-none transition-colors duration-200 flex items-center gap-2 ${
+                      className={`pb-3.5 min-h-[44px] text-sm sm:text-[17px] font-bold tracking-tight relative cursor-pointer outline-none select-none transition-colors duration-200 flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
                         activeTab === 'currency'
                           ? 'text-slate-950 dark:text-white font-extrabold'
                           : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
                       }`}
                       id="tab-currency"
                     >
-                      <Coins className="w-4.5 h-4.5" />
+                      <Coins className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" />
                       <span>{t('currency', 'Currency')}</span>
-                      <span className="text-[11px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full">
+                      <span className="text-[11px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full tabular-nums">
                         {CURRENCIES.length}
                       </span>
                       {activeTab === 'currency' && (
@@ -213,8 +215,9 @@ export default function SettingsModal({
 
                   {/* Close button */}
                   <button
+                    type="button"
                     onClick={onClose}
-                    className="p-2 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all cursor-pointer flex items-center justify-center"
+                    className="w-11 h-11 sm:w-9 sm:h-9 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all cursor-pointer flex items-center justify-center shrink-0"
                     title="Close"
                     aria-label="Close settings"
                     id="close-settings-modal"
@@ -224,7 +227,7 @@ export default function SettingsModal({
                 </div>
 
                 {/* Search Bar */}
-                <div className="px-6 sm:px-8 pt-3 pb-3">
+                <div className="px-4 sm:px-8 pt-3 pb-3">
                   <div className="relative flex items-center group">
                     <span className="absolute left-3.5 text-slate-400 dark:text-slate-500">
                       <Search className="w-4 h-4" />
@@ -239,15 +242,17 @@ export default function SettingsModal({
                           ? 'Search 16+ languages (e.g. Hindi, English, Español)...'
                           : 'Search 48+ currencies (e.g. INR, EUR, USD, Yen, Dirham)...'
                       }
-                      className="w-full pl-10 pr-9 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950 text-[13.5px] font-medium text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-950 focus:border-[#e3000f] focus:outline-none focus:ring-2 focus:ring-[#e3000f]/15 transition-all"
+                      className="w-full pl-10 pr-10 py-2.5 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950 text-[13.5px] font-medium text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-950 focus:border-[#e3000f] focus:outline-none focus:ring-2 focus:ring-[#e3000f]/15 transition-all"
                     />
                     {isSearching && (
                       <button
+                        type="button"
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-3 p-1 text-slate-400 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
+                        className="absolute right-2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white rounded-full cursor-pointer"
                         title="Clear search"
+                        aria-label="Clear search"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-4 h-4" />
                       </button>
                     )}
                   </div>

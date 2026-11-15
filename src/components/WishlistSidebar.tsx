@@ -27,6 +27,8 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
     };
   }, [isOpen]);
 
+  const [confirmingClear, setConfirmingClear] = React.useState(false);
+
   return (
     <>
       {/* Dark overlay backdrop */}
@@ -51,20 +53,21 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
         id="wishlist-sidebar-container"
       >
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/20 backdrop-blur-md">
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/20 backdrop-blur-md">
           <div className="flex items-center gap-2">
             <Heart className="w-5 h-5 text-[#e3000f] fill-[#e3000f]" />
             <h2 className="text-[17px] font-extrabold text-slate-800 dark:text-slate-150">
               {t('savedWishlist', 'Saved Wishlist')}
             </h2>
-            <span className="bg-rose-50 dark:bg-rose-950/30 text-[#e3000f] dark:text-rose-400 text-xs font-black px-2.5 py-0.5 rounded-full select-none">
+            <span className="bg-rose-50 dark:bg-rose-950/30 text-[#e3000f] dark:text-rose-400 text-xs font-black px-2.5 py-0.5 rounded-full select-none tabular-nums">
               {wishlist.length}
             </span>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
+            className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
             aria-label={t('close', 'Close')}
           >
             <X className="w-5 h-5" />
@@ -72,7 +75,7 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
         </div>
 
         {/* Content list */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 scrollbar-thin">
           {wishlist.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 select-none">
               <div className="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-350 dark:text-slate-650 mb-4 border border-dashed border-slate-200 dark:border-slate-800">
@@ -85,8 +88,9 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
                 {t('emptyWishlistDesc', 'Start searching or exploring. Click the heart icon on any attraction card to catalog your favorites right here!')}
               </p>
               <button
+                type="button"
                 onClick={onClose}
-                className="mt-6 flex items-center gap-2 text-xs font-black text-brand uppercase tracking-wider hover:underline"
+                className="mt-6 flex items-center gap-2 text-xs font-black text-brand uppercase tracking-wider hover:underline min-h-[44px] px-4 cursor-pointer"
               >
                 <span>{t('findAttractions', 'Find Attractions')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -96,24 +100,43 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs font-bold text-slate-400 dark:text-slate-500 pb-1 uppercase tracking-widest">
                 <span>{t('selectedItems', 'Selected Items')}</span>
-                <button
-                  onClick={() => {
-                    if (window.confirm(t('confirmClearWishlist', "Are you sure you want to clear your entire wishlist?"))) {
-                      clearWishlist();
-                    }
-                  }}
-                  className="text-[#e3000f]/80 hover:text-[#e3000f] transition-colors flex items-center gap-1 cursor-pointer font-bold"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>{t('clearAll', 'Clear All')}</span>
-                </button>
+                {confirmingClear ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearWishlist();
+                        setConfirmingClear(false);
+                      }}
+                      className="text-white bg-[#e3000f] px-2.5 py-1 rounded-md text-[11px] font-bold cursor-pointer"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingClear(false)}
+                      className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 px-2 py-1 text-[11px] cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingClear(true)}
+                    className="text-[#e3000f]/80 hover:text-[#e3000f] transition-colors flex items-center gap-1 cursor-pointer font-bold py-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{t('clearAll', 'Clear All')}</span>
+                  </button>
+                )}
               </div>
 
               <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {wishlist.map((item) => (
                   <div
                     key={item.id}
-                    className="py-3 flex gap-3 h-24 items-center group/item hover:bg-slate-50/30 dark:hover:bg-slate-900/10 rounded-xl transition-colors pr-2"
+                    className="py-3 flex gap-3 min-h-[84px] items-center group/item hover:bg-slate-50/30 dark:hover:bg-slate-900/10 rounded-xl transition-colors pr-1"
                   >
                     {/* Thumbnail Image */}
                     <div 
@@ -126,6 +149,8 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
                       <img
                         src={item.imageUrl}
                         alt={item.name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover/item:scale-105"
                         referrerPolicy="no-referrer"
                       />
@@ -139,13 +164,13 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
                       }}
                       className="flex-1 min-w-0 cursor-pointer"
                     >
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 block truncate">
                         {item.city}
                       </span>
                       <h4 className="text-xs sm:text-[13px] font-extrabold text-slate-800 dark:text-slate-200 leading-tight truncate mt-0.5 group-hover/item:text-brand transition-colors">
                         {item.name}
                       </h4>
-                      <p className="text-xs font-extrabold text-[#e3000f] mt-1.5 flex items-center gap-1.5">
+                      <p className="text-xs font-extrabold text-[#e3000f] mt-1.5 flex items-center gap-1.5 tabular-nums">
                         <span className="text-[10px] text-slate-400 font-normal">From</span>
                         <span>{formatPrice(item.discountPrice || item.price, item.currency)}</span>
                       </p>
@@ -153,12 +178,14 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
 
                     {/* Trash remove button */}
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleWishlist(item);
                       }}
-                      className="p-1.5 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-350 hover:text-[#e3000f] dark:hover:text-rose-400 transition-colors cursor-pointer shrink-0"
+                      className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-[#e3000f] dark:hover:text-rose-400 transition-colors cursor-pointer shrink-0"
                       title="Remove from Wishlist"
+                      aria-label="Remove from Wishlist"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -171,21 +198,21 @@ export default function WishlistSidebar({ isOpen, onClose, onViewAttraction, onV
 
         {/* Footer */}
         {wishlist.length > 0 && (
-          <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20">
+          <div className="p-4 sm:p-5 pb-safe border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20">
             <button
+              type="button"
               onClick={() => {
                 onClose();
                 if (onViewFullWishlist) {
                   onViewFullWishlist();
                 } else {
-                  // Fallback
                   const el = document.getElementById('discover-attractions-section') || document.getElementById('search-container');
                   if (el) {
                     el.scrollIntoView({ behavior: 'smooth' });
                   }
                 }
               }}
-              className="w-full h-11 bg-[#e3000f] text-white text-[13.5px] font-black uppercase tracking-wider rounded-xl hover:bg-opacity-95 shadow-md flex items-center justify-center gap-2 group cursor-pointer"
+              className="w-full h-12 bg-[#e3000f] text-white text-[13.5px] font-black uppercase tracking-wider rounded-xl hover:bg-opacity-95 shadow-md flex items-center justify-center gap-2 group cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               <span>{t('exploreSavedFavorites', 'Explore Saved Favorites')}</span>
