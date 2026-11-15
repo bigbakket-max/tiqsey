@@ -308,10 +308,10 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     description:
       "Descend beneath the streets of Istanbul to discover the magical Basilica Cistern, the largest of several hundred ancient cisterns.",
     highlights: [
-      'Explore the "Sunken Palace"',
-      "See the famous Medusa Head columns",
-      "Marvel at the 336 marble columns",
-      "Experience the atmospheric lighting and music",
+      "Explore the magnificent underground Basilica Cistern in Istanbul.",
+      "Discover the mysterious Medusa head sculptures.",
+      "Admire the vaulted ceilings and ancient Roman architecture.",
+      "Enjoy stunning reflections of the historic structure in the crystal-clear water.",
     ],
     included: ["Admission ticket", "Access to the entire cistern"],
     duration: "1 hour",
@@ -938,10 +938,10 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     description:
       "Pay your respects at the 9/11 Memorial and explore the Museum to learn about the events of September 11, 2001.",
     highlights: [
-      "Skip-the-line access to the museum",
-      "See the Survivor Tree at the memorial",
-      "Hear stories of resilience and hope",
-      "Explore the historic foundations of the Twin Towers",
+      "Explore the three museum sections covering before, during, and after 9/11.",
+      "Discover powerful photographs and personal stories of victims and survivors.",
+      "See historic artifacts, including the iconic Survivor Stairs.",
+      "Hear firsthand accounts from survivors, first responders, and families through recorded interviews.",
     ],
     duration: "3 hours - 7 days",
     openingHours: "Daily: 09:00 - 19:00",
@@ -1318,10 +1318,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
       "https://images.unsplash.com/photo-1584003564941-616f20f48f53?auto=format&fit=crop&q=80&w=800",
     ],
     highlights: [
-      "Enjoy hassle-free entry with pre-booked entry tickets.",
-      "Explore the beautiful exhibition galleries at your own leisure.",
-      "Admire the incredible structures and local historic collections.",
-      "Learn about fascinating histories and storied buildings."
+      "Enjoy a relaxing cruise along Amsterdam’s iconic canals.",
+      "Discover the famous Prinsengracht, Herengracht, and Keizersgracht.",
+      "Admire landmarks like Anne Frank House, Westerkerk, and Skinny Bridge.",
+      "See beautiful 17th-century merchant houses and historic churches.",
+      "Learn about Amsterdam’s history and culture with audio commentary in 19 languages.",
     ],
     description: "Enjoy a scenic 1-hour cruise through Amsterdam's historic canal belt with pre-booked tickets and panoramic views.",
     included: [
@@ -1559,10 +1560,13 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     description:
       "Explore the wonders of the ocean in the heart of Paris, featuring the largest shark tank in France.",
     highlights: [
-      "See over 10,000 fish and invertebrates",
-      "Walk through the shark tunnel",
-      "Touch pools and interactive workshops",
-      "Located directly opposite the Eiffel Tower",
+      "Discover over 13,000 marine creatures at L'Aquarium de Paris.",
+      "Admire mesmerising jellyfish at Europe’s largest Medusarium.",
+      "See giant sharks, colourful coral colonies, and fascinating marine life.",
+      "Enjoy educational films, documentaries, and interactive exhibits.",
+      "Feed and interact with goldfish, Koi carp, and other fish at the touch pool.",
+      "Enjoy dining with stunning views of the aquarium tank.",
+      "Experience exciting live shows, workshops, and marine displays.",
     ],
     included: ["Admission ticket", "Access to all exhibits and shows"],
     duration: "2 hours",
@@ -1626,6 +1630,17 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?auto=format&fit=crop&q=85&w=1200",
     isPopular: true,
+    description: "Visit the authentic hiding place where Anne Frank wrote her world-famous diary during World War II.",
+    highlights: [
+      "Get last-minute entry tickets to Anne Frank House.",
+      "Enjoy a hassle-free visit with skip-the-line access.",
+      "Discover Amsterdam’s Jewish Quarter on a guided tour.",
+      "Combine your visit with a scenic Amsterdam canal cruise.",
+      "Enjoy Amsterdam’s nightlife with a 1-day nightlife pass."
+    ],
+    included: ["Admission ticket", "Audio guide"],
+    duration: "1.5 hours",
+    openingHours: "Daily: 09:00 - 22:00",
   },
   {
     id: "lis-oceanarium",
@@ -1673,10 +1688,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     description:
       "Travel back in time to Ancient Greece and explore the world-famous Acropolis hill, featuring the Parthenon, the Temple of Athena Nike, and spectacular views of Athens.",
     highlights: [
-      "Skip the line to explore the world-famous Parthenon",
-      "Discover the Temple of Athena Nike and Erechtheion",
-      "Enjoy majestic 360-degree views and photography of Athens",
-      "Learn about Hellenic history with an optional audio guide",
+      "Explore iconic Acropolis landmarks, including the Parthenon and Erechtheion.",
+      "Skip the long queues with advance-entry tickets.",
+      "Discover Greek mythology, ancient art, and history.",
+      "Enjoy combined entry to Athens’ historic landmarks.",
+      "Explore the Acropolis with expert-guided insights.",
     ],
     included: [
       "Skip-the-line entrance ticket to the Acropolis",
@@ -1702,10 +1718,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     description:
       "Marvel at Michelangelo's iconic masterwork, David, along with other iconic Renaissance sculptures and paintings at the renowned Accademia Gallery in Florence.",
     highlights: [
-      "Skip-the-line fast-track entry to Accademia Gallery",
-      'Admire Michelangelo\'s original "David" sculpture up close',
-      "Discover masterpieces by Botticelli and Ghirlandaio",
-      'See unfinished works including Michelangelo\'s "Slaves"',
+      "Enjoy last-minute entry to Florence’s Accademia Gallery.",
+      "Admire Michelangelo’s iconic 17-foot David sculpture.",
+      "Explore masterpieces by renowned Renaissance artists.",
+      "Discover the history and cultural impact of the Renaissance.",
+      "Experience Florence’s rich artistic heritage.",
     ],
     included: [
       "Fast-track admission ticket",
