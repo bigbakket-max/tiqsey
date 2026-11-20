@@ -21,7 +21,7 @@ const SUPABASE_COOLDOWN_MS = 60000; // 60 seconds cooldown
 
 function isSupabaseConfigured(): boolean {
   const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_KEY;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     return false;
@@ -57,7 +57,7 @@ function getSupabaseClient() {
   }
 
   const supabaseUrl = process.env.SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_KEY!;
+  const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY)!;
 
   if (isSupabaseOffline) {
     const now = Date.now();
