@@ -21,21 +21,28 @@ const SUPABASE_COOLDOWN_MS = 60000; // 60 seconds cooldown
 
 function isSupabaseConfigured(): boolean {
   const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_KEY;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     return false;
   }
 
-  if (
-    supabaseUrl.includes('lzjjwsvalvfkgwtzuime') ||
-    supabaseUrl.includes('placeholder') ||
-    !supabaseUrl.startsWith('http')
-  ) {
+  if (supabaseUrl.includes('placeholder')) {
     return false;
   }
 
-  return true;
+  try {
+    const parsedUrl = new URL(supabaseUrl);
+    const isLocalDevelopment =
+      parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1';
+
+    return (
+      (parsedUrl.protocol === 'https:' || (isLocalDevelopment && parsedUrl.protocol === 'http:')) &&
+      (isLocalDevelopment || parsedUrl.hostname.endsWith('.supabase.co'))
+    );
+  } catch {
+    return false;
+  }
 }
 
 function getSupabaseProjectId(): string {
@@ -50,7 +57,7 @@ function getSupabaseClient() {
   }
 
   const supabaseUrl = process.env.SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_KEY!;
+  const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY)!;
 
   if (isSupabaseOffline) {
     const now = Date.now();
