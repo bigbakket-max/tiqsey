@@ -27,15 +27,22 @@ function isSupabaseConfigured(): boolean {
     return false;
   }
 
-  if (
-    supabaseUrl.includes('lzjjwsvalvfkgwtzuime') ||
-    supabaseUrl.includes('placeholder') ||
-    !supabaseUrl.startsWith('http')
-  ) {
+  if (supabaseUrl.includes('placeholder')) {
     return false;
   }
 
-  return true;
+  try {
+    const parsedUrl = new URL(supabaseUrl);
+    const isLocalDevelopment =
+      parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1';
+
+    return (
+      (parsedUrl.protocol === 'https:' || (isLocalDevelopment && parsedUrl.protocol === 'http:')) &&
+      (isLocalDevelopment || parsedUrl.hostname.endsWith('.supabase.co'))
+    );
+  } catch {
+    return false;
+  }
 }
 
 function getSupabaseProjectId(): string {
