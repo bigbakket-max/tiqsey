@@ -5,15 +5,29 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 // Initialize Supabase client with project credentials if provided
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || '';
+const supabaseUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
+const supabaseKey = (
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  ''
+).trim();
 
-export const supabase = (supabaseUrl && supabaseKey && !supabaseUrl.includes('lzjjwsvalvfkgwtzuime'))
-  ? createClient(supabaseUrl, supabaseKey)
+export const supabase = (
+  supabaseUrl &&
+  supabaseKey &&
+  !supabaseUrl.includes('placeholder') &&
+  /^https?:\/\//i.test(supabaseUrl)
+)
+  ? createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
   : null;
 
 // Replaced 'your_table' with 'bookings' from the Tiqsey project
 export async function getTableData(tableName = 'bookings') {
+  if (!supabase) return null;
   try {
     const { data, error } = await supabase
       .from(tableName)

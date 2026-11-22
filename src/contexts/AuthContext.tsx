@@ -657,6 +657,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setBookings(updatedBookings);
 
     // Save/Sync the completed booking to the backend database if available
+    let backendSyncedToSupabase = false;
     try {
       const saveResponse = await fetch('/api/bookings', {
         method: 'POST',
@@ -667,46 +668,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (saveContentType.includes("application/json")) {
         const saveData = await saveResponse.json();
         if (saveData.success) {
-          console.log(`[Database Sync] Successfully saved booking ${newBooking.id} to SQLite backend.`);
+          backendSyncedToSupabase = Boolean(saveData.supabaseSynced);
+          console.log(`[Database Sync] Successfully saved booking ${newBooking.id} to backend.`);
         }
       }
     } catch (_) {
       // Backend not running on static host
     }
 
-    // Direct Supabase sync from client (if configured)
-    try {
-      import('../lib/supabase').then(async ({ supabase, isSupabaseConfigured }) => {
-        if (!isSupabaseConfigured || !supabase) return;
-        try {
-          const { error } = await supabase.from('bookings').upsert({
-            id: newBooking.id,
-            order_number: newBooking.order_number,
-            pnr_number: newBooking.pnr_number,
-            attraction_id: newBooking.attractionId,
-            attraction_name: newBooking.attractionName,
-            attraction_image_url: newBooking.attractionImageUrl,
-            city: newBooking.city,
-            booking_date: newBooking.bookingDate,
-            tickets_count: newBooking.ticketsCount,
-            total_price: newBooking.totalPrice,
-            status: newBooking.status,
-            child_count: newBooking.childCount,
-            guest_name: newBooking.guestInfo?.name || '',
-            guest_email: newBooking.guestInfo?.email || '',
-            guest_phone: (newBooking.guestInfo as any)?.phone || '',
-            passengers_json: JSON.stringify(newBooking.passengers || []),
-            created_at: newBooking.createdAt,
-            timeslot: newBooking.timeslot,
-            payment_currency: newBooking.paymentCurrency,
-            payment_price: newBooking.paymentPrice,
-            payment_symbol: newBooking.paymentSymbol
-          }, { onConflict: 'id' });
-          if (error) console.warn('[Supabase Client Sync Warning]:', error.message);
-          else console.log('[Supabase Client Sync]: Booking saved to Supabase successfully.');
-        } catch (_) {}
-      }).catch(() => {});
-    } catch (_) {}
+    // Direct Supabase sync fallback from client (only if backend did not already sync to Supabase)
+    if (!backendSyncedToSupabase) {
+      try {
+        import('../lib/supabase').then(async ({ supabase, isSupabaseConfigured }) => {
+          if (!isSupabaseConfigured || !supabase) return;
+          try {
+            const { error } = await supabase.from('bookings').upsert({
+              id: newBooking.id,
+              order_number: newBooking.order_number,
+              pnr_number: newBooking.pnr_number,
+              attraction_id: newBooking.attractionId,
+              attraction_name: newBooking.attractionName,
+              attraction_image_url: newBooking.attractionImageUrl,
+              city: newBooking.city,
+              booking_date: newBooking.bookingDate,
+              tickets_count: newBooking.ticketsCount,
+              total_price: newBooking.totalPrice,
+              status: newBooking.status,
+              child_count: newBooking.childCount,
+              guest_name: newBooking.guestInfo?.name || '',
+              guest_email: newBooking.guestInfo?.email || '',
+              guest_phone: (newBooking.guestInfo as any)?.phone || '',
+              passengers_json: JSON.stringify(newBooking.passengers || []),
+              created_at: newBooking.createdAt,
+              timeslot: newBooking.timeslot,
+              payment_currency: newBooking.paymentCurrency,
+              payment_price: newBooking.paymentPrice,
+              payment_symbol: newBooking.paymentSymbol
+            }, { onConflict: 'id' });
+            if (error) console.warn('[Supabase Client Sync Warning]:', error.message);
+            else console.log('[Supabase Client Sync]: Booking saved to Supabase successfully.');
+          } catch (_) {}
+        }).catch(() => {});
+      } catch (_) {}
+    }
 
     return newBooking;
   };
@@ -741,13 +745,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const formattedDate = `${months[now.getMonth()]} ${now.getFullYear()}`;
 
+    const reviewId = `rev-${Date.now()}`;
     try {
+      let reviewSyncedToSupabase = false;
       try {
         const response = await fetch('/api/reviews', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id: `rev-${Date.now()}`,
+            id: reviewId,
             bookingId,
             attractionId,
             userId: activeUser.id,
@@ -760,32 +766,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         const contentType = response.headers.get("content-type") || "";
         if (contentType.includes("application/json")) {
-          await response.json();
+          const data = await response.json();
+          reviewSyncedToSupabase = Boolean(data?.supabaseSynced);
         }
       } catch (_) {
         // Backend not running on static host
       }
 
-      // Direct Supabase sync for reviews (if configured)
-      try {
-        import('../lib/supabase').then(async ({ supabase, isSupabaseConfigured }) => {
-          if (!isSupabaseConfigured || !supabase) return;
-          try {
-            const { error } = await supabase.from('reviews').upsert({
-              id: `rev-${Date.now()}`,
-              booking_id: bookingId,
-              attraction_id: attractionId,
-              user_id: activeUser.id,
-              user_name: activeUser.name,
-              user_email: activeUser.email,
-              rating: Number(rating),
-              comment,
-              created_at: new Date().toISOString()
-            }, { onConflict: 'id' });
-            if (error) console.warn('[Supabase Review Sync Warning]:', error.message);
-          } catch (_) {}
-        }).catch(() => {});
-      } catch (_) {}
+      // Direct Supabase sync fallback for reviews (only if backend did not already sync)
+      if (!reviewSyncedToSupabase) {
+        try {
+          import('../lib/supabase').then(async ({ supabase, isSupabaseConfigured }) => {
+            if (!isSupabaseConfigured || !supabase) return;
+            try {
+              const { error } = await supabase.from('reviews').upsert({
+                id: reviewId,
+                booking_id: bookingId,
+                attraction_id: attractionId,
+                user_id: activeUser.id,
+                user_name: activeUser.name,
+                user_email: activeUser.email,
+                rating: Number(rating),
+                comment,
+                created_at: new Date().toISOString()
+              }, { onConflict: 'id' });
+              if (error) console.warn('[Supabase Review Sync Warning]:', error.message);
+            } catch (_) {}
+          }).catch(() => {});
+        } catch (_) {}
+      }
 
       // Update local storage and state
       const updatedBookings = bookings.map(b => 
@@ -815,12 +824,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem(`tiqsey_bookings_${activeUser.id}`, JSON.stringify(updatedBookings));
         setBookings(updatedBookings);
 
-        // Sync cancellation to SQLite backend
+        // Sync cancellation to backend (and fallback to direct Supabase if backend unavailable)
         fetch(`/api/bookings/${encodeURIComponent(bookingId)}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'cancelled' })
-        }).catch(() => {});
+        })
+          .then(async (res) => {
+            if (res.ok) {
+              const data = await res.json().catch(() => ({}));
+              if (data?.supabaseSynced) return;
+            }
+            const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
+            if (isSupabaseConfigured && supabase) {
+              await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
+            }
+          })
+          .catch(async () => {
+            try {
+              const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
+              if (isSupabaseConfigured && supabase) {
+                await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
+              }
+            } catch (_) {}
+          });
 
         resolve();
       }, 300);

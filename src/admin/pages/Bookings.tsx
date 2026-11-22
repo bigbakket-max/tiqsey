@@ -204,58 +204,86 @@ export default function Bookings() {
   }, [showToast]);
 
   const saveBookingToBackend = async (booking: AdminBooking) => {
+    const parsedVendorPayable = parseFloat(String(booking.vendorPayable || '').replace(/[^0-9.]/g, ''));
+    const normalizedVendorPayable = !isNaN(parsedVendorPayable) ? parsedVendorPayable : null;
+    let backendSyncedToSupabase = false;
+
     try {
-      const parsedVendorPayable = parseFloat(String(booking.vendorPayable || '').replace(/[^0-9.]/g, ''));
       const payload = {
         ...booking,
-        vendorPayable: !isNaN(parsedVendorPayable) ? parsedVendorPayable : null,
+        vendorPayable: normalizedVendorPayable,
       };
       const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!response.ok) {
-        await fetch(`/api/bookings/${encodeURIComponent(booking.id)}`, {
+      if (response.ok) {
+        const resData = await response.json().catch(() => ({}));
+        backendSyncedToSupabase = Boolean(resData?.supabaseSynced);
+      } else {
+        const patchResp = await fetch(`/api/bookings/${encodeURIComponent(booking.id)}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        if (patchResp.ok) {
+          const patchData = await patchResp.json().catch(() => ({}));
+          backendSyncedToSupabase = Boolean(patchData?.supabaseSynced);
+        }
       }
     } catch (err) {
       console.warn(`[Admin DB Sync Network Warning] Backend not reachable for booking ${booking.id}`);
     }
 
-    // Direct Supabase sync from admin panel (if configured)
-    try {
-      const { supabase, isSupabaseConfigured } = await import('../../lib/supabase');
-      if (isSupabaseConfigured && supabase) {
-        await supabase.from('bookings').upsert({
-          id: booking.id,
-          order_number: booking.order_number || booking.orderId || "",
-          pnr_number: booking.pnr_number || booking.bookingRef || "",
-          attraction_id: booking.attractionId || "",
-          attraction_name: booking.attractionName || "",
-          attraction_image_url: booking.attractionImageUrl || "",
-          city: booking.city || "",
-          booking_date: booking.bookingDate || "",
-          tickets_count: Number(booking.travelers || 1),
-          total_price: Number(booking.totalPrice || booking.collectedAmount || 0),
-          status: booking.status || "confirmed",
-          child_count: 0,
-          guest_name: booking.customerName || "",
-          guest_email: booking.customerEmail || "",
-          guest_phone: booking.customerPhone || "",
-          passengers_json: JSON.stringify(booking.passengers || []),
-          created_at: booking.createdAt || "",
-          payment_currency: booking.paymentCurrency || "",
-          payment_price: booking.paymentPrice,
-          payment_symbol: booking.paymentSymbol || ""
-        }, { onConflict: 'id' });
-        console.log(`[Admin Supabase Sync] Booking ${booking.id} synced to Supabase.`);
+    // Direct Supabase sync fallback from admin panel (only if backend did not already sync)
+    if (!backendSyncedToSupabase) {
+      try {
+        const { supabase, isSupabaseConfigured } = await import('../../lib/supabase');
+        if (isSupabaseConfigured && supabase) {
+          const basePayload = {
+            id: booking.id,
+            order_number: booking.order_number || booking.orderId || "",
+            pnr_number: booking.pnr_number || booking.bookingRef || "",
+            attraction_id: booking.attractionId || "",
+            attraction_name: booking.attractionName || "",
+            attraction_image_url: booking.attractionImageUrl || "",
+            city: booking.city || "",
+            booking_date: booking.bookingDate || "",
+            tickets_count: Number(booking.travelers || 1),
+            total_price: Number(booking.totalPrice || booking.collectedAmount || 0),
+            status: booking.status || "confirmed",
+            child_count: Number(booking.children || 0),
+            guest_name: booking.customerName || "",
+            guest_email: booking.customerEmail || "",
+            guest_phone: booking.customerPhone || "",
+            passengers_json: JSON.stringify(booking.passengers || []),
+            created_at: booking.createdAt || "",
+            timeslot: booking.timeslot || "",
+            payment_currency: booking.paymentCurrency || "",
+            payment_price: booking.paymentPrice ?? null,
+            payment_symbol: booking.paymentSymbol || ""
+          };
+          const extendedPayload = {
+            ...basePayload,
+            notes: booking.notes || "",
+            vendor_name: booking.vendorName || "",
+            vendor_payable: normalizedVendorPayable,
+            vendor_currency: booking.vendorCurrency || ""
+          };
+          let { error } = await supabase.from('bookings').upsert(extendedPayload, { onConflict: 'id' });
+          if (error && /schema cache|column .* does not exist|PGRST204/i.test(error.message || '')) {
+            ({ error } = await supabase.from('bookings').upsert(basePayload, { onConflict: 'id' }));
+          }
+          if (error) {
+            console.warn('[Admin Supabase Sync Warning]:', error.message);
+          } else {
+            console.log(`[Admin Supabase Sync] Booking ${booking.id} synced to Supabase.`);
+          }
+        }
+      } catch (e) {
+        console.warn('[Admin Supabase Sync Warning]:', e);
       }
-    } catch (e) {
-      console.warn('[Admin Supabase Sync Warning]:', e);
     }
   };
 
@@ -325,7 +353,9 @@ export default function Bookings() {
         if (isSupabaseConfigured && supabase) {
           const { data, error } = await supabase.from('bookings').select('*');
           if (!error && Array.isArray(data)) {
-          backendBookings = data.map((b: any) => {
+          backendBookings = data
+            .filter((b: any) => b && b.id && !String(b.id).startsWith('temp-'))
+            .map((b: any) => {
             let passengers = [];
             try {
               if (b.passengers_json) {
@@ -346,10 +376,11 @@ export default function Bookings() {
               attractionId: b.attraction_id || '',
               attractionName: b.attraction_name || '',
               variant: 'General Admission Tickets',
-              vendorPayable: '--',
+              vendorPayable: b.vendor_payable !== null && b.vendor_payable !== undefined && b.vendor_payable !== '' ? String(b.vendor_payable) : '--',
               totalPrice: Number(b.total_price) || 0,
               collectedAmount: Number(b.total_price) || 0,
               travelers: Number(b.tickets_count) || 1,
+              children: Number(b.child_count) || 0,
               bookingDate: b.booking_date || '',
               status: b.status || 'confirmed',
               city: b.city || '',

@@ -29,6 +29,11 @@ export async function uploadAndOptimizeImage(
               if (data?.url) return resolve(data.url);
             }
           } catch (_) {}
+          try {
+            const { uploadDataUrlToSupabaseStorage } = await import('../lib/supabase');
+            const storageUrl = await uploadDataUrlToSupabaseStorage(reader.result, file.name);
+            if (storageUrl) return resolve(storageUrl);
+          } catch (_) {}
           resolve(reader.result);
         } else {
           reject(new Error('Failed to read SVG file'));
@@ -97,8 +102,16 @@ export async function uploadAndOptimizeImage(
             }
           }
         } catch (uploadErr) {
-          console.warn('[imageUpload] Server upload unavailable, falling back to compressed base64', uploadErr);
+          console.warn('[imageUpload] Server upload unavailable, trying Supabase Storage fallback', uploadErr);
         }
+
+        try {
+          const { uploadDataUrlToSupabaseStorage } = await import('../lib/supabase');
+          const storageUrl = await uploadDataUrlToSupabaseStorage(compressed, file.name);
+          if (storageUrl) {
+            return resolve(storageUrl);
+          }
+        } catch (_) {}
 
         resolve(compressed);
       };

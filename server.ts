@@ -15,22 +15,44 @@ const db = new Database('bookings.db');
 
 // Supabase Optional Integration
 let supabaseClient: any = null;
+let supabaseClientConfigKey = '';
 let isSupabaseOffline = false;
 let lastSupabaseCheckTime = 0;
-const SUPABASE_COOLDOWN_MS = 60000; // 60 seconds cooldown
+let resolvedStorageBucket: string | null = null;
+let lastSupabaseDbError: string | null = null;
+let lastSupabaseStorageError: string | null = null;
+const SUPABASE_COOLDOWN_MS = 30000; // 30 seconds cooldown on true network failures
+
+function getSupabaseUrl(): string {
+  return (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
+}
+
+function getSupabaseKey(): string {
+  return (
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    ''
+  ).trim();
+}
+
+function getConfiguredStorageBucket(): string {
+  return (process.env.SUPABASE_STORAGE_BUCKET || process.env.VITE_SUPABASE_STORAGE_BUCKET || 'media').trim() || 'media';
+}
 
 function isSupabaseConfigured(): boolean {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_KEY;
+  const supabaseUrl = getSupabaseUrl();
+  const supabaseKey = getSupabaseKey();
 
   if (!supabaseUrl || !supabaseKey) {
     return false;
   }
 
   if (
-    supabaseUrl.includes('lzjjwsvalvfkgwtzuime') ||
     supabaseUrl.includes('placeholder') ||
-    !supabaseUrl.startsWith('http')
+    supabaseUrl.includes('your-project') ||
+    !/^https?:\/\//i.test(supabaseUrl)
   ) {
     return false;
   }
@@ -39,9 +61,29 @@ function isSupabaseConfigured(): boolean {
 }
 
 function getSupabaseProjectId(): string {
-  const supabaseUrl = process.env.SUPABASE_URL || '';
+  const supabaseUrl = getSupabaseUrl();
   const match = supabaseUrl.match(/https?:\/\/([^.]+)\./);
   return match ? match[1] : '';
+}
+
+function isSupabaseNetworkFailure(errOrMsg: any): boolean {
+  const msg = String(errOrMsg?.message || errOrMsg || '').toLowerCase();
+  return (
+    msg.includes('timed out') ||
+    msg.includes('fetch failed') ||
+    msg.includes('enotfound') ||
+    msg.includes('econnrefused') ||
+    msg.includes('econnreset') ||
+    msg.includes('network') ||
+    msg.includes('502') ||
+    msg.includes('503') ||
+    msg.includes('504')
+  );
+}
+
+function isMissingColumnError(errOrMsg: any): boolean {
+  const msg = String(errOrMsg?.message || errOrMsg || '');
+  return /schema cache|column .* does not exist|PGRST204/i.test(msg);
 }
 
 function getSupabaseClient() {
@@ -49,8 +91,9 @@ function getSupabaseClient() {
     return null;
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_KEY!;
+  const supabaseUrl = getSupabaseUrl();
+  const supabaseKey = getSupabaseKey();
+  const configKey = `${supabaseUrl}|${supabaseKey.slice(0, 12)}`;
 
   if (isSupabaseOffline) {
     const now = Date.now();
@@ -61,9 +104,15 @@ function getSupabaseClient() {
     isSupabaseOffline = false;
   }
 
-  if (!supabaseClient) {
+  if (!supabaseClient || supabaseClientConfigKey !== configKey) {
     try {
-      supabaseClient = createClient(supabaseUrl, supabaseKey);
+      supabaseClient = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      });
+      supabaseClientConfigKey = configKey;
       console.log(`[Supabase] Client initialized for remote sync (${supabaseUrl})`);
     } catch (err: any) {
       console.warn(`[Supabase Init Warning]:`, err?.message || err);
@@ -73,6 +122,112 @@ function getSupabaseClient() {
     }
   }
   return supabaseClient;
+}
+
+// Resolve or provision a usable Supabase Storage bucket and upload a binary buffer
+async function uploadBufferToSupabaseStorage(
+  buffer: Buffer,
+  objectPath: string,
+  contentType: string
+): Promise<{ url: string | null; bucket: string | null; path?: string; error?: string }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { url: null, bucket: null, error: 'Supabase not configured or temporarily offline' };
+  }
+
+  const primaryBucket = resolvedStorageBucket || getConfiguredStorageBucket();
+  const tryUpload = async (bucketName: string) => {
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Supabase storage upload timed out')), 8000)
+    );
+    const uploadPromise = supabase.storage
+      .from(bucketName)
+      .upload(objectPath, buffer, {
+        contentType,
+        cacheControl: '3600',
+        upsert: true,
+      });
+    return (await Promise.race([uploadPromise, timeoutPromise])) as { data: any; error: any };
+  };
+
+  try {
+    let bucketToUse = primaryBucket;
+    let { error } = await tryUpload(bucketToUse);
+
+    // If bucket does not exist, attempt to create it, inspect existing buckets, or probe common public bucket names
+    if (error && /bucket not found|not found|404/i.test(String(error.message || ''))) {
+      const { error: createErr } = await supabase.storage.createBucket(bucketToUse, {
+        public: true,
+        fileSizeLimit: 10 * 1024 * 1024,
+      });
+      if (!createErr) {
+        console.log(`[Supabase Storage] Created public bucket "${bucketToUse}"`);
+        ({ error } = await tryUpload(bucketToUse));
+      } else {
+        const candidateBuckets = new Set<string>();
+        const { data: buckets, error: listErr } = await supabase.storage.listBuckets();
+        if (!listErr && Array.isArray(buckets) && buckets.length > 0) {
+          const preferredNames = [bucketToUse, 'media', 'uploads', 'images', 'assets', 'public'];
+          for (const name of preferredNames) {
+            const match = buckets.find((b: any) => b.name === name || b.id === name);
+            if (match?.name) candidateBuckets.add(match.name);
+          }
+          buckets.filter((b: any) => b.public).forEach((b: any) => b.name && candidateBuckets.add(b.name));
+          buckets.forEach((b: any) => b.name && candidateBuckets.add(b.name));
+        } else {
+          // Anon keys cannot listBuckets due to RLS; probe common bucket names directly
+          for (const fallbackName of ['media', 'uploads', 'images', 'assets', 'public', 'tiqsey']) {
+            if (fallbackName !== bucketToUse) candidateBuckets.add(fallbackName);
+          }
+        }
+
+        for (const candidate of candidateBuckets) {
+          const attempt = await tryUpload(candidate);
+          if (!attempt.error) {
+            bucketToUse = candidate;
+            error = null;
+            break;
+          }
+          // Stop probing if bucket exists but blocked by RLS (keep that actionable error)
+          if (!/bucket not found|not found|404/i.test(String(attempt.error?.message || ''))) {
+            bucketToUse = candidate;
+            error = attempt.error;
+            break;
+          }
+        }
+      }
+    }
+
+    if (error) {
+      const errMsg = error.message || String(error);
+      lastSupabaseStorageError = errMsg;
+      console.warn(`[Supabase Storage Upload Warning] (bucket=${bucketToUse}):`, errMsg);
+      if (isSupabaseNetworkFailure(error)) {
+        isSupabaseOffline = true;
+        lastSupabaseCheckTime = Date.now();
+      }
+      return { url: null, bucket: bucketToUse, error: errMsg };
+    }
+
+    lastSupabaseStorageError = null;
+    resolvedStorageBucket = bucketToUse;
+    const { data: pub } = supabase.storage.from(bucketToUse).getPublicUrl(objectPath);
+    if (!pub?.publicUrl) {
+      return { url: null, bucket: bucketToUse, error: 'Failed to derive public URL' };
+    }
+
+    console.log(`[Supabase Storage] Uploaded ${objectPath} to bucket "${bucketToUse}"`);
+    return { url: pub.publicUrl, bucket: bucketToUse, path: objectPath };
+  } catch (err: any) {
+    const errMsg = err?.message || String(err);
+    lastSupabaseStorageError = errMsg;
+    console.warn('[Supabase Storage Upload Error]:', errMsg);
+    if (isSupabaseNetworkFailure(err)) {
+      isSupabaseOffline = true;
+      lastSupabaseCheckTime = Date.now();
+    }
+    return { url: null, bucket: primaryBucket, error: errMsg };
+  }
 }
 
 // Map a row from either SQLite or Supabase back to standard booking frontend format
@@ -137,28 +292,32 @@ async function fetchFromSupabase() {
 
     if (error) {
       console.warn(`[Supabase Fetch Warning]:`, error.message);
-      isSupabaseOffline = true;
-      lastSupabaseCheckTime = Date.now();
+      if (isSupabaseNetworkFailure(error)) {
+        isSupabaseOffline = true;
+        lastSupabaseCheckTime = Date.now();
+      }
       return null;
     }
 
     return data;
   } catch (err: any) {
     console.warn(`[Supabase Fetch Warning]:`, err.message || err);
-    isSupabaseOffline = true;
-    lastSupabaseCheckTime = Date.now();
+    if (isSupabaseNetworkFailure(err)) {
+      isSupabaseOffline = true;
+      lastSupabaseCheckTime = Date.now();
+    }
     return null;
   }
 }
 
-// Save/Update booking in Supabase
+// Save/Update booking in Supabase (with automatic graceful column fallback)
 async function saveToSupabase(booking: any) {
   const supabase = getSupabaseClient();
   if (!supabase) {
     return false;
   }
 
-  const payload = {
+  const corePayload = {
     id: booking.id,
     order_number: booking.order_number || booking.orderId || "",
     pnr_number: booking.pnr_number || booking.bookingRef || "",
@@ -174,39 +333,100 @@ async function saveToSupabase(booking: any) {
     guest_name: booking.guestInfo?.name || booking.customerName || "",
     guest_email: booking.guestInfo?.email || booking.customerEmail || "",
     guest_phone: booking.guestInfo?.phone || booking.customerPhone || "",
-    passengers_json: JSON.stringify(booking.passengers || booking.guestInfo?.passengers || []),
+    passengers_json: typeof booking.passengers_json === 'string'
+      ? booking.passengers_json
+      : JSON.stringify(booking.passengers || booking.guestInfo?.passengers || []),
     created_at: booking.createdAt || "",
     rating: booking.rating !== undefined && booking.rating !== null ? Number(booking.rating) : null,
-    timeslot: booking.timeslot || "",
-    payment_currency: booking.paymentCurrency || "",
-    payment_price: booking.paymentPrice !== undefined && booking.paymentPrice !== null ? Number(booking.paymentPrice) : null,
-    payment_symbol: booking.paymentSymbol || ""
   };
 
-  try {
+  const standardPayload = {
+    ...corePayload,
+    timeslot: booking.timeslot || "",
+    payment_currency: booking.paymentCurrency || "",
+    payment_price: booking.paymentPrice !== undefined && booking.paymentPrice !== null && booking.paymentPrice !== "" ? Number(booking.paymentPrice) : null,
+    payment_symbol: booking.paymentSymbol || "",
+  };
+
+  const fullPayload = {
+    ...standardPayload,
+    notes: booking.notes !== undefined ? String(booking.notes) : "",
+    vendor_name: booking.vendorName !== undefined ? String(booking.vendorName) : "",
+    vendor_payable: booking.vendorPayable !== undefined && booking.vendorPayable !== null && booking.vendorPayable !== "" && !isNaN(Number(booking.vendorPayable))
+      ? Number(booking.vendorPayable)
+      : null,
+    vendor_currency: booking.vendorCurrency !== undefined ? String(booking.vendorCurrency) : "",
+  };
+
+  const upsertWithTimeout = async (payloadToWrite: Record<string, any>) => {
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Supabase save timed out")), 5000)
     );
-    // Try to upsert so it works for both insert and update
     const savePromise = supabase
       .from('bookings')
-      .upsert(payload, { onConflict: 'id' });
+      .upsert(payloadToWrite, { onConflict: 'id' });
+    return (await Promise.race([savePromise, timeoutPromise])) as { error: any };
+  };
 
-    const actualResult: any = await Promise.race([savePromise, timeoutPromise]);
+  try {
+    const workingPayload: Record<string, any> = { ...fullPayload };
+    let actualResult = await upsertWithTimeout(workingPayload);
+
+    // Dynamically adapt to any missing optional columns or timestamp type formatting in Supabase
+    for (let attempt = 0; attempt < 10 && actualResult.error; attempt++) {
+      const msg = String(actualResult.error.message || '');
+      const missingColMatch =
+        msg.match(/Could not find the '([^']+)' column/i) ||
+        msg.match(/column "([^"]+)" of relation/i) ||
+        msg.match(/column ([a-z0-9_]+) does not exist/i);
+
+      if (missingColMatch && missingColMatch[1] && missingColMatch[1] in workingPayload && missingColMatch[1] !== 'id') {
+        delete workingPayload[missingColMatch[1]];
+        actualResult = await upsertWithTimeout(workingPayload);
+        continue;
+      }
+
+      if (/invalid input syntax for type timestamp/i.test(msg) && 'created_at' in workingPayload) {
+        const parsedDate = workingPayload.created_at ? new Date(workingPayload.created_at) : new Date();
+        workingPayload.created_at = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
+        actualResult = await upsertWithTimeout(workingPayload);
+        continue;
+      }
+
+      if (isMissingColumnError(actualResult.error)) {
+        // Fallback tiers if column name couldn't be parsed from message
+        if (attempt === 0) {
+          actualResult = await upsertWithTimeout(standardPayload);
+          continue;
+        }
+        if (attempt === 1) {
+          actualResult = await upsertWithTimeout(corePayload);
+          continue;
+        }
+      }
+      break;
+    }
 
     if (actualResult.error) {
-      console.warn(`[Supabase Save Warning]:`, actualResult.error.message);
-      isSupabaseOffline = true;
-      lastSupabaseCheckTime = Date.now();
+      lastSupabaseDbError = actualResult.error.message || String(actualResult.error);
+      console.warn(`[Supabase Save Warning]:`, lastSupabaseDbError);
+      if (isSupabaseNetworkFailure(actualResult.error)) {
+        isSupabaseOffline = true;
+        lastSupabaseCheckTime = Date.now();
+      }
       return false;
     }
 
-    console.log(`[Supabase] Stored customer booking ${payload.id} (${payload.order_number}) for "${payload.guest_name}" in Supabase table "bookings"`);
+    lastSupabaseDbError = null;
+    console.log(`[Supabase] Stored customer booking ${fullPayload.id} (${fullPayload.order_number}) for "${fullPayload.guest_name}" in Supabase table "bookings"`);
     return true;
   } catch (err: any) {
-    console.warn(`[Supabase Save Warning]:`, err.message || err);
-    isSupabaseOffline = true;
-    lastSupabaseCheckTime = Date.now();
+    lastSupabaseDbError = err.message || String(err);
+    console.warn(`[Supabase Save Warning]:`, lastSupabaseDbError);
+    if (isSupabaseNetworkFailure(err)) {
+      isSupabaseOffline = true;
+      lastSupabaseCheckTime = Date.now();
+    }
     return false;
   }
 }
@@ -228,7 +448,11 @@ async function saveReviewToSupabase(review: any) {
       comment: review.comment || '',
       created_at: review.createdAt || new Date().toISOString()
     };
-    const { error } = await supabase.from('reviews').upsert(payload, { onConflict: 'id' });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Supabase review save timed out")), 5000)
+    );
+    const savePromise = supabase.from('reviews').upsert(payload, { onConflict: 'id' });
+    const { error }: any = await Promise.race([savePromise, timeoutPromise]);
     if (error) {
       console.warn(`[Supabase Review Warning]:`, error.message);
       return false;
@@ -762,7 +986,7 @@ async function startServer() {
   });
 
   // Admin endpoint: Save / Replace Favicon
-  app.post("/api/admin/favicon", (req, res) => {
+  app.post("/api/admin/favicon", async (req, res) => {
     if (!checkAdminAuth(req)) {
       return res.status(403).json({ error: "Access denied. Only authorized administrators can upload and replace the favicon." });
     }
@@ -796,20 +1020,24 @@ async function startServer() {
       }
 
       // Ensure upload directories exist
-      const publicUploadsDir = path.join(process.cwd(), 'public', 'uploads');
-      const distUploadsDir = path.join(process.cwd(), 'dist', 'uploads');
+      const publicUploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
+      const distUploadsDir = path.resolve(process.cwd(), 'dist', 'uploads');
       if (!fs.existsSync(publicUploadsDir)) fs.mkdirSync(publicUploadsDir, { recursive: true });
       if (!fs.existsSync(distUploadsDir)) fs.mkdirSync(distUploadsDir, { recursive: true });
 
       const timestamp = Date.now();
       const ext = normalizedFormat === 'jpeg' ? 'jpg' : normalizedFormat;
       const uploadedFilename = `favicon-${timestamp}.${ext}`;
-      const publicUploadPath = path.join(publicUploadsDir, uploadedFilename);
-      const distUploadPath = path.join(distUploadsDir, uploadedFilename);
+      const publicUploadPath = path.resolve(publicUploadsDir, uploadedFilename);
+      const distUploadPath = path.resolve(distUploadsDir, uploadedFilename);
 
-      // Write timestamped uploaded file
+      if (!publicUploadPath.startsWith(publicUploadsDir + path.sep)) {
+        return res.status(400).json({ error: "Invalid upload filename." });
+      }
+
+      // Write timestamped uploaded file locally
       fs.writeFileSync(publicUploadPath, buffer);
-      if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
+      if (fs.existsSync(path.join(process.cwd(), 'dist')) && distUploadPath.startsWith(distUploadsDir + path.sep)) {
         fs.writeFileSync(distUploadPath, buffer);
       }
 
@@ -838,10 +1066,18 @@ async function startServer() {
         }
       }
 
+      // Upload to Supabase Storage for durable public hosting if configured
+      const storageResult = await uploadBufferToSupabaseStorage(
+        buffer,
+        `favicons/${uploadedFilename}`,
+        mimeType
+      );
+      const activeUrl = storageResult.url || `/uploads/${uploadedFilename}`;
+
       // Configuration object to persist
       const faviconConfig = {
-        url: `/uploads/${uploadedFilename}`,
-        appleTouchIconUrl: `/uploads/${uploadedFilename}`,
+        url: activeUrl,
+        appleTouchIconUrl: activeUrl,
         format: normalizedFormat,
         mimeType,
         fileName: fileName || uploadedFilename,
@@ -849,7 +1085,8 @@ async function startServer() {
         dimensions: dimensions || { width: 512, height: 512 },
         updatedAt: new Date().toISOString(),
         updatedBy: adminEmail || 'admin@tiqsey.com',
-        isDefault: false
+        isDefault: false,
+        storage: storageResult.url ? 'supabase' : 'local',
       };
 
       db.prepare("INSERT OR REPLACE INTO site_settings (key, value, updated_at) VALUES (?, ?, ?)").run(
@@ -865,7 +1102,7 @@ async function startServer() {
           new Date().toISOString(),
           adminEmail || 'admin@tiqsey.com',
           'REPLACE_FAVICON',
-          JSON.stringify({ fileName, format: normalizedFormat, size: buffer.length })
+          JSON.stringify({ fileName, format: normalizedFormat, size: buffer.length, storage: faviconConfig.storage })
         );
       } catch (_) {}
 
@@ -877,51 +1114,78 @@ async function startServer() {
   });
 
   // General Image Upload Endpoint for activities, media gallery, banners, blogs
-  app.post("/api/upload", (req, res) => {
+  app.post("/api/upload", async (req, res) => {
     try {
       const { image, filename } = req.body;
-      if (!image) {
+      if (!image || typeof image !== 'string') {
         return res.status(400).json({ error: "No image payload provided" });
       }
 
       let buffer: Buffer;
       let ext = 'jpg';
+      let mime = 'image/jpeg';
 
       if (image.startsWith('data:')) {
         const matches = image.match(/^data:([A-Za-z0-9-+./]+);base64,(.+)$/);
         if (!matches || matches.length !== 3) {
           return res.status(400).json({ error: "Invalid base64 image data" });
         }
-        const mime = matches[1];
-        if (mime.includes('png')) ext = 'png';
-        else if (mime.includes('webp')) ext = 'webp';
-        else if (mime.includes('svg')) ext = 'svg';
-        else if (mime.includes('gif')) ext = 'gif';
-        else ext = 'jpg';
+        mime = matches[1].toLowerCase();
+        const allowedMimeMap: Record<string, string> = {
+          'image/png': 'png',
+          'image/jpeg': 'jpg',
+          'image/jpg': 'jpg',
+          'image/webp': 'webp',
+          'image/gif': 'gif',
+          'image/svg+xml': 'svg',
+        };
+        if (!allowedMimeMap[mime]) {
+          return res.status(400).json({ error: `Unsupported image type: ${mime}` });
+        }
+        ext = allowedMimeMap[mime];
         buffer = Buffer.from(matches[2], 'base64');
       } else {
         return res.status(400).json({ error: "Expected base64 data URI" });
       }
 
-      const publicUploadsDir = path.join(process.cwd(), 'public', 'uploads');
-      const distUploadsDir = path.join(process.cwd(), 'dist', 'uploads');
+      if (buffer.length > 10 * 1024 * 1024) {
+        return res.status(400).json({ error: "Image exceeds maximum size limit of 10MB" });
+      }
+
+      const publicUploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
+      const distUploadsDir = path.resolve(process.cwd(), 'dist', 'uploads');
       if (!fs.existsSync(publicUploadsDir)) fs.mkdirSync(publicUploadsDir, { recursive: true });
       if (!fs.existsSync(distUploadsDir)) fs.mkdirSync(distUploadsDir, { recursive: true });
 
-      const safeBase = filename ? filename.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30) : 'media';
+      const baseOnly = typeof filename === 'string' ? path.basename(filename, path.extname(filename)) : 'media';
+      const safeBase = baseOnly.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30) || 'media';
       const uploadedFilename = `${safeBase}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
-      const publicUploadPath = path.join(publicUploadsDir, uploadedFilename);
-      const distUploadPath = path.join(distUploadsDir, uploadedFilename);
+      const publicUploadPath = path.resolve(publicUploadsDir, uploadedFilename);
+      const distUploadPath = path.resolve(distUploadsDir, uploadedFilename);
+
+      if (!publicUploadPath.startsWith(publicUploadsDir + path.sep)) {
+        return res.status(400).json({ error: "Invalid upload path" });
+      }
 
       fs.writeFileSync(publicUploadPath, buffer);
-      if (fs.existsSync(distUploadsDir)) {
+      if (fs.existsSync(distUploadsDir) && distUploadPath.startsWith(distUploadsDir + path.sep)) {
         fs.writeFileSync(distUploadPath, buffer);
       }
 
+      // Upload to Supabase Storage when configured, falling back gracefully to local /uploads/ URL
+      const storageResult = await uploadBufferToSupabaseStorage(
+        buffer,
+        `uploads/${uploadedFilename}`,
+        mime
+      );
+
       return res.json({
         success: true,
-        url: `/uploads/${uploadedFilename}`,
-        filename: uploadedFilename
+        url: storageResult.url || `/uploads/${uploadedFilename}`,
+        localUrl: `/uploads/${uploadedFilename}`,
+        filename: uploadedFilename,
+        storage: storageResult.url ? 'supabase' : 'local',
+        bucket: storageResult.bucket || undefined,
       });
     } catch (err: any) {
       console.error("[Upload API] Error saving uploaded image:", err);
@@ -1182,22 +1446,39 @@ async function startServer() {
       
       if (remoteRows && Array.isArray(remoteRows)) {
         console.log(`[Supabase] Successfully fetched ${remoteRows.length} bookings from remote database.`);
-        const remoteBookings = remoteRows.map(mapRowToBooking);
+        const remoteBookings = remoteRows
+          .filter((r: any) => r && r.id && !String(r.id).startsWith('temp-'))
+          .map(mapRowToBooking);
         
-        // Merge bookings (using a map keyed by ID, remote overrides local if exists)
+        // Merge bookings (using a map keyed by ID, preserving local-only fields when absent remotely)
         const mergedMap = new Map<string, any>();
         
         // First add all local
         localBookings.forEach(b => {
-          if (b.id && !b.id.startsWith('temp-')) {
+          if (b.id && !String(b.id).startsWith('temp-')) {
             mergedMap.set(b.id, b);
           }
         });
         
-        // Then add/overwrite with remote (since it's the external source of truth)
+        // Then merge with remote while preserving local notes/vendor/payment fields if remote omits them
         remoteBookings.forEach(b => {
-          if (b.id) {
-            mergedMap.set(b.id, b);
+          if (b.id && !String(b.id).startsWith('temp-')) {
+            const localMatch = mergedMap.get(b.id);
+            const mergedBooking = localMatch
+              ? {
+                  ...localMatch,
+                  ...b,
+                  timeslot: b.timeslot || localMatch.timeslot || "",
+                  paymentCurrency: b.paymentCurrency || localMatch.paymentCurrency || "",
+                  paymentPrice: b.paymentPrice !== undefined ? b.paymentPrice : localMatch.paymentPrice,
+                  paymentSymbol: b.paymentSymbol || localMatch.paymentSymbol || "",
+                  notes: b.notes || localMatch.notes || "",
+                  vendorName: b.vendorName || localMatch.vendorName || "",
+                  vendorPayable: b.vendorPayable !== undefined ? b.vendorPayable : localMatch.vendorPayable,
+                  vendorCurrency: b.vendorCurrency || localMatch.vendorCurrency || "",
+                }
+              : b;
+            mergedMap.set(b.id, mergedBooking);
             
             // Also, if this remote booking is not in SQLite, we cache/insert it locally
             const existsInLocal = localRows.some(r => r.id === b.id);
@@ -1209,20 +1490,25 @@ async function startServer() {
                     attraction_image_url, city, booking_date, tickets_count, total_price, 
                     status, child_count, guest_name, guest_email, guest_phone, 
                     passengers_json, created_at, rating, timeslot,
-                    payment_currency, payment_price, payment_symbol
-                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    payment_currency, payment_price, payment_symbol,
+                    notes, vendor_name, vendor_payable, vendor_currency
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `);
                 stmt.run(
-                  b.id, b.order_number, b.pnr_number, b.attractionId, b.attractionName,
-                  b.attractionImageUrl, b.city, b.bookingDate, b.ticketsCount, b.totalPrice,
-                  b.status, b.childCount, b.guestInfo.name, b.guestInfo.email, b.guestInfo.phone,
-                  JSON.stringify(b.passengers), b.createdAt, b.rating !== undefined && b.rating !== null ? b.rating : null,
-                  b.timeslot || "",
-                  b.paymentCurrency || "",
-                  b.paymentPrice !== undefined ? b.paymentPrice : null,
-                  b.paymentSymbol || ""
+                  mergedBooking.id, mergedBooking.order_number, mergedBooking.pnr_number, mergedBooking.attractionId, mergedBooking.attractionName,
+                  mergedBooking.attractionImageUrl, mergedBooking.city, mergedBooking.bookingDate, mergedBooking.ticketsCount, mergedBooking.totalPrice,
+                  mergedBooking.status, mergedBooking.childCount, mergedBooking.guestInfo.name, mergedBooking.guestInfo.email, mergedBooking.guestInfo.phone,
+                  JSON.stringify(mergedBooking.passengers), mergedBooking.createdAt, mergedBooking.rating !== undefined && mergedBooking.rating !== null ? mergedBooking.rating : null,
+                  mergedBooking.timeslot || "",
+                  mergedBooking.paymentCurrency || "",
+                  mergedBooking.paymentPrice !== undefined ? mergedBooking.paymentPrice : null,
+                  mergedBooking.paymentSymbol || "",
+                  mergedBooking.notes || "",
+                  mergedBooking.vendorName || "",
+                  mergedBooking.vendorPayable !== undefined ? mergedBooking.vendorPayable : null,
+                  mergedBooking.vendorCurrency || ""
                 );
-                console.log(`[Sync] Cached remote booking ${b.id} to SQLite database.`);
+                console.log(`[Sync] Cached remote booking ${mergedBooking.id} to SQLite database.`);
               } catch (e) {
                 // Ignore insert error if unique constraint or duplicate
               }
@@ -1389,8 +1675,34 @@ async function startServer() {
 
       console.log(`[Database] Booking saved/updated locally: ${id}`);
 
-      // Gracefully attempt to sync to Supabase if configured
-      const supabaseSuccess = await saveToSupabase(booking);
+      // Gracefully attempt to sync normalized booking to Supabase if configured
+      const normalizedForSupabase = {
+        id,
+        order_number,
+        pnr_number,
+        attractionId: attraction_id,
+        attractionName: attraction_name,
+        attractionImageUrl: attraction_image_url,
+        city,
+        bookingDate: booking_date,
+        ticketsCount: tickets_count,
+        totalPrice: total_price,
+        status,
+        childCount: child_count,
+        guestInfo: { name: guest_name, email: guest_email, phone: guest_phone },
+        passengers_json,
+        createdAt: created_at,
+        rating,
+        timeslot,
+        paymentCurrency: payment_currency,
+        paymentPrice: payment_price,
+        paymentSymbol: payment_symbol,
+        notes,
+        vendorName: vendor_name,
+        vendorPayable: vendor_payable,
+        vendorCurrency: vendor_currency,
+      };
+      const supabaseSuccess = await saveToSupabase(normalizedForSupabase);
       if (supabaseSuccess) {
         console.log(`[Database] Booking synced successfully to Supabase for ID: ${id}`);
       }
@@ -1462,27 +1774,35 @@ async function startServer() {
         targetId
       );
 
-      // Attempt remote Supabase sync if online
-      try {
-        const supabase = getSupabaseClient();
-        if (supabase) {
-          await supabase.from('bookings').update({
-            status: newStatus,
-            booking_date: newBookingDate,
-            timeslot: newTimeslot,
-            guest_name: newGuestName,
-            guest_email: newGuestEmail,
-            guest_phone: newGuestPhone,
-            passengers_json: newPassengers,
-            total_price: newTotalPrice,
-            tickets_count: newTicketsCount
-          }).eq('id', targetId);
-        }
-      } catch (e) {
-        console.warn("[Database Sync] Supabase patch warning:", e);
-      }
+      // Sync full updated row to Supabase via upsert (creates row if missing, updates if present, with column fallback)
+      const supabaseSynced = await saveToSupabase({
+        id: targetId,
+        order_number: existing.order_number,
+        pnr_number: existing.pnr_number,
+        attractionId: existing.attraction_id,
+        attractionName: existing.attraction_name,
+        attractionImageUrl: existing.attraction_image_url,
+        city: existing.city,
+        bookingDate: newBookingDate,
+        ticketsCount: newTicketsCount,
+        totalPrice: newTotalPrice,
+        status: newStatus,
+        childCount: existing.child_count,
+        guestInfo: { name: newGuestName, email: newGuestEmail, phone: newGuestPhone },
+        passengers_json: newPassengers,
+        createdAt: existing.created_at,
+        rating: existing.rating,
+        timeslot: newTimeslot,
+        paymentCurrency: existing.payment_currency,
+        paymentPrice: existing.payment_price,
+        paymentSymbol: existing.payment_symbol,
+        notes: newNotes,
+        vendorName: newVendorName,
+        vendorPayable: newVendorPayable,
+        vendorCurrency: newVendorCurrency,
+      });
 
-      res.json({ success: true, id: targetId, status: newStatus });
+      res.json({ success: true, id: targetId, status: newStatus, supabaseSynced });
     } catch (err: any) {
       console.error("[Database Error] Failed to patch booking:", err);
       res.status(500).json({ error: "Failed to update booking", details: err.message });
@@ -1495,18 +1815,27 @@ async function startServer() {
       const { id } = req.params;
       console.log(`[Database] Deleting booking: ${id}`);
 
+      const existing = db.prepare('SELECT id FROM bookings WHERE id = ? OR order_number = ?').get(id, id) as { id: string } | undefined;
+      const targetId = existing?.id || id;
+
       db.prepare('DELETE FROM bookings WHERE id = ? OR order_number = ?').run(id, id);
 
+      let supabaseSynced = false;
       try {
         const supabase = getSupabaseClient();
         if (supabase) {
-          await supabase.from('bookings').delete().eq('id', id);
+          const { error } = await supabase.from('bookings').delete().eq('id', targetId);
+          if (error) {
+            console.warn("[Database Sync] Supabase delete warning:", error.message);
+          } else {
+            supabaseSynced = true;
+          }
         }
       } catch (e) {
         console.warn("[Database Sync] Supabase delete warning:", e);
       }
 
-      res.json({ success: true, message: `Booking ${id} deleted successfully` });
+      res.json({ success: true, supabaseSynced, message: `Booking ${targetId} deleted successfully` });
     } catch (err: any) {
       console.error("[Database Error] Failed to delete booking:", err);
       res.status(500).json({ error: "Failed to delete booking", details: err.message });
@@ -1668,7 +1997,7 @@ async function startServer() {
   });
 
   // Submit or update a review
-  app.post("/api/reviews", (req, res) => {
+  app.post("/api/reviews", async (req, res) => {
     try {
       const { id, bookingId, attractionId, userId, userName, userEmail, rating, comment, createdAt } = req.body;
       if (!bookingId || !attractionId || rating === undefined || comment === undefined) {
@@ -1677,7 +2006,8 @@ async function startServer() {
 
       console.log(`[Database] Saving review for booking ${bookingId}`);
 
-      const existing = db.prepare('SELECT id FROM reviews WHERE booking_id = ?').get(bookingId);
+      const existing = db.prepare('SELECT id FROM reviews WHERE booking_id = ?').get(bookingId) as { id: string } | undefined;
+      const reviewId = existing?.id || id || `rev-${Date.now()}`;
       if (existing) {
         const stmt = db.prepare(`
           UPDATE reviews SET
@@ -1692,7 +2022,7 @@ async function startServer() {
           INSERT INTO reviews (id, booking_id, attraction_id, user_id, user_name, user_email, rating, comment, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
-        stmt.run(id || `rev-${Date.now()}`, bookingId, attractionId, userId || 'anonymous', userName || 'Guest', userEmail || '', rating, comment, createdAt);
+        stmt.run(reviewId, bookingId, attractionId, userId || 'anonymous', userName || 'Guest', userEmail || '', rating, comment, createdAt);
       }
 
       // Also update rating in the bookings table
@@ -1700,8 +2030,8 @@ async function startServer() {
       bookingStmt.run(rating, bookingId);
 
       // Gracefully sync review to Supabase
-      saveReviewToSupabase({
-        id: id || `rev-${Date.now()}`,
+      const supabaseSynced = await saveReviewToSupabase({
+        id: reviewId,
         bookingId,
         attractionId,
         userId: userId || 'anonymous',
@@ -1710,25 +2040,27 @@ async function startServer() {
         rating,
         comment,
         createdAt
-      }).catch(e => console.warn('[Supabase Review Background Warning]:', e));
+      });
 
-      res.json({ success: true });
+      res.json({ success: true, id: reviewId, supabaseSynced });
     } catch (err: any) {
       console.error("[Database Error] Failed to save review:", err);
       res.status(500).json({ error: "Failed to save review", details: err.message });
     }
   });
 
-  // Supabase Live Status Endpoint
+  // Supabase Live Status Endpoint (Database + Storage)
   app.get("/api/supabase/status", async (req, res) => {
     try {
       const isConfigured = isSupabaseConfigured();
       const projectId = getSupabaseProjectId();
+      const configuredBucket = getConfiguredStorageBucket();
       if (!isConfigured) {
         return res.json({ 
           configured: false,
           connected: false, 
           projectId: projectId || null, 
+          storage: { bucket: configuredBucket, available: false },
           message: "Supabase not configured. Using local SQLite database." 
         });
       }
@@ -1738,16 +2070,46 @@ async function startServer() {
           configured: true,
           connected: false, 
           projectId, 
+          storage: { bucket: configuredBucket, available: false },
           message: "Supabase client offline or cooldown in effect" 
         });
       }
-      const { data, error } = await supabase.from('bookings').select('id, guest_name, order_number, created_at').limit(5);
-      if (error) {
+
+      const activeBucket = resolvedStorageBucket || configuredBucket;
+      const [dbResult, bucketsResult, bucketProbeResult] = await Promise.all([
+        supabase.from('bookings').select('id, guest_name, order_number, created_at').limit(5),
+        supabase.storage.listBuckets().catch((e: any) => ({ data: null, error: e })),
+        supabase.storage.from(activeBucket).list('', { limit: 1 }).catch((e: any) => ({ data: null, error: e }))
+      ]);
+
+      const storageBuckets = Array.isArray(bucketsResult?.data)
+        ? bucketsResult.data.map((b: any) => ({ name: b.name, public: Boolean(b.public) }))
+        : [];
+      const hasConfiguredBucket = storageBuckets.some((b: any) => b.name === activeBucket);
+      const bucketProbeHasItems = !bucketProbeResult?.error && Array.isArray(bucketProbeResult?.data) && bucketProbeResult.data.length > 0;
+      const storageDiagnosticError =
+        bucketProbeResult?.error?.message ||
+        bucketsResult?.error?.message ||
+        lastSupabaseStorageError ||
+        null;
+      const storageAvailable = Boolean(
+        !storageDiagnosticError &&
+        (resolvedStorageBucket || hasConfiguredBucket || storageBuckets.length > 0 || bucketProbeHasItems)
+      );
+
+      if (dbResult.error) {
         return res.json({ 
           configured: true,
           connected: false, 
           projectId, 
-          error: error.message 
+          error: dbResult.error.message,
+          lastDbError: lastSupabaseDbError,
+          storage: {
+            bucket: activeBucket,
+            available: storageAvailable,
+            buckets: storageBuckets,
+            error: storageDiagnosticError,
+          }
         });
       }
       return res.json({
@@ -1755,8 +2117,15 @@ async function startServer() {
         connected: true,
         projectId,
         table: 'bookings',
-        bookingsCount: data ? data.length : 0,
-        recentBookings: data || []
+        bookingsCount: dbResult.data ? dbResult.data.length : 0,
+        recentBookings: dbResult.data || [],
+        lastDbError: lastSupabaseDbError,
+        storage: {
+          bucket: activeBucket,
+          available: storageAvailable,
+          buckets: storageBuckets,
+          error: storageDiagnosticError,
+        }
       });
     } catch (err: any) {
       return res.json({ 
