@@ -138,7 +138,7 @@ export default function PromotionalBannerForm() {
 
   // Workflow mode: 'readymade' (instant graphic upload) or 'builder' (interactive template generator)
   const isReadyMadeParam = searchParams.get('type') === 'readymade';
-  const [workflowMode, setWorkflowMode] = useState<'readymade' | 'builder'>(isReadyMadeParam ? 'readymade' : 'readymade');
+  const [workflowMode, setWorkflowMode] = useState<'readymade' | 'builder'>(isReadyMadeParam ? 'readymade' : 'builder');
 
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -147,7 +147,8 @@ export default function PromotionalBannerForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
-  const [template, setTemplate] = useState<BannerTemplateType>(isReadyMadeParam ? 'readymade-image' : 'readymade-image');
+  const [template, setTemplate] = useState<BannerTemplateType>(isReadyMadeParam ? 'readymade-image' : 'play-passes');
+  const [originalCreatedAt, setOriginalCreatedAt] = useState<string>('');
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [highlightText, setHighlightText] = useState('');
@@ -206,8 +207,9 @@ export default function PromotionalBannerForm() {
         setIsActive(current.isActive ?? true);
         setStartDate(current.startDate || '');
         setEndDate(current.endDate || '');
+        setOriginalCreatedAt(current.createdAt || '');
       } else {
-        navigate('/promotional-banners');
+        navigate('/promotional-banners?tab=cards');
       }
     } else {
       // Default for new banner
@@ -399,7 +401,7 @@ export default function PromotionalBannerForm() {
       updateBanner({
         ...payload,
         id,
-        createdAt: new Date().toISOString(),
+        createdAt: originalCreatedAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
     } else {
@@ -412,7 +414,7 @@ export default function PromotionalBannerForm() {
       addBanner(payload);
     }
 
-    navigate('/promotional-banners');
+    navigate('/promotional-banners?tab=cards');
   };
 
   const handleDelete = () => {
@@ -424,7 +426,7 @@ export default function PromotionalBannerForm() {
   const confirmDelete = () => {
     if (isEditing && id) {
       deleteBanner(id);
-      navigate('/promotional-banners');
+      navigate('/promotional-banners?tab=cards');
     }
   };
 

@@ -1089,7 +1089,7 @@ export default function Bookings() {
 
           <button
             type="button"
-            onClick={loadBookings}
+            onClick={() => loadBookings(false)}
             disabled={isRefreshing}
             className="flex-1 sm:flex-none min-h-[40px] flex items-center justify-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/90 dark:border-slate-800/80 rounded-md text-[13px] font-semibold text-[#0a3560] dark:text-slate-300 transition-colors cursor-pointer shadow-sm"
           >

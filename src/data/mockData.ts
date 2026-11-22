@@ -2004,9 +2004,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     description:
       "Discover the natural world and the known universe at the American Museum of Natural History, featuring the famous dinosaur halls and a giant blue whale model.",
     highlights: [
-      "Marvel at the Tyrannosaurus Rex and other dinosaur skeletons",
-      "See the 94-foot-long blue whale model",
-      "Explore the Rose Center for Earth and Space",
+      "Explore over 34 million fascinating specimens at the American Museum of Natural History.",
+      "Discover dinosaur fossils, including the T. rex and Triceratops.",
+      "Admire the giant Blue Whale model in the Ocean Life Hall.",
+      "Learn about human evolution in the Hall of Human Origins.",
+      "Explore the universe at the Hayden Planetarium and Rose Center.",
     ],
     included: [
       "General Admission to the museum",
@@ -2197,9 +2199,10 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     description:
       "Enjoy a splash-tastic day out at Phuket's largest water park featuring thrilling rides and a massive wave pool.",
     highlights: [
-      "Experience thrilling water slides",
-      "Relax in the massive wave pool",
-      "Enjoy the lazy river",
+      "Explore exciting zones like Rainbow Slide Tower and Wave Pool.",
+      "Experience thrilling drops on high-speed slides.",
+      "Race your friends and family on the Multi-Lane Racer.",
+      "Enjoy the tropical surroundings and beautiful island-inspired atmosphere.",
     ],
     included: ["Admission ticket"],
     duration: "Full day",
@@ -2333,9 +2336,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     description:
       "Immerse yourself in a symphony of colours at Asia's largest bird park.",
     highlights: [
-      "Walk-through aviaries",
-      "Avian presentations",
-      "Diverse bird species",
+      "Discover over 400 bird species at Asia's largest bird park.",
+      "Explore vast open aviaries designed to mimic natural habitats.",
+      "Enjoy exciting bird shows and interactive presentations.",
+      "Spot colourful toucans, flamingos, and hornbills.",
+      "Experience bird feeding and fun educational activities.",
     ],
     included: ["Admission ticket"],
     duration: "3-4 hours",
@@ -2529,9 +2534,10 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     description:
       "Explore the world's largest outdoor museum featuring scaled-down replicas of Thailand's most significant historical structures.",
     highlights: [
-      "Replicas of famous Thai temples",
-      "Vast outdoor area",
-      "Rent a bicycle or golf cart",
+      "Explore Thailand's rich culture and heritage at Ancient City and Erawan Museum.",
+      "Discover over 116 replicas of historic monuments at Ancient City.",
+      "Admire the iconic three-headed elephant sculpture at Erawan Museum.",
+      "Explore fascinating collections showcasing Thai art, traditions, and craftsmanship.",
     ],
     included: ["Admission ticket"],
     duration: "Half day",
@@ -2604,9 +2610,11 @@ export const POPULAR_ATTRACTIONS: Attraction[] = [
     description:
       "Discover the wonders of the ocean at the largest aquarium in Thailand.",
     highlights: [
-      "Over 25,000 animals",
-      "Interactive zones",
-      "Underwater dining experience (optional)",
+      "Explore over 25,000 marine creatures at Thailand's largest aquarium.",
+      "Discover 9 themed zones featuring diverse underwater ecosystems.",
+      "Enjoy the spectacular underwater Mermaid Show.",
+      "Walk through the 40-metre underwater tunnel surrounded by marine life.",
+      "Interact with fascinating sea creatures at the touch pools.",
     ],
     included: ["Admission ticket"],
     duration: "2-3 hours",

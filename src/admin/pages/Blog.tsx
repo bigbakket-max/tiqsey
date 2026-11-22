@@ -160,8 +160,9 @@ export default function Blog() {
   };
 
   const handleDuplicatePost = (post: BlogPost) => {
+    const { id: _unusedId, ...rest } = post;
     const cloned: Omit<BlogPost, 'id'> = {
-      ...post,
+      ...rest,
       title: `${post.title} (Copy)`,
       status: 'Draft',
       publishedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })

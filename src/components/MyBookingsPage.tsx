@@ -211,7 +211,7 @@ export default function MyBookingsPage({
                 {t('myTickets', 'My tickets')}
               </h1>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2 max-w-2xl">
-                {t('myTicketsDesc', 'These tickets were either purchased with the same email used in your Tiqets account or when you were signed in.')}
+                {t('myTicketsDesc', 'These tickets were either purchased with the same email used in your Tiqsey account or when you were signed in.')}
               </p>
             </div>
 

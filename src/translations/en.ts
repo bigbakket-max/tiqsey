@@ -606,7 +606,7 @@ export const en: Record<string, string> = {
   yourNamePlaceholder: 'Your Name',
   addCommentPlaceholder: 'Add a comment...',
   exploreMore: 'EXPLORE MORE',
-  myTicketsDesc: 'These tickets were either purchased with the same email used in your Tiqets account or when you were signed in.',
+  myTicketsDesc: 'These tickets were either purchased with the same email used in your Tiqsey account or when you were signed in.',
   noCompletedBookings: 'No completed tickets found',
   noCompletedBookingsDesc: 'Your completed journeys and ticket history will show up here once you have taken them.',
   fillAllFields: 'Please enter your email and password.',

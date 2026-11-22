@@ -105,7 +105,7 @@ export default function ProfilePage({ onBackToHome }: ProfilePageProps) {
 
             {/* Profile Avatar Frame with Red Glowing Ring and Edit Pencil Button */}
             <div className="relative my-2">
-              <div className="w-32 h-32 sm:w-40 sm:h-44 rounded-full p-1 ring-2 ring-[#FF385C] shadow-[0_0_35px_rgba(255,56,92,0.25)] flex items-center justify-center bg-white dark:bg-slate-900">
+              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full p-1 ring-2 ring-[#FF385C] shadow-[0_0_35px_rgba(255,56,92,0.25)] flex items-center justify-center bg-white dark:bg-slate-900">
                 <img
                   src={selectedAvatarUrl}
                   alt={user.name}
@@ -134,7 +134,7 @@ export default function ProfilePage({ onBackToHome }: ProfilePageProps) {
               <div className="inline-flex items-center gap-2 max-w-full px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 text-xs font-medium text-slate-600 dark:text-slate-300">
                 <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span className="truncate">{user.email || "admin@tiqsey.com"}</span>
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-500 text-white shrink-0" />
+                <CheckCircle2 className="w-4 h-4 fill-emerald-500 text-white shrink-0" />
               </div>
             </div>
 

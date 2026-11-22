@@ -330,7 +330,7 @@ export default function BlogPostForm() {
         // 1. Save Shortcut (Ctrl+S / ⌘+S)
         if (isMod && key === 's' && !event.shiftKey && !event.altKey) {
           event.preventDefault();
-          handleSave();
+          handleSaveRef.current?.();
           return true;
         }
 
@@ -575,13 +575,27 @@ export default function BlogPostForm() {
 
   const handleInsertLink = () => {
     if (!editor) return;
-    const url = modalLinkUrl.trim() || 'https://';
-    const linkText = modalLinkText.trim() || url;
+    const rawUrl = modalLinkUrl.trim();
+    if (!rawUrl) {
+      setIsLinkModalOpen(false);
+      return;
+    }
+    const isSafeUrl = /^(https?:\/\/|mailto:|\/|#)/i.test(rawUrl);
+    const safeUrl = isSafeUrl ? rawUrl : `https://${rawUrl.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:/, '')}`;
+    const linkText = modalLinkText.trim() || safeUrl;
 
     if (editor.state.selection.empty) {
-      editor.chain().focus().insertContent(`<a href="${url}" class="text-[#5fa6d9] hover:underline cursor-pointer">${linkText}</a>`).run();
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: 'text',
+          text: linkText,
+          marks: [{ type: 'link', attrs: { href: safeUrl } }],
+        })
+        .run();
     } else {
-      editor.chain().focus().setLink({ href: url }).run();
+      editor.chain().focus().setLink({ href: safeUrl }).run();
     }
     setIsLinkModalOpen(false);
   };
@@ -916,6 +930,9 @@ export default function BlogPostForm() {
       hideLoader();
     }
   };
+
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
 
   const getFormatLabel = () => {
     if (!editor) return 'Normal Text';

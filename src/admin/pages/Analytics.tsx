@@ -26,6 +26,8 @@ interface SubAgent {
   tasksCompleted: string;
   desc: string;
   lastAction: string;
+  triggerFrequency?: string;
+  maxConcurrency?: number;
 }
 
 const INITIAL_AGENTS: SubAgent[] = [
@@ -100,7 +102,15 @@ const INITIAL_AGENTS: SubAgent[] = [
 export default function Analytics() {
   const [agents, setAgents] = useState<SubAgent[]>(INITIAL_AGENTS);
   const [selectedAgent, setSelectedAgent] = useState<SubAgent | null>(null);
+  const [modalTriggerFreq, setModalTriggerFreq] = useState('Real-Time Event Driven (Instant)');
+  const [modalConcurrency, setModalConcurrency] = useState<number>(25);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const openAgentModal = (agent: SubAgent) => {
+    setSelectedAgent(agent);
+    setModalTriggerFreq(agent.triggerFrequency || 'Real-Time Event Driven (Instant)');
+    setModalConcurrency(agent.maxConcurrency ?? 25);
+  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -118,10 +128,8 @@ export default function Analytics() {
     }));
   };
 
-  const triggerManualSync = (id: string) => {
-    const ag = agents.find(a => a.id === id);
-    showToast(`Triggered manual execution for ${ag?.title || 'Agent'}`);
-  };
+  const activeAgentsCount = agents.filter(a => a.status === 'Active').length;
+  const fleetHealthPct = Math.round((activeAgentsCount / agents.length) * 100);
 
   return (
     <div className="space-y-6 pb-12">
@@ -158,8 +166,12 @@ export default function Analytics() {
               <ShieldCheck className="w-4 h-4" />
             </span>
           </div>
-          <p className="text-xl font-black text-slate-800 dark:text-white mt-2">100% Operational</p>
-          <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">6/6 Services Online</p>
+          <p className="text-xl font-black text-slate-800 dark:text-white mt-2">
+            {fleetHealthPct}% {fleetHealthPct === 100 ? 'Operational' : 'Active'}
+          </p>
+          <p className={`text-[11px] font-semibold mt-0.5 ${fleetHealthPct === 100 ? 'text-emerald-600' : 'text-amber-600'}`}>
+            {activeAgentsCount}/{agents.length} Services Online
+          </p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
@@ -254,7 +266,7 @@ export default function Analytics() {
                   <span>{agent.status === 'Active' ? 'Pause' : 'Resume'}</span>
                 </button>
                 <button 
-                  onClick={() => setSelectedAgent(agent)}
+                  onClick={() => openAgentModal(agent)}
                   className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                   title="Configure Agent"
                   aria-label="Configure Agent"
@@ -302,10 +314,14 @@ export default function Analytics() {
 
               <div>
                 <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Trigger Frequency</label>
-                <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none">
-                  <option>Real-Time Event Driven (Instant)</option>
-                  <option>Periodic Polling (Every 5 Minutes)</option>
-                  <option>Scheduled Daily Batch (Midnight UTC)</option>
+                <select
+                  value={modalTriggerFreq}
+                  onChange={(e) => setModalTriggerFreq(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none"
+                >
+                  <option value="Real-Time Event Driven (Instant)">Real-Time Event Driven (Instant)</option>
+                  <option value="Periodic Polling (Every 5 Minutes)">Periodic Polling (Every 5 Minutes)</option>
+                  <option value="Scheduled Daily Batch (Midnight UTC)">Scheduled Daily Batch (Midnight UTC)</option>
                 </select>
               </div>
 
@@ -313,7 +329,10 @@ export default function Analytics() {
                 <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Max Concurrency Limit</label>
                 <input 
                   type="number" 
-                  defaultValue={25}
+                  min={1}
+                  max={200}
+                  value={modalConcurrency}
+                  onChange={(e) => setModalConcurrency(Math.max(1, Number(e.target.value) || 1))}
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none"
                 />
               </div>
@@ -322,16 +341,21 @@ export default function Analytics() {
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={() => setSelectedAgent(null)}
-                className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800"
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 cursor-pointer"
               >
                 Close
               </button>
               <button
                 onClick={() => {
+                  setAgents(prev => prev.map(ag =>
+                    ag.id === selectedAgent.id
+                      ? { ...ag, triggerFrequency: modalTriggerFreq, maxConcurrency: modalConcurrency }
+                      : ag
+                  ));
                   showToast(`Saved configuration for ${selectedAgent.title}`);
                   setSelectedAgent(null);
                 }}
-                className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
               >
                 Save Settings
               </button>

@@ -422,7 +422,7 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                     {featuredPost.city && (
                       <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow">
                         <MapPin className="w-3.5 h-3.5 text-[#FF385C]" />
-                        {featuredPost.city}, France
+                        {featuredPost.city}
                       </div>
                     )}
                   </div>
@@ -560,15 +560,6 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                       setSearchTerm("");
                       setSelectedCategory("All");
                     }}
-                    className="text-[#FF385C] font-bold text-sm hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    View all articles
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                )}
-                {searchTerm === "" && selectedCategory === "All" && (
-                  <button
-                    onClick={() => setSelectedCategory("Destination Guides")}
                     className="text-[#FF385C] font-bold text-sm hover:underline flex items-center gap-1 cursor-pointer"
                   >
                     View all articles
@@ -832,12 +823,18 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
                 {/* Tags section */}
                 <div className="flex flex-wrap items-center gap-2 pt-6 border-b border-slate-150 dark:border-slate-800 pb-8">
                   {(selectedPost.tags || []).map((tag) => (
-                    <span
+                    <button
+                      type="button"
                       key={tag}
+                      onClick={() => {
+                        setSelectedCategory("All");
+                        setSearchTerm(tag);
+                        closePostDetails();
+                      }}
                       className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors"
                     >
                       #{tag}
-                    </span>
+                    </button>
                   ))}
                 </div>
 

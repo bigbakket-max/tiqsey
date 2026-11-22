@@ -58,46 +58,62 @@ const TIME_RANGE_DATA: Record<'7d' | '30d' | '90d', Array<{ name: string; revenu
   ]
 };
 
-const RECENT_ACTIVITY = [
+interface DashboardRecentBooking {
+  id: string;
+  orderId: string;
+  pnr: string;
+  customer: string;
+  email: string;
+  item: string;
+  amount: string;
+  status: string;
+  time: string;
+}
+
+const FALLBACK_RECENT_ACTIVITY: DashboardRecentBooking[] = [
   {
-    id: 'ord-10492',
-    pnr: 'TIQ-882194',
+    id: 'book-default-2',
+    orderId: 'ODB2',
+    pnr: 'BKDB2',
     customer: 'Sarah Jenkins',
     email: 'sarah.j@gmail.com',
-    item: '1-Hour Amsterdam Canal Cruise',
-    amount: '€28.00',
+    item: 'Eiffel Tower Summit Access',
+    amount: '€150.00',
     status: 'Confirmed',
-    time: '12m ago'
+    time: 'Recent'
   },
   {
-    id: 'ord-10491',
-    pnr: 'TIQ-551930',
-    customer: 'Liam Van Der Beek',
-    email: 'liam.vdb@outlook.com',
-    item: 'Rijksmuseum Amsterdam Reserved Entry',
-    amount: '€45.00',
+    id: 'book-default-3',
+    orderId: 'ODB3',
+    pnr: 'BKDB3',
+    customer: 'Marcus Chen',
+    email: 'marcus.chen@outlook.com',
+    item: 'Louvre Museum Masterpieces Tour',
+    amount: '€128.00',
     status: 'Confirmed',
-    time: '42m ago'
+    time: 'Recent'
   },
   {
-    id: 'ord-10490',
-    pnr: 'TIQ-449102',
+    id: 'book-default-4',
+    orderId: 'ODB4',
+    pnr: 'BKDB4',
     customer: 'Elena Rostova',
     email: 'elena.rostova@icloud.com',
-    item: 'Van Gogh Museum Skip-the-Line',
-    amount: '€52.50',
+    item: 'Colosseum & Roman Forum VIP',
+    amount: '€180.00',
     status: 'Pending',
-    time: '1h ago'
+    time: 'Recent'
   },
   {
-    id: 'ord-10489',
-    pnr: 'TIQ-190284',
-    customer: 'Mark Robinson',
-    email: 'm.robinson@yahoo.com',
-    item: 'Heineken Experience VIP Tour',
-    amount: '€79.00',
-    status: 'Confirmed',
-    time: '2h ago'
+    id: 'book-default-5',
+    orderId: 'ODB5',
+    pnr: 'BKDB5',
+    customer: 'David Martinez',
+    email: 'd.martinez@gmail.com',
+    item: 'Sagrada Familia Skip-The-Line',
+    amount: '€215.00',
+    status: 'Completed',
+    time: 'Recent'
   }
 ];
 
@@ -106,29 +122,73 @@ export default function Dashboard() {
   const { posts } = useBlog();
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
   const [isLoading, setIsLoading] = useState(true);
+  const [recentActivity, setRecentActivity] = useState<DashboardRecentBooking[]>(FALLBACK_RECENT_ACTIVITY);
+  const [liveBookingsTotal, setLiveBookingsTotal] = useState<number | null>(null);
 
-  // Initial smooth skeleton loading simulation to demonstrate fast, flicker-free rendering
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 280);
-    return () => clearTimeout(timer);
+    let active = true;
+    const fetchRecentBookings = async () => {
+      try {
+        const res = await fetch('/api/bookings');
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
+          const data = await res.json();
+          if (active && data.success && Array.isArray(data.bookings) && data.bookings.length > 0) {
+            const validBookings = data.bookings.filter((b: any) => b && b.id && !String(b.id).startsWith('temp-'));
+            if (validBookings.length > 0) {
+              setLiveBookingsTotal(validBookings.length);
+              const mapped: DashboardRecentBooking[] = validBookings.slice(0, 6).map((b: any) => {
+                const curr = b.paymentCurrency || 'EUR';
+                const amt = b.paymentPrice !== undefined ? Number(b.paymentPrice) : Number(b.totalPrice || 0);
+                const formattedAmount = new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: curr,
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }).format(isNaN(amt) ? 0 : amt);
+                const rawStatus = String(b.status || 'confirmed');
+                const formattedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+                return {
+                  id: b.id,
+                  orderId: b.orderId || b.order_number || b.id,
+                  pnr: b.bookingRef || b.pnr_number || b.id,
+                  customer: b.customerName || b.guestInfo?.name || 'Guest Traveler',
+                  email: b.customerEmail || b.guestInfo?.email || 'guest@tiqsey.com',
+                  item: b.attractionName || 'Tour Activity',
+                  amount: formattedAmount,
+                  status: formattedStatus,
+                  time: b.bookingDate || b.createdAt || 'Recent'
+                };
+              });
+              setRecentActivity(mapped);
+            }
+          }
+        }
+      } catch {
+        // Use fallback data when offline
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+    fetchRecentBookings();
+    return () => { active = false; };
   }, []);
 
   const metrics = useMemo(() => {
     const totalProducts = POPULAR_ATTRACTIONS.length;
     const banners = getStoredBanners();
     const activeBanners = banners.filter(b => b.isActive).length;
+    const baseBookingsCount = timeRange === '7d' ? 53 : timeRange === '30d' ? 157 : 487;
 
     return {
       totalProducts,
       activeBanners,
       totalPosts: posts.length,
-      bookingsCount: timeRange === '7d' ? 53 : timeRange === '30d' ? 157 : 487,
+      bookingsCount: liveBookingsTotal !== null ? Math.max(liveBookingsTotal, baseBookingsCount) : baseBookingsCount,
       estimatedRevenue: timeRange === '7d' ? '€5,470' : timeRange === '30d' ? '€18,050' : '€55,200',
       conversionRate: '4.8%'
     };
-  }, [posts, timeRange]);
+  }, [posts, timeRange, liveBookingsTotal]);
 
   const activeChartData = TIME_RANGE_DATA[timeRange];
 
@@ -413,10 +473,10 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
-              {RECENT_ACTIVITY.map((order) => (
+              {recentActivity.map((order) => (
                 <tr 
                   key={order.id} 
-                  onClick={() => navigate(`/bookings?orderId=${order.id}`)}
+                  onClick={() => navigate(`/bookings?orderId=${encodeURIComponent(order.orderId)}`)}
                   className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
                 >
                   <td className="py-3 px-3 font-mono font-bold text-blue-600 dark:text-sky-400 group-hover:underline">
@@ -434,11 +494,19 @@ export default function Dashboard() {
                   </td>
                   <td className="py-3 px-3">
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
-                      order.status === 'Confirmed' 
+                      order.status === 'Confirmed' || order.status === 'Completed'
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-400' 
-                        : 'bg-amber-50 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-400'
+                        : order.status === 'Cancelled' || order.status === 'Rejected'
+                          ? 'bg-rose-50 text-rose-700 border border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-400'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-400'
                     }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${order.status === 'Confirmed' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        order.status === 'Confirmed' || order.status === 'Completed'
+                          ? 'bg-emerald-500'
+                          : order.status === 'Cancelled' || order.status === 'Rejected'
+                            ? 'bg-rose-500'
+                            : 'bg-amber-500'
+                      }`} />
                       {order.status}
                     </span>
                   </td>
@@ -453,11 +521,11 @@ export default function Dashboard() {
 
         {/* Mobile & Tablet Stacked Cards */}
         <div className="lg:hidden space-y-2.5">
-          {RECENT_ACTIVITY.map((order) => (
+          {recentActivity.map((order) => (
             <button
               key={order.id}
               type="button"
-              onClick={() => navigate(`/bookings?orderId=${order.id}`)}
+              onClick={() => navigate(`/bookings?orderId=${encodeURIComponent(order.orderId)}`)}
               className="w-full text-left p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors cursor-pointer space-y-2"
             >
               <div className="flex items-center justify-between gap-2">
@@ -465,11 +533,19 @@ export default function Dashboard() {
                   {order.pnr}
                 </span>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
-                  order.status === 'Confirmed' 
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-400' 
+                  order.status === 'Confirmed' || order.status === 'Completed'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-400'
+                    : order.status === 'Cancelled' || order.status === 'Rejected'
+                    ? 'bg-rose-50 text-rose-700 border border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-400'
                     : 'bg-amber-50 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-400'
                 }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${order.status === 'Confirmed' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    order.status === 'Confirmed' || order.status === 'Completed'
+                      ? 'bg-emerald-500'
+                      : order.status === 'Cancelled' || order.status === 'Rejected'
+                      ? 'bg-rose-500'
+                      : 'bg-amber-500'
+                  }`} />
                   {order.status}
                 </span>
               </div>
