@@ -1,7 +1,12 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || '').trim();
-export const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+const DEFAULT_PUBLIC_SUPABASE_URL = 'https://lzjjwsvalvfkgwtzuime.supabase.co';
+const DEFAULT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_KxzN2RLPv5Q7nVqDRqPw-w_mi317li6';
+
+export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || DEFAULT_PUBLIC_SUPABASE_URL).trim();
+export const SUPABASE_ANON_KEY = (
+  import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+).trim();
 export const SUPABASE_STORAGE_BUCKET = (import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || 'media').trim() || 'media';
 
 export type SupabaseBucketId =

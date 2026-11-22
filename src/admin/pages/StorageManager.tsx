@@ -501,7 +501,7 @@ export default function StorageManager() {
   };
 
   const rlsSqlSnippet = rlsHintBucket
-    ? `create policy "Allow public upload to ${rlsHintBucket}" on storage.objects for insert to anon, authenticated with check (bucket_id = '${rlsHintBucket}');\ncreate policy "Allow public delete from ${rlsHintBucket}" on storage.objects for delete to anon, authenticated using (bucket_id = '${rlsHintBucket}');`
+    ? `create policy "Tiqsey storage public read" on storage.objects for select to anon, authenticated using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));\ncreate policy "Tiqsey storage upload" on storage.objects for insert to anon, authenticated with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));\ncreate policy "Tiqsey storage update" on storage.objects for update to anon, authenticated using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));\ncreate policy "Tiqsey storage delete" on storage.objects for delete to anon, authenticated using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));`
     : '';
 
   const handleCopyRlsSql = async () => {
