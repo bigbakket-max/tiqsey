@@ -516,7 +516,7 @@ export default function StorageManager() {
   };
 
   const rlsSqlSnippet = rlsHintBucket
-    ? `create policy "Tiqsey storage public read" on storage.objects for select to anon, authenticated using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));\ncreate policy "Tiqsey storage upload" on storage.objects for insert to anon, authenticated with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));\ncreate policy "Tiqsey storage update" on storage.objects for update to anon, authenticated using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));\ncreate policy "Tiqsey storage delete" on storage.objects for delete to anon, authenticated using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));`
+    ? `drop policy if exists "Tiqsey storage public read" on storage.objects;\ndrop policy if exists "Tiqsey storage upload" on storage.objects;\ndrop policy if exists "Tiqsey storage update" on storage.objects;\ndrop policy if exists "Tiqsey storage delete" on storage.objects;\ncreate policy "Tiqsey storage public read" on storage.objects for select to anon, authenticated using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));\ncreate policy "Tiqsey storage upload" on storage.objects for insert to anon, authenticated with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));\ncreate policy "Tiqsey storage update" on storage.objects for update to anon, authenticated using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));\ncreate policy "Tiqsey storage delete" on storage.objects for delete to anon, authenticated using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));`
     : '';
 
   const handleCopyRlsSql = async () => {
@@ -731,14 +731,27 @@ export default function StorageManager() {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleCopyRlsSql}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
-            >
-              {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedSql ? 'Copied SQL' : 'Copy SQL'}</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {projectId && (
+                <a
+                  href={`https://supabase.com/dashboard/project/${projectId}/sql/new`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white transition"
+                >
+                  <span>Open SQL Editor</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={handleCopyRlsSql}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
+              >
+                {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedSql ? 'Copied SQL' : 'Copy SQL'}</span>
+              </button>
+            </div>
           </div>
           <pre className="p-3 rounded-xl bg-slate-900 text-emerald-300 text-[11px] font-mono overflow-x-auto">
             {rlsSqlSnippet}
