@@ -4332,6 +4332,11 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
   app.use('/uploads', express.static(path.join(process.cwd(), 'dist', 'uploads')));
 
+  // Return JSON 404 for any unmatched /api/* route instead of falling through to SPA HTML
+  app.all(/^\/api(\/.*)?$/, (_req, res) => {
+    res.status(404).json({ error: "API endpoint not found" });
+  });
+
   // Return 404 Not Found for /admin and /admin/* (excluding /api/admin)
   app.all(/^\/admin(\/.*)?$/, (_req, res) => {
     res

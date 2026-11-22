@@ -92,8 +92,16 @@ function parseInitialRoute(): { page: AppPage; destination: string | null; attra
     }
   }
 
+  const safeDecode = (val: string): string => {
+    try {
+      return decodeURIComponent(val);
+    } catch {
+      return val;
+    }
+  };
+
   if (attrId) {
-    const rawAttrId = decodeURIComponent(attrId).trim();
+    const rawAttrId = safeDecode(attrId).trim();
     // Resolve matching attraction ID if given slug or numeric product ID
     const matched = POPULAR_ATTRACTIONS.find(
       (a) =>
@@ -111,7 +119,7 @@ function parseInitialRoute(): { page: AppPage; destination: string | null; attra
   if (effectivePath.startsWith("/destinations/")) {
     const destId = effectivePath.split("/destinations/")[1]?.split("/")[0]?.split("?")[0]?.split("#")[0]?.trim();
     if (destId) {
-      dest = decodeURIComponent(destId)
+      dest = safeDecode(destId)
         .split("-")
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");

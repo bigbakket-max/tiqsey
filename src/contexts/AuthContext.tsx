@@ -831,7 +831,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           body: JSON.stringify({ status: 'cancelled' })
         })
           .then(async (res) => {
-            if (res.ok) {
+            const ct = res.headers.get('content-type') || '';
+            if (res.ok && ct.includes('application/json')) {
               const data = await res.json().catch(() => ({}));
               if (data?.supabaseSynced) return;
             }

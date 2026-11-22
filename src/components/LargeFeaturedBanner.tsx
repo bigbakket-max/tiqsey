@@ -135,10 +135,11 @@ export default function LargeFeaturedBanner({
       const el = document.getElementById(targetId);
       el?.scrollIntoView({ behavior: 'smooth' });
     } else if (destinationType === 'custom') {
-      if (destinationUrl.startsWith('http://') || destinationUrl.startsWith('https://')) {
-        window.open(destinationUrl, '_blank', 'noopener,noreferrer');
-      } else if (onNavigate) {
-        onNavigate(destinationUrl);
+      const trimmedUrl = destinationUrl.trim();
+      if (/^https?:\/\//i.test(trimmedUrl)) {
+        window.open(trimmedUrl, '_blank', 'noopener,noreferrer');
+      } else if (/^\/(?!\/)/.test(trimmedUrl) && onNavigate) {
+        onNavigate(trimmedUrl);
       }
     }
   };

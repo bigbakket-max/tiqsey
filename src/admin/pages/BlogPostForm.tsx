@@ -1,5 +1,6 @@
 import { useAdminLoader } from "../contexts/AdminLoaderContext";
 import { uploadAndOptimizeImage } from "../../utils/imageUpload";
+import { sanitizeHtml } from "../../utils/sanitizeHtml";
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -2274,7 +2275,7 @@ export default function BlogPostForm() {
               {/* Content Body */}
               <div 
                 className="prose dark:prose-invert prose-sm max-w-none text-slate-800 dark:text-slate-200 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: editor ? editor.getHTML() : '' }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(editor ? editor.getHTML() : '') }}
               />
 
               {/* Tags */}
@@ -3055,7 +3056,7 @@ export default function BlogPostForm() {
                         ) : (
                           <div 
                             className="prose dark:prose-invert prose-blue max-w-none text-slate-700 dark:text-slate-300 pr-2"
-                            dangerouslySetInnerHTML={{ __html: aiGeneratedContent }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(aiGeneratedContent) }}
                           />
                         )}
                       </div>
@@ -3207,7 +3208,7 @@ export default function BlogPostForm() {
                 {/* Content Body */}
                 <div 
                   className="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-200"
-                  dangerouslySetInnerHTML={{ __html: editor ? editor.getHTML() : '' }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(editor ? editor.getHTML() : '') }}
                 />
 
                 {/* Tags */}
