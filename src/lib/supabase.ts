@@ -40,6 +40,7 @@ export const SUPABASE_STORAGE_BUCKETS: Record<SupabaseBucketId, SupabaseBucketCo
       'image/jpeg',
       'image/png',
       'image/webp',
+      'image/avif',
       'image/gif',
       'image/svg+xml',
       'video/mp4',
@@ -93,7 +94,7 @@ export const SUPABASE_STORAGE_BUCKETS: Record<SupabaseBucketId, SupabaseBucketCo
     description: 'User and author profile pictures',
     maxSizeBytes: 2 * 1024 * 1024,
     maxSizeLabel: '2 MB',
-    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
     public: true,
     defaultFolder: 'profiles',
   },
@@ -307,7 +308,21 @@ export async function uploadFileToSupabaseStorageDirect(
   }
 
   const bucketConfig = getBucketConfig(bucket);
-  const normalizedMime = (file.type || '').toLowerCase() === 'image/jpg' ? 'image/jpeg' : (file.type || '').toLowerCase();
+  const EXT_TO_MIME: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    avif: 'image/avif',
+    gif: 'image/gif',
+    svg: 'image/svg+xml',
+    mp4: 'video/mp4',
+    webm: 'video/webm',
+    mov: 'video/quicktime',
+  };
+  const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+  const rawMime = (file.type || EXT_TO_MIME[fileExt] || '').toLowerCase();
+  const normalizedMime = rawMime === 'image/jpg' ? 'image/jpeg' : rawMime;
 
   if (!bucketConfig.allowedMimeTypes.includes(normalizedMime)) {
     return {

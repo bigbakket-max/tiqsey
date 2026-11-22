@@ -69,6 +69,7 @@ const SUPABASE_STORAGE_BUCKETS: Record<SupabaseBucketId, SupabaseBucketSpec> = {
       'image/jpeg',
       'image/png',
       'image/webp',
+      'image/avif',
       'image/gif',
       'image/svg+xml',
       'video/mp4',
@@ -122,7 +123,7 @@ const SUPABASE_STORAGE_BUCKETS: Record<SupabaseBucketId, SupabaseBucketSpec> = {
     public: true,
     fileSizeLimit: 2 * 1024 * 1024,
     maxSizeLabel: '2 MB',
-    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
     defaultFolder: 'profiles',
   },
   cities: {

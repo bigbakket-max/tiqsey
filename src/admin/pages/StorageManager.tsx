@@ -347,11 +347,26 @@ export default function StorageManager() {
         .replace(/^\/+|\/+$/g, '')
         .replace(/\.\./g, '') || activeBucketInfo.defaultFolder;
 
+    const EXT_TO_MIME: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      webp: 'image/webp',
+      avif: 'image/avif',
+      gif: 'image/gif',
+      svg: 'image/svg+xml',
+      mp4: 'video/mp4',
+      webm: 'video/webm',
+      mov: 'video/quicktime',
+    };
+
     try {
       for (const file of Array.from(fileList)) {
-        const normalizedMime = file.type === 'image/jpg' ? 'image/jpeg' : file.type;
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+        const rawMime = (file.type || EXT_TO_MIME[fileExt] || '').toLowerCase();
+        const normalizedMime = rawMime === 'image/jpg' ? 'image/jpeg' : rawMime;
         if (!activeBucketInfo.allowedMimeTypes.includes(normalizedMime)) {
-          firstError = `"${file.name}" (${file.type || 'unknown'}) is not allowed in "${activeBucketInfo.id}".`;
+          firstError = `"${file.name}" (${normalizedMime || 'unknown'}) is not allowed in "${activeBucketInfo.id}".`;
           continue;
         }
         if (file.size > activeBucketInfo.fileSizeLimit) {
@@ -544,7 +559,7 @@ export default function StorageManager() {
           ) : (
             <AlertCircle className="w-4 h-4 text-white shrink-0" />
           )}
-          <span>{toast.message}</span>
+          <span className="min-w-0 break-words [overflow-wrap:anywhere]">{toast.message}</span>
         </div>
       )}
 
