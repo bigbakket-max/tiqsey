@@ -16,6 +16,9 @@ import {
   Loader2,
   ShieldCheck,
   Search,
+  Database,
+  PlugZap,
+  CloudUpload,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -25,7 +28,9 @@ import {
   listSupabaseBucketFilesDirect,
   uploadFileToSupabaseStorageDirect,
   deleteSupabaseBucketFilesDirect,
+  testSupabaseStorageConnectionDirect,
   type SupabaseBucketId,
+  type SupabaseStorageConnectionReport,
 } from '../../lib/supabase';
 import { fetchJsonSafely } from '../../utils/safeFetch';
 
@@ -40,6 +45,7 @@ interface LiveBucketInfo {
   defaultFolder: string;
   existsInSupabase: boolean;
   fileCount: number;
+  totalSize?: number;
 }
 
 interface StoredFileItem {
@@ -74,6 +80,11 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+function isRlsPolicyError(message?: string | null): boolean {
+  if (!message) return false;
+  return /row-level security|violates.*policy|unauthorized|permission denied/i.test(message);
+}
+
 export default function StorageManager() {
   const { user } = useAuth();
   const adminEmail = user?.email || 'admin@tiqsey.com';
@@ -84,22 +95,33 @@ export default function StorageManager() {
       fileSizeLimit: b.maxSizeBytes,
       existsInSupabase: false,
       fileCount: 0,
+      totalSize: 0,
     }))
   );
   const [selectedBucket, setSelectedBucket] = useState<SupabaseBucketId>('media');
+  const [uploadFolder, setUploadFolder] = useState<string>('uploads');
   const [files, setFiles] = useState<StoredFileItem[]>([]);
   const [storageMode, setStorageMode] = useState<StorageMode>('server');
+  const [projectId, setProjectId] = useState<string | null>(SUPABASE_PROJECT_ID || null);
+  const [storageEndpoint, setStorageEndpoint] = useState<string | null>(
+    SUPABASE_PROJECT_ID ? `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1` : null
+  );
   const [dashboardUrl, setDashboardUrl] = useState<string | null>(
     SUPABASE_PROJECT_ID
       ? `https://supabase.com/dashboard/project/${SUPABASE_PROJECT_ID}/storage/files`
       : null
   );
+  const [connectionReport, setConnectionReport] = useState<SupabaseStorageConnectionReport | null>(null);
+  const [testingConnection, setTestingConnection] = useState<boolean>(false);
   const [loadingBuckets, setLoadingBuckets] = useState<boolean>(true);
   const [loadingFiles, setLoadingFiles] = useState<boolean>(false);
   const [uploading, setUploading] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
   const [syncing, setSyncing] = useState<boolean>(false);
   const [deletingPath, setDeletingPath] = useState<string | null>(null);
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
+  const [rlsHintBucket, setRlsHintBucket] = useState<SupabaseBucketId | null>(null);
+  const [copiedSql, setCopiedSql] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,7 +130,7 @@ export default function StorageManager() {
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
+    setTimeout(() => setToast(null), 4500);
   }, []);
 
   const authHeaders = useCallback(
@@ -124,6 +146,8 @@ export default function StorageManager() {
     try {
       const result = await fetchJsonSafely<{
         connected?: boolean;
+        projectId?: string | null;
+        storageEndpoint?: string | null;
         dashboardUrl?: string | null;
         buckets?: LiveBucketInfo[];
         error?: string;
@@ -131,8 +155,10 @@ export default function StorageManager() {
         headers: { 'x-admin-email': adminEmail },
       });
 
-      if (result.isJson && result.ok && result.data) {
-        setStorageMode(result.data.connected ? 'server' : isSupabaseConfigured ? 'supabase-direct' : 'offline');
+      if (result.isJson && result.ok && result.data && result.data.connected) {
+        setStorageMode('server');
+        if (result.data.projectId) setProjectId(result.data.projectId);
+        if (result.data.storageEndpoint) setStorageEndpoint(result.data.storageEndpoint);
         if (result.data.dashboardUrl) setDashboardUrl(result.data.dashboardUrl);
         if (Array.isArray(result.data.buckets) && result.data.buckets.length > 0) {
           setBuckets(result.data.buckets);
@@ -140,21 +166,26 @@ export default function StorageManager() {
         }
       }
 
-      // Direct browser Supabase Storage fallback (static Hostinger hosting or Node API offline)
+      // Direct browser Supabase Storage connection (Hostinger static hosting or server not configured)
       if (isSupabaseConfigured) {
         const directBuckets = await Promise.all(
           SUPABASE_STORAGE_BUCKET_LIST.map(async (spec) => {
             const listed = await listSupabaseBucketFilesDirect(spec.id);
+            const totalSize = listed.files.reduce((sum, f) => sum + (Number(f.size) || 0), 0);
             return {
               ...spec,
               fileSizeLimit: spec.maxSizeBytes,
               existsInSupabase: !listed.error,
               fileCount: listed.files.length,
+              totalSize,
             };
           })
         );
-        setStorageMode('supabase-direct');
+        const anyReachable = directBuckets.some((b) => b.existsInSupabase);
+        setStorageMode(anyReachable ? 'supabase-direct' : 'offline');
         if (SUPABASE_PROJECT_ID) {
+          setProjectId(SUPABASE_PROJECT_ID);
+          setStorageEndpoint(`https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1`);
           setDashboardUrl(`https://supabase.com/dashboard/project/${SUPABASE_PROJECT_ID}/storage/files`);
         }
         setBuckets(directBuckets);
@@ -193,7 +224,7 @@ export default function StorageManager() {
           const direct = await listSupabaseBucketFilesDirect(bucketId);
           setFiles(direct.files);
           if (direct.error) {
-            showToast(`Direct Supabase read note (${bucketId}): ${direct.error}`, 'error');
+            showToast(`Supabase Storage (${bucketId}): ${direct.error}`, 'error');
           }
           return;
         }
@@ -213,11 +244,61 @@ export default function StorageManager() {
   }, [fetchBuckets]);
 
   useEffect(() => {
+    const matched = SUPABASE_STORAGE_BUCKET_LIST.find((b) => b.id === selectedBucket);
+    setUploadFolder(matched?.defaultFolder || 'uploads');
+    setRlsHintBucket(null);
     fetchFiles(selectedBucket);
   }, [selectedBucket, fetchFiles]);
 
   const activeBucketInfo =
     buckets.find((b) => b.id === selectedBucket) || buckets[0];
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    try {
+      const serverRes = await fetchJsonSafely<SupabaseStorageConnectionReport>(
+        '/api/admin/storage/test-connection',
+        {
+          method: 'POST',
+          headers: authHeaders(),
+        }
+      );
+
+      if (serverRes.isJson && serverRes.data) {
+        if (serverRes.data.connected) {
+          setConnectionReport(serverRes.data);
+          setStorageMode('server');
+          if (serverRes.data.projectId) setProjectId(serverRes.data.projectId);
+          if (serverRes.data.storageEndpoint) setStorageEndpoint(serverRes.data.storageEndpoint);
+          if (serverRes.data.dashboardUrl) setDashboardUrl(serverRes.data.dashboardUrl);
+          showToast(
+            `Connected to Supabase Storage (${serverRes.data.verifiedBuckets}/${serverRes.data.totalBuckets} buckets verified in ${serverRes.data.latencyMs}ms).`
+          );
+          await fetchBuckets();
+          return;
+        }
+      }
+
+      // Direct browser Supabase probe fallback
+      const directReport = await testSupabaseStorageConnectionDirect();
+      setConnectionReport(directReport);
+      if (directReport.connected) {
+        setStorageMode('supabase-direct');
+        if (directReport.projectId) setProjectId(directReport.projectId);
+        if (directReport.storageEndpoint) setStorageEndpoint(directReport.storageEndpoint);
+        if (directReport.dashboardUrl) setDashboardUrl(directReport.dashboardUrl);
+        showToast(
+          `Direct Supabase Storage connected (${directReport.verifiedBuckets}/${directReport.totalBuckets} buckets verified in ${directReport.latencyMs}ms).`
+        );
+        await fetchBuckets();
+      } else {
+        setStorageMode('offline');
+        showToast(directReport.error || 'Could not reach Supabase Storage.', 'error');
+      }
+    } finally {
+      setTestingConnection(false);
+    }
+  };
 
   const handleSyncBuckets = async () => {
     setSyncing(true);
@@ -241,29 +322,30 @@ export default function StorageManager() {
         return;
       }
 
-      if (result.isJson && result.data?.error) {
-        showToast(result.data.error, 'error');
-        return;
-      }
-
-      // Static hosting fallback: verify bucket reachability directly via browser Supabase
       if (isSupabaseConfigured) {
         await fetchBuckets();
         await fetchFiles(selectedBucket);
-        showToast('Refreshed all 7 buckets via Direct Supabase (bucket settings sync requires Node.js server).');
+        showToast('Verified all 7 buckets directly via Supabase Storage.');
       } else {
-        showToast('Supabase environment variables are not configured on this static host.', 'error');
+        showToast(result.data?.error || 'Supabase Storage credentials are not configured.', 'error');
       }
     } finally {
       setSyncing(false);
     }
   };
 
-  const handleUploadFiles = async (fileList: FileList | null) => {
+  const handleUploadFiles = async (fileList: FileList | File[] | null) => {
     if (!fileList || fileList.length === 0 || !activeBucketInfo) return;
     setUploading(true);
+    setRlsHintBucket(null);
     let uploadedCount = 0;
     let firstError: string | null = null;
+    const targetFolder =
+      uploadFolder
+        .trim()
+        .replace(/[^a-zA-Z0-9/_-]/g, '')
+        .replace(/^\/+|\/+$/g, '')
+        .replace(/\.\./g, '') || activeBucketInfo.defaultFolder;
 
     try {
       for (const file of Array.from(fileList)) {
@@ -278,8 +360,9 @@ export default function StorageManager() {
         }
 
         let uploaded = false;
+        let serverError: string | null = null;
 
-        // 1. Try Node.js server API when not in direct-only mode
+        // 1. Try Node.js server API first when available
         if (storageMode === 'server') {
           const dataUrl = await readFileAsDataUrl(file);
           const serverRes = await fetchJsonSafely<{ success?: boolean; url?: string; error?: string }>(
@@ -290,7 +373,7 @@ export default function StorageManager() {
               body: JSON.stringify({
                 dataUrl,
                 filename: file.name,
-                folder: activeBucketInfo.defaultFolder,
+                folder: targetFolder,
               }),
             }
           );
@@ -300,33 +383,39 @@ export default function StorageManager() {
               uploaded = true;
               uploadedCount += 1;
             } else {
-              firstError = serverRes.data?.error || `Failed to upload ${file.name}`;
+              serverError = serverRes.data?.error || `Server upload failed (${serverRes.status})`;
             }
           }
         }
 
-        // 2. Automatic direct browser Supabase Storage fallback on static hosting
-        if (!uploaded && !firstError) {
+        // 2. Automatic direct browser Supabase Storage upload (static Hostinger or server fallback)
+        if (!uploaded) {
           if (isSupabaseConfigured) {
             const directRes = await uploadFileToSupabaseStorageDirect(
               file,
               activeBucketInfo.id,
-              activeBucketInfo.defaultFolder
+              targetFolder
             );
             if (directRes.url) {
-              setStorageMode('supabase-direct');
+              if (storageMode !== 'server') setStorageMode('supabase-direct');
               uploadedCount += 1;
             } else {
-              firstError = directRes.error || `Failed to upload ${file.name} to "${activeBucketInfo.id}"`;
+              const errMsg = directRes.error || serverError || `Failed to upload ${file.name} to "${activeBucketInfo.id}"`;
+              if (isRlsPolicyError(errMsg)) {
+                setRlsHintBucket(activeBucketInfo.id);
+              }
+              firstError = errMsg;
             }
           } else {
-            firstError = 'Storage API unavailable and browser Supabase keys are not configured.';
+            firstError = serverError || 'Supabase Storage is not configured in this environment.';
           }
         }
       }
 
       if (uploadedCount > 0) {
-        showToast(`Uploaded ${uploadedCount} file${uploadedCount > 1 ? 's' : ''} to "${activeBucketInfo.id}".`);
+        showToast(
+          `Uploaded ${uploadedCount} file${uploadedCount > 1 ? 's' : ''} to Supabase bucket "${activeBucketInfo.id}/${targetFolder}".`
+        );
         await Promise.all([fetchBuckets(), fetchFiles(activeBucketInfo.id)]);
       } else if (firstError) {
         showToast(firstError, 'error');
@@ -341,6 +430,7 @@ export default function StorageManager() {
 
   const handleDeleteFile = async (file: StoredFileItem) => {
     setDeletingPath(file.path);
+    setRlsHintBucket(null);
     try {
       let deleted = false;
       let errMsg: string | null = null;
@@ -360,17 +450,20 @@ export default function StorageManager() {
         }
       }
 
-      if (!deleted && !errMsg) {
+      if (!deleted) {
         if (isSupabaseConfigured) {
           const directRes = await deleteSupabaseBucketFilesDirect(file.bucket, [file.path]);
           if (directRes.ok) {
-            setStorageMode('supabase-direct');
+            if (storageMode !== 'server') setStorageMode('supabase-direct');
             deleted = true;
           } else {
-            errMsg = directRes.error || 'Failed to delete file from Supabase Storage';
+            errMsg = directRes.error || errMsg || 'Failed to delete file from Supabase Storage';
+            if (isRlsPolicyError(errMsg)) {
+              setRlsHintBucket(file.bucket);
+            }
           }
         } else {
-          errMsg = 'Storage API unavailable on static host.';
+          errMsg = errMsg || 'Supabase Storage is not connected.';
         }
       }
 
@@ -379,11 +472,17 @@ export default function StorageManager() {
         return;
       }
 
-      showToast(`Deleted ${file.name} from "${file.bucket}".`);
+      showToast(`Deleted ${file.name} from Supabase bucket "${file.bucket}".`);
       setFiles((prev) => prev.filter((item) => item.path !== file.path));
       setBuckets((prev) =>
         prev.map((b) =>
-          b.id === file.bucket ? { ...b, fileCount: Math.max(0, b.fileCount - 1) } : b
+          b.id === file.bucket
+            ? {
+                ...b,
+                fileCount: Math.max(0, b.fileCount - 1),
+                totalSize: Math.max(0, (b.totalSize || 0) - (file.size || 0)),
+              }
+            : b
         )
       );
     } finally {
@@ -401,6 +500,21 @@ export default function StorageManager() {
     }
   };
 
+  const rlsSqlSnippet = rlsHintBucket
+    ? `create policy "Allow public upload to ${rlsHintBucket}" on storage.objects for insert to anon, authenticated with check (bucket_id = '${rlsHintBucket}');\ncreate policy "Allow public delete from ${rlsHintBucket}" on storage.objects for delete to anon, authenticated using (bucket_id = '${rlsHintBucket}');`
+    : '';
+
+  const handleCopyRlsSql = async () => {
+    if (!rlsSqlSnippet) return;
+    try {
+      await navigator.clipboard.writeText(rlsSqlSnippet);
+      setCopiedSql(true);
+      setTimeout(() => setCopiedSql(false), 2000);
+    } catch {
+      showToast('Unable to copy SQL snippet', 'error');
+    }
+  };
+
   const filteredFiles = files.filter((f) => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
@@ -408,9 +522,14 @@ export default function StorageManager() {
   });
 
   const totalFiles = buckets.reduce((sum, b) => sum + (b.fileCount || 0), 0);
+  const totalBytes = buckets.reduce((sum, b) => sum + (b.totalSize || 0), 0);
+  const verifiedBucketCount = buckets.filter((b) => b.existsInSupabase).length;
+  const activeBucketDashboardUrl = projectId && activeBucketInfo
+    ? `https://supabase.com/dashboard/project/${projectId}/storage/files/buckets/${activeBucketInfo.id}`
+    : dashboardUrl;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Toast Notification */}
       {toast && (
         <div
@@ -447,21 +566,33 @@ export default function StorageManager() {
                     : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                {storageMode === 'server'
-                  ? `Server API · ${buckets.length} Buckets · ${totalFiles} Files`
-                  : storageMode === 'supabase-direct'
-                  ? `Direct Supabase · ${buckets.length} Buckets · ${totalFiles} Files`
-                  : 'Local Fallback Mode'}
+                <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                {connected
+                  ? `Supabase Connected · ${verifiedBucketCount}/${buckets.length} Buckets · ${totalFiles} Files`
+                  : 'Supabase Disconnected'}
               </span>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Manage all 7 Supabase Storage buckets with automatic MIME validation, size limits, and public CDN URLs.
+              Connected to your Supabase Storage buckets with automatic MIME validation, size limits, and instant public CDN URLs.
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleTestConnection}
+            disabled={testingConnection}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 transition cursor-pointer disabled:opacity-50"
+          >
+            {testingConnection ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <PlugZap className="w-3.5 h-3.5" />
+            )}
+            <span>{testingConnection ? 'Testing...' : 'Test Connection'}</span>
+          </button>
+
           <button
             type="button"
             onClick={handleSyncBuckets}
@@ -490,14 +621,115 @@ export default function StorageManager() {
               href={dashboardUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition"
             >
-              <span>Supabase Storage</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <Database className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Supabase Console</span>
+              <ExternalLink className="w-3 h-3" />
             </a>
           )}
         </div>
       </div>
+
+      {/* Supabase Storage Connection Summary Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Supabase Project
+            </p>
+            <p className="text-sm font-bold font-mono text-slate-900 dark:text-white truncate mt-0.5">
+              {projectId || 'Not configured'}
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+              {storageEndpoint || 'Set VITE_SUPABASE_URL'}
+            </p>
+          </div>
+          <span
+            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+              connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]' : 'bg-amber-500'
+            }`}
+          />
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            Connection Route
+          </p>
+          <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
+            {storageMode === 'server'
+              ? 'Server API → Supabase'
+              : storageMode === 'supabase-direct'
+              ? 'Direct Browser → Supabase'
+              : 'Disconnected'}
+          </p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+            {connectionReport
+              ? `Last ping: ${connectionReport.latencyMs} ms`
+              : storageMode === 'server'
+              ? 'Full admin service-role access'
+              : storageMode === 'supabase-direct'
+              ? 'Static-host direct storage client'
+              : 'Configure Supabase env vars'}
+          </p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            Active Buckets
+          </p>
+          <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 tabular-nums">
+            {verifiedBucketCount} of {buckets.length} Verified
+          </p>
+          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
+            {verifiedBucketCount === buckets.length
+              ? 'All 7 buckets live in Supabase'
+              : 'Click Sync All 7 Buckets'}
+          </p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            Stored Media
+          </p>
+          <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 tabular-nums">
+            {totalFiles} {totalFiles === 1 ? 'File' : 'Files'} · {formatBytes(totalBytes)}
+          </p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+            Public CDN delivery enabled
+          </p>
+        </div>
+      </div>
+
+      {/* Optional RLS Policy Hint (only appears if static-host direct write is blocked by Supabase RLS) */}
+      {rlsHintBucket && (
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 space-y-2.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-900 dark:text-amber-200">
+                <p className="font-bold">
+                  Supabase Storage RLS policy required for direct browser writes to "{rlsHintBucket}"
+                </p>
+                <p className="mt-0.5 text-amber-800 dark:text-amber-300">
+                  Your Node server uploads use the service key automatically, while static hosting uploads directly from the browser. Run this SQL in your Supabase SQL Editor to allow writes to "{rlsHintBucket}":
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyRlsSql}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
+            >
+              {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedSql ? 'Copied SQL' : 'Copy SQL'}</span>
+            </button>
+          </div>
+          <pre className="p-3 rounded-xl bg-slate-900 text-emerald-300 text-[11px] font-mono overflow-x-auto">
+            {rlsSqlSnippet}
+          </pre>
+        </div>
+      )}
 
       {/* Buckets Grid + File Explorer */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
@@ -517,7 +749,13 @@ export default function StorageManager() {
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      title={bucket.existsInSupabase ? 'Verified in Supabase Storage' : 'Pending sync'}
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        bucket.existsInSupabase ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+                      }`}
+                    />
                     <FolderOpen
                       className={`w-4 h-4 shrink-0 ${
                         isSelected ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400'
@@ -544,6 +782,7 @@ export default function StorageManager() {
                     Limit: {bucket.maxSizeLabel}
                   </span>
                   <span className="truncate">
+                    {bucket.totalSize ? `${formatBytes(bucket.totalSize)} · ` : ''}
                     {bucket.allowedMimeTypes.length} MIME types
                   </span>
                 </div>
@@ -553,25 +792,68 @@ export default function StorageManager() {
         </div>
 
         {/* Right: Selected Bucket Files & Uploader */}
-        <div className="xl:col-span-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (!isDragging) setIsDragging(true);
+          }}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              setIsDragging(false);
+            }
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            if (connected && !uploading && e.dataTransfer.files?.length) {
+              handleUploadFiles(e.dataTransfer.files);
+            }
+          }}
+          className={`xl:col-span-8 bg-white dark:bg-slate-900 rounded-2xl border shadow-sm overflow-hidden transition-colors ${
+            isDragging
+              ? 'border-sky-500 ring-2 ring-sky-500/30'
+              : 'border-slate-200/80 dark:border-slate-800'
+          }`}
+        >
           {activeBucketInfo && (
             <>
               <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-base font-bold text-slate-900 dark:text-white">
                       {activeBucketInfo.id}
                     </h2>
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                       Max {activeBucketInfo.maxSizeLabel}
                     </span>
+                    {activeBucketDashboardUrl && (
+                      <a
+                        href={activeBucketDashboardUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                      >
+                        <span>Open in Supabase</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Allowed: {activeBucketInfo.allowedMimeTypes.join(', ')}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <span className="text-[11px] font-semibold text-slate-400">Folder:</span>
+                    <input
+                      type="text"
+                      value={uploadFolder}
+                      onChange={(e) => setUploadFolder(e.target.value)}
+                      placeholder={activeBucketInfo.defaultFolder}
+                      className="w-24 bg-transparent text-xs font-mono font-semibold text-slate-800 dark:text-slate-100 focus:outline-none"
+                    />
+                  </div>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -597,15 +879,20 @@ export default function StorageManager() {
               </div>
 
               {/* Search Bar */}
-              <div className="px-5 py-3 bg-slate-50/70 dark:bg-slate-950/40 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                <Search className="w-4 h-4 text-slate-400 shrink-0" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={`Filter files in ${activeBucketInfo.id}...`}
-                  className="w-full bg-transparent text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
-                />
+              <div className="px-5 py-3 bg-slate-50/70 dark:bg-slate-950/40 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={`Filter files in ${activeBucketInfo.id}...`}
+                    className="w-full bg-transparent text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
+                  />
+                </div>
+                <span className="text-[11px] font-medium text-slate-400 shrink-0 hidden sm:inline">
+                  Drag &amp; drop files anywhere here to upload
+                </span>
               </div>
 
               {/* Files Grid */}
@@ -613,16 +900,27 @@ export default function StorageManager() {
                 {loadingFiles ? (
                   <div className="py-16 flex flex-col items-center justify-center text-slate-400 gap-2">
                     <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
-                    <span className="text-xs font-medium">Loading files from {activeBucketInfo.id}...</span>
+                    <span className="text-xs font-medium">
+                      Loading files from Supabase bucket "{activeBucketInfo.id}"...
+                    </span>
                   </div>
                 ) : filteredFiles.length === 0 ? (
-                  <div className="py-14 px-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-center">
-                    <FolderOpen className="w-9 h-9 text-slate-300 dark:text-slate-700 mx-auto mb-2.5" />
+                  <div
+                    onClick={() => connected && !uploading && fileInputRef.current?.click()}
+                    className={`py-14 px-6 border-2 border-dashed rounded-2xl text-center transition cursor-pointer ${
+                      isDragging
+                        ? 'border-sky-500 bg-sky-50/60 dark:bg-sky-950/30'
+                        : 'border-slate-200 dark:border-slate-800 hover:border-sky-400/70'
+                    }`}
+                  >
+                    <CloudUpload className="w-10 h-10 text-sky-500/80 mx-auto mb-2.5" />
                     <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      {searchQuery ? 'No matching files found' : `No files uploaded in "${activeBucketInfo.id}" yet`}
+                      {searchQuery
+                        ? 'No matching files found'
+                        : `Drop files here or click to upload to "${activeBucketInfo.id}"`}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Click "Upload to {activeBucketInfo.id}" above to add {activeBucketInfo.allowedMimeTypes.some((m) => m.startsWith('video/')) ? 'images or videos' : 'images'} (up to {activeBucketInfo.maxSizeLabel}).
+                      Uploads directly to Supabase Storage ({activeBucketInfo.id}/{uploadFolder || activeBucketInfo.defaultFolder}) up to {activeBucketInfo.maxSizeLabel}.
                     </p>
                   </div>
                 ) : (

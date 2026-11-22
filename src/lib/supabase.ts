@@ -267,7 +267,7 @@ export async function listSupabaseBucketFilesDirect(
       const fullPath = prefix ? `${prefix}/${item.name}` : item.name;
       const isFolder = item.id === null || item.metadata === null;
       if (isFolder) {
-        if (depth < 2) {
+        if (depth < 4) {
           const nested = await listSupabaseBucketFilesDirect(bucket, fullPath, depth + 1);
           results.push(...nested.files);
         }
@@ -351,4 +351,70 @@ export async function deleteSupabaseBucketFilesDirect(
     return { ok: false, error: err?.message || 'Failed to delete file from Supabase Storage' };
   }
 }
+
+export interface SupabaseStorageConnectionReport {
+  connected: boolean;
+  projectId: string | null;
+  storageEndpoint: string | null;
+  dashboardUrl: string | null;
+  latencyMs: number;
+  verifiedBuckets: number;
+  totalBuckets: number;
+  missingBuckets: SupabaseBucketId[];
+  checkedAt: string;
+  error?: string;
+}
+
+export async function testSupabaseStorageConnectionDirect(): Promise<SupabaseStorageConnectionReport> {
+  const startedAt = Date.now();
+  const projectId = SUPABASE_PROJECT_ID || null;
+  const storageEndpoint = projectId ? `https://${projectId}.supabase.co/storage/v1` : null;
+  const dashboardUrl = projectId
+    ? `https://supabase.com/dashboard/project/${projectId}/storage/files`
+    : null;
+
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      connected: false,
+      projectId,
+      storageEndpoint,
+      dashboardUrl,
+      latencyMs: Date.now() - startedAt,
+      verifiedBuckets: 0,
+      totalBuckets: SUPABASE_STORAGE_BUCKET_LIST.length,
+      missingBuckets: SUPABASE_STORAGE_BUCKET_LIST.map((b) => b.id),
+      checkedAt: new Date().toISOString(),
+      error: 'VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are not configured.',
+    };
+  }
+
+  const probes = await Promise.all(
+    SUPABASE_STORAGE_BUCKET_LIST.map(async (b) => {
+      try {
+        const { error } = await supabase.storage.from(b.id).list('', { limit: 1 });
+        return { id: b.id, ok: !error, error: error?.message };
+      } catch (err: any) {
+        return { id: b.id, ok: false, error: err?.message || 'Probe failed' };
+      }
+    })
+  );
+
+  const missingBuckets = probes.filter((p) => !p.ok).map((p) => p.id);
+  const verifiedBuckets = probes.length - missingBuckets.length;
+  const firstError = probes.find((p) => !p.ok)?.error;
+
+  return {
+    connected: verifiedBuckets > 0,
+    projectId,
+    storageEndpoint,
+    dashboardUrl,
+    latencyMs: Date.now() - startedAt,
+    verifiedBuckets,
+    totalBuckets: SUPABASE_STORAGE_BUCKET_LIST.length,
+    missingBuckets,
+    checkedAt: new Date().toISOString(),
+    error: verifiedBuckets === 0 ? firstError || 'Unable to reach Supabase Storage buckets.' : undefined,
+  };
+}
+
 

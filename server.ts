@@ -1403,7 +1403,7 @@ async function startServer() {
       const fullPath = prefix ? `${prefix}/${item.name}` : item.name;
       const isFolder = item.id === null || item.metadata === null;
       if (isFolder) {
-        if (depth < 2) {
+        if (depth < 4) {
           const nested = await listBucketFilesRecursive(supabase, bucketName, fullPath, depth + 1);
           results.push(...nested);
         }
@@ -1455,6 +1455,7 @@ async function startServer() {
           const spec = SUPABASE_STORAGE_BUCKETS[id];
           const remote = remoteMap.get(id);
           const files = await listBucketFilesRecursive(supabase, id).catch(() => []);
+          const totalSize = files.reduce((sum, f) => sum + (Number(f.size) || 0), 0);
           return {
             ...spec,
             existsInSupabase: Boolean(remote) || files.length > 0,
@@ -1464,6 +1465,7 @@ async function startServer() {
               ? remote.allowed_mime_types
               : spec.allowedMimeTypes,
             fileCount: files.length,
+            totalSize,
             createdAt: remote?.created_at || null,
             updatedAt: remote?.updated_at || null,
           };
@@ -1473,6 +1475,7 @@ async function startServer() {
       return res.json({
         connected: true,
         projectId,
+        storageEndpoint: projectId ? `https://${projectId}.supabase.co/storage/v1` : null,
         dashboardUrl: projectId ? `https://supabase.com/dashboard/project/${projectId}/storage/files` : null,
         buckets: bucketDetails,
       });
@@ -1640,6 +1643,72 @@ async function startServer() {
     } catch (err: any) {
       console.error("[Admin Storage API] Sync buckets error:", err);
       return res.status(500).json({ error: err.message || "Failed to sync storage buckets" });
+    }
+  });
+
+  // Admin Storage API: Live Supabase Storage connection test with latency & bucket verification
+  app.post("/api/admin/storage/test-connection", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    const startedAt = Date.now();
+    try {
+      const supabase = getSupabaseClient();
+      const projectId = getSupabaseProjectId();
+      if (!supabase) {
+        return res.json({
+          connected: false,
+          projectId: projectId || null,
+          storageEndpoint: projectId ? `https://${projectId}.supabase.co/storage/v1` : null,
+          dashboardUrl: projectId ? `https://supabase.com/dashboard/project/${projectId}/storage/files` : null,
+          latencyMs: Date.now() - startedAt,
+          verifiedBuckets: 0,
+          totalBuckets: ALL_SUPABASE_BUCKET_IDS.length,
+          missingBuckets: ALL_SUPABASE_BUCKET_IDS,
+          checkedAt: new Date().toISOString(),
+          error: "Supabase credentials are not configured on the server.",
+        });
+      }
+
+      const { data: remoteBuckets, error } = await supabase.storage.listBuckets();
+      const latencyMs = Date.now() - startedAt;
+      if (error) {
+        return res.status(502).json({
+          connected: false,
+          projectId: projectId || null,
+          storageEndpoint: projectId ? `https://${projectId}.supabase.co/storage/v1` : null,
+          dashboardUrl: projectId ? `https://supabase.com/dashboard/project/${projectId}/storage/files` : null,
+          latencyMs,
+          verifiedBuckets: 0,
+          totalBuckets: ALL_SUPABASE_BUCKET_IDS.length,
+          missingBuckets: ALL_SUPABASE_BUCKET_IDS,
+          checkedAt: new Date().toISOString(),
+          error: error.message || "Failed to reach Supabase Storage",
+        });
+      }
+
+      const existingSet = new Set((remoteBuckets || []).map((b: any) => b.name));
+      const missingBuckets = ALL_SUPABASE_BUCKET_IDS.filter((id) => !existingSet.has(id));
+      const verifiedBuckets = ALL_SUPABASE_BUCKET_IDS.length - missingBuckets.length;
+
+      return res.json({
+        connected: true,
+        projectId: projectId || null,
+        storageEndpoint: projectId ? `https://${projectId}.supabase.co/storage/v1` : null,
+        dashboardUrl: projectId ? `https://supabase.com/dashboard/project/${projectId}/storage/files` : null,
+        latencyMs,
+        verifiedBuckets,
+        totalBuckets: ALL_SUPABASE_BUCKET_IDS.length,
+        missingBuckets,
+        checkedAt: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      return res.status(500).json({
+        connected: false,
+        latencyMs: Date.now() - startedAt,
+        checkedAt: new Date().toISOString(),
+        error: err?.message || "Connection test failed",
+      });
     }
   });
 
