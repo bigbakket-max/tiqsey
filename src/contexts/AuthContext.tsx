@@ -515,7 +515,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Guaranteed locked properties
             name: originalUser.name || deriveNameFromEmail(originalUser.email),
             email: originalUser.email,
-            bio: bio || originalUser.bio,
+            bio: bio !== undefined ? bio : originalUser.bio,
             avatarUrl: avatarUrl || originalUser.avatarUrl
           };
           

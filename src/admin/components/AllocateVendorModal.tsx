@@ -26,15 +26,31 @@ interface AdminBooking {
   children?: number;
   status: string;
   passengers: Passenger[];
+  vendorName?: string;
+  vendorCurrency?: string;
+  paymentCurrency?: string;
+}
+
+export interface VendorAllocationPayload {
+  serviceType: string;
+  vendorName: string;
+  paymentPolicy: string;
+  cancellationPolicy: string;
+  vendorCurrency: string;
+  selectedEvent: string;
+  description: string;
+  selectionReason: string;
+  vendorPayable: number;
 }
 
 interface AllocateVendorModalProps {
   isOpen: boolean;
   onClose: () => void;
   booking: AdminBooking;
+  onSave?: (allocation: VendorAllocationPayload) => void;
 }
 
-export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendorModalProps) {
+export function AllocateVendorModal({ isOpen, onClose, booking, onSave }: AllocateVendorModalProps) {
   // Form states initialized with realistic values matching screenshots
   // Let's check the status to match save button color and layout dynamically
   const isPending = booking.status === 'pending';
@@ -54,23 +70,32 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
   // Sync state if booking prop changes
   useEffect(() => {
     if (booking) {
-      // In the pending screenshot (bottom/right):
+      if (booking.vendorName) {
+        setVendor(booking.vendorName);
+      } else if (booking.status === 'pending') {
+        setVendor('Tiqets');
+      } else {
+        setVendor('');
+      }
+      if (booking.vendorCurrency || booking.paymentCurrency) {
+        setCurrency(booking.vendorCurrency || booking.paymentCurrency || 'USD');
+      } else {
+        setCurrency(booking.status === 'pending' ? 'USD' : 'INR');
+      }
+      const numericPayable = parseFloat(String(booking.vendorPayable || '').replace(/[^0-9.]/g, ''));
+      setPayableAmount(!isNaN(numericPayable) && numericPayable > 0 ? String(numericPayable) : '');
+
       if (booking.status === 'pending') {
         setServiceType('Activity Service');
-        setVendor('Tiqets');
         setPaymentPolicy('100 % Date of Booking');
         setCancellationPolicy('No cancellation');
-        setCurrency('USD');
-        setSelectedEvent('Enter event name manually');
+        setSelectedEvent(booking.variant || '');
         setBestService('Best Service Offered');
       } else {
-        // In the confirmed screenshot (top/left), everything starts empty/placeholder
-        setServiceType('');
-        setVendor('');
+        setServiceType(booking.vendorName ? 'Activity Service' : '');
         setPaymentPolicy('');
         setCancellationPolicy('');
-        setCurrency('');
-        setSelectedEvent('');
+        setSelectedEvent(booking.variant || '');
         setBestService('');
       }
     }
@@ -83,6 +108,20 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
   };
 
   const handleSave = () => {
+    const parsedAmount = parseFloat(payableAmount.replace(/[^0-9.]/g, ''));
+    if (onSave) {
+      onSave({
+        serviceType: serviceType || 'Activity Service',
+        vendorName: vendor || 'Direct Partner',
+        paymentPolicy: paymentPolicy || '100 % Date of Booking',
+        cancellationPolicy: cancellationPolicy || 'No cancellation',
+        vendorCurrency: currency || booking.paymentCurrency || 'USD',
+        selectedEvent,
+        description,
+        selectionReason: bestService,
+        vendorPayable: !isNaN(parsedAmount) ? parsedAmount : 0,
+      });
+    }
     onClose();
   };
 
@@ -174,7 +213,11 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[13px] sm:text-[14px] font-medium">
               <div className="flex items-center gap-1.5 text-[#3b82f6]">
                 <Users className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>{booking.travelers || 4} Adults {booking.children ? `${booking.children} Child` : '1 Child'}</span>
+                <span>
+                  {Math.max(1, (booking.travelers || 1) - (booking.children || 0))}{' '}
+                  {Math.max(1, (booking.travelers || 1) - (booking.children || 0)) === 1 ? 'Adult' : 'Adults'}
+                  {booking.children && booking.children > 0 ? ` • ${booking.children} ${booking.children === 1 ? 'Child' : 'Children'}` : ''}
+                </span>
               </div>
               <span className="hidden sm:inline text-slate-200 dark:text-slate-700">|</span>
               <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
@@ -229,8 +272,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
                     serviceType === '' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300 font-medium'
                   }`}
                 >
-                  <option value="" disabled hidden>Select Service Type</option>
-                  <option value="" className="text-slate-400">Select Service Type</option>
+                  <option value="">Select Service Type</option>
                   <option value="Activity Service">Activity Service</option>
                   <option value="Transport Service">Transport Service</option>
                   <option value="Hotel Service">Hotel Service</option>
@@ -255,8 +297,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
                     vendor === '' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300 font-medium'
                   }`}
                 >
-                  <option value="" disabled hidden>Select Vendor</option>
-                  <option value="" className="text-slate-400">Select Vendor</option>
+                  <option value="">Select Vendor</option>
                   <option value="Tiqets">Tiqets</option>
                   <option value="GetYourGuide">GetYourGuide</option>
                   <option value="Klook">Klook</option>
@@ -291,8 +332,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
                     paymentPolicy === '' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300 font-medium'
                   }`}
                 >
-                  <option value="" disabled hidden>Select Vendor payment policy</option>
-                  <option value="" className="text-slate-400">Select Vendor payment policy</option>
+                  <option value="">Select Vendor payment policy</option>
                   <option value="100 % Date of Booking">100 % Date of Booking</option>
                   <option value="50 % upfront, 50 % post-service">50 % upfront, 50 % post-service</option>
                   <option value="Pay after service">Pay after service</option>
@@ -316,8 +356,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
                     cancellationPolicy === '' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300 font-medium'
                   }`}
                 >
-                  <option value="" disabled hidden>Select Vendor cancellation policy</option>
-                  <option value="" className="text-slate-400">Select Vendor cancellation policy</option>
+                  <option value="">Select Vendor cancellation policy</option>
                   <option value="No cancellation">No cancellation</option>
                   <option value="Free cancellation up to 24h">Free cancellation up to 24h</option>
                   <option value="Free cancellation up to 48h">Free cancellation up to 48h</option>
@@ -341,8 +380,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
                     currency === '' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300 font-medium'
                   }`}
                 >
-                  <option value="" disabled hidden>Select Currency</option>
-                  <option value="" className="text-slate-400">Select Currency</option>
+                  <option value="">Select Currency</option>
                   <option value="INR">INR</option>
                   <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
@@ -408,8 +446,7 @@ export function AllocateVendorModal({ isOpen, onClose, booking }: AllocateVendor
                   bestService === '' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300 font-medium'
                 }`}
               >
-                <option value="" disabled hidden>Vendor Selection Reason</option>
-                <option value="" className="text-slate-400">Vendor Selection Reason</option>
+                <option value="">Vendor Selection Reason</option>
                 <option value="Best Service Offered">Best Service Offered</option>
                 <option value="Alternative Service 1">Alternative Service 1</option>
                 <option value="Alternative Service 2">Alternative Service 2</option>

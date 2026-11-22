@@ -59,6 +59,8 @@ interface AdminBooking {
   attractionName: string;
   variant: string;
   vendorPayable: string;
+  vendorName?: string;
+  vendorCurrency?: string;
   totalPrice: number;
   collectedAmount: number;
   travelers: number;
@@ -161,7 +163,14 @@ export default function Bookings() {
   useEffect(() => {
     const orderIdParam = searchParams.get('orderId');
     if (orderIdParam && bookings.length > 0) {
-      const b = bookings.find(x => x.orderId === orderIdParam);
+      const b = bookings.find(
+        x =>
+          x.orderId === orderIdParam ||
+          x.id === orderIdParam ||
+          x.order_number === orderIdParam ||
+          x.bookingRef === orderIdParam ||
+          x.pnr_number === orderIdParam
+      );
       if (b && (!selectedBooking || selectedBooking.id !== b.id)) {
         setSelectedBooking(b);
       }
@@ -196,25 +205,23 @@ export default function Bookings() {
 
   const saveBookingToBackend = async (booking: AdminBooking) => {
     try {
+      const parsedVendorPayable = parseFloat(String(booking.vendorPayable || '').replace(/[^0-9.]/g, ''));
+      const payload = {
+        ...booking,
+        vendorPayable: !isNaN(parsedVendorPayable) ? parsedVendorPayable : null,
+      };
       const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(booking)
+        body: JSON.stringify(payload)
       });
-      const contentType = response.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
-        const data = await response.json();
-        if (data.success) {
-          console.log(`[Admin DB Sync] Booking ${booking.id} synced with backend database successfully.`);
-        }
+      if (!response.ok) {
+        await fetch(`/api/bookings/${encodeURIComponent(booking.id)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
       }
-
-      // Also invoke patch endpoint to ensure atomic column updates in SQLite
-      fetch(`/api/bookings/${encodeURIComponent(booking.id)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(booking)
-      }).catch(() => {});
     } catch (err) {
       console.warn(`[Admin DB Sync Network Warning] Backend not reachable for booking ${booking.id}`);
     }
@@ -253,8 +260,10 @@ export default function Bookings() {
   };
 
   // Load and merge default mock bookings & user bookings
-  const loadBookings = async () => {
-    setIsRefreshing(true);
+  const loadBookings = async (silent = false) => {
+    if (!silent) {
+      setIsRefreshing(true);
+    }
     
     // Fetch bookings from backend database or directly from Supabase
     let backendBookings: AdminBooking[] = [];
@@ -266,32 +275,41 @@ export default function Bookings() {
       if (response.ok && contentType.includes("application/json")) {
         const data = await response.json();
         if (data.success && Array.isArray(data.bookings)) {
-          backendBookings = data.bookings.map((b: any) => ({
-            id: b.id,
-            bookingRef: b.bookingRef || b.pnr_number,
-            orderId: b.orderId || b.order_number,
-            order_number: b.order_number,
-            pnr_number: b.pnr_number,
-            customerName: b.customerName || b.guestInfo?.name || 'Registered User',
-            customerEmail: b.customerEmail || b.guestInfo?.email || 'user@tiqsey.com',
-            customerPhone: b.customerPhone || b.guestInfo?.phone || '+1 (555) 123-4567',
-            createdAt: b.createdAt,
-            attractionId: b.attractionId,
-            attractionName: b.attractionName,
-            variant: b.variant || 'General Admission Tickets',
-            vendorPayable: b.vendorPayable || '--',
-            totalPrice: b.totalPrice,
-            collectedAmount: b.totalPrice,
-            travelers: b.ticketsCount || b.travelers || 1,
-            bookingDate: b.bookingDate,
-            status: b.status || 'confirmed',
-            city: b.city || 'Paris',
-            attractionImageUrl: b.attractionImageUrl || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=600",
-            passengers: b.passengers || [],
-            paymentCurrency: b.paymentCurrency,
-            paymentPrice: b.paymentPrice,
-            paymentSymbol: b.paymentSymbol
-          }));
+          backendBookings = data.bookings
+            .filter((b: any) => b && b.id && !String(b.id).startsWith('temp-'))
+            .map((b: any) => ({
+              id: b.id,
+              bookingRef: b.bookingRef || b.pnr_number || '',
+              orderId: b.orderId || b.order_number || b.id,
+              order_number: b.order_number,
+              pnr_number: b.pnr_number,
+              customerName: b.customerName || b.guestInfo?.name || 'Registered User',
+              customerEmail: b.customerEmail || b.guestInfo?.email || 'user@tiqsey.com',
+              customerPhone: b.customerPhone || b.guestInfo?.phone || '+1 (555) 123-4567',
+              createdAt: b.createdAt || '',
+              attractionId: b.attractionId || '',
+              attractionName: b.attractionName || '',
+              variant: b.variant || 'General Admission Tickets',
+              vendorPayable: b.vendorPayable !== undefined && b.vendorPayable !== null && b.vendorPayable !== ''
+                ? `${b.vendorCurrency || b.paymentCurrency || 'USD'} ${Number(b.vendorPayable).toFixed(2)}`
+                : '--',
+              vendorName: b.vendorName || '',
+              vendorCurrency: b.vendorCurrency || '',
+              totalPrice: Number(b.totalPrice) || 0,
+              collectedAmount: Number(b.totalPrice) || 0,
+              travelers: Number(b.ticketsCount || b.travelers) || 1,
+              children: Number(b.childCount || b.children) || 0,
+              bookingDate: b.bookingDate || '',
+              timeslot: b.timeslot || '',
+              notes: b.notes || '',
+              status: b.status || 'confirmed',
+              city: b.city || 'Paris',
+              attractionImageUrl: b.attractionImageUrl || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=600",
+              passengers: b.passengers || [],
+              paymentCurrency: b.paymentCurrency,
+              paymentPrice: b.paymentPrice,
+              paymentSymbol: b.paymentSymbol
+            }));
           backendLoaded = true;
           setFetchError(null);
         }
@@ -337,6 +355,10 @@ export default function Bookings() {
               city: b.city || '',
               attractionImageUrl: b.attraction_image_url || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=600",
               passengers,
+              timeslot: b.timeslot || '',
+              notes: b.notes || '',
+              vendorName: b.vendor_name || '',
+              vendorCurrency: b.vendor_currency || '',
               paymentCurrency: b.payment_currency || '',
               paymentPrice: b.payment_price,
               paymentSymbol: b.payment_symbol || ''
@@ -351,7 +373,9 @@ export default function Bookings() {
     }
   }
 
-    await new Promise(r => setTimeout(r, 600));
+    if (!silent) {
+      await new Promise(r => setTimeout(r, 300));
+    }
     
     // Default High-Fidelity Mock Bookings based on screenshot & system data
     const defaultBookings: AdminBooking[] = [
@@ -586,14 +610,23 @@ export default function Bookings() {
       }
     });
 
-    // Merge, priority goes to live user data if reference matches
-    console.log('Admin tiqsey_bookings_ items (including backend):', allBookings.length);
+    // Merge, preserving local admin notes & vendor metadata if backend record doesn't have them
     let finalBookings = [...baseBookings];
     allBookings.forEach((ab) => {
-      const existingIndex = finalBookings.findIndex((fb) => fb.bookingRef === ab.bookingRef || fb.id === ab.id);
+      const existingIndex = finalBookings.findIndex((fb) => fb.id === ab.id || (fb.bookingRef && fb.bookingRef === ab.bookingRef));
       if (existingIndex > -1) {
-        // Overwrite standard with custom user details if applicable
-        finalBookings[existingIndex] = ab;
+        const prev = finalBookings[existingIndex];
+        finalBookings[existingIndex] = {
+          ...prev,
+          ...ab,
+          notes: ab.notes || prev.notes || '',
+          timeslot: ab.timeslot || prev.timeslot || '',
+          variant: ab.variant || prev.variant || 'General Admission Tickets',
+          vendorName: ab.vendorName || prev.vendorName || '',
+          vendorCurrency: ab.vendorCurrency || prev.vendorCurrency || '',
+          vendorPayable: ab.vendorPayable && ab.vendorPayable !== '--' ? ab.vendorPayable : prev.vendorPayable || '--',
+          children: ab.children ?? prev.children,
+        };
       } else {
         finalBookings.push(ab);
       }
@@ -649,7 +682,9 @@ export default function Bookings() {
       }
     }
 
-    setIsRefreshing(false);
+    if (!silent) {
+      setIsRefreshing(false);
+    }
   };
 
   const selectedBookingRef = useRef<AdminBooking | null>(null);
@@ -657,13 +692,13 @@ export default function Bookings() {
     selectedBookingRef.current = selectedBooking;
   }, [selectedBooking]);
 
-  // Load bookings on mount and set up automatic real-time updates (efficient polling)
+  // Load bookings on mount and set up automatic real-time updates (efficient silent polling)
   useEffect(() => {
-    loadBookings();
+    loadBookings(false);
 
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
-        loadBookings();
+        loadBookings(true);
       }
     }, 8000); // Poll every 8s when tab is active for smooth performance
 
@@ -733,6 +768,9 @@ export default function Bookings() {
   const updateBookingDetails = (updatedBooking: AdminBooking) => {
     const updated = bookings.map((b) => b.id === updatedBooking.id ? updatedBooking : b);
     setBookings(updated);
+    if (selectedBooking?.id === updatedBooking.id) {
+      setSelectedBooking(updatedBooking);
+    }
     localStorage.setItem('tiqsey_admin_bookings', JSON.stringify(updated));
     syncToCustomerStorage(updatedBooking);
     // Sync to Backend Database
@@ -771,14 +809,14 @@ export default function Bookings() {
       // 1. Search Query
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch = !q || 
-        b.orderId.toLowerCase().includes(q) ||
-        b.bookingRef.toLowerCase().includes(q) ||
-        (b.order_number && b.order_number.toLowerCase().includes(q)) ||
-        (b.pnr_number && b.pnr_number.toLowerCase().includes(q)) ||
-        b.customerName.toLowerCase().includes(q) ||
-        b.customerEmail.toLowerCase().includes(q) ||
-        b.customerPhone.toLowerCase().includes(q) ||
-        b.attractionName.toLowerCase().includes(q);
+        (b.orderId || '').toLowerCase().includes(q) ||
+        (b.bookingRef || '').toLowerCase().includes(q) ||
+        (b.order_number || '').toLowerCase().includes(q) ||
+        (b.pnr_number || '').toLowerCase().includes(q) ||
+        (b.customerName || '').toLowerCase().includes(q) ||
+        (b.customerEmail || '').toLowerCase().includes(q) ||
+        (b.customerPhone || '').toLowerCase().includes(q) ||
+        (b.attractionName || '').toLowerCase().includes(q);
 
       // 2. Status Tab
       const matchesStatus = 

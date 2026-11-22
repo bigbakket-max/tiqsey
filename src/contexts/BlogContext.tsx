@@ -141,8 +141,11 @@ export function BlogProvider({ children }: { children: ReactNode }) {
 
   React.useEffect(() => {
     try {
-      localStorage.setItem('tiqsey_blog_posts', JSON.stringify(posts));
-      window.dispatchEvent(new Event('tiqsey_blog_updated'));
+      const serialized = JSON.stringify(posts);
+      if (localStorage.getItem('tiqsey_blog_posts') !== serialized) {
+        localStorage.setItem('tiqsey_blog_posts', serialized);
+        window.dispatchEvent(new Event('tiqsey_blog_updated'));
+      }
     } catch (e) {
       console.error('Failed to save blog posts to localStorage', e);
     }
@@ -191,7 +194,9 @@ export function BlogProvider({ children }: { children: ReactNode }) {
         const raw = localStorage.getItem('tiqsey_blog_posts');
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) setPosts(parsed);
+          if (Array.isArray(parsed)) {
+            setPosts(prev => (JSON.stringify(prev) === raw ? prev : parsed));
+          }
         }
       } catch (_) {}
     };
@@ -229,7 +234,7 @@ export function BlogProvider({ children }: { children: ReactNode }) {
   };
 
   const getPostById = (id: string) => {
-    return posts.find(post => post.id === id);
+    return posts.find(post => post.id === id && !(post as any).deleted);
   };
 
   return (

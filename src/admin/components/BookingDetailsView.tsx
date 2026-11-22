@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { EurToInrTooltip } from './EurToInrTooltip';
-import { AllocateVendorModal } from './AllocateVendorModal';
+import { AllocateVendorModal, VendorAllocationPayload } from './AllocateVendorModal';
 import { downloadTicketVoucher } from '../../utils/ticketDownloader';
 
 interface Passenger {
@@ -38,6 +38,8 @@ interface AdminBooking {
   attractionName: string;
   variant: string;
   vendorPayable: string;
+  vendorName?: string;
+  vendorCurrency?: string;
   totalPrice: number;
   collectedAmount: number;
   travelers: number;
@@ -138,9 +140,16 @@ export default function BookingDetailsView({
         timeSlot: b.timeslot || '11:15 AM - Standard Admission',
         passengerName: b.customerName,
         ticketsCount: b.travelers,
-        totalPrice: b.totalPrice,
+        totalPrice: b.paymentCurrency && b.paymentPrice !== undefined
+          ? new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: b.paymentCurrency,
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }).format(b.paymentPrice)
+          : b.totalPrice,
         additionalPassengers: b.passengers?.map(p => {
-          const names = p.name.split(' ');
+          const names = (p.name || 'Passenger').split(' ');
           return {
             firstName: names[0] || 'Passenger',
             lastName: names.slice(1).join(' ') || 'User',
@@ -186,6 +195,20 @@ export default function BookingDetailsView({
     setPassengersList(deriveInitialPassengers(booking));
     setTimeSlot(booking.timeslot || 'Flexible');
   }, [booking.id, booking.timeslot, booking.passengers]);
+
+  React.useEffect(() => {
+    setAdminNotes(booking.notes || '');
+    setAuditLogs([
+      { id: '1', title: 'Booking Created & Confirmed', time: booking.createdAt || '25 Jul 2026 02:45 PM', color: 'bg-emerald-500' },
+      { id: '2', title: `Status synced: ${(booking.status || 'confirmed').toUpperCase()}`, time: 'Just now', color: 'bg-blue-500' }
+    ]);
+  }, [booking.id]);
+
+  React.useEffect(() => {
+    if (booking.notes !== undefined && booking.notes !== adminNotes && !isSavingNotes) {
+      setAdminNotes(booking.notes);
+    }
+  }, [booking.notes]);
 
   const StatusBadge = ({ status }: { status: string }) => {
     switch (status) {
@@ -605,22 +628,30 @@ export default function BookingDetailsView({
               )}
             </div>
           </div>
-          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
-            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">Net Amount</p>
-            <p className="font-extrabold text-slate-900 dark:text-white">
-              <EurToInrTooltip amount={booking.totalPrice || 66} bookingDate={booking.bookingDate} currency="USD">
-                USD {booking.totalPrice || 66}
-              </EurToInrTooltip>
-            </p>
-          </div>
-          <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
-            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">Gross Amount</p>
-            <p className="font-extrabold text-slate-900 dark:text-white">
-              <EurToInrTooltip amount={booking.totalPrice || 66} bookingDate={booking.bookingDate} currency="USD">
-                USD {booking.totalPrice || 66}
-              </EurToInrTooltip>
-            </p>
-          </div>
+          {(() => {
+            const displayCurr = booking.paymentCurrency || 'USD';
+            const displayAmt = booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 66);
+            return (
+              <>
+                <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                  <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">Net Amount</p>
+                  <p className="font-extrabold text-slate-900 dark:text-white">
+                    <EurToInrTooltip amount={displayAmt} bookingDate={booking.bookingDate} currency={displayCurr}>
+                      {displayCurr} {Number(displayAmt).toFixed(2)}
+                    </EurToInrTooltip>
+                  </p>
+                </div>
+                <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                  <p className="text-[10px] font-bold uppercase text-slate-400 mb-1.5">Gross Amount</p>
+                  <p className="font-extrabold text-slate-900 dark:text-white">
+                    <EurToInrTooltip amount={displayAmt} bookingDate={booking.bookingDate} currency={displayCurr}>
+                      {displayCurr} {Number(displayAmt).toFixed(2)}
+                    </EurToInrTooltip>
+                  </p>
+                </div>
+              </>
+            );
+          })()}
         </div>
 
           {/* Booking Contents Embedded Section */}
@@ -639,11 +670,12 @@ export default function BookingDetailsView({
             </div>
 
             {(() => {
-              const units = booking.travelers || 2;
-              const currentPrice = booking.totalPrice || 133.431;
+              const displayCurr = booking.paymentCurrency || 'USD';
+              const units = booking.travelers || 1;
+              const currentPrice = booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 66);
               const pricePerUnit = currentPrice / units;
               const discountPercent = 6;
-              const struckThroughPrice = currentPrice * 1.060451;
+              const struckThroughPrice = currentPrice * 1.06;
 
               return (
                 <>
@@ -665,12 +697,12 @@ export default function BookingDetailsView({
                       </div>
                       <div>
                         <p className="text-[10px] text-slate-400 font-medium">Price / Unit</p>
-                        <p className="font-semibold text-slate-600 dark:text-slate-300 mt-0.5 tabular-nums">CAD {pricePerUnit.toFixed(2)}</p>
+                        <p className="font-semibold text-slate-600 dark:text-slate-300 mt-0.5 tabular-nums">{displayCurr} {pricePerUnit.toFixed(2)}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] text-slate-400 font-medium">Total Price</p>
-                        <p className="line-through text-slate-400 text-[10px] tabular-nums">CAD {struckThroughPrice.toFixed(2)}</p>
-                        <p className="font-extrabold text-slate-900 dark:text-white tabular-nums">CAD {currentPrice.toFixed(2)}</p>
+                        <p className="line-through text-slate-400 text-[10px] tabular-nums">{displayCurr} {struckThroughPrice.toFixed(2)}</p>
+                        <p className="font-extrabold text-slate-900 dark:text-white tabular-nums">{displayCurr} {currentPrice.toFixed(2)}</p>
                       </div>
                     </div>
                   </div>
@@ -690,15 +722,15 @@ export default function BookingDetailsView({
                         <tr className="bg-slate-50/60 dark:bg-slate-900/20 rounded-lg overflow-hidden">
                           <td className="py-4 pl-4 rounded-l-lg text-slate-600 dark:text-slate-400 text-xs font-normal text-left">Adult</td>
                           <td className="py-4 px-3 text-center text-slate-800 dark:text-slate-100 text-xs font-normal tabular-nums">{units}</td>
-                          <td className="py-4 px-3 text-center text-slate-600 dark:text-slate-400 text-xs font-normal tabular-nums">CAD {pricePerUnit.toFixed(3)}</td>
+                          <td className="py-4 px-3 text-center text-slate-600 dark:text-slate-400 text-xs font-normal tabular-nums">{displayCurr} {pricePerUnit.toFixed(2)}</td>
                           <td className="py-4 pr-4 rounded-r-lg text-right">
                             <div className="inline-flex items-center gap-2.5 text-left">
                               <div className="flex flex-col">
                                 <span className="line-through text-slate-400 dark:text-slate-500 text-[10px] font-normal leading-tight mb-0.5 tabular-nums">
-                                  CAD {struckThroughPrice.toFixed(3)}
+                                  {displayCurr} {struckThroughPrice.toFixed(2)}
                                 </span>
                                 <span className="text-slate-800 dark:text-slate-200 text-xs font-semibold leading-tight tabular-nums">
-                                  CAD {currentPrice.toFixed(3)}
+                                  {displayCurr} {currentPrice.toFixed(2)}
                                 </span>
                               </div>
                               <span className="bg-[#bbf7d0]/70 text-[#166534] dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.5 text-[10px] font-bold rounded-md leading-none">
@@ -740,14 +772,25 @@ export default function BookingDetailsView({
               <strong className="text-slate-800 dark:text-slate-200 font-extrabold">{(() => {
                 const city = booking.city?.toLowerCase() || '';
                 if (city.includes('paris')) return 'France';
-                if (city.includes('sydney')) return 'Australia';
+                if (city.includes('sydney') || city.includes('melbourne')) return 'Australia';
                 if (city.includes('singapore')) return 'Singapore';
-                if (city.includes('tokyo') || city.includes('osaka')) return 'Japan';
+                if (city.includes('tokyo') || city.includes('osaka') || city.includes('kyoto')) return 'Japan';
                 if (city.includes('barcelona') || city.includes('madrid')) return 'Spain';
                 if (city.includes('amsterdam')) return 'Netherlands';
-                if (city.includes('london')) return 'United Kingdom';
-                if (city.includes('new york') || city.includes('usa') || city.includes('san diego')) return 'United States';
-                return 'Canada';
+                if (city.includes('london') || city.includes('edinburgh')) return 'United Kingdom';
+                if (city.includes('new york') || city.includes('usa') || city.includes('san diego') || city.includes('las vegas') || city.includes('orlando')) return 'United States';
+                if (city.includes('rome') || city.includes('florence') || city.includes('venice') || city.includes('milan')) return 'Italy';
+                if (city.includes('dubai') || city.includes('abu dhabi')) return 'United Arab Emirates';
+                if (city.includes('bangkok') || city.includes('phuket') || city.includes('pattaya')) return 'Thailand';
+                if (city.includes('bali')) return 'Indonesia';
+                if (city.includes('athens')) return 'Greece';
+                if (city.includes('istanbul')) return 'Turkey';
+                if (city.includes('lisbon')) return 'Portugal';
+                if (city.includes('zurich') || city.includes('geneva')) return 'Switzerland';
+                if (city.includes('prague')) return 'Czech Republic';
+                if (city.includes('vienna')) return 'Austria';
+                if (city.includes('berlin') || city.includes('munich')) return 'Germany';
+                return 'International';
               })()}</strong>
             </div>
           </div>
@@ -1290,7 +1333,7 @@ export default function BookingDetailsView({
 
       {/* 8. STARTING/MEETING POINT ALERT BANNER */}
       <div 
-        onClick={() => triggerToast("Add custom GPS geo coordinates coordinates for meeting point...", "info")}
+        onClick={() => triggerToast("Add custom GPS coordinates for meeting point...", "info")}
         className="bg-amber-500/10 dark:bg-amber-500/15 border border-amber-300/60 rounded-2xl p-4 flex items-center gap-3 hover:bg-amber-500/20 transition-all cursor-pointer shadow-xs"
       >
         <span className="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl shrink-0">
@@ -1306,11 +1349,13 @@ export default function BookingDetailsView({
         const currencyToUse = booking.paymentCurrency || "USD";
         const paid = booking.paymentPrice !== undefined ? booking.paymentPrice : (booking.totalPrice || 66);
         const pg = parseFloat((paid * 0.04).toFixed(2));
+        const parsedVendorPayable = parseFloat(String(booking.vendorPayable || '').replace(/[^0-9.]/g, ''));
+        const vendorCost = !isNaN(parsedVendorPayable) && parsedVendorPayable > 0 ? parsedVendorPayable : 0;
         const isCancelled = booking.status === 'cancelled' || booking.status === 'rejected';
         const refunded = isCancelled ? paid : 0;
         const refundPg = isCancelled ? pg : 0;
         const cancellation = 0;
-        const net = isCancelled ? -pg : parseFloat((paid - pg).toFixed(2));
+        const net = isCancelled ? -pg : parseFloat((paid - pg - vendorCost).toFixed(2));
         const isProfit = net >= 0;
 
         const formatValue = (val: number) => {
@@ -1381,7 +1426,9 @@ export default function BookingDetailsView({
               </div>
               <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
                 <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Vendor Payable</span>
-                <span className="font-extrabold text-slate-900 dark:text-white">{currencyToUse} 0</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">
+                  {vendorCost > 0 ? `${booking.vendorCurrency || currencyToUse} ${vendorCost.toFixed(2)}` : `${currencyToUse} 0`}
+                </span>
               </div>
               <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
                 <span className="text-[10px] font-bold uppercase text-slate-400 mb-1">Paid Amount</span>
@@ -1429,7 +1476,9 @@ export default function BookingDetailsView({
             </span>
             <div>
               <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Vendor Information</h3>
-              <p className="text-xs text-slate-400">Total Vendor Payable: USD 0</p>
+              <p className="text-xs text-slate-400">
+                Total Vendor Payable: {booking.vendorPayable && booking.vendorPayable !== '--' ? booking.vendorPayable : `${booking.paymentCurrency || 'USD'} 0`}
+              </p>
             </div>
           </div>
 
@@ -1439,7 +1488,7 @@ export default function BookingDetailsView({
               onClick={() => setShowAllocateVendorModal(true)}
               className="min-h-[38px] border border-brand hover:bg-brand/10 px-4 py-2 rounded-xl text-xs font-bold text-brand transition-all cursor-pointer shadow-xs"
             >
-              + Allocate New Vendor
+              {booking.vendorName ? 'Update Vendor Allocation' : '+ Allocate New Vendor'}
             </button>
             <button 
               type="button"
@@ -1451,10 +1500,31 @@ export default function BookingDetailsView({
           </div>
         </div>
 
-        <div className="p-6 sm:p-8 text-center text-xs font-semibold text-slate-400 bg-slate-50/80 dark:bg-slate-950/60 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-          No vendor information Found.<br />
-          <span className="font-normal text-[11px] text-slate-400 mt-1 block">All services for this vendor have been removed or not allocated yet.</span>
-        </div>
+        {booking.vendorName ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Allocated Vendor</span>
+              <span className="font-extrabold text-slate-900 dark:text-white">{booking.vendorName}</span>
+            </div>
+            <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Payable Amount</span>
+              <span className="font-extrabold text-emerald-600 dark:text-emerald-400">
+                {booking.vendorPayable && booking.vendorPayable !== '--' ? booking.vendorPayable : `${booking.vendorCurrency || booking.paymentCurrency || 'USD'} 0.00`}
+              </span>
+            </div>
+            <div className="bg-slate-50/80 dark:bg-slate-950/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Allocation Status</span>
+              <span className="inline-flex items-center gap-1.5 font-extrabold text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Assigned
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="p-6 sm:p-8 text-center text-xs font-semibold text-slate-400 bg-slate-50/80 dark:bg-slate-950/60 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+            No vendor information Found.<br />
+            <span className="font-normal text-[11px] text-slate-400 mt-1 block">All services for this vendor have been removed or not allocated yet.</span>
+          </div>
+        )}
       </div>
 
       {/* 11. ALLOT VOUCHERS CARD */}
@@ -1539,7 +1609,7 @@ export default function BookingDetailsView({
                     { label: 'Device Type', value: 'mobile' },
                     { label: 'Platform Name', value: 'iOS (iPhone)' },
                     { label: 'Platform Version', value: '18.7' },
-                    { label: 'Extra Data', value: '[object Object]' },
+                    { label: 'Extra Data', value: 'None' },
                     { label: 'User Preferred Languages', value: 'en-AU,en' }
                   ].map((item, idx) => (
                     <div 
@@ -2006,6 +2076,25 @@ export default function BookingDetailsView({
         isOpen={showAllocateVendorModal} 
         onClose={() => setShowAllocateVendorModal(false)} 
         booking={booking}
+        onSave={(allocation: VendorAllocationPayload) => {
+          const formattedPayable = `${allocation.vendorCurrency} ${allocation.vendorPayable.toFixed(2)}`;
+          onUpdateBooking({
+            ...booking,
+            vendorName: allocation.vendorName,
+            vendorCurrency: allocation.vendorCurrency,
+            vendorPayable: formattedPayable,
+          });
+          setAuditLogs(prev => [
+            {
+              id: Date.now().toString(),
+              title: `Vendor allocated: ${allocation.vendorName} (${formattedPayable})`,
+              time: 'Just now',
+              color: 'bg-purple-500',
+            },
+            ...prev,
+          ]);
+          triggerToast(`Vendor ${allocation.vendorName} allocated (${formattedPayable})!`, 'success');
+        }}
       />
     </div>
   );

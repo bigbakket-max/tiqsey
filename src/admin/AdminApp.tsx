@@ -14,6 +14,7 @@ import PromotionalBanners from './pages/PromotionalBanners';
 import PromotionalBannerForm from './pages/PromotionalBannerForm';
 import GeminiLogoShowcase from './pages/GeminiLogoShowcase';
 import FaviconManagement from './pages/FaviconManagement';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -35,29 +36,31 @@ export default function AdminApp() {
   return (
     <AdminLoaderProvider>
       <BrowserRouter basename="/secure-panel">
-        <Routes>
-          <Route path="/login" element={<RequireAdmin><Navigate to="/" replace /></RequireAdmin>} />
-          <Route path="/" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
-            <Route index element={<Dashboard />} />
-            <Route path="inventory" element={<Inventory />} />
-            <Route path="inventory/edit/:id" element={<Inventory />} />
-            <Route path="inventory/new" element={<Inventory />} />
-            <Route path="bookings" element={<Bookings />} />
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="blog" element={<Blog />} />
-            <Route path="blog/new" element={<BlogPostForm />} />
-            <Route path="blog/:id" element={<BlogPostForm />} />
-            <Route path="promotional-banners" element={<PromotionalBanners />} />
-            <Route path="promotional-banners/new" element={<PromotionalBannerForm />} />
-            <Route path="promotional-banners/edit/:id" element={<PromotionalBannerForm />} />
-            <Route path="favicon" element={<FaviconManagement />} />
-            <Route path="custom-domain" element={<Navigate to="/" replace />} />
-            <Route path="website/domain" element={<Navigate to="/" replace />} />
-            <Route path="gemini-logo" element={<GeminiLogoShowcase />} />
-            {/* Catch-all redirect to dashboard */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/login" element={<RequireAdmin><Navigate to="/" replace /></RequireAdmin>} />
+            <Route path="/" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+              <Route index element={<Dashboard />} />
+              <Route path="inventory" element={<Inventory />} />
+              <Route path="inventory/edit/:id" element={<Inventory />} />
+              <Route path="inventory/new" element={<Inventory />} />
+              <Route path="bookings" element={<Bookings />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="blog" element={<Blog />} />
+              <Route path="blog/new" element={<BlogPostForm />} />
+              <Route path="blog/:id" element={<BlogPostForm />} />
+              <Route path="promotional-banners" element={<PromotionalBanners />} />
+              <Route path="promotional-banners/new" element={<PromotionalBannerForm />} />
+              <Route path="promotional-banners/edit/:id" element={<PromotionalBannerForm />} />
+              <Route path="favicon" element={<FaviconManagement />} />
+              <Route path="custom-domain" element={<Navigate to="/" replace />} />
+              <Route path="website/domain" element={<Navigate to="/" replace />} />
+              <Route path="gemini-logo" element={<GeminiLogoShowcase />} />
+              {/* Catch-all redirect to dashboard */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+        </ErrorBoundary>
       </BrowserRouter>
     </AdminLoaderProvider>
   );

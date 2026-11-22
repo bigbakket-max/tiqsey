@@ -159,25 +159,25 @@ export const EurToInrTooltip: React.FC<EurToInrTooltipProps> = ({
       
       {show && (
         <span className="absolute z-[9999] bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md text-white text-[11px] rounded-2xl shadow-2xl border border-slate-700/60 pointer-events-none transition-all duration-200 block overflow-hidden">
-          <div className="px-3.5 py-2.5 bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700/60 flex items-center justify-between">
+          <span className="px-3.5 py-2.5 bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700/60 flex items-center justify-between">
             <span className="font-extrabold text-slate-200 tracking-wide text-xs">
               Historical INR Conversion
             </span>
             <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-brand/20 text-brand">
               {currency} → INR
             </span>
-          </div>
+          </span>
 
-          <div className="p-3 space-y-2 text-xs font-sans">
-            <div className="flex items-center justify-between text-slate-300">
+          <span className="p-3 space-y-2 text-xs font-sans block">
+            <span className="flex items-center justify-between text-slate-300">
               <span className="flex items-center gap-1.5 text-slate-400">
                 <Calendar className="w-3.5 h-3.5 text-brand" />
                 Date:
               </span>
               <span className="font-bold font-mono">{formattedDate}</span>
-            </div>
+            </span>
 
-            <div className="flex items-center justify-between text-slate-300">
+            <span className="flex items-center justify-between text-slate-300">
               <span className="flex items-center gap-1.5 text-slate-400">
                 <TrendingUp className="w-3.5 h-3.5 text-sky-400" />
                 Rate ({currency}/INR):
@@ -185,9 +185,9 @@ export const EurToInrTooltip: React.FC<EurToInrTooltipProps> = ({
               <span className="font-bold font-mono text-sky-400">
                 {loading ? 'Fetching...' : error ? 'Error' : rate !== null ? rate.toFixed(4) : 'N/A'}
               </span>
-            </div>
+            </span>
 
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+            <span className="pt-2 border-t border-slate-800 flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-slate-400 font-semibold">
                 <Wallet className="w-3.5 h-3.5 text-emerald-400" />
                 INR Value:
@@ -195,8 +195,8 @@ export const EurToInrTooltip: React.FC<EurToInrTooltipProps> = ({
               <span className="font-black text-emerald-400 font-sans text-sm tracking-tight">
                 {loading ? 'Calculating...' : error ? 'Error' : formattedInr}
               </span>
-            </div>
-          </div>
+            </span>
+          </span>
 
           {/* Arrow */}
           <span className="absolute top-full left-1/2 transform -translate-x-1/2 border-[6px] border-transparent border-t-slate-900 dark:border-t-slate-950 block" />

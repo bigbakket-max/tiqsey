@@ -83,7 +83,15 @@ export default function AdminLayout() {
     const query = globalSearch.trim();
     if (!query) return;
 
-    if (query.toLowerCase().startsWith('tiq-') || query.toLowerCase().startsWith('ord-') || query.toLowerCase().startsWith('pnr')) {
+    const lower = query.toLowerCase();
+    if (
+      lower.startsWith('tiq-') ||
+      lower.startsWith('ord-') ||
+      lower.startsWith('od') ||
+      lower.startsWith('bk') ||
+      lower.startsWith('pnr') ||
+      lower.startsWith('tqx-')
+    ) {
       navigate(`/bookings?search=${encodeURIComponent(query)}`);
     } else if (query.toLowerCase().includes('banner') || query.toLowerCase().includes('promo')) {
       navigate(`/promotional-banners`);

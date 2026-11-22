@@ -111,7 +111,11 @@ function mapRowToBooking(row: any) {
     rating: row.rating,
     paymentCurrency: row.payment_currency || "",
     paymentPrice: row.payment_price !== null && row.payment_price !== undefined ? row.payment_price : undefined,
-    paymentSymbol: row.payment_symbol || ""
+    paymentSymbol: row.payment_symbol || "",
+    notes: row.notes || "",
+    vendorName: row.vendor_name || "",
+    vendorPayable: row.vendor_payable !== null && row.vendor_payable !== undefined ? row.vendor_payable : undefined,
+    vendorCurrency: row.vendor_currency || ""
   };
 }
 
@@ -290,6 +294,24 @@ try {
       console.error("Failed to alter table bookings:", err);
     }
   }
+
+  // Check and add notes & vendor columns if missing
+  const optionalBookingCols: Array<{ name: string; sqlType: string }> = [
+    { name: 'notes', sqlType: 'TEXT' },
+    { name: 'vendor_name', sqlType: 'TEXT' },
+    { name: 'vendor_payable', sqlType: 'REAL' },
+    { name: 'vendor_currency', sqlType: 'TEXT' },
+  ];
+  for (const col of optionalBookingCols) {
+    if (tableInfo.length > 0 && !tableInfo.some(existing => existing.name === col.name)) {
+      console.log(`[Database] Adding ${col.name} column to bookings table...`);
+      try {
+        db.exec(`ALTER TABLE bookings ADD COLUMN ${col.name} ${col.sqlType};`);
+      } catch (err) {
+        console.error(`Failed to alter table bookings (${col.name}):`, err);
+      }
+    }
+  }
 } catch (e) {
   console.warn("[Database] Check table failed or table does not exist yet.", e);
 }
@@ -317,8 +339,13 @@ db.exec(`
     timeslot TEXT,
     payment_currency TEXT,
     payment_price REAL,
-    payment_symbol TEXT
+    payment_symbol TEXT,
+    notes TEXT,
+    vendor_name TEXT,
+    vendor_payable REAL,
+    vendor_currency TEXT
   );
+  DELETE FROM bookings WHERE id LIKE 'temp-%';
   CREATE UNIQUE INDEX IF NOT EXISTS idx_order_number ON bookings(order_number);
   CREATE UNIQUE INDEX IF NOT EXISTS idx_pnr_number ON bookings(pnr_number);
 
@@ -1146,8 +1173,8 @@ async function startServer() {
     try {
       console.log("[Database] Fetching all bookings...");
       
-      // Fetch from SQLite first
-      const localRows = db.prepare('SELECT * FROM bookings').all() as any[];
+      // Fetch from SQLite first (exclude temporary reservation rows)
+      const localRows = db.prepare("SELECT * FROM bookings WHERE id NOT LIKE 'temp-%'").all() as any[];
       const localBookings = localRows.map(mapRowToBooking);
 
       // Fetch from Supabase (graceful fallback)
@@ -1251,6 +1278,10 @@ async function startServer() {
       const payment_currency = booking.paymentCurrency || "";
       const payment_price = booking.paymentPrice !== undefined ? booking.paymentPrice : null;
       const payment_symbol = booking.paymentSymbol || "";
+      const notes = booking.notes !== undefined ? String(booking.notes) : "";
+      const vendor_name = booking.vendorName !== undefined ? String(booking.vendorName) : "";
+      const vendor_payable = booking.vendorPayable !== undefined && booking.vendorPayable !== null && booking.vendorPayable !== "" ? Number(booking.vendorPayable) : null;
+      const vendor_currency = booking.vendorCurrency !== undefined ? String(booking.vendorCurrency) : "";
 
       // Check if there is an existing row for this order_number or id
       const existing = (rawOrderNum
@@ -1280,7 +1311,11 @@ async function startServer() {
             timeslot = ?,
             payment_currency = ?,
             payment_price = ?,
-            payment_symbol = ?
+            payment_symbol = ?,
+            notes = ?,
+            vendor_name = ?,
+            vendor_payable = ?,
+            vendor_currency = ?
           WHERE id = ?
         `);
         stmt.run(
@@ -1305,6 +1340,10 @@ async function startServer() {
           payment_currency,
           payment_price,
           payment_symbol,
+          notes,
+          vendor_name,
+          vendor_payable,
+          vendor_currency,
           existing.id
         );
       } else {
@@ -1314,8 +1353,9 @@ async function startServer() {
             attraction_image_url, city, booking_date, tickets_count, total_price, 
             status, child_count, guest_name, guest_email, guest_phone, 
             passengers_json, created_at, rating, timeslot,
-            payment_currency, payment_price, payment_symbol
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            payment_currency, payment_price, payment_symbol,
+            notes, vendor_name, vendor_payable, vendor_currency
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         stmt.run(
           id,
@@ -1339,7 +1379,11 @@ async function startServer() {
           timeslot,
           payment_currency,
           payment_price,
-          payment_symbol
+          payment_symbol,
+          notes,
+          vendor_name,
+          vendor_payable,
+          vendor_currency
         );
       }
 
@@ -1380,6 +1424,10 @@ async function startServer() {
       const newPassengers = updates.passengers !== undefined ? JSON.stringify(updates.passengers) : existing.passengers_json;
       const newTotalPrice = updates.totalPrice !== undefined ? updates.totalPrice : existing.total_price;
       const newTicketsCount = updates.travelers !== undefined ? updates.travelers : (updates.ticketsCount !== undefined ? updates.ticketsCount : existing.tickets_count);
+      const newNotes = updates.notes !== undefined ? String(updates.notes) : existing.notes;
+      const newVendorName = updates.vendorName !== undefined ? String(updates.vendorName) : existing.vendor_name;
+      const newVendorPayable = updates.vendorPayable !== undefined ? (updates.vendorPayable === null || updates.vendorPayable === '' ? null : Number(updates.vendorPayable)) : existing.vendor_payable;
+      const newVendorCurrency = updates.vendorCurrency !== undefined ? String(updates.vendorCurrency) : existing.vendor_currency;
 
       db.prepare(`
         UPDATE bookings SET
@@ -1391,7 +1439,11 @@ async function startServer() {
           guest_phone = ?,
           passengers_json = ?,
           total_price = ?,
-          tickets_count = ?
+          tickets_count = ?,
+          notes = ?,
+          vendor_name = ?,
+          vendor_payable = ?,
+          vendor_currency = ?
         WHERE id = ?
       `).run(
         newStatus,
@@ -1403,6 +1455,10 @@ async function startServer() {
         newPassengers,
         newTotalPrice,
         newTicketsCount,
+        newNotes,
+        newVendorName,
+        newVendorPayable,
+        newVendorCurrency,
         targetId
       );
 
@@ -3036,7 +3092,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
       const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
       // Try multiple valid models and apply exponential backoff on transient errors
-      const modelsToTry = ["gemini-4-hydrogen", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
+      const modelsToTry = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
       let text = "";
       let lastError: any = null;
       let usedModel = "";
