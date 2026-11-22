@@ -12,20 +12,19 @@ import { fetchActiveFavicon, applyFaviconToDocument, FAVICON_STORAGE_KEY } from 
 import ErrorBoundary from './components/ErrorBoundary';
 
 function Root() {
-  const isLegacyAdmin = window.location.pathname.startsWith('/admin');
+  const isBlockedAdminPath = /^\/admin(\/|$)/i.test(window.location.pathname);
   const isAdminRoute = window.location.pathname.startsWith('/secure-panel');
 
-  // If navigating to old /admin, smoothly redirect to /secure-panel
+  // Set page title to 404 Not Found when accessing blocked /admin paths
   useEffect(() => {
-    if (isLegacyAdmin) {
-      const newPath = window.location.pathname.replace(/^\/admin/, '/secure-panel') + window.location.search + window.location.hash;
-      window.location.replace(newPath);
+    if (isBlockedAdminPath) {
+      document.title = '404 Not Found';
     }
-  }, [isLegacyAdmin]);
+  }, [isBlockedAdminPath]);
 
   // Synchronize and apply live dynamic favicon across the entire application and tabs
   useEffect(() => {
-    if (isLegacyAdmin) return;
+    if (isBlockedAdminPath) return;
     fetchActiveFavicon().then(applyFaviconToDocument).catch(() => {});
 
     const handleStorage = (e: StorageEvent) => {
@@ -38,10 +37,22 @@ function Root() {
 
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
-  }, [isLegacyAdmin]);
+  }, [isBlockedAdminPath]);
 
-  if (isLegacyAdmin) {
-    return null;
+  if (isBlockedAdminPath) {
+    return (
+      <div className="min-h-screen w-full bg-white text-[#444444] flex flex-col items-center justify-center text-center px-6 font-sans">
+        <h1 className="text-[120px] sm:text-[150px] leading-none font-bold tracking-tight text-[#444444]">
+          404
+        </h1>
+        <h2 className="mt-5 mb-3 text-[26px] sm:text-[30px] font-bold text-[#444444]">
+          Not Found
+        </h2>
+        <p className="text-sm text-[#555555]">
+          The resource requested could not be found on this server!
+        </p>
+      </div>
+    );
   }
   
   return (

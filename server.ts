@@ -3994,10 +3994,65 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
   app.use('/uploads', express.static(path.join(process.cwd(), 'dist', 'uploads')));
 
-  // Redirect legacy /admin to new /secure-panel URL (excluding /api/admin)
-  app.get(/^\/admin(\/.*)?$/, (req, res) => {
-    const targetUrl = req.originalUrl.replace(/^\/admin/, '/secure-panel');
-    return res.redirect(301, targetUrl);
+  // Return 404 Not Found for /admin and /admin/* (excluding /api/admin)
+  app.all(/^\/admin(\/.*)?$/, (_req, res) => {
+    res
+      .status(404)
+      .type('html')
+      .send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>404 Not Found</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      color: #444444;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .container {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    h1 {
+      margin: 0;
+      font-size: 150px;
+      line-height: 150px;
+      font-weight: 700;
+      color: #444444;
+    }
+    h2 {
+      margin: 20px 0 12px;
+      font-size: 30px;
+      font-weight: 700;
+      color: #444444;
+    }
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #555555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>404</h1>
+    <h2>Not Found</h2>
+    <p>The resource requested could not be found on this server!</p>
+  </div>
+</body>
+</html>`);
   });
 
   // Vite middleware for development
