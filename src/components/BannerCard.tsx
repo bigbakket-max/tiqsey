@@ -93,7 +93,7 @@ export default function BannerCard({
     } else if (banner.destinationType === 'activity') {
       if (onNavigateAction) {
         onNavigateAction(dest);
-      } else {
+      } else if (/^(\/(?!\/)|https?:\/\/)/i.test(dest)) {
         window.location.href = dest;
       }
     } else if (dest.startsWith('http://') || dest.startsWith('https://')) {
@@ -105,7 +105,7 @@ export default function BannerCard({
         const targetId = dest.replace('#', '');
         const el = document.getElementById(targetId);
         el?.scrollIntoView({ behavior: 'smooth' });
-      } else {
+      } else if (/^(\/(?!\/)|https?:\/\/)/i.test(dest)) {
         window.location.href = dest;
       }
     }

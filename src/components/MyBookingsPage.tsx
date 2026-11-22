@@ -474,16 +474,32 @@ export default function MyBookingsPage({
                                       setReviewComment("");
                                       setReviewError("");
                                       try {
-                                        const res = await fetch(`/api/reviews/booking/${encodeURIComponent(booking.id)}`);
-                                        const contentType = res.headers.get("content-type") || "";
-                                        const data = contentType.includes("application/json") ? await res.json() : null;
-                                        if (data && data.success && data.review) {
-                                          setRatingValue(data.review.rating);
-                                          setReviewComment(data.review.comment);
+                                        const { fetchJsonSafely } = await import("../utils/safeFetch");
+                                        const res = await fetchJsonSafely<{ success?: boolean; review?: { rating: number; comment: string } }>(
+                                          `/api/reviews/booking/${encodeURIComponent(booking.id)}`
+                                        );
+                                        if (res.isJson && res.ok && res.data?.success && res.data.review) {
+                                          setRatingValue(res.data.review.rating);
+                                          setReviewComment(res.data.review.comment);
                                         } else {
-                                          setRatingValue(booking.rating || 5);
+                                          const { supabase, isSupabaseConfigured } = await import("../lib/supabase");
+                                          if (isSupabaseConfigured && supabase) {
+                                            const { data: rev } = await supabase
+                                              .from("reviews")
+                                              .select("rating, comment")
+                                              .eq("booking_id", booking.id)
+                                              .maybeSingle();
+                                            if (rev) {
+                                              setRatingValue(Number(rev.rating) || booking.rating || 5);
+                                              setReviewComment(rev.comment || "");
+                                            } else {
+                                              setRatingValue(booking.rating || 5);
+                                            }
+                                          } else {
+                                            setRatingValue(booking.rating || 5);
+                                          }
                                         }
-                                      } catch (e) {
+                                      } catch {
                                         setRatingValue(booking.rating || 5);
                                       }
                                       setRatingHover(0);

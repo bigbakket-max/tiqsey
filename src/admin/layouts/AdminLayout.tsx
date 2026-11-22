@@ -100,6 +100,8 @@ export default function AdminLayout() {
       navigate(`/favicon`);
     } else if (query.toLowerCase().includes('storage') || query.toLowerCase().includes('bucket') || query.toLowerCase().includes('media')) {
       navigate(`/storage`);
+    } else if (query.toLowerCase().includes('domain') || query.toLowerCase().includes('dns') || query.toLowerCase().includes('cname')) {
+      navigate(`/custom-domain`);
     } else if (query.toLowerCase().includes('blog') || query.toLowerCase().includes('post')) {
       navigate(`/blog`);
     } else {
@@ -133,7 +135,7 @@ export default function AdminLayout() {
       }
     } else if (path.includes('/analytics') || path.includes('/agents')) {
       crumbs.push({ name: 'Agents', icon: undefined, path: '/analytics' });
-    } else if (path.includes('/blog') || path.includes('/promotional-banners') || path.includes('/favicon') || path.includes('/storage') || path.includes('/website')) {
+    } else if (path.includes('/blog') || path.includes('/promotional-banners') || path.includes('/favicon') || path.includes('/storage') || path.includes('/custom-domain') || path.includes('/website')) {
       crumbs.push({ name: 'Website', icon: undefined, path: '/blog' });
       if (path.includes('/blog')) {
         crumbs.push({ name: 'Blog', icon: undefined, path: '/blog' });
@@ -153,6 +155,8 @@ export default function AdminLayout() {
         crumbs.push({ name: 'Favicon', icon: undefined, path: '/favicon' });
       } else if (path.includes('/storage')) {
         crumbs.push({ name: 'Storage', icon: undefined, path: '/storage' });
+      } else if (path.includes('/custom-domain') || path.includes('/website/domain')) {
+        crumbs.push({ name: 'Custom Domain', icon: undefined, path: '/custom-domain' });
       }
     } else if (path.includes('/gemini-logo')) {
       crumbs.push({ name: 'Brand Assets', icon: undefined, path: '/gemini-logo' });
@@ -437,6 +441,21 @@ export default function AdminLayout() {
                 >
                   <HardDrive className="w-3.5 h-3.5 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
                   <span>Storage</span>
+                </NavLink>
+
+                <NavLink
+                  to="/custom-domain"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                      isActive 
+                        ? 'bg-sky-500/20 text-white font-bold border-l-2 border-sky-400 pl-2.5' 
+                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
+                    }`
+                  }
+                >
+                  <Globe className="w-3.5 h-3.5 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
+                  <span>Custom Domain</span>
                 </NavLink>
               </motion.div>
             )}

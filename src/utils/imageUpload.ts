@@ -2,6 +2,7 @@ import {
   getBucketConfig,
   type SupabaseBucketId,
 } from '../lib/supabase';
+import { fetchJsonSafely } from './safeFetch';
 
 export interface UploadMediaOptions {
   bucket?: SupabaseBucketId;
@@ -29,28 +30,23 @@ async function sendToUploadEndpoint(
   bucket: SupabaseBucketId,
   folder?: string
 ): Promise<string | null> {
-  try {
-    const resp = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        image: dataUrl,
-        filename,
-        bucket,
-        folder,
-      }),
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data?.url) return data.url;
-    } else {
-      const errData = await resp.json().catch(() => ({}));
-      if (errData?.error) {
-        console.warn(`[imageUpload] Upload error (${bucket}):`, errData.error);
-      }
-    }
-  } catch (uploadErr) {
-    console.warn('[imageUpload] Server upload unavailable, trying Supabase Storage fallback', uploadErr);
+  const result = await fetchJsonSafely<{ url?: string; error?: string }>('/api/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      image: dataUrl,
+      filename,
+      bucket,
+      folder,
+    }),
+  });
+
+  if (result.isJson && result.ok && result.data?.url) {
+    return result.data.url;
+  }
+
+  if (result.isJson && result.data?.error) {
+    console.warn(`[imageUpload] Upload error (${bucket}):`, result.data.error);
   }
 
   try {

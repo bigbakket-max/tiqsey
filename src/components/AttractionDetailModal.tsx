@@ -771,16 +771,31 @@ export default function AttractionDetailModal({
   useEffect(() => {
     const fetchAllBookings = async () => {
       try {
-        const res = await fetch('/api/bookings');
-        const contentType = res.headers.get("content-type") || "";
-        if (contentType.includes("application/json")) {
-          const data = await res.json();
-          if (data.success && Array.isArray(data.bookings)) {
-            setAllBookings(data.bookings);
+        const { fetchJsonSafely } = await import('../utils/safeFetch');
+        const res = await fetchJsonSafely<{ success?: boolean; bookings?: any[] }>('/api/bookings');
+        if (res.isJson && res.ok && res.data?.success && Array.isArray(res.data.bookings)) {
+          setAllBookings(res.data.bookings);
+          return;
+        }
+        const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
+        if (isSupabaseConfigured && supabase) {
+          const { data, error } = await supabase.from('bookings').select('*');
+          if (!error && Array.isArray(data)) {
+            setAllBookings(
+              data.map((b: any) => ({
+                id: b.id,
+                attractionId: b.attraction_id || b.attractionId || '',
+                attractionName: b.attraction_name || b.attractionName || '',
+                bookingDate: b.booking_date || b.bookingDate || '',
+                timeslot: b.timeslot || '',
+                status: b.status || 'confirmed',
+                ticketsCount: Number(b.tickets_count || b.ticketsCount || 1),
+              }))
+            );
           }
         }
-      } catch (err) {
-        // Backend not running on static host
+      } catch {
+        // Offline fallback
       }
     };
     fetchAllBookings();
@@ -877,7 +892,7 @@ export default function AttractionDetailModal({
         date: bookingDate || new Date().toISOString().split('T')[0]
       });
 
-      if (!resolvedUrl) {
+      if (!resolvedUrl || !/^https?:\/\//i.test(resolvedUrl.trim())) {
         setCheckoutError("Affiliate booking URL is not configured yet for this activity. Please try again later.");
         return;
       }
@@ -1394,26 +1409,40 @@ export default function AttractionDetailModal({
     const fetchDBReviews = async () => {
       const id = attractionId || attraction?.id;
       if (!id) return;
+      const mergeReviews = (rows: any[]) => {
+        const dbReviews = rows.map((r: any) => ({
+          name: r.user_name || 'Verified Customer',
+          rating: Number(r.rating) || 5,
+          date: r.created_at || 'Recently',
+          comment: r.comment || ''
+        }));
+        setReviewsList(prev => {
+          const filteredPrev = prev.filter(p => !dbReviews.some((dbR: any) => dbR.comment === p.comment));
+          return [...dbReviews, ...filteredPrev];
+        });
+      };
+
       try {
-        const res = await fetch(`/api/reviews/attraction/${encodeURIComponent(id)}`);
-        const contentType = res.headers.get("content-type") || "";
-        if (contentType.includes("application/json")) {
-          const data = await res.json();
-          if (data.success && data.reviews) {
-            const dbReviews = data.reviews.map((r: any) => ({
-              name: r.user_name || 'Verified Customer',
-              rating: r.rating,
-              date: r.created_at || 'Recently',
-              comment: r.comment
-            }));
-            setReviewsList(prev => {
-              const filteredPrev = prev.filter(p => !dbReviews.some((dbR: any) => dbR.comment === p.comment));
-              return [...dbReviews, ...filteredPrev];
-            });
+        const { fetchJsonSafely } = await import('../utils/safeFetch');
+        const res = await fetchJsonSafely<{ success?: boolean; reviews?: any[] }>(
+          `/api/reviews/attraction/${encodeURIComponent(id)}`
+        );
+        if (res.isJson && res.ok && res.data?.success && Array.isArray(res.data.reviews)) {
+          mergeReviews(res.data.reviews);
+          return;
+        }
+        const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
+        if (isSupabaseConfigured && supabase) {
+          const { data, error } = await supabase
+            .from('reviews')
+            .select('*')
+            .eq('attraction_id', id);
+          if (!error && Array.isArray(data) && data.length > 0) {
+            mergeReviews(data);
           }
         }
-      } catch (err) {
-        // Backend not running on static host
+      } catch {
+        // Offline fallback
       }
     };
 

@@ -56,17 +56,13 @@ export const MAX_FAVICON_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
  */
 export async function fetchActiveFavicon(): Promise<FaviconConfig> {
   try {
-    const res = await fetch('/api/site/favicon', { cache: 'no-cache' });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.url) {
-        localStorage.setItem(FAVICON_STORAGE_KEY, JSON.stringify(data));
-        return data;
-      }
+    const { fetchJsonSafely } = await import('./safeFetch');
+    const res = await fetchJsonSafely<FaviconConfig>('/api/site/favicon', { cache: 'no-cache' });
+    if (res.isJson && res.ok && res.data && res.data.url) {
+      localStorage.setItem(FAVICON_STORAGE_KEY, JSON.stringify(res.data));
+      return res.data;
     }
-  } catch (err) {
-    console.warn('[Favicon] Failed to fetch favicon from backend API, checking localStorage:', err);
-  }
+  } catch (_) {}
 
   try {
     const cached = localStorage.getItem(FAVICON_STORAGE_KEY);
@@ -280,7 +276,8 @@ export async function saveFaviconToBackend(payload: {
   dimensions: FaviconDimensions;
   adminEmail: string;
 }): Promise<FaviconConfig> {
-  const res = await fetch('/api/admin/favicon', {
+  const { fetchJsonSafely } = await import('./safeFetch');
+  const res = await fetchJsonSafely<{ favicon?: FaviconConfig; error?: string }>('/api/admin/favicon', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -289,22 +286,60 @@ export async function saveFaviconToBackend(payload: {
     body: JSON.stringify(payload),
   });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Failed to save favicon (status ${res.status})`);
+  if (res.isJson) {
+    if (!res.ok || !res.data?.favicon) {
+      throw new Error(res.data?.error || `Failed to save favicon (status ${res.status})`);
+    }
+    const config = res.data.favicon;
+    applyFaviconToDocument(config);
+    return config;
   }
 
-  const result = await res.json();
-  const config: FaviconConfig = result.favicon;
-  applyFaviconToDocument(config);
-  return config;
+  // Direct browser Supabase Storage fallback for static Hostinger deployments
+  let publicUrl = payload.dataUrl;
+  try {
+    const { uploadDataUrlToSupabaseStorage } = await import('../lib/supabase');
+    const uploaded = await uploadDataUrlToSupabaseStorage(
+      payload.dataUrl,
+      payload.fileName || `favicon.${payload.format}`,
+      'favicons',
+      'media'
+    );
+    if (uploaded) publicUrl = uploaded;
+  } catch (_) {}
+
+  const allowedFormats: FaviconConfig['format'][] = ['png', 'ico', 'svg', 'webp', 'jpg', 'jpeg'];
+  const rawFormat = (payload.format || 'png').toLowerCase() as FaviconConfig['format'];
+  const normalizedFormat: FaviconConfig['format'] = allowedFormats.includes(rawFormat) ? rawFormat : 'png';
+  const mimeType =
+    normalizedFormat === 'ico'
+      ? 'image/x-icon'
+      : normalizedFormat === 'svg'
+      ? 'image/svg+xml'
+      : `image/${normalizedFormat === 'jpg' ? 'jpeg' : normalizedFormat}`;
+
+  const fallbackConfig: FaviconConfig = {
+    url: publicUrl,
+    appleTouchIconUrl: publicUrl,
+    format: normalizedFormat,
+    mimeType,
+    fileName: payload.fileName,
+    fileSize: payload.fileSize,
+    dimensions: payload.dimensions,
+    updatedAt: new Date().toISOString(),
+    updatedBy: payload.adminEmail || 'admin@tiqsey.com',
+    isDefault: false,
+  };
+  applyFaviconToDocument(fallbackConfig);
+  return fallbackConfig;
 }
 
 /**
  * Reset Favicon to original default Tiqsey brand favicon
  */
 export async function resetFaviconToDefault(adminEmail: string): Promise<FaviconConfig> {
-  const res = await fetch('/api/admin/favicon', {
+  const { fetchJsonSafely } = await import('./safeFetch');
+  const res = await fetchJsonSafely<{ favicon?: FaviconConfig; error?: string }>('/api/admin/favicon', {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -312,13 +347,21 @@ export async function resetFaviconToDefault(adminEmail: string): Promise<Favicon
     },
   });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Failed to reset favicon (status ${res.status})`);
+  if (res.isJson) {
+    if (!res.ok) {
+      throw new Error(res.data?.error || `Failed to reset favicon (status ${res.status})`);
+    }
+    const config = res.data?.favicon || DEFAULT_FAVICON_CONFIG;
+    applyFaviconToDocument(config);
+    return config;
   }
 
-  const result = await res.json();
-  const config: FaviconConfig = result.favicon || DEFAULT_FAVICON_CONFIG;
-  applyFaviconToDocument(config);
-  return config;
+  // Static hosting fallback: restore default favicon locally
+  const resetConfig: FaviconConfig = {
+    ...DEFAULT_FAVICON_CONFIG,
+    updatedAt: new Date().toISOString(),
+    updatedBy: adminEmail || 'admin@tiqsey.com',
+  };
+  applyFaviconToDocument(resetConfig);
+  return resetConfig;
 }

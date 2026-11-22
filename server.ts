@@ -1823,26 +1823,294 @@ async function startServer() {
     }
   });
 
-  app.post("/api/custom-domain/verify", (req, res) => {
+  const STRICT_PUBLIC_DOMAIN_REGEX =
+    /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
+
+  function validatePublicHostname(raw: unknown): string | null {
+    if (typeof raw !== 'string') return null;
+    const clean = raw
+      .toLowerCase()
+      .trim()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/.*$/, '')
+      .replace(/:\d+$/, '')
+      .replace(/\.+$/, '');
+    if (!clean || clean.length > 253) return null;
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(clean)) return null;
+    if (clean === 'localhost' || clean.endsWith('.local') || clean.endsWith('.internal')) return null;
+    if (!STRICT_PUBLIC_DOMAIN_REGEX.test(clean)) return null;
+    return clean;
+  }
+
+  async function queryGooglePublicDns(
+    hostname: string,
+    recordType: 'CNAME' | 'TXT' | 'A' | 'AAAA'
+  ): Promise<{ status: number; values: string[] }> {
+    const typeCodeMap: Record<typeof recordType, number> = {
+      A: 1,
+      CNAME: 5,
+      TXT: 16,
+      AAAA: 28,
+    };
+    const expectedCode = typeCodeMap[recordType];
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 7000);
     try {
-      const { domain } = req.body;
+      const url = `https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=${recordType}`;
+      const resp = await fetch(url, {
+        headers: { Accept: 'application/dns-json' },
+        signal: controller.signal,
+      });
+      if (!resp.ok) return { status: -1, values: [] };
+      const json: any = await resp.json();
+      const answers = Array.isArray(json?.Answer) ? json.Answer : [];
+      const values = answers
+        .filter((a: any) => a?.type === expectedCode && typeof a?.data === 'string')
+        .map((a: any) => {
+          const trimmed = a.data.trim();
+          if (recordType === 'CNAME') return trimmed.replace(/\.+$/, '').toLowerCase();
+          if (recordType === 'TXT') return trimmed.replace(/^"|"$/g, '').replace(/"\s*"/g, '');
+          return trimmed;
+        });
+      return { status: Number(json?.Status ?? 0), values };
+    } catch {
+      return { status: -1, values: [] };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function performLiveDnsHealthScan(cleanDomain: string, targetHost: string, verificationToken: string) {
+    const parts = cleanDomain.split('.');
+    const isApex = parts.length === 2;
+    const cnameHost = isApex ? `www.${cleanDomain}` : cleanDomain;
+    const challengeHost = `_tiqsey-challenge.${cleanDomain}`;
+    const txtPrimaryHost = isApex ? cleanDomain : challengeHost;
+    const normalizedTarget = targetHost.toLowerCase().replace(/\.+$/, '');
+
+    const [cnameRes, apexCnameRes, txtRootRes, txtChallengeRes, aRes, aaaaRes] = await Promise.all([
+      queryGooglePublicDns(cnameHost, 'CNAME'),
+      isApex ? queryGooglePublicDns(cleanDomain, 'CNAME') : Promise.resolve({ status: 0, values: [] }),
+      queryGooglePublicDns(cleanDomain, 'TXT'),
+      queryGooglePublicDns(challengeHost, 'TXT'),
+      isApex ? queryGooglePublicDns(cleanDomain, 'A') : Promise.resolve({ status: 0, values: [] }),
+      isApex ? queryGooglePublicDns(cleanDomain, 'AAAA') : Promise.resolve({ status: 0, values: [] }),
+    ]);
+
+    const allFoundCnames = Array.from(new Set([...cnameRes.values, ...apexCnameRes.values]));
+    const cnameMatches = allFoundCnames.some((val) => val === normalizedTarget);
+
+    const cnameCheck = cnameMatches
+      ? {
+          id: 'cname' as const,
+          recordType: 'CNAME' as const,
+          hostChecked: cnameHost,
+          hostLabel: isApex ? 'www' : parts[0],
+          status: 'healthy' as const,
+          expected: targetHost,
+          found: allFoundCnames,
+          summary: `CNAME record for ${cnameHost} correctly points to ${targetHost}.`,
+          remediation: 'No action needed — traffic routing is configured properly.',
+        }
+      : cnameRes.values.length > 0
+      ? {
+          id: 'cname' as const,
+          recordType: 'CNAME' as const,
+          hostChecked: cnameHost,
+          hostLabel: isApex ? 'www' : parts[0],
+          status: 'misconfigured' as const,
+          expected: targetHost,
+          found: cnameRes.values,
+          summary: `CNAME record on ${cnameHost} points to "${cnameRes.values.join(', ')}" instead of "${targetHost}".`,
+          remediation: `Edit the CNAME record for "${isApex ? 'www' : parts[0]}" in your DNS provider and replace the target value with ${targetHost}.`,
+        }
+      : {
+          id: 'cname' as const,
+          recordType: 'CNAME' as const,
+          hostChecked: cnameHost,
+          hostLabel: isApex ? 'www' : parts[0],
+          status: 'missing' as const,
+          expected: targetHost,
+          found: [],
+          summary: `No CNAME record was found for ${cnameHost}.`,
+          remediation: `Create a new CNAME record with Host "${isApex ? 'www' : parts[0]}" pointing to ${targetHost}.`,
+        };
+
+    const combinedTxt = Array.from(new Set([...txtRootRes.values, ...txtChallengeRes.values]));
+    const txtMatches = combinedTxt.some((val) => val.includes(verificationToken));
+
+    const txtCheck = txtMatches
+      ? {
+          id: 'txt' as const,
+          recordType: 'TXT' as const,
+          hostChecked: txtPrimaryHost,
+          hostLabel: isApex ? '@' : '_tiqsey-challenge',
+          status: 'healthy' as const,
+          expected: verificationToken,
+          found: combinedTxt.filter((v) => v.includes(verificationToken)),
+          summary: `Ownership TXT verification token detected and verified for ${cleanDomain}.`,
+          remediation: 'No action needed — domain ownership token is verified.',
+        }
+      : combinedTxt.length > 0
+      ? {
+          id: 'txt' as const,
+          recordType: 'TXT' as const,
+          hostChecked: txtPrimaryHost,
+          hostLabel: isApex ? '@' : '_tiqsey-challenge',
+          status: 'misconfigured' as const,
+          expected: verificationToken,
+          found: combinedTxt.slice(0, 4),
+          summary: `TXT records exist on ${txtPrimaryHost}, but none match the required Tiqsey verification token.`,
+          remediation: `Add a new TXT record on "${isApex ? '@' : '_tiqsey-challenge'}" with the exact value "${verificationToken}" (keep existing SPF/email TXT records intact).`,
+        }
+      : {
+          id: 'txt' as const,
+          recordType: 'TXT' as const,
+          hostChecked: txtPrimaryHost,
+          hostLabel: isApex ? '@' : '_tiqsey-challenge',
+          status: 'missing' as const,
+          expected: verificationToken,
+          found: [],
+          summary: `No TXT verification record was found on ${txtPrimaryHost}.`,
+          remediation: `Add a TXT record with Host "${isApex ? '@' : '_tiqsey-challenge'}" and Value "${verificationToken}".`,
+        };
+
+    const checks: any[] = [cnameCheck, txtCheck];
+
+    if (isApex) {
+      const apexIps = [...aRes.values, ...aaaaRes.values];
+      if (apexCnameRes.values.some((v) => v === normalizedTarget)) {
+        checks.push({
+          id: 'apex',
+          recordType: 'A / Apex',
+          hostChecked: cleanDomain,
+          hostLabel: '@ (Root)',
+          status: 'healthy',
+          expected: `Flattened CNAME → ${targetHost} or 301 redirect to https://www.${cleanDomain}`,
+          found: apexCnameRes.values,
+          summary: `Root domain ${cleanDomain} resolves via flattened CNAME to ${targetHost}.`,
+          remediation: 'No action needed.',
+        });
+      } else if (apexIps.length > 0) {
+        checks.push({
+          id: 'apex',
+          recordType: 'A / Apex',
+          hostChecked: cleanDomain,
+          hostLabel: '@ (Root)',
+          status: cnameCheck.status === 'healthy' ? 'warning' : 'misconfigured',
+          expected: `Flattened CNAME → ${targetHost} or 301 forward to https://www.${cleanDomain}`,
+          found: apexIps,
+          summary:
+            cnameCheck.status === 'healthy'
+              ? `Root domain ${cleanDomain} resolves to IP(s) ${apexIps.join(', ')}. Ensure it forwards to https://www.${cleanDomain} or uses Cloudflare proxy.`
+              : `Root domain ${cleanDomain} resolves to IP(s) ${apexIps.join(', ')} (likely registrar parking or another host) while CNAME is not yet configured.`,
+          remediation: `In your DNS provider, either enable Cloudflare CNAME flattening on "@" pointing to ${targetHost} or set up a 301 redirect from ${cleanDomain} to https://www.${cleanDomain}.`,
+        });
+      } else {
+        checks.push({
+          id: 'apex',
+          recordType: 'A / Apex',
+          hostChecked: cleanDomain,
+          hostLabel: '@ (Root)',
+          status: 'missing',
+          expected: `Flattened CNAME → ${targetHost} or 301 forward to https://www.${cleanDomain}`,
+          found: [],
+          summary: `No A, AAAA, or flattened CNAME record detected for root domain ${cleanDomain}.`,
+          remediation: `Configure Cloudflare CNAME flattening on "@" or enable 301 Domain Forwarding to https://www.${cleanDomain}.`,
+        });
+      }
+    }
+
+    const passedChecks = checks.filter((c) => c.status === 'healthy').length;
+    const hasCritical = checks.some(
+      (c) => (c.id === 'cname' || c.id === 'txt') && (c.status === 'misconfigured' || c.status === 'missing')
+    );
+
+    return {
+      domain: cleanDomain,
+      isApex,
+      overallStatus: passedChecks === checks.length ? 'healthy' : hasCritical ? 'critical' : 'warning',
+      passedChecks,
+      totalChecks: checks.length,
+      resolver: 'Google Public DNS (dns.google)',
+      scannedAt: new Date().toISOString(),
+      source: 'server-api' as const,
+      checks,
+      raw: {
+        cnameFound: allFoundCnames,
+        txtFound: combinedTxt,
+        aRecords: aRes.values,
+      },
+    };
+  }
+
+  app.post("/api/custom-domain/scan-health", async (req, res) => {
+    try {
+      const cleanDomain = validatePublicHostname(req.body?.domain);
+      if (!cleanDomain) {
+        return res.status(400).json({ error: "Please provide a valid public domain name (e.g. tiqsey.com)." });
+      }
       const targetHost = "ais-pre-3xmqqplj6iyf7445xaenj4-389000849295.asia-southeast1.run.app";
+      const verificationToken = "tiqsey-site-verification=8be44669-b47a-4636-9b11-7512a6d26a0e";
+
+      const report = await performLiveDnsHealthScan(cleanDomain, targetHost, verificationToken);
+      return res.json({ success: true, report });
+    } catch (err: any) {
+      console.error("[Custom Domain Scan Health Error]:", err);
+      return res.status(500).json({ error: err?.message || "Failed to scan DNS health" });
+    }
+  });
+
+  app.post("/api/custom-domain/verify", async (req, res) => {
+    try {
+      const cleanDomain = validatePublicHostname(req.body?.domain || 'tiqsey.com');
+      if (!cleanDomain) {
+        return res.status(400).json({ error: "Please provide a valid domain name to verify." });
+      }
+      const targetHost = "ais-pre-3xmqqplj6iyf7445xaenj4-389000849295.asia-southeast1.run.app";
+      const verificationToken = "tiqsey-site-verification=8be44669-b47a-4636-9b11-7512a6d26a0e";
+
+      const report = await performLiveDnsHealthScan(cleanDomain, targetHost, verificationToken);
+      const cnameHealthy = report.checks.find((c) => c.id === 'cname')?.status === 'healthy';
+      const txtHealthy = report.checks.find((c) => c.id === 'txt')?.status === 'healthy';
+      const verified = Boolean(cnameHealthy && txtHealthy);
+      const status = verified ? 'verified' : (cnameHealthy || txtHealthy) ? 'propagating' : 'unresolved';
+      const sslStatus = verified ? 'active' : 'pending';
+
+      // Persist latest verification status if a domain config exists
+      try {
+        const row = db.prepare("SELECT value FROM site_settings WHERE key = 'custom_domain'").get() as any;
+        if (row?.value) {
+          const current = JSON.parse(row.value);
+          current.verificationStatus = status;
+          current.sslStatus = sslStatus;
+          current.lastCheckedAt = report.scannedAt;
+          db.prepare("INSERT OR REPLACE INTO site_settings (key, value, updated_at) VALUES (?, ?, ?)").run(
+            "custom_domain",
+            JSON.stringify(current),
+            report.scannedAt
+          );
+        }
+      } catch (_) {}
+
       return res.json({
         success: true,
-        verified: true,
-        status: 'verified',
-        sslStatus: 'active',
-        domain: domain || 'tiqsey.com',
-        lastCheckedAt: new Date().toISOString(),
+        verified,
+        status,
+        sslStatus,
+        domain: cleanDomain,
+        lastCheckedAt: report.scannedAt,
+        report,
         diagnostics: {
-          dnsResolved: true,
-          cnameTarget: targetHost,
-          txtTokenFound: true,
-          sslCertificate: 'Google Managed SSL / TLS 1.3 Active'
-        }
+          dnsResolved: cnameHealthy,
+          cnameFound: report.raw.cnameFound,
+          txtTokenFound: txtHealthy,
+          aRecords: report.raw.aRecords,
+          sslCertificate: verified ? 'Google Managed SSL / TLS 1.3 Active' : 'Pending DNS Verification',
+        },
       });
     } catch (err: any) {
-      return res.status(500).json({ error: "Verification failed" });
+      return res.status(500).json({ error: err?.message || "Verification failed" });
     }
   });
 

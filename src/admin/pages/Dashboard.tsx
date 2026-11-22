@@ -128,40 +128,59 @@ export default function Dashboard() {
   useEffect(() => {
     let active = true;
     const fetchRecentBookings = async () => {
+      const applyBookings = (rawList: any[]) => {
+        const validBookings = rawList.filter((b: any) => b && b.id && !String(b.id).startsWith('temp-'));
+        if (validBookings.length > 0) {
+          setLiveBookingsTotal(validBookings.length);
+          const mapped: DashboardRecentBooking[] = validBookings.slice(0, 6).map((b: any) => {
+            const curr = b.paymentCurrency || b.payment_currency || 'EUR';
+            const amt =
+              b.paymentPrice !== undefined && b.paymentPrice !== null
+                ? Number(b.paymentPrice)
+                : b.payment_price !== undefined && b.payment_price !== null
+                ? Number(b.payment_price)
+                : Number(b.totalPrice ?? b.total_price ?? 0);
+            let formattedAmount = `€${(isNaN(amt) ? 0 : amt).toFixed(2)}`;
+            try {
+              formattedAmount = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: curr,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }).format(isNaN(amt) ? 0 : amt);
+            } catch {}
+            const rawStatus = String(b.status || 'confirmed');
+            const formattedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+            return {
+              id: b.id,
+              orderId: b.orderId || b.order_number || b.id,
+              pnr: b.bookingRef || b.pnr_number || b.id,
+              customer: b.customerName || b.guestInfo?.name || b.guest_name || 'Guest Traveler',
+              email: b.customerEmail || b.guestInfo?.email || b.guest_email || 'guest@tiqsey.com',
+              item: b.attractionName || b.attraction_name || 'Tour Activity',
+              amount: formattedAmount,
+              status: formattedStatus,
+              time: b.bookingDate || b.booking_date || b.createdAt || b.created_at || 'Recent'
+            };
+          });
+          setRecentActivity(mapped);
+        }
+      };
+
       try {
-        const res = await fetch('/api/bookings');
-        const contentType = res.headers.get('content-type') || '';
-        if (res.ok && contentType.includes('application/json')) {
-          const data = await res.json();
-          if (active && data.success && Array.isArray(data.bookings) && data.bookings.length > 0) {
-            const validBookings = data.bookings.filter((b: any) => b && b.id && !String(b.id).startsWith('temp-'));
-            if (validBookings.length > 0) {
-              setLiveBookingsTotal(validBookings.length);
-              const mapped: DashboardRecentBooking[] = validBookings.slice(0, 6).map((b: any) => {
-                const curr = b.paymentCurrency || 'EUR';
-                const amt = b.paymentPrice !== undefined ? Number(b.paymentPrice) : Number(b.totalPrice || 0);
-                const formattedAmount = new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: curr,
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                }).format(isNaN(amt) ? 0 : amt);
-                const rawStatus = String(b.status || 'confirmed');
-                const formattedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
-                return {
-                  id: b.id,
-                  orderId: b.orderId || b.order_number || b.id,
-                  pnr: b.bookingRef || b.pnr_number || b.id,
-                  customer: b.customerName || b.guestInfo?.name || 'Guest Traveler',
-                  email: b.customerEmail || b.guestInfo?.email || 'guest@tiqsey.com',
-                  item: b.attractionName || 'Tour Activity',
-                  amount: formattedAmount,
-                  status: formattedStatus,
-                  time: b.bookingDate || b.createdAt || 'Recent'
-                };
-              });
-              setRecentActivity(mapped);
-            }
+        const { fetchJsonSafely } = await import('../../utils/safeFetch');
+        const res = await fetchJsonSafely<{ success?: boolean; bookings?: any[] }>('/api/bookings');
+        if (active && res.isJson && res.ok && res.data?.success && Array.isArray(res.data.bookings) && res.data.bookings.length > 0) {
+          applyBookings(res.data.bookings);
+          return;
+        }
+
+        // Direct browser Supabase fallback for static Hostinger deployments
+        const { supabase, isSupabaseConfigured } = await import('../../lib/supabase');
+        if (active && isSupabaseConfigured && supabase) {
+          const { data, error } = await supabase.from('bookings').select('*').limit(50);
+          if (active && !error && Array.isArray(data) && data.length > 0) {
+            applyBookings(data);
           }
         }
       } catch {

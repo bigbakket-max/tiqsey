@@ -209,31 +209,33 @@ export default function Bookings() {
     let backendSyncedToSupabase = false;
 
     try {
+      const { fetchJsonSafely } = await import('../../utils/safeFetch');
       const payload = {
         ...booking,
         vendorPayable: normalizedVendorPayable,
       };
-      const response = await fetch('/api/bookings', {
+      const postRes = await fetchJsonSafely<{ supabaseSynced?: boolean }>('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (response.ok) {
-        const resData = await response.json().catch(() => ({}));
-        backendSyncedToSupabase = Boolean(resData?.supabaseSynced);
-      } else {
-        const patchResp = await fetch(`/api/bookings/${encodeURIComponent(booking.id)}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (patchResp.ok) {
-          const patchData = await patchResp.json().catch(() => ({}));
-          backendSyncedToSupabase = Boolean(patchData?.supabaseSynced);
+      if (postRes.isJson && postRes.ok) {
+        backendSyncedToSupabase = Boolean(postRes.data?.supabaseSynced);
+      } else if (postRes.isJson) {
+        const patchRes = await fetchJsonSafely<{ supabaseSynced?: boolean }>(
+          `/api/bookings/${encodeURIComponent(booking.id)}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }
+        );
+        if (patchRes.isJson && patchRes.ok) {
+          backendSyncedToSupabase = Boolean(patchRes.data?.supabaseSynced);
         }
       }
-    } catch (err) {
-      console.warn(`[Admin DB Sync Network Warning] Backend not reachable for booking ${booking.id}`);
+    } catch {
+      // Backend unavailable on static host — fall back directly to Supabase below
     }
 
     // Direct Supabase sync fallback from admin panel (only if backend did not already sync)

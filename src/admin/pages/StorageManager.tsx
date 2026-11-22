@@ -20,8 +20,14 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import {
   SUPABASE_STORAGE_BUCKET_LIST,
+  SUPABASE_PROJECT_ID,
+  isSupabaseConfigured,
+  listSupabaseBucketFilesDirect,
+  uploadFileToSupabaseStorageDirect,
+  deleteSupabaseBucketFilesDirect,
   type SupabaseBucketId,
 } from '../../lib/supabase';
+import { fetchJsonSafely } from '../../utils/safeFetch';
 
 interface LiveBucketInfo {
   id: SupabaseBucketId;
@@ -39,13 +45,15 @@ interface LiveBucketInfo {
 interface StoredFileItem {
   name: string;
   path: string;
-  bucket: string;
+  bucket: SupabaseBucketId;
   publicUrl: string;
   size: number;
   mimeType: string;
   createdAt: string | null;
   updatedAt: string | null;
 }
+
+type StorageMode = 'server' | 'supabase-direct' | 'offline';
 
 function formatBytes(bytes: number): string {
   if (!bytes || bytes <= 0) return '0 B';
@@ -80,8 +88,12 @@ export default function StorageManager() {
   );
   const [selectedBucket, setSelectedBucket] = useState<SupabaseBucketId>('media');
   const [files, setFiles] = useState<StoredFileItem[]>([]);
-  const [connected, setConnected] = useState<boolean>(true);
-  const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
+  const [storageMode, setStorageMode] = useState<StorageMode>('server');
+  const [dashboardUrl, setDashboardUrl] = useState<string | null>(
+    SUPABASE_PROJECT_ID
+      ? `https://supabase.com/dashboard/project/${SUPABASE_PROJECT_ID}/storage/files`
+      : null
+  );
   const [loadingBuckets, setLoadingBuckets] = useState<boolean>(true);
   const [loadingFiles, setLoadingFiles] = useState<boolean>(false);
   const [uploading, setUploading] = useState<boolean>(false);
@@ -92,9 +104,11 @@ export default function StorageManager() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const connected = storageMode !== 'offline';
+
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
+    setTimeout(() => setToast(null), 4000);
   }, []);
 
   const authHeaders = useCallback(
@@ -108,18 +122,51 @@ export default function StorageManager() {
   const fetchBuckets = useCallback(async () => {
     setLoadingBuckets(true);
     try {
-      const resp = await fetch('/api/admin/storage/buckets', {
+      const result = await fetchJsonSafely<{
+        connected?: boolean;
+        dashboardUrl?: string | null;
+        buckets?: LiveBucketInfo[];
+        error?: string;
+      }>('/api/admin/storage/buckets', {
         headers: { 'x-admin-email': adminEmail },
       });
-      if (!resp.ok) throw new Error('Failed to fetch storage buckets');
-      const data = await resp.json();
-      setConnected(Boolean(data.connected));
-      setDashboardUrl(data.dashboardUrl || null);
-      if (Array.isArray(data.buckets) && data.buckets.length > 0) {
-        setBuckets(data.buckets);
+
+      if (result.isJson && result.ok && result.data) {
+        setStorageMode(result.data.connected ? 'server' : isSupabaseConfigured ? 'supabase-direct' : 'offline');
+        if (result.data.dashboardUrl) setDashboardUrl(result.data.dashboardUrl);
+        if (Array.isArray(result.data.buckets) && result.data.buckets.length > 0) {
+          setBuckets(result.data.buckets);
+          return;
+        }
       }
-    } catch (err: any) {
-      showToast(err?.message || 'Unable to load storage buckets', 'error');
+
+      // Direct browser Supabase Storage fallback (static Hostinger hosting or Node API offline)
+      if (isSupabaseConfigured) {
+        const directBuckets = await Promise.all(
+          SUPABASE_STORAGE_BUCKET_LIST.map(async (spec) => {
+            const listed = await listSupabaseBucketFilesDirect(spec.id);
+            return {
+              ...spec,
+              fileSizeLimit: spec.maxSizeBytes,
+              existsInSupabase: !listed.error,
+              fileCount: listed.files.length,
+            };
+          })
+        );
+        setStorageMode('supabase-direct');
+        if (SUPABASE_PROJECT_ID) {
+          setDashboardUrl(`https://supabase.com/dashboard/project/${SUPABASE_PROJECT_ID}/storage/files`);
+        }
+        setBuckets(directBuckets);
+        return;
+      }
+
+      setStorageMode('offline');
+      if (result.isJson && result.data?.error) {
+        showToast(result.data.error, 'error');
+      }
+    } catch {
+      setStorageMode(isSupabaseConfigured ? 'supabase-direct' : 'offline');
     } finally {
       setLoadingBuckets(false);
     }
@@ -129,22 +176,36 @@ export default function StorageManager() {
     async (bucketId: SupabaseBucketId) => {
       setLoadingFiles(true);
       try {
-        const resp = await fetch(`/api/admin/storage/buckets/${encodeURIComponent(bucketId)}/files`, {
-          headers: { 'x-admin-email': adminEmail },
-        });
-        if (!resp.ok) {
-          setFiles([]);
+        const result = await fetchJsonSafely<{ files?: StoredFileItem[]; error?: string }>(
+          `/api/admin/storage/buckets/${encodeURIComponent(bucketId)}/files`,
+          {
+            headers: { 'x-admin-email': adminEmail },
+          }
+        );
+
+        if (result.isJson && result.ok && result.data) {
+          setFiles(Array.isArray(result.data.files) ? result.data.files : []);
           return;
         }
-        const data = await resp.json();
-        setFiles(Array.isArray(data.files) ? data.files : []);
+
+        // Direct browser Supabase fallback
+        if (isSupabaseConfigured) {
+          const direct = await listSupabaseBucketFilesDirect(bucketId);
+          setFiles(direct.files);
+          if (direct.error) {
+            showToast(`Direct Supabase read note (${bucketId}): ${direct.error}`, 'error');
+          }
+          return;
+        }
+
+        setFiles([]);
       } catch {
         setFiles([]);
       } finally {
         setLoadingFiles(false);
       }
     },
-    [adminEmail]
+    [adminEmail, showToast]
   );
 
   useEffect(() => {
@@ -161,20 +222,38 @@ export default function StorageManager() {
   const handleSyncBuckets = async () => {
     setSyncing(true);
     try {
-      const resp = await fetch('/api/admin/storage/sync-buckets', {
+      const result = await fetchJsonSafely<{
+        success?: boolean;
+        results?: Array<{ id: string; ok: boolean }>;
+        error?: string;
+      }>('/api/admin/storage/sync-buckets', {
         method: 'POST',
         headers: authHeaders(),
       });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || 'Sync failed');
-      const okCount = Array.isArray(data.results)
-        ? data.results.filter((r: any) => r.ok).length
-        : 0;
-      showToast(`Verified and synced ${okCount} of 7 Supabase Storage buckets.`);
-      await fetchBuckets();
-      await fetchFiles(selectedBucket);
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to sync storage buckets', 'error');
+
+      if (result.isJson && result.ok && result.data) {
+        const okCount = Array.isArray(result.data.results)
+          ? result.data.results.filter((r) => r.ok).length
+          : 0;
+        showToast(`Verified and synced ${okCount} of 7 Supabase Storage buckets.`);
+        await fetchBuckets();
+        await fetchFiles(selectedBucket);
+        return;
+      }
+
+      if (result.isJson && result.data?.error) {
+        showToast(result.data.error, 'error');
+        return;
+      }
+
+      // Static hosting fallback: verify bucket reachability directly via browser Supabase
+      if (isSupabaseConfigured) {
+        await fetchBuckets();
+        await fetchFiles(selectedBucket);
+        showToast('Refreshed all 7 buckets via Direct Supabase (bucket settings sync requires Node.js server).');
+      } else {
+        showToast('Supabase environment variables are not configured on this static host.', 'error');
+      }
     } finally {
       setSyncing(false);
     }
@@ -198,24 +277,51 @@ export default function StorageManager() {
           continue;
         }
 
-        const dataUrl = await readFileAsDataUrl(file);
-        const resp = await fetch(
-          `/api/admin/storage/buckets/${encodeURIComponent(activeBucketInfo.id)}/upload`,
-          {
-            method: 'POST',
-            headers: authHeaders(),
-            body: JSON.stringify({
-              dataUrl,
-              filename: file.name,
-              folder: activeBucketInfo.defaultFolder,
-            }),
+        let uploaded = false;
+
+        // 1. Try Node.js server API when not in direct-only mode
+        if (storageMode === 'server') {
+          const dataUrl = await readFileAsDataUrl(file);
+          const serverRes = await fetchJsonSafely<{ success?: boolean; url?: string; error?: string }>(
+            `/api/admin/storage/buckets/${encodeURIComponent(activeBucketInfo.id)}/upload`,
+            {
+              method: 'POST',
+              headers: authHeaders(),
+              body: JSON.stringify({
+                dataUrl,
+                filename: file.name,
+                folder: activeBucketInfo.defaultFolder,
+              }),
+            }
+          );
+
+          if (serverRes.isJson) {
+            if (serverRes.ok && serverRes.data?.url) {
+              uploaded = true;
+              uploadedCount += 1;
+            } else {
+              firstError = serverRes.data?.error || `Failed to upload ${file.name}`;
+            }
           }
-        );
-        const data = await resp.json();
-        if (!resp.ok) {
-          firstError = data.error || `Failed to upload ${file.name}`;
-        } else {
-          uploadedCount += 1;
+        }
+
+        // 2. Automatic direct browser Supabase Storage fallback on static hosting
+        if (!uploaded && !firstError) {
+          if (isSupabaseConfigured) {
+            const directRes = await uploadFileToSupabaseStorageDirect(
+              file,
+              activeBucketInfo.id,
+              activeBucketInfo.defaultFolder
+            );
+            if (directRes.url) {
+              setStorageMode('supabase-direct');
+              uploadedCount += 1;
+            } else {
+              firstError = directRes.error || `Failed to upload ${file.name} to "${activeBucketInfo.id}"`;
+            }
+          } else {
+            firstError = 'Storage API unavailable and browser Supabase keys are not configured.';
+          }
         }
       }
 
@@ -236,16 +342,43 @@ export default function StorageManager() {
   const handleDeleteFile = async (file: StoredFileItem) => {
     setDeletingPath(file.path);
     try {
-      const resp = await fetch(
-        `/api/admin/storage/buckets/${encodeURIComponent(file.bucket)}/files`,
-        {
-          method: 'DELETE',
-          headers: authHeaders(),
-          body: JSON.stringify({ paths: [file.path] }),
+      let deleted = false;
+      let errMsg: string | null = null;
+
+      if (storageMode === 'server') {
+        const res = await fetchJsonSafely<{ success?: boolean; error?: string }>(
+          `/api/admin/storage/buckets/${encodeURIComponent(file.bucket)}/files`,
+          {
+            method: 'DELETE',
+            headers: authHeaders(),
+            body: JSON.stringify({ paths: [file.path] }),
+          }
+        );
+        if (res.isJson) {
+          if (res.ok) deleted = true;
+          else errMsg = res.data?.error || 'Delete failed';
         }
-      );
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || 'Delete failed');
+      }
+
+      if (!deleted && !errMsg) {
+        if (isSupabaseConfigured) {
+          const directRes = await deleteSupabaseBucketFilesDirect(file.bucket, [file.path]);
+          if (directRes.ok) {
+            setStorageMode('supabase-direct');
+            deleted = true;
+          } else {
+            errMsg = directRes.error || 'Failed to delete file from Supabase Storage';
+          }
+        } else {
+          errMsg = 'Storage API unavailable on static host.';
+        }
+      }
+
+      if (!deleted) {
+        showToast(errMsg || 'Failed to delete file', 'error');
+        return;
+      }
+
       showToast(`Deleted ${file.name} from "${file.bucket}".`);
       setFiles((prev) => prev.filter((item) => item.path !== file.path));
       setBuckets((prev) =>
@@ -253,8 +386,6 @@ export default function StorageManager() {
           b.id === file.bucket ? { ...b, fileCount: Math.max(0, b.fileCount - 1) } : b
         )
       );
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to delete file', 'error');
     } finally {
       setDeletingPath(null);
     }
@@ -283,7 +414,7 @@ export default function StorageManager() {
       {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold ${
+          className={`fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold max-w-md ${
             toast.type === 'success'
               ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
               : 'bg-rose-600 text-white'
@@ -317,7 +448,11 @@ export default function StorageManager() {
                 }`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                {connected ? `${buckets.length} Active Buckets · ${totalFiles} Files` : 'Local Fallback Mode'}
+                {storageMode === 'server'
+                  ? `Server API · ${buckets.length} Buckets · ${totalFiles} Files`
+                  : storageMode === 'supabase-direct'
+                  ? `Direct Supabase · ${buckets.length} Buckets · ${totalFiles} Files`
+                  : 'Local Fallback Mode'}
               </span>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">

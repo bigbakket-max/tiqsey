@@ -227,3 +227,128 @@ export async function uploadDataUrlToSupabaseStorage(
     return null;
   }
 }
+
+export interface DirectStoredFileItem {
+  name: string;
+  path: string;
+  bucket: SupabaseBucketId;
+  publicUrl: string;
+  size: number;
+  mimeType: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export async function listSupabaseBucketFilesDirect(
+  bucket: SupabaseBucketId,
+  prefix = '',
+  depth = 0
+): Promise<{ files: DirectStoredFileItem[]; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { files: [], error: 'Supabase is not configured in browser environment (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).' };
+  }
+
+  try {
+    const { data, error } = await supabase.storage.from(bucket).list(prefix, {
+      limit: 100,
+      sortBy: { column: 'updated_at', order: 'desc' },
+    });
+
+    if (error) {
+      return { files: [], error: error.message };
+    }
+    if (!Array.isArray(data)) {
+      return { files: [] };
+    }
+
+    const results: DirectStoredFileItem[] = [];
+    for (const item of data) {
+      if (!item?.name || item.name === '.emptyFolderPlaceholder') continue;
+      const fullPath = prefix ? `${prefix}/${item.name}` : item.name;
+      const isFolder = item.id === null || item.metadata === null;
+      if (isFolder) {
+        if (depth < 2) {
+          const nested = await listSupabaseBucketFilesDirect(bucket, fullPath, depth + 1);
+          results.push(...nested.files);
+        }
+      } else {
+        const { data: pub } = supabase.storage.from(bucket).getPublicUrl(fullPath);
+        results.push({
+          name: item.name,
+          path: fullPath,
+          bucket,
+          publicUrl: pub?.publicUrl || '',
+          size: Number(item.metadata?.size ?? 0),
+          mimeType: String(item.metadata?.mimetype || ''),
+          createdAt: item.created_at || null,
+          updatedAt: item.updated_at || item.created_at || null,
+        });
+      }
+    }
+
+    return { files: results };
+  } catch (err: any) {
+    return { files: [], error: err?.message || 'Failed to list files from Supabase Storage' };
+  }
+}
+
+export async function uploadFileToSupabaseStorageDirect(
+  file: File,
+  bucket: SupabaseBucketId,
+  folder?: string
+): Promise<{ url?: string; path?: string; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { error: 'Supabase is not configured in browser environment (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).' };
+  }
+
+  const bucketConfig = getBucketConfig(bucket);
+  const normalizedMime = (file.type || '').toLowerCase() === 'image/jpg' ? 'image/jpeg' : (file.type || '').toLowerCase();
+
+  if (!bucketConfig.allowedMimeTypes.includes(normalizedMime)) {
+    return {
+      error: `Type "${file.type || 'unknown'}" is not allowed in "${bucket}". Allowed: ${bucketConfig.allowedMimeTypes.join(', ')}`,
+    };
+  }
+  if (file.size > bucketConfig.maxSizeBytes) {
+    return {
+      error: `File exceeds the ${bucketConfig.maxSizeLabel} size limit for "${bucket}".`,
+    };
+  }
+
+  const ext = MIME_TO_EXT[normalizedMime] || file.name.split('.').pop()?.toLowerCase() || 'bin';
+  const safeBase = file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 35) || 'file';
+  const cleanFolder = (folder || bucketConfig.defaultFolder).replace(/^\/+|\/+$/g, '') || 'uploads';
+  const objectPath = `${cleanFolder}/${safeBase}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+
+  try {
+    const { error } = await supabase.storage.from(bucket).upload(objectPath, file, {
+      contentType: normalizedMime,
+      cacheControl: '3600',
+      upsert: true,
+    });
+    if (error) {
+      return { error: error.message };
+    }
+    const { data } = supabase.storage.from(bucket).getPublicUrl(objectPath);
+    return { url: data?.publicUrl || '', path: objectPath };
+  } catch (err: any) {
+    return { error: err?.message || 'Direct Supabase upload failed' };
+  }
+}
+
+export async function deleteSupabaseBucketFilesDirect(
+  bucket: SupabaseBucketId,
+  paths: string[]
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, error: 'Supabase is not configured in browser environment.' };
+  }
+  try {
+    const { error } = await supabase.storage.from(bucket).remove(paths);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || 'Failed to delete file from Supabase Storage' };
+  }
+}
+

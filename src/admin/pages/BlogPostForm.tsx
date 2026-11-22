@@ -728,24 +728,29 @@ export default function BlogPostForm() {
     setIsAiLoading(true);
     setAiError('');
     try {
-      const response = await fetch('/api/gemini/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: aiAction,
-          prompt: aiPrompt,
-          tone: aiTone,
-          length: aiLength,
-          currentContent: aiAction === 'generate' ? '' : content,
-        }),
-      });
-      const data = await response.json();
-      if (response.ok && data.success) {
-        setAiGeneratedContent(data.text || '');
+      const { fetchJsonSafely } = await import('../../utils/safeFetch');
+      const result = await fetchJsonSafely<{ success?: boolean; text?: string; error?: string }>(
+        '/api/gemini/generate',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: aiAction,
+            prompt: aiPrompt,
+            tone: aiTone,
+            length: aiLength,
+            currentContent: aiAction === 'generate' ? '' : content,
+          }),
+        }
+      );
+      if (!result.isJson) {
+        setAiError('AI writing assistant requires the Node.js server API to be running.');
+      } else if (result.ok && result.data?.success) {
+        setAiGeneratedContent(result.data.text || '');
       } else {
-        setAiError(data.error || 'Failed to generate content with AI.');
+        setAiError(result.data?.error || 'Failed to generate content with AI.');
       }
     } catch (err: any) {
       setAiError(err.message || 'An unexpected error occurred.');
