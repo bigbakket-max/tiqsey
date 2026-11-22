@@ -430,8 +430,14 @@ export async function deleteSupabaseBucketFilesDirect(
     return { ok: false, error: 'Supabase is not configured in browser environment.' };
   }
   try {
-    const { error } = await supabase.storage.from(bucket).remove(paths);
+    const { data, error } = await supabase.storage.from(bucket).remove(paths);
     if (error) return { ok: false, error: error.message };
+    if (!Array.isArray(data) || data.length === 0) {
+      return {
+        ok: false,
+        error: `Delete blocked by Supabase row-level security policy on "${bucket}".`,
+      };
+    }
     return { ok: true };
   } catch (err: any) {
     return { ok: false, error: err?.message || 'Failed to delete file from Supabase Storage' };

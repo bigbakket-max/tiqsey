@@ -19,6 +19,7 @@ import {
   Database,
   PlugZap,
   CloudUpload,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -255,6 +256,7 @@ export default function StorageManager() {
 
   const handleTestConnection = async () => {
     setTestingConnection(true);
+    setRlsHintBucket(null);
     try {
       const serverRes = await fetchJsonSafely<SupabaseStorageConnectionReport>(
         '/api/admin/storage/test-connection',
@@ -516,7 +518,28 @@ export default function StorageManager() {
   };
 
   const rlsSqlSnippet = rlsHintBucket
-    ? `drop policy if exists "Tiqsey storage public read" on storage.objects;\ndrop policy if exists "Tiqsey storage upload" on storage.objects;\ndrop policy if exists "Tiqsey storage update" on storage.objects;\ndrop policy if exists "Tiqsey storage delete" on storage.objects;\ncreate policy "Tiqsey storage public read" on storage.objects for select to anon, authenticated using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));\ncreate policy "Tiqsey storage upload" on storage.objects for insert to anon, authenticated with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));\ncreate policy "Tiqsey storage update" on storage.objects for update to anon, authenticated using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));\ncreate policy "Tiqsey storage delete" on storage.objects for delete to anon, authenticated using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));`
+    ? [
+        'drop policy if exists "Tiqsey storage public read" on storage.objects;',
+        'drop policy if exists "Tiqsey storage upload" on storage.objects;',
+        'drop policy if exists "Tiqsey storage update" on storage.objects;',
+        'drop policy if exists "Tiqsey storage delete" on storage.objects;',
+        '',
+        'create policy "Tiqsey storage public read" on storage.objects for select',
+        '  to anon, authenticated',
+        "  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));",
+        '',
+        'create policy "Tiqsey storage upload" on storage.objects for insert',
+        '  to anon, authenticated',
+        "  with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));",
+        '',
+        'create policy "Tiqsey storage update" on storage.objects for update',
+        '  to anon, authenticated',
+        "  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));",
+        '',
+        'create policy "Tiqsey storage delete" on storage.objects for delete',
+        '  to anon, authenticated',
+        "  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));",
+      ].join('\n')
     : '';
 
   const handleCopyRlsSql = async () => {
@@ -621,6 +644,7 @@ export default function StorageManager() {
           <button
             type="button"
             onClick={() => {
+              setRlsHintBucket(null);
               fetchBuckets();
               fetchFiles(selectedBucket);
             }}
@@ -718,16 +742,16 @@ export default function StorageManager() {
 
       {/* Optional RLS Policy Hint (only appears if static-host direct write is blocked by Supabase RLS) */}
       {rlsHintBucket && (
-        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 space-y-2.5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2.5">
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5 min-w-0">
               <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-900 dark:text-amber-200">
+              <div className="text-xs text-amber-900 dark:text-amber-200 min-w-0">
                 <p className="font-bold">
-                  Supabase Storage RLS policy required for direct browser writes to "{rlsHintBucket}"
+                  Enable direct browser uploads &amp; deletes for "{rlsHintBucket}" in Supabase
                 </p>
-                <p className="mt-0.5 text-amber-800 dark:text-amber-300">
-                  Your Node server uploads use the service key automatically, while static hosting uploads directly from the browser. Run this SQL in your Supabase SQL Editor to allow writes to "{rlsHintBucket}":
+                <p className="mt-0.5 text-amber-800 dark:text-amber-300 leading-relaxed">
+                  Click <strong>Copy SQL</strong>, open your <strong>Supabase SQL Editor</strong>, paste, and click <strong>Run</strong> once to allow uploads and deletes across all 7 buckets from static hosting.
                 </p>
               </div>
             </div>
@@ -751,9 +775,17 @@ export default function StorageManager() {
                 {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedSql ? 'Copied SQL' : 'Copy SQL'}</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setRlsHintBucket(null)}
+                aria-label="Dismiss RLS notice"
+                className="p-1.5 rounded-lg text-amber-700 dark:text-amber-300 hover:bg-amber-200/60 dark:hover:bg-amber-900/50 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           </div>
-          <pre className="p-3 rounded-xl bg-slate-900 text-emerald-300 text-[11px] font-mono overflow-x-auto">
+          <pre className="p-3.5 rounded-xl bg-slate-900 text-emerald-300 text-[11px] font-mono whitespace-pre-wrap break-words leading-relaxed max-h-56 overflow-y-auto">
             {rlsSqlSnippet}
           </pre>
         </div>
