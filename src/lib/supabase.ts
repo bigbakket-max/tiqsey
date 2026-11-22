@@ -298,11 +298,54 @@ export async function listSupabaseBucketFilesDirect(
   }
 }
 
+async function convertImageFileToWebpBlob(
+  file: File
+): Promise<{ blob: Blob; mime: 'image/webp' | 'image/png'; ext: 'webp' | 'png' } | null> {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('Unable to decode image'));
+      el.src = objectUrl;
+    });
+    const width = img.naturalWidth || img.width;
+    const height = img.naturalHeight || img.height;
+    if (!width || !height) return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const webpBlob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), 'image/webp', 0.92)
+    );
+    if (webpBlob && webpBlob.type === 'image/webp') {
+      return { blob: webpBlob, mime: 'image/webp', ext: 'webp' };
+    }
+    const pngBlob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), 'image/png')
+    );
+    if (pngBlob) {
+      return { blob: pngBlob, mime: 'image/png', ext: 'png' };
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 export async function uploadFileToSupabaseStorageDirect(
   file: File,
   bucket: SupabaseBucketId,
   folder?: string
-): Promise<{ url?: string; path?: string; error?: string }> {
+): Promise<{ url?: string; path?: string; error?: string; convertedTo?: string }> {
   if (!isSupabaseConfigured || !supabase) {
     return { error: 'Supabase is not configured in browser environment (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).' };
   }
@@ -326,7 +369,7 @@ export async function uploadFileToSupabaseStorageDirect(
 
   if (!bucketConfig.allowedMimeTypes.includes(normalizedMime)) {
     return {
-      error: `Type "${file.type || 'unknown'}" is not allowed in "${bucket}". Allowed: ${bucketConfig.allowedMimeTypes.join(', ')}`,
+      error: `Type "${normalizedMime || 'unknown'}" is not allowed in "${bucket}". Allowed: ${bucketConfig.allowedMimeTypes.join(', ')}`,
     };
   }
   if (file.size > bucketConfig.maxSizeBytes) {
@@ -338,7 +381,8 @@ export async function uploadFileToSupabaseStorageDirect(
   const ext = MIME_TO_EXT[normalizedMime] || file.name.split('.').pop()?.toLowerCase() || 'bin';
   const safeBase = file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 35) || 'file';
   const cleanFolder = (folder || bucketConfig.defaultFolder).replace(/^\/+|\/+$/g, '') || 'uploads';
-  const objectPath = `${cleanFolder}/${safeBase}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+  const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const objectPath = `${cleanFolder}/${safeBase}-${uniqueSuffix}.${ext}`;
 
   try {
     const { error } = await supabase.storage.from(bucket).upload(objectPath, file, {
@@ -347,6 +391,28 @@ export async function uploadFileToSupabaseStorageDirect(
       upsert: true,
     });
     if (error) {
+      // If Supabase bucket rejects a modern image MIME (e.g. image/avif), auto-convert to WebP and retry
+      const isMimeRejected = /mime type .* is not supported/i.test(error.message || '');
+      if (isMimeRejected && normalizedMime.startsWith('image/') && normalizedMime !== 'image/webp') {
+        const converted = await convertImageFileToWebpBlob(file);
+        if (converted && converted.blob.size <= bucketConfig.maxSizeBytes) {
+          const fallbackPath = `${cleanFolder}/${safeBase}-${uniqueSuffix}.${converted.ext}`;
+          const retry = await supabase.storage.from(bucket).upload(fallbackPath, converted.blob, {
+            contentType: converted.mime,
+            cacheControl: '3600',
+            upsert: true,
+          });
+          if (!retry.error) {
+            const { data } = supabase.storage.from(bucket).getPublicUrl(fallbackPath);
+            return {
+              url: data?.publicUrl || '',
+              path: fallbackPath,
+              convertedTo: converted.mime,
+            };
+          }
+          return { error: retry.error.message };
+        }
+      }
       return { error: error.message };
     }
     const { data } = supabase.storage.from(bucket).getPublicUrl(objectPath);
