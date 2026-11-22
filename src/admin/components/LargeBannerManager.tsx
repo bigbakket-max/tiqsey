@@ -27,6 +27,7 @@ import {
   Tag
 } from 'lucide-react';
 import { LargeHeroBannerConfig, LargeHeroBannerSlide } from '../../types';
+import { uploadAndOptimizeImage } from '../../utils/imageUpload';
 import { 
   getStoredLargeHeroBannerConfig, 
   saveStoredLargeHeroBannerConfig,
@@ -257,19 +258,24 @@ export default function LargeBannerManager() {
     setConfirmAction(null);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setFormData(prev => ({ ...prev, imageUrl: result }));
-        showToast('Image uploaded successfully');
+    try {
+      const uploadedUrl = await uploadAndOptimizeImage(file, 1600, 900, 0.88, {
+        bucket: 'admin-media',
+        folder: 'hero-banners',
+      });
+      if (uploadedUrl) {
+        setFormData(prev => ({ ...prev, imageUrl: uploadedUrl }));
+        showToast('Hero banner uploaded to admin-media storage');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to upload banner image', 'info');
+    } finally {
+      e.target.value = '';
+    }
   };
 
   return (

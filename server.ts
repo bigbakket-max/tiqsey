@@ -37,8 +37,144 @@ function getSupabaseKey(): string {
   ).trim();
 }
 
-function getConfiguredStorageBucket(): string {
-  return (process.env.SUPABASE_STORAGE_BUCKET || process.env.VITE_SUPABASE_STORAGE_BUCKET || 'media').trim() || 'media';
+type SupabaseBucketId =
+  | 'media'
+  | 'admin-media'
+  | 'blog'
+  | 'attractions'
+  | 'avatars'
+  | 'cities'
+  | 'attraction-photos';
+
+interface SupabaseBucketSpec {
+  id: SupabaseBucketId;
+  label: string;
+  description: string;
+  public: boolean;
+  fileSizeLimit: number;
+  maxSizeLabel: string;
+  allowedMimeTypes: string[];
+  defaultFolder: string;
+}
+
+const SUPABASE_STORAGE_BUCKETS: Record<SupabaseBucketId, SupabaseBucketSpec> = {
+  media: {
+    id: 'media',
+    label: 'Media',
+    description: 'General media, favicons, brand assets, and promotional videos',
+    public: true,
+    fileSizeLimit: 50 * 1024 * 1024,
+    maxSizeLabel: '50 MB',
+    allowedMimeTypes: [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'image/svg+xml',
+      'video/mp4',
+      'video/webm',
+    ],
+    defaultFolder: 'uploads',
+  },
+  'admin-media': {
+    id: 'admin-media',
+    label: 'Admin Media',
+    description: 'Admin banners, hero slides, campaign graphics, and video uploads',
+    public: true,
+    fileSizeLimit: 50 * 1024 * 1024,
+    maxSizeLabel: '50 MB',
+    allowedMimeTypes: [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/avif',
+      'image/gif',
+      'video/mp4',
+      'video/webm',
+      'video/quicktime',
+    ],
+    defaultFolder: 'banners',
+  },
+  blog: {
+    id: 'blog',
+    label: 'Blog',
+    description: 'Blog post cover images and inline editorial photography',
+    public: true,
+    fileSizeLimit: 5 * 1024 * 1024,
+    maxSizeLabel: '5 MB',
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
+    defaultFolder: 'posts',
+  },
+  attractions: {
+    id: 'attractions',
+    label: 'Attractions',
+    description: 'Primary attraction cover and hero imagery',
+    public: true,
+    fileSizeLimit: 5 * 1024 * 1024,
+    maxSizeLabel: '5 MB',
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
+    defaultFolder: 'covers',
+  },
+  avatars: {
+    id: 'avatars',
+    label: 'Avatars',
+    description: 'User and author profile avatars',
+    public: true,
+    fileSizeLimit: 2 * 1024 * 1024,
+    maxSizeLabel: '2 MB',
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    defaultFolder: 'profiles',
+  },
+  cities: {
+    id: 'cities',
+    label: 'Cities',
+    description: 'City and destination cards',
+    public: true,
+    fileSizeLimit: 5 * 1024 * 1024,
+    maxSizeLabel: '5 MB',
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
+    defaultFolder: 'destinations',
+  },
+  'attraction-photos': {
+    id: 'attraction-photos',
+    label: 'Attraction Photos',
+    description: 'Attraction gallery photos and activity media',
+    public: true,
+    fileSizeLimit: 5 * 1024 * 1024,
+    maxSizeLabel: '5 MB',
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
+    defaultFolder: 'gallery',
+  },
+};
+
+const ALL_SUPABASE_BUCKET_IDS = Object.keys(SUPABASE_STORAGE_BUCKETS) as SupabaseBucketId[];
+
+const STORAGE_MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/avif': 'avif',
+  'image/gif': 'gif',
+  'image/svg+xml': 'svg',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'video/quicktime': 'mov',
+};
+
+function isValidStorageBucket(bucket: string): bucket is SupabaseBucketId {
+  return Object.prototype.hasOwnProperty.call(SUPABASE_STORAGE_BUCKETS, bucket);
+}
+
+function getConfiguredStorageBucket(): SupabaseBucketId {
+  const configured = (process.env.SUPABASE_STORAGE_BUCKET || process.env.VITE_SUPABASE_STORAGE_BUCKET || 'media').trim();
+  return isValidStorageBucket(configured) ? configured : 'media';
+}
+
+function normalizeMimeType(mime: string): string {
+  const lower = (mime || '').toLowerCase().trim();
+  if (lower === 'image/jpg') return 'image/jpeg';
+  return lower;
 }
 
 function isSupabaseConfigured(): boolean {
@@ -128,22 +264,52 @@ function getSupabaseClient() {
 async function uploadBufferToSupabaseStorage(
   buffer: Buffer,
   objectPath: string,
-  contentType: string
+  contentType: string,
+  requestedBucket?: string
 ): Promise<{ url: string | null; bucket: string | null; path?: string; error?: string }> {
   const supabase = getSupabaseClient();
   if (!supabase) {
     return { url: null, bucket: null, error: 'Supabase not configured or temporarily offline' };
   }
 
-  const primaryBucket = resolvedStorageBucket || getConfiguredStorageBucket();
+  const normalizedMime = normalizeMimeType(contentType);
+  let primaryBucket: SupabaseBucketId =
+    requestedBucket && isValidStorageBucket(requestedBucket)
+      ? requestedBucket
+      : getConfiguredStorageBucket();
+
+  // If the requested bucket does not permit this MIME type, pick a compatible bucket (e.g. media or admin-media)
+  if (!SUPABASE_STORAGE_BUCKETS[primaryBucket].allowedMimeTypes.includes(normalizedMime)) {
+    const compatibleBucket = ALL_SUPABASE_BUCKET_IDS.find((id) =>
+      SUPABASE_STORAGE_BUCKETS[id].allowedMimeTypes.includes(normalizedMime)
+    );
+    if (!compatibleBucket) {
+      return {
+        url: null,
+        bucket: primaryBucket,
+        error: `MIME type "${normalizedMime}" is not supported by any configured Supabase Storage bucket`,
+      };
+    }
+    primaryBucket = compatibleBucket;
+  }
+
+  const primarySpec = SUPABASE_STORAGE_BUCKETS[primaryBucket];
+  if (buffer.length > primarySpec.fileSizeLimit) {
+    return {
+      url: null,
+      bucket: primaryBucket,
+      error: `File exceeds the ${primarySpec.maxSizeLabel} limit for bucket "${primaryBucket}"`,
+    };
+  }
+
   const tryUpload = async (bucketName: string) => {
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Supabase storage upload timed out')), 8000)
+      setTimeout(() => reject(new Error('Supabase storage upload timed out')), 15000)
     );
     const uploadPromise = supabase.storage
       .from(bucketName)
       .upload(objectPath, buffer, {
-        contentType,
+        contentType: normalizedMime,
         cacheControl: '3600',
         upsert: true,
       });
@@ -151,35 +317,28 @@ async function uploadBufferToSupabaseStorage(
   };
 
   try {
-    let bucketToUse = primaryBucket;
+    let bucketToUse: string = primaryBucket;
     let { error } = await tryUpload(bucketToUse);
 
-    // If bucket does not exist, attempt to create it, inspect existing buckets, or probe common public bucket names
+    // If bucket does not exist, attempt to create it with its exact spec or fall back to compatible buckets
     if (error && /bucket not found|not found|404/i.test(String(error.message || ''))) {
       const { error: createErr } = await supabase.storage.createBucket(bucketToUse, {
-        public: true,
-        fileSizeLimit: 10 * 1024 * 1024,
+        public: primarySpec.public,
+        fileSizeLimit: primarySpec.fileSizeLimit,
+        allowedMimeTypes: primarySpec.allowedMimeTypes,
       });
       if (!createErr) {
         console.log(`[Supabase Storage] Created public bucket "${bucketToUse}"`);
         ({ error } = await tryUpload(bucketToUse));
       } else {
         const candidateBuckets = new Set<string>();
-        const { data: buckets, error: listErr } = await supabase.storage.listBuckets();
-        if (!listErr && Array.isArray(buckets) && buckets.length > 0) {
-          const preferredNames = [bucketToUse, 'media', 'uploads', 'images', 'assets', 'public'];
-          for (const name of preferredNames) {
-            const match = buckets.find((b: any) => b.name === name || b.id === name);
-            if (match?.name) candidateBuckets.add(match.name);
-          }
-          buckets.filter((b: any) => b.public).forEach((b: any) => b.name && candidateBuckets.add(b.name));
-          buckets.forEach((b: any) => b.name && candidateBuckets.add(b.name));
-        } else {
-          // Anon keys cannot listBuckets due to RLS; probe common bucket names directly
-          for (const fallbackName of ['media', 'uploads', 'images', 'assets', 'public', 'tiqsey']) {
-            if (fallbackName !== bucketToUse) candidateBuckets.add(fallbackName);
-          }
-        }
+        const compatibleFallbacks = ALL_SUPABASE_BUCKET_IDS.filter(
+          (id) =>
+            id !== bucketToUse &&
+            SUPABASE_STORAGE_BUCKETS[id].allowedMimeTypes.includes(normalizedMime) &&
+            buffer.length <= SUPABASE_STORAGE_BUCKETS[id].fileSizeLimit
+        );
+        compatibleFallbacks.forEach((b) => candidateBuckets.add(b));
 
         for (const candidate of candidateBuckets) {
           const attempt = await tryUpload(candidate);
@@ -188,7 +347,6 @@ async function uploadBufferToSupabaseStorage(
             error = null;
             break;
           }
-          // Stop probing if bucket exists but blocked by RLS (keep that actionable error)
           if (!/bucket not found|not found|404/i.test(String(attempt.error?.message || ''))) {
             bucketToUse = candidate;
             error = attempt.error;
@@ -210,7 +368,9 @@ async function uploadBufferToSupabaseStorage(
     }
 
     lastSupabaseStorageError = null;
-    resolvedStorageBucket = bucketToUse;
+    if (bucketToUse === getConfiguredStorageBucket()) {
+      resolvedStorageBucket = bucketToUse;
+    }
     const { data: pub } = supabase.storage.from(bucketToUse).getPublicUrl(objectPath);
     if (!pub?.publicUrl) {
       return { url: null, bucket: bucketToUse, error: 'Failed to derive public URL' };
@@ -908,9 +1068,9 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Use JSON middleware with 15MB limit for image uploads
-  app.use(express.json({ limit: '15mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+  // Use JSON middleware with 70MB limit to support 50MB media/video uploads (base64 overhead)
+  app.use(express.json({ limit: '70mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '70mb' }));
 
   // Admin Authorization check helper
   const ADMIN_EMAILS = ['admin@tiqsey.com', 'bigbakket@gmail.com'];
@@ -1066,12 +1226,16 @@ async function startServer() {
         }
       }
 
-      // Upload to Supabase Storage for durable public hosting if configured
-      const storageResult = await uploadBufferToSupabaseStorage(
-        buffer,
-        `favicons/${uploadedFilename}`,
-        mimeType
-      );
+      // Upload to Supabase Storage "media" bucket for durable public hosting if supported & configured
+      const normalizedFaviconMime = normalizeMimeType(mimeType);
+      const storageResult = SUPABASE_STORAGE_BUCKETS.media.allowedMimeTypes.includes(normalizedFaviconMime)
+        ? await uploadBufferToSupabaseStorage(
+            buffer,
+            `favicons/${uploadedFilename}`,
+            normalizedFaviconMime,
+            'media'
+          )
+        : { url: null, bucket: null };
       const activeUrl = storageResult.url || `/uploads/${uploadedFilename}`;
 
       // Configuration object to persist
@@ -1113,47 +1277,73 @@ async function startServer() {
     }
   });
 
-  // General Image Upload Endpoint for activities, media gallery, banners, blogs
+  // General Media Upload Endpoint for all 7 Supabase Storage buckets (media, admin-media, blog, attractions, avatars, cities, attraction-photos)
   app.post("/api/upload", async (req, res) => {
     try {
-      const { image, filename } = req.body;
-      if (!image || typeof image !== 'string') {
-        return res.status(400).json({ error: "No image payload provided" });
+      const payload = req.body?.image || req.body?.dataUrl;
+      const filename = req.body?.filename;
+      const requestedBucketRaw = typeof req.body?.bucket === 'string' ? req.body.bucket.trim() : '';
+      const requestedFolderRaw = typeof req.body?.folder === 'string' ? req.body.folder.trim() : '';
+
+      if (!payload || typeof payload !== 'string') {
+        return res.status(400).json({ error: "No media payload provided" });
       }
+
+      const targetBucket: SupabaseBucketId = isValidStorageBucket(requestedBucketRaw)
+        ? requestedBucketRaw
+        : getConfiguredStorageBucket();
+      const bucketSpec = SUPABASE_STORAGE_BUCKETS[targetBucket];
 
       let buffer: Buffer;
       let ext = 'jpg';
       let mime = 'image/jpeg';
 
-      if (image.startsWith('data:')) {
-        const matches = image.match(/^data:([A-Za-z0-9-+./]+);base64,(.+)$/);
+      if (payload.startsWith('data:')) {
+        const matches = payload.match(/^data:([A-Za-z0-9-+./]+);base64,(.+)$/);
         if (!matches || matches.length !== 3) {
-          return res.status(400).json({ error: "Invalid base64 image data" });
+          return res.status(400).json({ error: "Invalid base64 media data" });
         }
-        mime = matches[1].toLowerCase();
-        const allowedMimeMap: Record<string, string> = {
-          'image/png': 'png',
-          'image/jpeg': 'jpg',
-          'image/jpg': 'jpg',
-          'image/webp': 'webp',
-          'image/gif': 'gif',
-          'image/svg+xml': 'svg',
-        };
-        if (!allowedMimeMap[mime]) {
-          return res.status(400).json({ error: `Unsupported image type: ${mime}` });
+        mime = normalizeMimeType(matches[1]);
+        if (!STORAGE_MIME_TO_EXT[mime]) {
+          return res.status(400).json({ error: `Unsupported media type: ${mime}` });
         }
-        ext = allowedMimeMap[mime];
+        ext = STORAGE_MIME_TO_EXT[mime];
         buffer = Buffer.from(matches[2], 'base64');
       } else {
         return res.status(400).json({ error: "Expected base64 data URI" });
       }
 
-      if (buffer.length > 10 * 1024 * 1024) {
-        return res.status(400).json({ error: "Image exceeds maximum size limit of 10MB" });
+      // Check bucket MIME rules; if unsupported in requested bucket, check whether another bucket supports it when caller didn't strictly require the bucket
+      let effectiveBucket: SupabaseBucketId = targetBucket;
+      if (!bucketSpec.allowedMimeTypes.includes(mime)) {
+        if (requestedBucketRaw && isValidStorageBucket(requestedBucketRaw)) {
+          return res.status(400).json({
+            error: `Type "${mime}" is not allowed in bucket "${targetBucket}". Allowed: ${bucketSpec.allowedMimeTypes.join(', ')}`,
+          });
+        }
+        const compatible = ALL_SUPABASE_BUCKET_IDS.find((id) =>
+          SUPABASE_STORAGE_BUCKETS[id].allowedMimeTypes.includes(mime)
+        );
+        if (!compatible) {
+          return res.status(400).json({ error: `Unsupported media type: ${mime}` });
+        }
+        effectiveBucket = compatible;
       }
 
-      const publicUploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
-      const distUploadsDir = path.resolve(process.cwd(), 'dist', 'uploads');
+      const effectiveSpec = SUPABASE_STORAGE_BUCKETS[effectiveBucket];
+      if (buffer.length > effectiveSpec.fileSizeLimit) {
+        return res.status(400).json({
+          error: `File exceeds maximum size limit of ${effectiveSpec.maxSizeLabel} for bucket "${effectiveBucket}"`,
+        });
+      }
+
+      const safeFolder = (requestedFolderRaw || effectiveSpec.defaultFolder)
+        .replace(/[^a-zA-Z0-9/_-]/g, '')
+        .replace(/^\/+|\/+$/g, '')
+        .replace(/\.\./g, '') || effectiveSpec.defaultFolder;
+
+      const publicUploadsDir = path.resolve(process.cwd(), 'public', 'uploads', effectiveBucket);
+      const distUploadsDir = path.resolve(process.cwd(), 'dist', 'uploads', effectiveBucket);
       if (!fs.existsSync(publicUploadsDir)) fs.mkdirSync(publicUploadsDir, { recursive: true });
       if (!fs.existsSync(distUploadsDir)) fs.mkdirSync(distUploadsDir, { recursive: true });
 
@@ -1172,24 +1362,284 @@ async function startServer() {
         fs.writeFileSync(distUploadPath, buffer);
       }
 
-      // Upload to Supabase Storage when configured, falling back gracefully to local /uploads/ URL
+      const objectPath = `${safeFolder}/${uploadedFilename}`;
       const storageResult = await uploadBufferToSupabaseStorage(
         buffer,
-        `uploads/${uploadedFilename}`,
-        mime
+        objectPath,
+        mime,
+        effectiveBucket
+      );
+
+      const localUrl = `/uploads/${effectiveBucket}/${uploadedFilename}`;
+      return res.json({
+        success: true,
+        url: storageResult.url || localUrl,
+        localUrl,
+        filename: uploadedFilename,
+        storage: storageResult.url ? 'supabase' : 'local',
+        bucket: storageResult.bucket || effectiveBucket,
+        path: storageResult.path || objectPath,
+        contentType: mime,
+        size: buffer.length,
+        warning: storageResult.url ? undefined : storageResult.error,
+      });
+    } catch (err: any) {
+      console.error("[Upload API] Error saving uploaded media:", err);
+      return res.status(500).json({ error: err.message || "Failed to upload media" });
+    }
+  });
+
+  // Helper: recursively collect files inside a Supabase Storage bucket (up to depth 2)
+  async function listBucketFilesRecursive(supabase: any, bucketName: string, prefix = '', depth = 0): Promise<any[]> {
+    const { data, error } = await supabase.storage.from(bucketName).list(prefix, {
+      limit: 100,
+      sortBy: { column: 'updated_at', order: 'desc' },
+    });
+    if (error || !Array.isArray(data)) return [];
+
+    const results: any[] = [];
+    for (const item of data) {
+      if (!item?.name || item.name === '.emptyFolderPlaceholder') continue;
+      const fullPath = prefix ? `${prefix}/${item.name}` : item.name;
+      const isFolder = item.id === null || item.metadata === null;
+      if (isFolder) {
+        if (depth < 2) {
+          const nested = await listBucketFilesRecursive(supabase, bucketName, fullPath, depth + 1);
+          results.push(...nested);
+        }
+      } else {
+        const { data: pub } = supabase.storage.from(bucketName).getPublicUrl(fullPath);
+        results.push({
+          name: item.name,
+          path: fullPath,
+          bucket: bucketName,
+          publicUrl: pub?.publicUrl || '',
+          size: item.metadata?.size ?? 0,
+          mimeType: item.metadata?.mimetype || '',
+          createdAt: item.created_at || null,
+          updatedAt: item.updated_at || item.created_at || null,
+        });
+      }
+    }
+    return results;
+  }
+
+  // Admin Storage API: List all 7 Supabase Storage buckets with live status & file counts
+  app.get("/api/admin/storage/buckets", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can view storage buckets." });
+    }
+    try {
+      const supabase = getSupabaseClient();
+      const projectId = getSupabaseProjectId();
+      if (!supabase) {
+        return res.json({
+          connected: false,
+          projectId: projectId || null,
+          buckets: ALL_SUPABASE_BUCKET_IDS.map((id) => ({
+            ...SUPABASE_STORAGE_BUCKETS[id],
+            existsInSupabase: false,
+            fileCount: 0,
+          })),
+        });
+      }
+
+      const { data: remoteBuckets, error: listErr } = await supabase.storage.listBuckets();
+      const remoteMap = new Map<string, any>();
+      if (!listErr && Array.isArray(remoteBuckets)) {
+        remoteBuckets.forEach((b: any) => remoteMap.set(b.name, b));
+      }
+
+      const bucketDetails = await Promise.all(
+        ALL_SUPABASE_BUCKET_IDS.map(async (id) => {
+          const spec = SUPABASE_STORAGE_BUCKETS[id];
+          const remote = remoteMap.get(id);
+          const files = await listBucketFilesRecursive(supabase, id).catch(() => []);
+          return {
+            ...spec,
+            existsInSupabase: Boolean(remote) || files.length > 0,
+            public: remote ? Boolean(remote.public) : spec.public,
+            fileSizeLimit: remote?.file_size_limit ?? spec.fileSizeLimit,
+            allowedMimeTypes: Array.isArray(remote?.allowed_mime_types) && remote.allowed_mime_types.length > 0
+              ? remote.allowed_mime_types
+              : spec.allowedMimeTypes,
+            fileCount: files.length,
+            createdAt: remote?.created_at || null,
+            updatedAt: remote?.updated_at || null,
+          };
+        })
       );
 
       return res.json({
-        success: true,
-        url: storageResult.url || `/uploads/${uploadedFilename}`,
-        localUrl: `/uploads/${uploadedFilename}`,
-        filename: uploadedFilename,
-        storage: storageResult.url ? 'supabase' : 'local',
-        bucket: storageResult.bucket || undefined,
+        connected: true,
+        projectId,
+        dashboardUrl: projectId ? `https://supabase.com/dashboard/project/${projectId}/storage/files` : null,
+        buckets: bucketDetails,
       });
     } catch (err: any) {
-      console.error("[Upload API] Error saving uploaded image:", err);
-      return res.status(500).json({ error: err.message || "Failed to upload image" });
+      console.error("[Admin Storage API] Error listing buckets:", err);
+      return res.status(500).json({ error: err.message || "Failed to list storage buckets" });
+    }
+  });
+
+  // Admin Storage API: List files in a specific bucket
+  app.get("/api/admin/storage/buckets/:bucket/files", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    const bucket = String(req.params.bucket || '').trim();
+    if (!isValidStorageBucket(bucket)) {
+      return res.status(400).json({ error: `Unknown storage bucket: ${bucket}` });
+    }
+    try {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return res.status(503).json({ error: "Supabase Storage is not connected." });
+      }
+      const prefix = typeof req.query.prefix === 'string' ? req.query.prefix.replace(/^\/+|\/+$/g, '') : '';
+      const files = await listBucketFilesRecursive(supabase, bucket, prefix);
+      return res.json({
+        bucket,
+        spec: SUPABASE_STORAGE_BUCKETS[bucket],
+        files,
+      });
+    } catch (err: any) {
+      console.error(`[Admin Storage API] Error listing files in ${bucket}:`, err);
+      return res.status(500).json({ error: err.message || "Failed to list bucket files" });
+    }
+  });
+
+  // Admin Storage API: Upload directly to a specific bucket
+  app.post("/api/admin/storage/buckets/:bucket/upload", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    const bucket = String(req.params.bucket || '').trim();
+    if (!isValidStorageBucket(bucket)) {
+      return res.status(400).json({ error: `Unknown storage bucket: ${bucket}` });
+    }
+    try {
+      const payload = req.body?.dataUrl || req.body?.image;
+      const filename = typeof req.body?.filename === 'string' ? req.body.filename : 'asset';
+      const folder = typeof req.body?.folder === 'string' && req.body.folder.trim()
+        ? req.body.folder.trim().replace(/[^a-zA-Z0-9/_-]/g, '').replace(/^\/+|\/+$/g, '').replace(/\.\./g, '')
+        : SUPABASE_STORAGE_BUCKETS[bucket].defaultFolder;
+
+      if (!payload || typeof payload !== 'string' || !payload.startsWith('data:')) {
+        return res.status(400).json({ error: "Missing valid base64 data URI" });
+      }
+      const matches = payload.match(/^data:([A-Za-z0-9-+./]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        return res.status(400).json({ error: "Invalid base64 data URI" });
+      }
+      const mime = normalizeMimeType(matches[1]);
+      const spec = SUPABASE_STORAGE_BUCKETS[bucket];
+      if (!spec.allowedMimeTypes.includes(mime)) {
+        return res.status(400).json({
+          error: `Type "${mime}" is not allowed in bucket "${bucket}". Allowed: ${spec.allowedMimeTypes.join(', ')}`,
+        });
+      }
+      const buffer = Buffer.from(matches[2], 'base64');
+      if (buffer.length > spec.fileSizeLimit) {
+        return res.status(400).json({
+          error: `File exceeds the ${spec.maxSizeLabel} size limit for "${bucket}"`,
+        });
+      }
+
+      const ext = STORAGE_MIME_TO_EXT[mime] || 'bin';
+      const baseOnly = path.basename(filename, path.extname(filename));
+      const safeBase = baseOnly.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 35) || 'file';
+      const objectPath = `${folder}/${safeBase}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
+
+      const result = await uploadBufferToSupabaseStorage(buffer, objectPath, mime, bucket);
+      if (!result.url) {
+        return res.status(502).json({ error: result.error || `Failed to upload to "${bucket}"` });
+      }
+
+      return res.json({
+        success: true,
+        bucket: result.bucket,
+        path: result.path,
+        url: result.url,
+        size: buffer.length,
+        contentType: mime,
+      });
+    } catch (err: any) {
+      console.error(`[Admin Storage API] Upload error (${bucket}):`, err);
+      return res.status(500).json({ error: err.message || "Failed to upload file" });
+    }
+  });
+
+  // Admin Storage API: Delete file(s) from a specific bucket
+  app.delete("/api/admin/storage/buckets/:bucket/files", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    const bucket = String(req.params.bucket || '').trim();
+    if (!isValidStorageBucket(bucket)) {
+      return res.status(400).json({ error: `Unknown storage bucket: ${bucket}` });
+    }
+    try {
+      const pathsInput = req.body?.paths || (req.body?.path ? [req.body.path] : []);
+      const paths: string[] = Array.isArray(pathsInput)
+        ? pathsInput.filter((p): p is string => typeof p === 'string' && p.trim().length > 0 && !p.includes('..'))
+        : [];
+      if (paths.length === 0) {
+        return res.status(400).json({ error: "No valid file paths provided" });
+      }
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return res.status(503).json({ error: "Supabase Storage is not connected." });
+      }
+      const { error } = await supabase.storage.from(bucket).remove(paths);
+      if (error) {
+        return res.status(500).json({ error: error.message || "Failed to delete file(s)" });
+      }
+      return res.json({ success: true, bucket, deleted: paths });
+    } catch (err: any) {
+      console.error(`[Admin Storage API] Delete error (${bucket}):`, err);
+      return res.status(500).json({ error: err.message || "Failed to delete file(s)" });
+    }
+  });
+
+  // Admin Storage API: Sync/verify all 7 Supabase Storage bucket definitions (public, limits, MIME types)
+  app.post("/api/admin/storage/sync-buckets", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    try {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return res.status(503).json({ error: "Supabase Storage is not connected." });
+      }
+      const { data: existingBuckets } = await supabase.storage.listBuckets();
+      const existingSet = new Set((existingBuckets || []).map((b: any) => b.name));
+
+      const results = await Promise.all(
+        ALL_SUPABASE_BUCKET_IDS.map(async (id) => {
+          const spec = SUPABASE_STORAGE_BUCKETS[id];
+          const options = {
+            public: spec.public,
+            fileSizeLimit: spec.fileSizeLimit,
+            allowedMimeTypes: spec.allowedMimeTypes,
+          };
+          if (existingSet.has(id)) {
+            const { error } = await supabase.storage.updateBucket(id, options);
+            return { id, action: 'updated', ok: !error, error: error?.message || null };
+          } else {
+            const { error } = await supabase.storage.createBucket(id, options);
+            return { id, action: 'created', ok: !error, error: error?.message || null };
+          }
+        })
+      );
+
+      return res.json({
+        success: results.every((r) => r.ok),
+        results,
+      });
+    } catch (err: any) {
+      console.error("[Admin Storage API] Sync buckets error:", err);
+      return res.status(500).json({ error: err.message || "Failed to sync storage buckets" });
     }
   });
 
@@ -2083,7 +2533,12 @@ async function startServer() {
       ]);
 
       const storageBuckets = Array.isArray(bucketsResult?.data)
-        ? bucketsResult.data.map((b: any) => ({ name: b.name, public: Boolean(b.public) }))
+        ? bucketsResult.data.map((b: any) => ({
+            name: b.name,
+            public: Boolean(b.public),
+            fileSizeLimit: b.file_size_limit ?? null,
+            allowedMimeTypes: b.allowed_mime_types ?? null,
+          }))
         : [];
       const hasConfiguredBucket = storageBuckets.some((b: any) => b.name === activeBucket);
       const bucketProbeHasItems = !bucketProbeResult?.error && Array.isArray(bucketProbeResult?.data) && bucketProbeResult.data.length > 0;

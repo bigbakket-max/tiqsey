@@ -1163,7 +1163,9 @@ export default function Inventory() {
 
     try {
       showLoader();
-      const uploadPromises = fileList.map((f) => uploadAndOptimizeImage(f));
+      const uploadPromises = fileList.map((f) =>
+        uploadAndOptimizeImage(f, 1400, 950, 0.85, { bucket: 'attraction-photos', folder: 'gallery' })
+      );
       const uploadedUrls = await Promise.all(uploadPromises);
       const valid = uploadedUrls.filter((u): u is string => Boolean(u));
       if (valid.length > 0) {
@@ -1427,17 +1429,27 @@ export default function Inventory() {
     syncCustomAttractions(updatedList);
   };
 
-  // Handle file import to base64
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload primary attraction cover image to Supabase Storage "attractions" bucket
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          setImageUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    try {
+      showLoader();
+      const uploadedUrl = await uploadAndOptimizeImage(file, 1400, 950, 0.85, {
+        bucket: 'attractions',
+        folder: 'covers',
+      });
+      if (uploadedUrl) {
+        setImageUrl(uploadedUrl);
+        setGalleryUrls((prev) => (prev.includes(uploadedUrl) ? prev : [uploadedUrl, ...prev]));
+        triggerInventoryToast("Cover image uploaded to attractions storage.", "success");
+      }
+    } catch (err: any) {
+      console.error("Error uploading attraction cover image:", err);
+      triggerInventoryToast(err?.message || "Failed to upload cover image.", "error");
+    } finally {
+      hideLoader();
+      e.target.value = "";
     }
   };
 

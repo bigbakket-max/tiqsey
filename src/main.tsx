@@ -9,6 +9,7 @@ import { WishlistProvider } from './contexts/WishlistContext';
 import { BlogProvider } from './contexts/BlogContext';
 import { HelmetProvider } from 'react-helmet-async';
 import { fetchActiveFavicon, applyFaviconToDocument, FAVICON_STORAGE_KEY } from './utils/faviconManager';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function Root() {
   const isLegacyAdmin = window.location.pathname.startsWith('/admin');
@@ -49,7 +50,7 @@ function Root() {
         <AuthProvider>
           <WishlistProvider>
             <BlogProvider>
-              {isAdminRoute ? <AdminApp /> : <App />}
+              {isAdminRoute ? <AdminApp /> : <ErrorBoundary><App /></ErrorBoundary>}
             </BlogProvider>
           </WishlistProvider>
         </AuthProvider>

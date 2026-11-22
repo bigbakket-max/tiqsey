@@ -794,9 +794,9 @@ export default function AttractionDetailModal({
       if (!b.timeslot || b.timeslot.toLowerCase() !== slot.toLowerCase()) return;
       if (b.status === 'cancelled' || b.status === 'rejected') return;
       
-      const normalizedBookingName = b.attractionName.toLowerCase();
-      const normalizedVariantName = variantName.toLowerCase();
-      if (normalizedBookingName.includes(normalizedVariantName) || normalizedVariantName.includes(normalizedBookingName)) {
+      const normalizedBookingName = (b.attractionName || '').toLowerCase();
+      const normalizedVariantName = (variantName || '').toLowerCase();
+      if (normalizedBookingName && normalizedVariantName && (normalizedBookingName.includes(normalizedVariantName) || normalizedVariantName.includes(normalizedBookingName))) {
         count += b.ticketsCount || 1;
       }
     });
@@ -806,7 +806,7 @@ export default function AttractionDetailModal({
   const getSlotCapacityLimit = (variant: any, date: string, slot: string) => {
     const originalVariant = attraction?.variants?.find((v: any) => v.name === variant.name || v.id === variant.id);
     const rule = originalVariant?.rules?.find(
-      (r: any) => r.date === date && r.timeSlot.toLowerCase() === slot.toLowerCase()
+      (r: any) => r.date === date && (r.timeSlot || '').toLowerCase() === (slot || '').toLowerCase()
     );
     if (rule) {
       return rule.inventory;

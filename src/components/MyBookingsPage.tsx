@@ -474,7 +474,7 @@ export default function MyBookingsPage({
                                       setReviewComment("");
                                       setReviewError("");
                                       try {
-                                        const res = await fetch(`/api/reviews/booking/${booking.id}`);
+                                        const res = await fetch(`/api/reviews/booking/${encodeURIComponent(booking.id)}`);
                                         const contentType = res.headers.get("content-type") || "";
                                         const data = contentType.includes("application/json") ? await res.json() : null;
                                         if (data && data.success && data.review) {

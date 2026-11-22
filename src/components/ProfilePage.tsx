@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { 
   ArrowLeft, 
   User as UserIcon, 
@@ -9,11 +9,14 @@ import {
   Info, 
   Lightbulb, 
   Pencil, 
-  Check 
+  Check,
+  Upload,
+  Loader2
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { TRAVEL_AVATARS } from "../utils/avatars";
+import { uploadAndOptimizeImage } from "../utils/imageUpload";
 import { motion, AnimatePresence } from "motion/react";
 
 interface ProfilePageProps {
@@ -30,7 +33,39 @@ export default function ProfilePage({ onBackToHome }: ProfilePageProps) {
   );
   
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCustomAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      setUploadError('Please upload a JPG, PNG, or WebP image (max 2 MB).');
+      e.target.value = '';
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const url = await uploadAndOptimizeImage(file, 400, 400, 0.85, {
+        bucket: 'avatars',
+        folder: 'profiles',
+      });
+      if (url) {
+        setSelectedAvatarUrl(url);
+      }
+    } catch (err: any) {
+      setUploadError(err?.message || 'Failed to upload custom avatar.');
+    } finally {
+      setIsUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
 
   if (!user) {
     return (
@@ -115,13 +150,44 @@ export default function ProfilePage({ onBackToHome }: ProfilePageProps) {
                 />
               </div>
 
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleCustomAvatarUpload}
+                className="hidden"
+              />
+
               {/* Floating Pencil Edit Badge */}
-              <div 
-                className="absolute bottom-1 right-2 w-9 h-9 rounded-full bg-gradient-to-r from-[#FF385C] to-[#E00B41] text-white flex items-center justify-center shadow-lg shadow-rose-500/35 border-2 border-white dark:border-slate-900 cursor-pointer hover:scale-110 active:scale-95 transition-transform"
-                title="Select an avatar from the right"
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={isUploadingAvatar}
+                className="absolute bottom-1 right-2 w-9 h-9 rounded-full bg-gradient-to-r from-[#FF385C] to-[#E00B41] text-white flex items-center justify-center shadow-lg shadow-rose-500/35 border-2 border-white dark:border-slate-900 cursor-pointer hover:scale-110 active:scale-95 transition-transform disabled:opacity-60"
+                title="Upload custom avatar photo (JPG, PNG, WebP up to 2 MB)"
               >
-                <Pencil className="w-4 h-4 fill-white/20" />
-              </div>
+                {isUploadingAvatar ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Pencil className="w-4 h-4 fill-white/20" />
+                )}
+              </button>
+            </div>
+
+            {/* Custom Photo Upload Button */}
+            <div className="w-full flex flex-col items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={isUploadingAvatar}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isUploadingAvatar ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 text-[#FF385C]" />}
+                <span>{isUploadingAvatar ? 'Uploading photo...' : 'Upload Custom Photo'}</span>
+              </button>
+              {uploadError && (
+                <p className="text-[11px] font-medium text-rose-500 text-center">{uploadError}</p>
+              )}
             </div>
 
             {/* User Name & Email Badge */}

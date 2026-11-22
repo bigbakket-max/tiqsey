@@ -308,16 +308,16 @@ export default function BlogPostForm() {
           const file = event.dataTransfer.files[0];
           if (file.type.startsWith('image/')) {
             event.preventDefault();
-            const reader = new FileReader();
-            reader.onload = () => {
-              if (typeof reader.result === 'string') {
-                const { schema } = view.state;
-                const node = schema.nodes.image.create({ src: reader.result, alt: file.name });
-                const transaction = view.state.tr.replaceSelectionWith(node);
-                view.dispatch(transaction);
-              }
-            };
-            reader.readAsDataURL(file);
+            uploadAndOptimizeImage(file, 1280, 850, 0.85, { bucket: 'blog', folder: 'inline' })
+              .then((url) => {
+                if (url) {
+                  const { schema } = view.state;
+                  const node = schema.nodes.image.create({ src: url, alt: file.name });
+                  const transaction = view.state.tr.replaceSelectionWith(node);
+                  view.dispatch(transaction);
+                }
+              })
+              .catch((err) => console.error('Editor image drop upload error:', err));
             return true;
           }
         }
@@ -618,7 +618,7 @@ export default function BlogPostForm() {
         setModalImageAlt(nameWithoutExt);
       }
       try {
-        const url = await uploadAndOptimizeImage(file);
+        const url = await uploadAndOptimizeImage(file, 1280, 850, 0.85, { bucket: 'blog', folder: 'inline' });
         if (url) setModalImageUrl(url);
       } catch (err) {
         console.error("Modal image upload error:", err);
@@ -630,7 +630,7 @@ export default function BlogPostForm() {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       try {
-        const url = await uploadAndOptimizeImage(file);
+        const url = await uploadAndOptimizeImage(file, 1400, 900, 0.85, { bucket: 'blog', folder: 'covers' });
         if (url) setImageUrl(url);
       } catch (err) {
         console.error("Cover image upload error:", err);
@@ -654,7 +654,7 @@ export default function BlogPostForm() {
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith('image/')) {
       try {
-        const url = await uploadAndOptimizeImage(file);
+        const url = await uploadAndOptimizeImage(file, 1400, 900, 0.85, { bucket: 'blog', folder: 'covers' });
         if (url) setImageUrl(url);
       } catch (err) {
         console.error("Cover drop upload error:", err);
@@ -683,7 +683,7 @@ export default function BlogPostForm() {
         setModalImageAlt(nameWithoutExt);
       }
       try {
-        const url = await uploadAndOptimizeImage(file);
+        const url = await uploadAndOptimizeImage(file, 1280, 850, 0.85, { bucket: 'blog', folder: 'inline' });
         if (url) setModalImageUrl(url);
       } catch (err) {
         console.error("Drop image upload error:", err);
@@ -2698,8 +2698,9 @@ export default function BlogPostForm() {
                         type="button"
                         onClick={async () => {
                           try {
-                            // @ts-ignore
-                            const eyeDropper = new window.EyeDropper();
+                            const EyeDropperCtor = (window as Window & { EyeDropper?: new () => { open: () => Promise<{ sRGBHex: string }> } }).EyeDropper;
+                            if (!EyeDropperCtor) return;
+                            const eyeDropper = new EyeDropperCtor();
                             const result = await eyeDropper.open();
                             setCustomColor(result.sRGBHex);
                           } catch (err) {

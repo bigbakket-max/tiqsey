@@ -325,7 +325,10 @@ export default function PromotionalBannerForm() {
       return;
     }
     try {
-      const url = await uploadAndOptimizeImage(file, 1200, 750, 0.85);
+      const url = await uploadAndOptimizeImage(file, 1200, 750, 0.85, {
+        bucket: 'admin-media',
+        folder: 'promotional-banners',
+      });
       if (url) {
         setCustomImageUrl(url);
         setNotification({ message: 'Banner graphic uploaded successfully!', type: 'success' });
