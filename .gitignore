@@ -6,3 +6,10 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Runtime databases and their SQLite journal files must never be committed.
+bookings.db
+bookings.db-shm
+bookings.db-wal
+*.sqlite
+*.sqlite3
