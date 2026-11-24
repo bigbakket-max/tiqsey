@@ -113,7 +113,7 @@ interface DeleteConfirmState {
   deleting: boolean;
 }
 
-const SUPABASE_SETUP_SQL = `-- 1. Optional Supabase metadata table for synced Tiqsey Media Library records
+const SUPABASE_SETUP_SQL = `-- 1. Optional Supabase metadata table for Tiqsey Media Library records
 create table if not exists public.media_assets (
   id text primary key,
   bucket text not null,
@@ -131,7 +131,7 @@ create table if not exists public.media_assets (
   unique(bucket, path)
 );
 
--- 2. Storage RLS Policies for all 7 Tiqsey buckets (Read, Upload, Update & Delete)
+-- 2. Public read access for the public media buckets.
 drop policy if exists "Tiqsey storage public read" on storage.objects;
 drop policy if exists "Tiqsey storage upload" on storage.objects;
 drop policy if exists "Tiqsey storage update" on storage.objects;
@@ -142,41 +142,21 @@ create policy "Tiqsey storage public read" on storage.objects
   for select to anon, authenticated
   using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
 
--- If running with the Tiqsey Node backend, privileged writes use SUPABASE_SERVICE_ROLE_KEY behind Admin Auth.
--- If hosting statically (direct browser -> Supabase), run the policies below so upload, replace, and delete work live:
-create policy "Tiqsey storage upload" on storage.objects
-  for insert to anon, authenticated
-  with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
+-- IMPORTANT: Do not grant INSERT, UPDATE, or DELETE to anon/authenticated.
+-- Admin uploads and deletes must go through the Tiqsey Node API after server-side
+-- administrator authentication. The server uses SUPABASE_SERVICE_ROLE_KEY, which
+-- bypasses Storage RLS. Never expose that key to the browser.`;
 
-create policy "Tiqsey storage update" on storage.objects
-  for update to anon, authenticated
-  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'))
-  with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
-
-create policy "Tiqsey storage delete" on storage.objects
-  for delete to anon, authenticated
-  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));`;
-
-const SUPABASE_DELETE_RLS_SQL = `drop policy if exists "Tiqsey storage public read" on storage.objects;
+const SUPABASE_DELETE_RLS_SQL = `-- Remove any legacy anonymous write permissions.
 drop policy if exists "Tiqsey storage upload" on storage.objects;
 drop policy if exists "Tiqsey storage update" on storage.objects;
 drop policy if exists "Tiqsey storage delete" on storage.objects;
+drop policy if exists "Tiqsey storage authenticated write" on storage.objects;
 
+-- Retain public read access for the configured public media buckets.
+drop policy if exists "Tiqsey storage public read" on storage.objects;
 create policy "Tiqsey storage public read" on storage.objects
   for select to anon, authenticated
-  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
-
-create policy "Tiqsey storage upload" on storage.objects
-  for insert to anon, authenticated
-  with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
-
-create policy "Tiqsey storage update" on storage.objects
-  for update to anon, authenticated
-  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'))
-  with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
-
-create policy "Tiqsey storage delete" on storage.objects
-  for delete to anon, authenticated
   using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));`;
 
 function formatDateShort(iso?: string | null): string {
