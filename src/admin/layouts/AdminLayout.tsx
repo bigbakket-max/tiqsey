@@ -24,21 +24,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useAdminLoader } from '../contexts/AdminLoaderContext';
+import { ADMIN_EASE } from '../components/AdminMotion';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const { showLoader, hideLoader } = useAdminLoader();
-
-  useEffect(() => {
-    showLoader();
-    const timer = setTimeout(() => hideLoader(), 300);
-    return () => {
-      clearTimeout(timer);
-      hideLoader();
-    };
-  }, [location.pathname]);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -185,19 +175,30 @@ export default function AdminLayout() {
           onClick={() => setMobileMenuOpen(false)}
           title={collapsed ? "Home" : undefined}
           className={({ isActive }) =>
-            `flex items-center transition-all duration-150 text-sm group ${
+            `relative flex items-center transition-all duration-150 text-sm group ${
               collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : `w-full gap-2.5 px-3 ${isMobile ? 'py-2.5' : 'py-2'} rounded-xl`
             } ${
               isActive 
-                ? 'bg-sky-500/20 text-white font-bold border border-sky-400/40 shadow-xs shadow-sky-500/10' 
+                ? 'text-white font-bold' 
                 : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
             }`
           }
         >
-          <Home className="w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
-          <span className={`transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
-            Home
-          </span>
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <motion.span
+                  layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                  transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                  className="absolute inset-0 rounded-xl bg-sky-500/20 border border-sky-400/40 shadow-xs shadow-sky-500/10 pointer-events-none"
+                />
+              )}
+              <Home className="relative z-10 w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
+              <span className={`relative z-10 transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
+                Home
+              </span>
+            </>
+          )}
         </NavLink>
 
         {/* Activities Menu */}
@@ -244,15 +245,26 @@ export default function AdminLayout() {
                   to="/inventory"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
                       isActive 
-                        ? 'bg-sky-500/20 text-white font-bold border-l-2 border-sky-400 pl-2.5' 
+                        ? 'text-white font-bold' 
                         : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
                     }`
                   }
                 >
-                  <Box className="w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
-                  <span>Products</span>
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
+                        />
+                      )}
+                      <Box className="relative z-10 w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10">Products</span>
+                    </>
+                  )}
                 </NavLink>
               </motion.div>
             )}
@@ -303,15 +315,26 @@ export default function AdminLayout() {
                   to="/bookings"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
                       isActive 
-                        ? 'bg-sky-500/20 text-white font-bold border-l-2 border-sky-400 pl-2.5' 
+                        ? 'text-white font-bold' 
                         : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
                     }`
                   }
                 >
-                  <FileText className="w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
-                  <span>Orders</span>
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
+                        />
+                      )}
+                      <FileText className="relative z-10 w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10">Orders</span>
+                    </>
+                  )}
                 </NavLink>
               </motion.div>
             )}
@@ -324,19 +347,30 @@ export default function AdminLayout() {
           onClick={() => setMobileMenuOpen(false)}
           title={collapsed ? "Agents" : undefined}
           className={({ isActive }) =>
-            `flex items-center transition-all duration-150 text-sm group ${
+            `relative flex items-center transition-all duration-150 text-sm group ${
               collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : 'w-full gap-2.5 px-3 py-2 rounded-xl'
             } ${
               isActive 
-                ? 'bg-sky-500/20 text-white font-bold border border-sky-400/40 shadow-xs shadow-sky-500/10' 
+                ? 'text-white font-bold' 
                 : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
             }`
           }
         >
-          <Users className="w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
-          <span className={`transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
-            Agents
-          </span>
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <motion.span
+                  layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                  transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                  className="absolute inset-0 rounded-xl bg-sky-500/20 border border-sky-400/40 shadow-xs shadow-sky-500/10 pointer-events-none"
+                />
+              )}
+              <Users className="relative z-10 w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
+              <span className={`relative z-10 transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
+                Agents
+              </span>
+            </>
+          )}
         </NavLink>
 
         {/* Website Menu */}
@@ -383,60 +417,104 @@ export default function AdminLayout() {
                   to="/blog"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
                       isActive 
-                        ? 'bg-sky-500/20 text-white font-bold border-l-2 border-sky-400 pl-2.5' 
+                        ? 'text-white font-bold' 
                         : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
                     }`
                   }
                 >
-                  <Text className="w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
-                  <span>Blog</span>
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
+                        />
+                      )}
+                      <Text className="relative z-10 w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10">Blog</span>
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
                   to="/promotional-banners"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
                       isActive 
-                        ? 'bg-amber-500/20 text-amber-200 font-bold border-l-2 border-amber-400 pl-2.5' 
+                        ? 'text-amber-200 font-bold' 
                         : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
                     }`
                   }
                 >
-                  <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
-                  <span>Promotional Banners</span>
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-amber-500/20 border border-amber-400/35 pointer-events-none"
+                        />
+                      )}
+                      <Sparkles className="relative z-10 w-3.5 h-3.5 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10">Promotional Banners</span>
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
                   to="/favicon"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
                       isActive 
-                        ? 'bg-sky-500/20 text-white font-bold border-l-2 border-sky-400 pl-2.5' 
+                        ? 'text-white font-bold' 
                         : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
                     }`
                   }
                 >
-                  <ImageIcon className="w-3.5 h-3.5 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
-                  <span>Favicon</span>
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
+                        />
+                      )}
+                      <ImageIcon className="relative z-10 w-3.5 h-3.5 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10">Favicon</span>
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
                   to="/storage"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
                       isActive 
-                        ? 'bg-emerald-500/20 text-emerald-200 font-bold border-l-2 border-emerald-400 pl-2.5' 
+                        ? 'text-emerald-200 font-bold' 
                         : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
                     }`
                   }
                 >
-                  <HardDrive className="w-3.5 h-3.5 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
-                  <span>Storage</span>
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-emerald-500/20 border border-emerald-400/35 pointer-events-none"
+                        />
+                      )}
+                      <HardDrive className="relative z-10 w-3.5 h-3.5 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10">Storage</span>
+                    </>
+                  )}
                 </NavLink>
               </motion.div>
             )}
@@ -482,7 +560,7 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#F8F9FC] dark:bg-slate-950 font-sans antialiased text-slate-900 dark:text-slate-100 overflow-hidden">
+    <div className="tiqsey-admin-shell flex flex-col h-[100dvh] bg-[#F8F9FC] dark:bg-slate-950 font-sans antialiased text-slate-900 dark:text-slate-100 overflow-hidden">
       {/* Top Header */}
       <header className="h-14 md:h-13 bg-gradient-to-r from-[#1e40af] via-[#2563eb] to-[#0284c7] dark:from-[#0f172a] dark:via-[#1e3a5f] dark:to-[#0284c7] border-b border-white/20 dark:border-slate-800 flex items-center justify-between px-3 sm:px-4 lg:px-6 z-30 shrink-0 relative shadow-sm">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -739,10 +817,10 @@ export default function AdminLayout() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
-                initial={{ opacity: 0, y: 6 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.18, ease: ADMIN_EASE }}
                 className="w-full min-w-0"
               >
                 <Outlet />

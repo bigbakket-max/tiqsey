@@ -62,7 +62,19 @@ import {
   mergeMediaReferences,
   replaceClientMediaReferences,
 } from '../../utils/mediaReferences';
+import { motion, AnimatePresence } from 'motion/react';
 import { fetchJsonSafely } from '../../utils/safeFetch';
+import { useAdminToast } from '../contexts/AdminToastContext';
+import {
+  ADMIN_EASE,
+  ADMIN_TRANSITION_FAST,
+  ADMIN_TRANSITION_SMOOTH,
+  DiamondDotsSpinner,
+  AnimatedCheckmark,
+  AnimatedErrorIcon,
+  AnimatedProgressBar,
+  MediaGridSkeleton,
+} from '../components/AdminMotion';
 
 type MediaFilterType = 'all' | MediaCategory;
 type SortOption = 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc' | 'size-desc' | 'size-asc';
@@ -71,6 +83,7 @@ type ViewMode = 'grid' | 'list';
 interface UploadQueueItem {
   id: string;
   file: File;
+  previewUrl?: string;
   bucket: SupabaseBucketId;
   folder: string;
   progress: number;
@@ -228,19 +241,38 @@ export default function StorageManager() {
   const [renameFolderTarget, setRenameFolderTarget] = useState<MediaFolderItem | null>(null);
   const [renameFolderValue, setRenameFolderValue] = useState<string>('');
 
-  // Clipboard & toast notifications
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ kind: 'success' | 'error' | 'info'; message: string } | null>(null);
+  // Download progress state per file id (prevents duplicate clicks while processing)
+  const [downloadingMap, setDownloadingMap] = useState<Record<string, number>>({});
 
-  const showToast = useCallback((kind: 'success' | 'error' | 'info', message: string) => {
-    setToast({ kind, message });
+  // Clipboard & global toast notifications
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const adminToast = useAdminToast();
+  const previewUrlsRef = useRef<Set<string>>(new Set());
+
+  const createLocalPreviewUrl = useCallback((file: File): string | undefined => {
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) return undefined;
+    try {
+      const url = URL.createObjectURL(file);
+      previewUrlsRef.current.add(url);
+      return url;
+    } catch {
+      return undefined;
+    }
   }, []);
 
   useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 5000);
-    return () => clearTimeout(t);
-  }, [toast]);
+    return () => {
+      previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      previewUrlsRef.current.clear();
+    };
+  }, []);
+
+  const showToast = useCallback(
+    (kind: 'success' | 'error' | 'info', message: string) => {
+      adminToast.notify(kind, message);
+    },
+    [adminToast]
+  );
 
   const loadLibrary = useCallback(
     async (silent = false) => {
@@ -554,9 +586,10 @@ export default function StorageManager() {
       const queueItem: UploadQueueItem = {
         id: itemId,
         file,
+        previewUrl: createLocalPreviewUrl(file),
         bucket: target.bucket,
         folder: target.folder,
-        progress: 2,
+        progress: 3,
         stage: 'hashing',
       };
       setUploadQueue((prev) => [queueItem, ...prev.slice(0, 14)]);
@@ -685,6 +718,7 @@ export default function StorageManager() {
     const queueItem: UploadQueueItem = {
       id: itemId,
       file,
+      previewUrl: createLocalPreviewUrl(file),
       bucket: target.bucket as SupabaseBucketId,
       folder: target.folder || getBucketConfig(target.bucket).defaultFolder,
       progress: 5,
@@ -897,10 +931,29 @@ export default function StorageManager() {
   };
 
   const handleDownload = async (file: MediaAssetItem) => {
+    // Prevent duplicate download clicks while this file is already downloading
+    if (downloadingMap[file.id] !== undefined) return;
+
+    setDownloadingMap((prev) => ({ ...prev, [file.id]: 6 }));
     try {
-      await downloadMediaFile(adminEmail, file);
-      showToast('success', `Downloading "${file.name}"...`);
+      await downloadMediaFile(adminEmail, file, (pct) => {
+        setDownloadingMap((prev) => ({ ...prev, [file.id]: pct }));
+      });
+      setDownloadingMap((prev) => ({ ...prev, [file.id]: 100 }));
+      showToast('success', `Downloaded "${file.name}" successfully.`);
+      setTimeout(() => {
+        setDownloadingMap((prev) => {
+          const next = { ...prev };
+          delete next[file.id];
+          return next;
+        });
+      }, 900);
     } catch (err: any) {
+      setDownloadingMap((prev) => {
+        const next = { ...prev };
+        delete next[file.id];
+        return next;
+      });
       showToast('error', err?.message || 'Download failed.');
     }
   };
@@ -971,59 +1024,56 @@ export default function StorageManager() {
         className="hidden"
       />
 
-      {/* Toast Notification */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 right-6 z-[95] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium max-w-md ${
-            toast.kind === 'success'
-              ? 'bg-emerald-600 text-white border-emerald-500'
-              : toast.kind === 'error'
-              ? 'bg-rose-600 text-white border-rose-500'
-              : 'bg-slate-900 text-white border-slate-700'
-          }`}
-        >
-          {toast.kind === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-          ) : (
-            <AlertCircle className="w-4 h-4 shrink-0" />
-          )}
-          <span className="leading-snug">{toast.message}</span>
-          <button
-            type="button"
-            onClick={() => setToast(null)}
-            className="ml-1 p-0.5 rounded hover:bg-white/15"
-            aria-label="Dismiss message"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
       {/* Main Unified Storage Card (faithful to clean mockup layout + power tools) */}
       <section
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative bg-white dark:bg-slate-900 border rounded-2xl shadow-sm transition-colors ${
+        className={`relative bg-white dark:bg-slate-900 border rounded-2xl shadow-sm transition-all duration-200 ${
           isDragging
-            ? 'border-blue-500 ring-4 ring-blue-500/15'
+            ? 'border-blue-500 ring-4 ring-blue-500/20 shadow-lg'
             : 'border-slate-200 dark:border-slate-800'
         }`}
       >
-        {/* Drag-and-drop full-canvas overlay */}
-        {isDragging && (
-          <div className="absolute inset-0 z-30 rounded-2xl bg-blue-600/10 backdrop-blur-[2px] border-2 border-dashed border-blue-500 flex flex-col items-center justify-center pointer-events-none">
-            <div className="bg-white dark:bg-slate-900 px-6 py-4 rounded-2xl shadow-xl border border-blue-200 dark:border-blue-800 text-center">
-              <Upload className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-              <p className="text-sm font-bold text-slate-900 dark:text-white">
-                Drop images, videos, or PDFs to upload
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Destination: {selectedBucket === 'all' ? 'Auto-routed Supabase bucket' : `${selectedBucket}/${currentFolder || activeBucketConfig?.defaultFolder || 'uploads'}`}
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Smooth Animated Drag-and-Drop Full-Canvas Overlay */}
+        <AnimatePresence>
+          {isDragging && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16 }}
+              className="absolute inset-0 z-30 rounded-2xl bg-blue-600/10 dark:bg-blue-500/15 backdrop-blur-[3px] border-2 border-dashed border-blue-500 flex flex-col items-center justify-center pointer-events-none"
+            >
+              <motion.div
+                initial={{ scale: 0.92, y: 10, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.94, y: 6, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+                className="bg-white/95 dark:bg-slate-900/95 px-7 py-5 rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-800 text-center max-w-sm"
+              >
+                <motion.div
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
+                  className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-3 border border-blue-200/70 dark:border-blue-800/70"
+                >
+                  <Upload className="w-6 h-6" />
+                </motion.div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  Drop files to upload to Supabase
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Destination:{' '}
+                  <span className="font-mono font-medium text-blue-600 dark:text-blue-400">
+                    {selectedBucket === 'all'
+                      ? 'Auto-routed bucket'
+                      : `${selectedBucket}/${currentFolder || activeBucketConfig?.defaultFolder || 'uploads'}`}
+                  </span>
+                </p>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="p-6 sm:p-7 space-y-6">
           {/* Top Header Row: Tiqsey Media Storage + Connected Status + Actions */}
@@ -1465,99 +1515,212 @@ export default function StorageManager() {
             )}
           </div>
 
-          {/* Active Upload Queue Progress Panel */}
-          {uploadQueue.length > 0 && (
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Upload Activity ({uploadQueue.length})
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setUploadQueue((prev) =>
-                      prev.filter((q) => q.stage === 'uploading' || q.stage === 'hashing' || q.stage === 'verifying')
-                    )
-                  }
-                  className="text-[11px] font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white"
-                >
-                  Clear completed
-                </button>
-              </div>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {uploadQueue.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-slate-800 dark:text-slate-200 truncate">
-                          {item.file.name}
-                        </span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums shrink-0">
-                          {item.stage === 'done'
-                            ? 'Verified in Supabase'
-                            : item.stage === 'reused'
-                            ? 'Reused existing'
-                            : item.stage === 'error'
-                            ? 'Failed'
-                            : item.stage === 'verifying'
-                            ? 'Verifying...'
-                            : `${item.progress}%`}
-                        </span>
-                      </div>
-                      <div className="mt-1.5 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-200 ${
-                            item.stage === 'error'
-                              ? 'bg-rose-500'
-                              : item.stage === 'done' || item.stage === 'reused'
-                              ? 'bg-emerald-500'
-                              : 'bg-blue-600'
-                          }`}
-                          style={{ width: `${item.progress}%` }}
-                        />
-                      </div>
-                      {item.error && (
-                        <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">{item.error}</p>
-                      )}
-                    </div>
-                    {item.stage === 'error' && (
-                      <button
-                        type="button"
-                        onClick={() => handleRetryQueueItem(item)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-semibold text-[11px] shrink-0"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Retry</span>
-                      </button>
+          {/* Active Upload Queue Progress Panel with 4-Dot Diamond Loader, Thumbnails & Animated Progress */}
+          <AnimatePresence initial={false}>
+            {uploadQueue.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.99 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.99 }}
+                transition={ADMIN_TRANSITION_SMOOTH}
+                className="p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    {uploadQueue.some(
+                      (q) => q.stage === 'queued' || q.stage === 'hashing' || q.stage === 'uploading' || q.stage === 'verifying'
+                    ) ? (
+                      <DiamondDotsSpinner size="xs" tone="amber" label="Uploading media files" />
+                    ) : (
+                      <AnimatedCheckmark size={18} />
                     )}
-                    {(item.stage === 'done' || item.stage === 'reused') && item.asset && (
-                      <button
-                        type="button"
-                        onClick={() => setInspectedFile(item.asset!)}
-                        className="px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold text-[11px] shrink-0"
-                      >
-                        View
-                      </button>
-                    )}
-                    {(item.stage === 'done' || item.stage === 'reused' || item.stage === 'error') && (
-                      <button
-                        type="button"
-                        onClick={() => setUploadQueue((prev) => prev.filter((q) => q.id !== item.id))}
-                        className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-white shrink-0"
-                        title="Dismiss"
-                        aria-label="Dismiss upload activity item"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                      Upload Activity ({uploadQueue.length})
+                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setUploadQueue((prev) =>
+                        prev.filter((q) => q.stage === 'uploading' || q.stage === 'hashing' || q.stage === 'verifying')
+                      )
+                    }
+                    className="text-[11px] font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
+                  >
+                    Clear completed
+                  </button>
+                </div>
+
+                <div className="space-y-2.5 max-h-60 overflow-y-auto pr-0.5">
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {uploadQueue.map((item) => {
+                      const isUploadingStage =
+                        item.stage === 'queued' ||
+                        item.stage === 'hashing' ||
+                        item.stage === 'uploading' ||
+                        item.stage === 'verifying';
+                      const barState =
+                        item.stage === 'error'
+                          ? 'error'
+                          : item.stage === 'done' || item.stage === 'reused'
+                          ? 'success'
+                          : item.stage === 'verifying'
+                          ? 'verifying'
+                          : 'active';
+
+                      return (
+                        <motion.div
+                          key={item.id}
+                          layout
+                          initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, x: 18, scale: 0.97 }}
+                          transition={{ duration: 0.2, ease: ADMIN_EASE }}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs text-xs"
+                        >
+                          {/* Live File Thumbnail Preview */}
+                          <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 shrink-0 flex items-center justify-center">
+                            {item.previewUrl && item.file.type.startsWith('image/') ? (
+                              <img
+                                src={item.previewUrl}
+                                alt={item.file.name}
+                                className={`w-full h-full object-cover transition-opacity duration-200 ${
+                                  isUploadingStage ? 'opacity-75' : 'opacity-100'
+                                }`}
+                              />
+                            ) : item.previewUrl && item.file.type.startsWith('video/') ? (
+                              <video
+                                src={item.previewUrl}
+                                muted
+                                playsInline
+                                className="w-full h-full object-cover opacity-80"
+                              />
+                            ) : (
+                              <FileText className="w-5 h-5 text-slate-400" />
+                            )}
+                            {isUploadingStage && (
+                              <div className="absolute inset-0 bg-white/55 dark:bg-slate-950/60 backdrop-blur-[1px] flex items-center justify-center">
+                                <DiamondDotsSpinner size="xs" tone="amber" label={`Uploading ${item.file.name}`} />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Filename, Metadata & Real-Time Animated Progress Bar */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">
+                                  {item.file.name}
+                                </p>
+                                <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate tabular-nums">
+                                  {formatStorageBytes(item.file.size)} · {item.bucket}/{item.folder}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <AnimatePresence mode="wait">
+                                  {item.stage === 'done' || item.stage === 'reused' ? (
+                                    <motion.span
+                                      key="done"
+                                      initial={{ opacity: 0, scale: 0.85 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400"
+                                    >
+                                      <AnimatedCheckmark size={18} />
+                                      <span>{item.stage === 'reused' ? 'Reused' : 'Verified'}</span>
+                                    </motion.span>
+                                  ) : item.stage === 'error' ? (
+                                    <motion.span
+                                      key="error"
+                                      initial={{ opacity: 0, scale: 0.85 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400"
+                                    >
+                                      <AnimatedErrorIcon size={18} />
+                                      <span>Failed</span>
+                                    </motion.span>
+                                  ) : (
+                                    <motion.span
+                                      key="progress"
+                                      initial={{ opacity: 0 }}
+                                      animate={{ opacity: 1 }}
+                                      className="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300 tabular-nums"
+                                    >
+                                      <span className="text-slate-400 font-medium">
+                                        {item.stage === 'hashing'
+                                          ? 'Preparing'
+                                          : item.stage === 'verifying'
+                                          ? 'Verifying'
+                                          : 'Uploading'}
+                                      </span>
+                                      <span className="font-mono text-blue-600 dark:text-sky-400">
+                                        {item.progress}%
+                                      </span>
+                                    </motion.span>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+                            </div>
+
+                            <AnimatedProgressBar
+                              progress={item.progress}
+                              state={barState}
+                              heightClass="h-1.5"
+                              className="mt-2"
+                            />
+
+                            {item.error && (
+                              <motion.p
+                                initial={{ opacity: 0, y: -3 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mt-1.5 text-[11px] font-medium text-rose-600 dark:text-rose-400"
+                              >
+                                {item.error}
+                              </motion.p>
+                            )}
+                          </div>
+
+                          {/* Row Actions */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {item.stage === 'error' && (
+                              <button
+                                type="button"
+                                onClick={() => handleRetryQueueItem(item)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-semibold text-[11px] hover:opacity-90"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>Retry</span>
+                              </button>
+                            )}
+                            {(item.stage === 'done' || item.stage === 'reused') && item.asset && (
+                              <button
+                                type="button"
+                                onClick={() => setInspectedFile(item.asset!)}
+                                className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold text-[11px]"
+                              >
+                                View
+                              </button>
+                            )}
+                            {(item.stage === 'done' || item.stage === 'reused' || item.stage === 'error') && (
+                              <button
+                                type="button"
+                                onClick={() => setUploadQueue((prev) => prev.filter((q) => q.id !== item.id))}
+                                className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                                title="Dismiss"
+                                aria-label="Dismiss upload activity item"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Folder Breadcrumbs & Folders Row */}
           {(currentFolder || scopedFolders.length > 0) && (
@@ -1651,14 +1814,7 @@ export default function StorageManager() {
 
           {/* Media Library Content: Loading / Empty / Grid / List */}
           {loading && !library ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="space-y-2 animate-pulse">
-                  <div className="aspect-[4/3] rounded-2xl bg-slate-100 dark:bg-slate-800" />
-                  <div className="h-3.5 w-32 bg-slate-100 dark:bg-slate-800 rounded" />
-                </div>
-              ))}
-            </div>
+            <MediaGridSkeleton count={6} />
           ) : filteredFiles.length === 0 ? (
             <div className="py-14 px-6 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/30 text-center">
               <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400">
@@ -1693,119 +1849,167 @@ export default function StorageManager() {
               )}
             </div>
           ) : viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredFiles.map((file) => (
-                <div key={file.id} className="group flex flex-col">
-                  {/* Rounded Visual Card matching mockup */}
-                  <div
-                    onClick={() => setInspectedFile(file)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setInspectedFile(file);
-                      }
-                    }}
-                    className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-800 cursor-pointer transition-transform duration-200 group-hover:shadow-md"
-                  >
-                    {file.mediaType === 'image' ? (
-                      <img
-                        src={file.publicUrl}
-                        alt={file.name}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                        loading="lazy"
-                      />
-                    ) : file.mediaType === 'video' ? (
-                      <div className="relative w-full h-full bg-slate-950 flex items-center justify-center">
-                        <video
-                          src={file.publicUrl}
-                          className="w-full h-full object-cover opacity-85"
-                          muted
-                          playsInline
-                          preload="metadata"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="w-11 h-11 rounded-full bg-black/65 backdrop-blur-xs text-white flex items-center justify-center shadow-lg">
-                            <Play className="w-5 h-5 fill-current ml-0.5" />
-                          </span>
+            <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <AnimatePresence mode="popLayout">
+                {filteredFiles.map((file) => {
+                  const dlPct = downloadingMap[file.id];
+                  const isDownloading = dlPct !== undefined;
+
+                  return (
+                    <motion.div
+                      key={file.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.96, y: 8 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.92 }}
+                      transition={ADMIN_TRANSITION_FAST}
+                      className="group flex flex-col"
+                    >
+                      {/* Rounded Visual Card matching mockup */}
+                      <div
+                        onClick={() => setInspectedFile(file)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setInspectedFile(file);
+                          }
+                        }}
+                        className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-800 cursor-pointer transition-all duration-200 group-hover:shadow-lg group-hover:-translate-y-0.5"
+                      >
+                        {file.mediaType === 'image' ? (
+                          <img
+                            src={file.publicUrl}
+                            alt={file.name}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                            loading="lazy"
+                          />
+                        ) : file.mediaType === 'video' ? (
+                          <div className="relative w-full h-full bg-slate-950 flex items-center justify-center">
+                            <video
+                              src={file.publicUrl}
+                              className="w-full h-full object-cover opacity-85"
+                              muted
+                              playsInline
+                              preload="metadata"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="w-11 h-11 rounded-full bg-black/65 backdrop-blur-xs text-white flex items-center justify-center shadow-lg transition-transform duration-200 group-hover:scale-110">
+                                <Play className="w-5 h-5 fill-current ml-0.5" />
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-400">
+                            <FileText className="w-10 h-10 mb-2 text-slate-400" strokeWidth={1.5} />
+                            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500">
+                              {file.mimeType.split('/')[1] || 'DOC'}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Live Download Progress Overlay on Card */}
+                        <AnimatePresence>
+                          {isDownloading && (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px] flex flex-col items-center justify-center p-4 text-white z-10"
+                            >
+                              {dlPct >= 100 ? (
+                                <AnimatedCheckmark size={30} className="bg-emerald-500/25 text-emerald-300" />
+                              ) : (
+                                <DiamondDotsSpinner size="md" tone="amber" label={`Downloading ${file.name}`} />
+                              )}
+                              <span className="text-xs font-semibold mt-2.5 tabular-nums">
+                                {dlPct >= 100 ? 'Download Complete' : `Downloading · ${dlPct}%`}
+                              </span>
+                              <AnimatedProgressBar
+                                progress={dlPct}
+                                state={dlPct >= 100 ? 'success' : 'active'}
+                                heightClass="h-1.5"
+                                className="mt-2 max-w-[160px] bg-white/20"
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {/* Hover Quick Action Overlay */}
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-between gap-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity"
+                        >
+                          <div className="flex items-center gap-1 bg-slate-950/80 backdrop-blur-xs text-white p-1 rounded-lg">
+                            <button
+                              type="button"
+                              onClick={() => copyText(file.publicUrl, `url-${file.id}`, 'Public URL')}
+                              className="p-1.5 rounded-md hover:bg-white/15 transition-colors"
+                              title="Copy public URL"
+                            >
+                              {copiedKey === `url-${file.id}` ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isDownloading}
+                              onClick={() => handleDownload(file)}
+                              className="p-1.5 rounded-md hover:bg-white/15 transition-colors disabled:opacity-60"
+                              title={isDownloading ? `Downloading (${dlPct}%)` : 'Download file'}
+                            >
+                              {isDownloading ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-300" />
+                              ) : (
+                                <Download className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => triggerReplaceFile(file)}
+                              className="p-1.5 rounded-md hover:bg-white/15 transition-colors"
+                              title="Replace file"
+                            >
+                              <Replace className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => openDeleteFileConfirm(file)}
+                            className="p-2 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white backdrop-blur-xs transition-colors"
+                            title="Delete file"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-400">
-                        <FileText className="w-10 h-10 mb-2 text-slate-400" strokeWidth={1.5} />
-                        <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500">
-                          {file.mimeType.split('/')[1] || 'DOC'}
-                        </span>
+
+                      {/* Clean Filename & Metadata Below Thumbnail (mockup style) */}
+                      <div className="mt-2.5 px-0.5 flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => setInspectedFile(file)}
+                            className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 truncate block max-w-full text-left"
+                            title={file.name}
+                          >
+                            {file.name}
+                          </button>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate tabular-nums">
+                            {formatStorageBytes(file.size)} · {file.bucket} · {formatDateShort(file.updatedAt || file.createdAt)}
+                          </p>
+                        </div>
                       </div>
-                    )}
-
-                    {/* Hover Quick Action Overlay */}
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-between gap-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity"
-                    >
-                      <div className="flex items-center gap-1 bg-slate-950/80 backdrop-blur-xs text-white p-1 rounded-lg">
-                        <button
-                          type="button"
-                          onClick={() => copyText(file.publicUrl, `url-${file.id}`, 'Public URL')}
-                          className="p-1.5 rounded-md hover:bg-white/15 transition-colors"
-                          title="Copy public URL"
-                        >
-                          {copiedKey === `url-${file.id}` ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDownload(file)}
-                          className="p-1.5 rounded-md hover:bg-white/15 transition-colors"
-                          title="Download file"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => triggerReplaceFile(file)}
-                          className="p-1.5 rounded-md hover:bg-white/15 transition-colors"
-                          title="Replace file"
-                        >
-                          <Replace className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => openDeleteFileConfirm(file)}
-                        className="p-2 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white backdrop-blur-xs transition-colors"
-                        title="Delete file"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Clean Filename & Metadata Below Thumbnail (mockup style) */}
-                  <div className="mt-2.5 px-0.5 flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => setInspectedFile(file)}
-                        className="text-sm font-medium text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 truncate block max-w-full text-left"
-                        title={file.name}
-                      >
-                        {file.name}
-                      </button>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate tabular-nums">
-                        {formatStorageBytes(file.size)} · {file.bucket} · {formatDateShort(file.updatedAt || file.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </motion.div>
           ) : (
             /* High-Density List View */
             <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
@@ -1874,11 +2078,25 @@ export default function StorageManager() {
                           </button>
                           <button
                             type="button"
+                            disabled={downloadingMap[file.id] !== undefined}
                             onClick={() => handleDownload(file)}
-                            className="p-1.5 rounded-md text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                            title="Download"
+                            className="inline-flex items-center gap-1 p-1.5 rounded-md text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-65"
+                            title={
+                              downloadingMap[file.id] !== undefined
+                                ? `Downloading (${downloadingMap[file.id]}%)`
+                                : 'Download'
+                            }
                           >
-                            <Download className="w-3.5 h-3.5" />
+                            {downloadingMap[file.id] !== undefined ? (
+                              <>
+                                <DiamondDotsSpinner size="xs" tone="amber" label="Downloading" />
+                                <span className="text-[10px] font-mono tabular-nums text-blue-600 dark:text-sky-400">
+                                  {downloadingMap[file.id]}%
+                                </span>
+                              </>
+                            ) : (
+                              <Download className="w-3.5 h-3.5" />
+                            )}
                           </button>
                           <button
                             type="button"
@@ -1924,567 +2142,655 @@ export default function StorageManager() {
       </section>
 
       {/* Media Inspector Modal (Image Preview, Video Player, Linked Usage, Copy, Download, Replace, Delete) */}
-      {inspectedFile && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4"
-          onClick={() => setInspectedFile(null)}
-        >
-          <div
-            className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {inspectedFile && (
+          <motion.div
+            key="inspector-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4"
+            onClick={() => setInspectedFile(null)}
           >
-            {/* Media Preview Pane */}
-            <div className="lg:w-3/5 bg-slate-950 flex items-center justify-center p-4 min-h-[280px] max-h-[55vh] lg:max-h-[90vh]">
-              {inspectedFile.mediaType === 'image' ? (
-                <img
-                  src={inspectedFile.publicUrl}
-                  alt={inspectedFile.name}
-                  className="max-w-full max-h-[75vh] object-contain rounded-lg"
-                />
-              ) : inspectedFile.mediaType === 'video' ? (
-                <video
-                  key={inspectedFile.publicUrl}
-                  src={inspectedFile.publicUrl}
-                  controls
-                  playsInline
-                  className="max-w-full max-h-[75vh] rounded-lg bg-black"
-                />
-              ) : (
-                <div className="text-center text-slate-300 space-y-3 p-8">
-                  <FileText className="w-14 h-14 mx-auto text-slate-400" strokeWidth={1.5} />
-                  <p className="text-sm font-semibold">{inspectedFile.name}</p>
-                  <a
-                    href={inspectedFile.publicUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-slate-950 text-xs font-semibold"
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: 8 }}
+              transition={{ duration: 0.2, ease: ADMIN_EASE }}
+              className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Media Preview Pane */}
+              <div className="lg:w-3/5 bg-slate-950 flex items-center justify-center p-4 min-h-[280px] max-h-[55vh] lg:max-h-[90vh]">
+                {inspectedFile.mediaType === 'image' ? (
+                  <motion.img
+                    key={inspectedFile.publicUrl}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.22, ease: ADMIN_EASE }}
+                    src={inspectedFile.publicUrl}
+                    alt={inspectedFile.name}
+                    className="max-w-full max-h-[75vh] object-contain rounded-lg"
+                  />
+                ) : inspectedFile.mediaType === 'video' ? (
+                  <video
+                    key={inspectedFile.publicUrl}
+                    src={inspectedFile.publicUrl}
+                    controls
+                    playsInline
+                    className="max-w-full max-h-[75vh] rounded-lg bg-black"
+                  />
+                ) : (
+                  <div className="text-center text-slate-300 space-y-3 p-8">
+                    <FileText className="w-14 h-14 mx-auto text-slate-400" strokeWidth={1.5} />
+                    <p className="text-sm font-semibold">{inspectedFile.name}</p>
+                    <a
+                      href={inspectedFile.publicUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-slate-950 text-xs font-semibold"
+                    >
+                      <span>Open Document</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Details & Actions Pane */}
+              <div className="lg:w-2/5 flex flex-col max-h-[90vh] overflow-y-auto p-5 space-y-5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white break-all">
+                      {inspectedFile.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
+                      {formatStorageBytes(inspectedFile.size)} · {inspectedFile.mimeType}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setInspectedFile(null)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
-                    <span>Open Document</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Metadata Fields */}
+                <div className="space-y-2.5 text-xs border-y border-slate-100 dark:border-slate-800 py-4">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-slate-500 dark:text-slate-400">Bucket</span>
+                    <span className="font-mono font-medium text-slate-800 dark:text-slate-200">{inspectedFile.bucket}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-slate-500 dark:text-slate-400">Storage Path</span>
+                    <span className="font-mono text-slate-800 dark:text-slate-200 text-right break-all">
+                      {inspectedFile.path}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-slate-500 dark:text-slate-400">Uploaded</span>
+                    <span className="text-slate-800 dark:text-slate-200">
+                      {formatDateShort(inspectedFile.createdAt || inspectedFile.updatedAt)}
+                    </span>
+                  </div>
+                  {inspectedFile.uploadedBy && (
+                    <div className="flex justify-between gap-2">
+                      <span className="text-slate-500 dark:text-slate-400">Uploaded By</span>
+                      <span className="text-slate-800 dark:text-slate-200">{inspectedFile.uploadedBy}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Copy URL & Path */}
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => copyText(inspectedFile.publicUrl, 'insp-url', 'Public URL')}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <span className="flex items-center gap-2 truncate">
+                      <Link2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">Copy Public URL</span>
+                    </span>
+                    {copiedKey === 'insp-url' ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => copyText(`${inspectedFile.bucket}/${inspectedFile.path}`, 'insp-path', 'Storage path')}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <span className="flex items-center gap-2 truncate">
+                      <Folder className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">Copy Storage Path</span>
+                    </span>
+                    {copiedKey === 'insp-path' ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Linked Website Usage */}
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Linked Website Records
+                  </p>
+                  {loadingInspectedRefs ? (
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                      <DiamondDotsSpinner size="xs" tone="amber" label="Scanning records" />
+                      <span>Scanning linked records...</span>
+                    </div>
+                  ) : inspectedRefs.length === 0 ? (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Not currently linked to any active activity, banner, blog, or favicon.
+                    </p>
+                  ) : (
+                    <ul className="space-y-1.5 max-h-32 overflow-y-auto">
+                      {inspectedRefs.map((ref, idx) => (
+                        <li
+                          key={`${ref.type}-${ref.id}-${idx}`}
+                          className="px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-800/60 text-xs"
+                        >
+                          <span className="font-semibold text-amber-900 dark:text-amber-200">{ref.title}</span>
+                          <span className="text-amber-700 dark:text-amber-400"> · {ref.field}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Primary File Actions */}
+                <div className="grid grid-cols-2 gap-2 pt-2 mt-auto">
+                  <button
+                    type="button"
+                    disabled={downloadingMap[inspectedFile.id] !== undefined}
+                    onClick={() => handleDownload(inspectedFile)}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-70"
+                  >
+                    {downloadingMap[inspectedFile.id] !== undefined ? (
+                      <>
+                        <DiamondDotsSpinner size="xs" tone="amber" label="Downloading file" />
+                        <span className="tabular-nums">
+                          {downloadingMap[inspectedFile.id] >= 100
+                            ? 'Saved'
+                            : `${downloadingMap[inspectedFile.id]}%`}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => triggerReplaceFile(inspectedFile)}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-semibold hover:bg-slate-800 dark:hover:bg-slate-200"
+                  >
+                    <Replace className="w-3.5 h-3.5" />
+                    <span>Replace File</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openDeleteFileConfirm(inspectedFile)}
+                    className="col-span-2 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Permanently</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Duplicate Detection Modal (Reuse / Replace / Keep Both) */}
+      <AnimatePresence>
+        {duplicatePrompt && (
+          <motion.div
+            key="duplicate-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/65 backdrop-blur-xs p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: 8 }}
+              transition={{ duration: 0.2, ease: ADMIN_EASE }}
+              className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Duplicate Media Detected</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {duplicatePrompt.matchType === 'hash'
+                      ? `An identical file already exists in "${duplicatePrompt.existing.bucket}".`
+                      : `A file with a matching name already exists in "${duplicatePrompt.existing.bucket}".`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0 flex items-center justify-center">
+                  {duplicatePrompt.existing.mediaType === 'image' ? (
+                    <img
+                      src={duplicatePrompt.existing.publicUrl}
+                      alt={duplicatePrompt.existing.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Video className="w-5 h-5 text-slate-500" />
+                  )}
+                </div>
+                <div className="min-w-0 text-xs">
+                  <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                    {duplicatePrompt.existing.name}
+                  </p>
+                  <p className="text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
+                    {formatStorageBytes(duplicatePrompt.existing.size)} · {duplicatePrompt.existing.bucket}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => duplicatePrompt.resolve('reuse')}
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-semibold hover:bg-slate-800 dark:hover:bg-slate-200"
+                >
+                  Reuse Existing File (Copy URL)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => duplicatePrompt.resolve('replace')}
+                  className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
+                >
+                  Replace Existing & Auto-Update Linked Records
+                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => duplicatePrompt.resolve('keep-both')}
+                    className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    Keep Both
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => duplicatePrompt.resolve('cancel')}
+                    className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal with Linked Website Reference Warning */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <motion.div
+            key="delete-confirm-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/65 backdrop-blur-xs p-4"
+            onClick={() => !deleteConfirm.deleting && setDeleteConfirm(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: 8 }}
+              transition={{ duration: 0.2, ease: ADMIN_EASE }}
+              className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    {deleteConfirm.kind === 'folder' ? 'Delete Folder?' : 'Delete Media File?'}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 break-all">
+                    {deleteConfirm.kind === 'folder'
+                      ? `Permanently delete folder "${deleteConfirm.folder?.path}" and all files inside it from "${deleteConfirm.folder?.bucket}".`
+                      : `Permanently delete "${deleteConfirm.file?.name}" from Supabase Storage.`}
+                  </p>
+                </div>
+              </div>
+
+              {deleteConfirm.loadingRefs ? (
+                <div className="flex items-center gap-2 text-xs text-slate-500 py-2">
+                  <DiamondDotsSpinner size="xs" tone="amber" label="Checking references" />
+                  <span>Checking if this media is used on the website...</span>
+                </div>
+              ) : deleteConfirm.references.length > 0 ? (
+                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 space-y-2">
+                  <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                    Warning: Linked to {deleteConfirm.references.length} website record
+                    {deleteConfirm.references.length === 1 ? '' : 's'}
+                  </p>
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                    Deleting this media may leave missing images/videos unless you replace it first:
+                  </p>
+                  <ul className="space-y-1 max-h-32 overflow-y-auto text-[11px] text-amber-900 dark:text-amber-200">
+                    {deleteConfirm.references.map((r, i) => (
+                      <li key={`${r.id}-${i}`}>
+                        • <span className="font-semibold">{r.title}</span> ({r.field})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/60 px-3 py-2 rounded-lg">
+                  Safe to delete — no active activities, banners, blogs, or favicons reference this file.
+                </p>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={deleteConfirm.deleting}
+                  onClick={() => setDeleteConfirm(null)}
+                  className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteConfirm.deleting || deleteConfirm.loadingRefs}
+                  onClick={() => executeConfirmedDelete()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
+                >
+                  {deleteConfirm.deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{deleteConfirm.references.length > 0 ? 'Delete Anyway' : 'Delete Permanently'}</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Create Folder Modal */}
+      <AnimatePresence>
+        {createFolderOpen && (
+          <motion.div
+            key="create-folder-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4"
+            onClick={() => setCreateFolderOpen(false)}
+          >
+            <motion.form
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: 8 }}
+              transition={{ duration: 0.2, ease: ADMIN_EASE }}
+              onSubmit={handleCreateFolderSubmit}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4"
+            >
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Create Storage Folder</h3>
+              {selectedBucket === 'all' && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    Target Bucket
+                  </label>
+                  <select
+                    value={newFolderBucket}
+                    onChange={(e) => setNewFolderBucket(e.target.value as SupabaseBucketId)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
+                  >
+                    {SUPABASE_STORAGE_BUCKET_LIST.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.id} — {b.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
-            </div>
-
-            {/* Details & Actions Pane */}
-            <div className="lg:w-2/5 flex flex-col max-h-[90vh] overflow-y-auto p-5 space-y-5">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white break-all">
-                    {inspectedFile.name}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
-                    {formatStorageBytes(inspectedFile.size)} · {inspectedFile.mimeType}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  Folder Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder="e.g. summer-campaigns"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                />
+                {currentFolder && selectedBucket !== 'all' && (
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Created inside: <span className="font-mono">{selectedBucket}/{currentFolder}/</span>
                   </p>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setCreateFolderOpen(false)}
+                  className="px-3.5 py-2 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingFolder}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 disabled:opacity-50"
+                >
+                  {savingFolder && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Create Folder</span>
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Rename Folder Modal */}
+      <AnimatePresence>
+        {renameFolderTarget && (
+          <motion.div
+            key="rename-folder-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4"
+            onClick={() => setRenameFolderTarget(null)}
+          >
+            <motion.form
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: 8 }}
+              transition={{ duration: 0.2, ease: ADMIN_EASE }}
+              onSubmit={handleRenameFolderSubmit}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4"
+            >
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Rename Folder</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Moves all files inside <span className="font-mono">{renameFolderTarget.path}</span> and automatically updates linked website URLs.
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  New Folder Path
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={renameFolderValue}
+                  onChange={(e) => setRenameFolderValue(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setRenameFolderTarget(null)}
+                  className="px-3.5 py-2 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingFolder}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 disabled:opacity-50"
+                >
+                  {savingFolder && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Rename & Move Files</span>
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Centered 1-Step Supabase Delete Policy Modal (shown only on static hosting if Supabase blocks DELETE via RLS) */}
+      <AnimatePresence>
+        {rlsFixModal && (
+          <motion.div
+            key="rls-fix-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="fixed inset-0 z-[105] flex items-center justify-center bg-slate-950/65 backdrop-blur-xs p-4"
+            onClick={() => !rlsFixModal.retrying && setRlsFixModal(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: 8 }}
+              transition={{ duration: 0.2, ease: ADMIN_EASE }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/70 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Enable Live Delete in Supabase (1-Time Setup)
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      This site is running in <strong>Direct Browser → Supabase</strong> mode (static hosting). Supabase
+                      allows uploads to <span className="font-mono font-semibold">{rlsFixModal.bucket}</span>, but blocks
+                      deleting until you add the Delete policy once in your Supabase SQL Editor.
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setInspectedFile(null)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                  disabled={rlsFixModal.retrying}
+                  onClick={() => setRlsFixModal(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Metadata Fields */}
-              <div className="space-y-2.5 text-xs border-y border-slate-100 dark:border-slate-800 py-4">
-                <div className="flex justify-between gap-2">
-                  <span className="text-slate-500 dark:text-slate-400">Bucket</span>
-                  <span className="font-mono font-medium text-slate-800 dark:text-slate-200">{inspectedFile.bucket}</span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-slate-500 dark:text-slate-400">Storage Path</span>
-                  <span className="font-mono text-slate-800 dark:text-slate-200 text-right break-all">
-                    {inspectedFile.path}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-slate-500 dark:text-slate-400">Uploaded</span>
-                  <span className="text-slate-800 dark:text-slate-200">
-                    {formatDateShort(inspectedFile.createdAt || inspectedFile.updatedAt)}
-                  </span>
-                </div>
-                {inspectedFile.uploadedBy && (
-                  <div className="flex justify-between gap-2">
-                    <span className="text-slate-500 dark:text-slate-400">Uploaded By</span>
-                    <span className="text-slate-800 dark:text-slate-200">{inspectedFile.uploadedBy}</span>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                    <div className="font-bold text-slate-900 dark:text-white">1. Copy SQL</div>
+                    <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                      Click <strong>Copy Delete SQL</strong> below.
+                    </p>
                   </div>
-                )}
-              </div>
-
-              {/* Copy URL & Path */}
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => copyText(inspectedFile.publicUrl, 'insp-url', 'Public URL')}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  <span className="flex items-center gap-2 truncate">
-                    <Link2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">Copy Public URL</span>
-                  </span>
-                  {copiedKey === 'insp-url' ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => copyText(`${inspectedFile.bucket}/${inspectedFile.path}`, 'insp-path', 'Storage path')}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  <span className="flex items-center gap-2 truncate">
-                    <Folder className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">Copy Storage Path</span>
-                  </span>
-                  {copiedKey === 'insp-path' ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  )}
-                </button>
-              </div>
-
-              {/* Linked Website Usage */}
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Linked Website Records
-                </p>
-                {loadingInspectedRefs ? (
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Scanning linked records...</span>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                    <div className="font-bold text-slate-900 dark:text-white">2. Run in Supabase</div>
+                    <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                      Paste in Supabase SQL Editor and click <strong>Run</strong>.
+                    </p>
                   </div>
-                ) : inspectedRefs.length === 0 ? (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Not currently linked to any active activity, banner, blog, or favicon.
-                  </p>
-                ) : (
-                  <ul className="space-y-1.5 max-h-32 overflow-y-auto">
-                    {inspectedRefs.map((ref, idx) => (
-                      <li
-                        key={`${ref.type}-${ref.id}-${idx}`}
-                        className="px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-800/60 text-xs"
-                      >
-                        <span className="font-semibold text-amber-900 dark:text-amber-200">{ref.title}</span>
-                        <span className="text-amber-700 dark:text-amber-400"> · {ref.field}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              {/* Primary File Actions */}
-              <div className="grid grid-cols-2 gap-2 pt-2 mt-auto">
-                <button
-                  type="button"
-                  onClick={() => handleDownload(inspectedFile)}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => triggerReplaceFile(inspectedFile)}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-semibold hover:bg-slate-800 dark:hover:bg-slate-200"
-                >
-                  <Replace className="w-3.5 h-3.5" />
-                  <span>Replace File</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openDeleteFileConfirm(inspectedFile)}
-                  className="col-span-2 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete Permanently</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Duplicate Detection Modal (Reuse / Replace / Keep Both) */}
-      {duplicatePrompt && (
-        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/65 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Duplicate Media Detected</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {duplicatePrompt.matchType === 'hash'
-                    ? `An identical file already exists in "${duplicatePrompt.existing.bucket}".`
-                    : `A file with a matching name already exists in "${duplicatePrompt.existing.bucket}".`}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-              <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0 flex items-center justify-center">
-                {duplicatePrompt.existing.mediaType === 'image' ? (
-                  <img
-                    src={duplicatePrompt.existing.publicUrl}
-                    alt={duplicatePrompt.existing.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <Video className="w-5 h-5 text-slate-500" />
-                )}
-              </div>
-              <div className="min-w-0 text-xs">
-                <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">
-                  {duplicatePrompt.existing.name}
-                </p>
-                <p className="text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
-                  {formatStorageBytes(duplicatePrompt.existing.size)} · {duplicatePrompt.existing.bucket}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => duplicatePrompt.resolve('reuse')}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-semibold hover:bg-slate-800 dark:hover:bg-slate-200"
-              >
-                Reuse Existing File (Copy URL)
-              </button>
-              <button
-                type="button"
-                onClick={() => duplicatePrompt.resolve('replace')}
-                className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
-              >
-                Replace Existing & Auto-Update Linked Records
-              </button>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => duplicatePrompt.resolve('keep-both')}
-                  className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  Keep Both
-                </button>
-                <button
-                  type="button"
-                  onClick={() => duplicatePrompt.resolve('cancel')}
-                  className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal with Linked Website Reference Warning */}
-      {deleteConfirm && (
-        <div
-          className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/65 backdrop-blur-xs p-4"
-          onClick={() => !deleteConfirm.deleting && setDeleteConfirm(null)}
-        >
-          <div
-            className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 flex items-center justify-center shrink-0">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  {deleteConfirm.kind === 'folder' ? 'Delete Folder?' : 'Delete Media File?'}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 break-all">
-                  {deleteConfirm.kind === 'folder'
-                    ? `Permanently delete folder "${deleteConfirm.folder?.path}" and all files inside it from "${deleteConfirm.folder?.bucket}".`
-                    : `Permanently delete "${deleteConfirm.file?.name}" from Supabase Storage.`}
-                </p>
-              </div>
-            </div>
-
-            {deleteConfirm.loadingRefs ? (
-              <div className="flex items-center gap-2 text-xs text-slate-500 py-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Checking if this media is used on the website...</span>
-              </div>
-            ) : deleteConfirm.references.length > 0 ? (
-              <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 space-y-2">
-                <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
-                  Warning: Linked to {deleteConfirm.references.length} website record
-                  {deleteConfirm.references.length === 1 ? '' : 's'}
-                </p>
-                <p className="text-[11px] text-amber-800 dark:text-amber-300">
-                  Deleting this media may leave missing images/videos unless you replace it first:
-                </p>
-                <ul className="space-y-1 max-h-32 overflow-y-auto text-[11px] text-amber-900 dark:text-amber-200">
-                  {deleteConfirm.references.map((r, i) => (
-                    <li key={`${r.id}-${i}`}>
-                      • <span className="font-semibold">{r.title}</span> ({r.field})
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/60 px-3 py-2 rounded-lg">
-                Safe to delete — no active activities, banners, blogs, or favicons reference this file.
-              </p>
-            )}
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                disabled={deleteConfirm.deleting}
-                onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={deleteConfirm.deleting || deleteConfirm.loadingRefs}
-                onClick={() => executeConfirmedDelete()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
-              >
-                {deleteConfirm.deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>{deleteConfirm.references.length > 0 ? 'Delete Anyway' : 'Delete Permanently'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Folder Modal */}
-      {createFolderOpen && (
-        <div
-          className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4"
-          onClick={() => setCreateFolderOpen(false)}
-        >
-          <form
-            onSubmit={handleCreateFolderSubmit}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4"
-          >
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">Create Storage Folder</h3>
-            {selectedBucket === 'all' && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  Target Bucket
-                </label>
-                <select
-                  value={newFolderBucket}
-                  onChange={(e) => setNewFolderBucket(e.target.value as SupabaseBucketId)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                >
-                  {SUPABASE_STORAGE_BUCKET_LIST.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.id} — {b.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                Folder Name
-              </label>
-              <input
-                type="text"
-                required
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="e.g. summer-campaigns"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-              />
-              {currentFolder && selectedBucket !== 'all' && (
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Created inside: <span className="font-mono">{selectedBucket}/{currentFolder}/</span>
-                </p>
-              )}
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setCreateFolderOpen(false)}
-                className="px-3.5 py-2 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={savingFolder}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 disabled:opacity-50"
-              >
-                {savingFolder && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Create Folder</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Rename Folder Modal */}
-      {renameFolderTarget && (
-        <div
-          className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4"
-          onClick={() => setRenameFolderTarget(null)}
-        >
-          <form
-            onSubmit={handleRenameFolderSubmit}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 space-y-4"
-          >
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Rename Folder</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Moves all files inside <span className="font-mono">{renameFolderTarget.path}</span> and automatically updates linked website URLs.
-              </p>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                New Folder Path
-              </label>
-              <input
-                type="text"
-                required
-                value={renameFolderValue}
-                onChange={(e) => setRenameFolderValue(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setRenameFolderTarget(null)}
-                className="px-3.5 py-2 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={savingFolder}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 disabled:opacity-50"
-              >
-                {savingFolder && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Rename & Move Files</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Centered 1-Step Supabase Delete Policy Modal (shown only on static hosting if Supabase blocks DELETE via RLS) */}
-      {rlsFixModal && (
-        <div
-          className="fixed inset-0 z-[105] flex items-center justify-center bg-slate-950/65 backdrop-blur-xs p-4"
-          onClick={() => !rlsFixModal.retrying && setRlsFixModal(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden"
-          >
-            <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/70 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                    <div className="font-bold text-slate-900 dark:text-white">3. Delete Live</div>
+                    <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                      Come back and click <strong>Retry Delete Now</strong>.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Enable Live Delete in Supabase (1-Time Setup)
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    This site is running in <strong>Direct Browser → Supabase</strong> mode (static hosting). Supabase
-                    allows uploads to <span className="font-mono font-semibold">{rlsFixModal.bucket}</span>, but blocks
-                    deleting until you add the Delete policy once in your Supabase SQL Editor.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                disabled={rlsFixModal.retrying}
-                onClick={() => setRlsFixModal(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
-                  <div className="font-bold text-slate-900 dark:text-white">1. Copy SQL</div>
-                  <p className="text-slate-500 dark:text-slate-400 mt-0.5">
-                    Click <strong>Copy Delete SQL</strong> below.
-                  </p>
+                <div className="relative">
+                  <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto max-h-56 leading-relaxed border border-slate-800">
+                    {SUPABASE_DELETE_RLS_SQL}
+                  </pre>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
-                  <div className="font-bold text-slate-900 dark:text-white">2. Run in Supabase</div>
-                  <p className="text-slate-500 dark:text-slate-400 mt-0.5">
-                    Paste in Supabase SQL Editor and click <strong>Run</strong>.
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
-                  <div className="font-bold text-slate-900 dark:text-white">3. Delete Live</div>
-                  <p className="text-slate-500 dark:text-slate-400 mt-0.5">
-                    Come back and click <strong>Retry Delete Now</strong>.
-                  </p>
-                </div>
-              </div>
 
-              <div className="relative">
-                <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto max-h-56 leading-relaxed border border-slate-800">
-                  {SUPABASE_DELETE_RLS_SQL}
-                </pre>
-              </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        copyText(SUPABASE_DELETE_RLS_SQL, 'rls-delete-sql', 'Delete RLS SQL');
+                        setRlsFixModal((prev) => (prev ? { ...prev, copied: true } : null));
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 hover:opacity-90"
+                    >
+                      {rlsFixModal.copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{rlsFixModal.copied ? 'SQL Copied!' : '1. Copy Delete SQL'}</span>
+                    </button>
+                    <a
+                      href={`https://supabase.com/dashboard/project/${library?.projectId || 'lzjjwsvalvfkgwtzuime'}/sql/new`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    >
+                      <span>2. Open Supabase SQL Editor</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      copyText(SUPABASE_DELETE_RLS_SQL, 'rls-delete-sql', 'Delete RLS SQL');
-                      setRlsFixModal((prev) => (prev ? { ...prev, copied: true } : null));
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 hover:opacity-90"
+                    disabled={rlsFixModal.retrying}
+                    onClick={() => executeConfirmedDelete(rlsFixModal.pendingDelete)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
                   >
-                    {rlsFixModal.copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{rlsFixModal.copied ? 'SQL Copied!' : '1. Copy Delete SQL'}</span>
+                    {rlsFixModal.retrying ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    <span>{rlsFixModal.retrying ? 'Deleting...' : '3. Retry Delete Now'}</span>
                   </button>
-                  <a
-                    href={`https://supabase.com/dashboard/project/${library?.projectId || 'lzjjwsvalvfkgwtzuime'}/sql/new`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700"
-                  >
-                    <span>2. Open Supabase SQL Editor</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
                 </div>
-
-                <button
-                  type="button"
-                  disabled={rlsFixModal.retrying}
-                  onClick={() => executeConfirmedDelete(rlsFixModal.pendingDelete)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
-                >
-                  {rlsFixModal.retrying ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-3.5 h-3.5" />
-                  )}
-                  <span>{rlsFixModal.retrying ? 'Deleting...' : '3. Retry Delete Now'}</span>
-                </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

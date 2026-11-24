@@ -58,6 +58,99 @@
   animation: shimmer 2s infinite;
 }
 
+/* Tiqsey Admin Panel: 4-Dot Rotating Diamond Loader & Smooth Micro-Interactions */
+@keyframes tiqsey-diamond-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes tiqsey-diamond-pulse {
+  0%, 100% {
+    opacity: 0.32;
+    transform: scale(0.84);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  65% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes tiqsey-progress-sheen {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.tiqsey-diamond-orbit {
+  animation: tiqsey-diamond-spin 1.45s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  will-change: transform;
+}
+
+.tiqsey-diamond-dot-1 {
+  animation: tiqsey-diamond-pulse 1.15s ease-in-out infinite;
+  animation-delay: 0s;
+}
+.tiqsey-diamond-dot-2 {
+  animation: tiqsey-diamond-pulse 1.15s ease-in-out infinite;
+  animation-delay: 0.28s;
+}
+.tiqsey-diamond-dot-3 {
+  animation: tiqsey-diamond-pulse 1.15s ease-in-out infinite;
+  animation-delay: 0.56s;
+}
+.tiqsey-diamond-dot-4 {
+  animation: tiqsey-diamond-pulse 1.15s ease-in-out infinite;
+  animation-delay: 0.84s;
+}
+
+.tiqsey-progress-sheen {
+  animation: tiqsey-progress-sheen 1.35s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
+}
+
+/* Lightweight global micro-interactions scoped exclusively to the Tiqsey Admin Panel */
+.tiqsey-admin-shell button:not(:disabled),
+.tiqsey-admin-shell a[href] {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: 160ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tiqsey-admin-shell button:not(:disabled):active {
+  transform: scale(0.985);
+}
+
+.tiqsey-admin-shell tbody tr {
+  transition: background-color 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tiqsey-admin-shell tbody tr:hover {
+  background-color: rgba(241, 245, 249, 0.72);
+}
+
+.dark .tiqsey-admin-shell tbody tr:hover {
+  background-color: rgba(30, 41, 59, 0.52);
+}
+
+.tiqsey-admin-card {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms ease;
+}
+
+.tiqsey-admin-card:hover {
+  transform: translateY(-2px);
+}
+
 html, body {
   font-family:
     "Plus Jakarta Sans",

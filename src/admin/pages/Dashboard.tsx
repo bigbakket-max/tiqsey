@@ -30,10 +30,16 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { POPULAR_ATTRACTIONS } from '../../data/mockData';
 import { getStoredBanners } from '../../utils/bannerStorage';
 import { useBlog } from '../../contexts/BlogContext';
+import {
+  ADMIN_EASE,
+  AdminStatusBadge,
+  normalizeStatusVariant,
+  SkeletonBox,
+} from '../components/AdminMotion';
 
 const TIME_RANGE_DATA: Record<'7d' | '30d' | '90d', Array<{ name: string; revenue: number; bookings: number }>> = {
   '7d': [
@@ -252,15 +258,15 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 h-32 animate-pulse flex flex-col justify-between">
+            <div key={i} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 h-32 flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <div className="space-y-2">
-                  <div className="h-3 w-24 bg-slate-200 dark:bg-slate-800 rounded" />
-                  <div className="h-7 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
+                  <SkeletonBox className="h-3 w-24" />
+                  <SkeletonBox className="h-7 w-16" />
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800" />
+                <SkeletonBox className="w-10 h-10 rounded-xl" />
               </div>
-              <div className="h-3 w-28 bg-slate-200 dark:bg-slate-800 rounded" />
+              <SkeletonBox className="h-3 w-28" />
             </div>
           ))
         ) : (
@@ -374,21 +380,33 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Time Range Filter Buttons */}
+            {/* Time Range Filter Buttons with spring indicator */}
             <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
-              {(['7d', '30d', '90d'] as const).map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={`min-h-[34px] px-3 py-1 text-xs font-bold rounded-lg transition-all duration-150 cursor-pointer ${
-                    timeRange === range
-                      ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-sky-400 shadow-xs'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
-                  }`}
-                >
-                  {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : '90 Days'}
-                </button>
-              ))}
+              {(['7d', '30d', '90d'] as const).map((range) => {
+                const isActive = timeRange === range;
+                return (
+                  <button
+                    key={range}
+                    onClick={() => setTimeRange(range)}
+                    className={`relative min-h-[34px] px-3 py-1 text-xs font-bold rounded-lg transition-colors duration-150 cursor-pointer ${
+                      isActive
+                        ? 'text-blue-600 dark:text-sky-400'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.span
+                        layoutId="dashboard-time-range-pill"
+                        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                        className="absolute inset-0 bg-white dark:bg-slate-900 rounded-lg shadow-xs"
+                      />
+                    )}
+                    <span className="relative z-10">
+                      {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : '90 Days'}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -512,22 +530,7 @@ export default function Dashboard() {
                     {order.amount}
                   </td>
                   <td className="py-3 px-3">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
-                      order.status === 'Confirmed' || order.status === 'Completed'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-400' 
-                        : order.status === 'Cancelled' || order.status === 'Rejected'
-                          ? 'bg-rose-50 text-rose-700 border border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-400'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-400'
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        order.status === 'Confirmed' || order.status === 'Completed'
-                          ? 'bg-emerald-500'
-                          : order.status === 'Cancelled' || order.status === 'Rejected'
-                            ? 'bg-rose-500'
-                            : 'bg-amber-500'
-                      }`} />
-                      {order.status}
-                    </span>
+                    <AdminStatusBadge status={normalizeStatusVariant(order.status)} label={order.status} />
                   </td>
                   <td className="py-3 px-3 text-right font-mono text-slate-400 text-[11px]">
                     {order.time}
@@ -551,22 +554,7 @@ export default function Dashboard() {
                 <span className="font-mono text-xs font-bold text-blue-600 dark:text-sky-400">
                   {order.pnr}
                 </span>
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
-                  order.status === 'Confirmed' || order.status === 'Completed'
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-400'
-                    : order.status === 'Cancelled' || order.status === 'Rejected'
-                    ? 'bg-rose-50 text-rose-700 border border-rose-200/60 dark:bg-rose-950/40 dark:text-rose-400'
-                    : 'bg-amber-50 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-400'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${
-                    order.status === 'Confirmed' || order.status === 'Completed'
-                      ? 'bg-emerald-500'
-                      : order.status === 'Cancelled' || order.status === 'Rejected'
-                      ? 'bg-rose-500'
-                      : 'bg-amber-500'
-                  }`} />
-                  {order.status}
-                </span>
+                <AdminStatusBadge status={normalizeStatusVariant(order.status)} label={order.status} />
               </div>
               <p className="text-xs font-bold text-slate-800 dark:text-slate-100 line-clamp-1">
                 {order.item}
@@ -599,9 +587,12 @@ function StatCard({ title, value, subtitle, trend, trendUp, icon, iconBg, onClic
   onClick?: () => void;
 }) {
   return (
-    <div 
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: ADMIN_EASE }}
       onClick={onClick}
-      className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between h-34 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group active:scale-[0.99]"
+      className="tiqsey-admin-card bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between h-34 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group active:scale-[0.99]"
     >
       <div className="flex justify-between items-start">
         <div>
@@ -620,7 +611,7 @@ function StatCard({ title, value, subtitle, trend, trendUp, icon, iconBg, onClic
           {trend}
         </span>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -633,9 +624,12 @@ function QuickLaunchCard({ title, description, icon, iconBg, hoverColor, onClick
   onClick: () => void;
 }) {
   return (
-    <div 
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: ADMIN_EASE }}
       onClick={onClick}
-      className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group active:scale-[0.99] flex flex-col justify-between"
+      className="tiqsey-admin-card bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group active:scale-[0.99] flex flex-col justify-between"
     >
       <div>
         <div className="flex items-center justify-between mb-3">
@@ -651,6 +645,6 @@ function QuickLaunchCard({ title, description, icon, iconBg, hoverColor, onClick
           {description}
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }

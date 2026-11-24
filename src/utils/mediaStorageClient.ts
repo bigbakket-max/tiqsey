@@ -426,10 +426,17 @@ export async function uploadMediaChunked(params: ChunkedUploadParams): Promise<C
     }),
   });
 
-  // If Node backend is unreachable (static host), fall back to direct Supabase Storage upload
+  // If Node backend is unreachable (static host), fall back to direct Supabase Storage upload with real XHR progress
   if (!initRes.isJson) {
-    onProgress?.(25, 'uploading');
-    const direct = await uploadFileToSupabaseStorageDirect(file, bucket, folder ?? spec.defaultFolder);
+    onProgress?.(8, 'uploading');
+    const direct = await uploadFileToSupabaseStorageDirect(
+      file,
+      bucket,
+      folder ?? spec.defaultFolder,
+      (pct) => {
+        onProgress?.(pct, pct >= 95 ? 'verifying' : 'uploading');
+      }
+    );
     if (direct.error || !direct.url || !direct.path) {
       throw new Error(direct.error || `Failed to upload "${file.name}" to Supabase Storage.`);
     }
@@ -791,19 +798,61 @@ export async function deleteMediaFiles(
   return direct;
 }
 
+async function readResponseBlobWithProgress(
+  res: Response,
+  onProgress?: (percent: number) => void
+): Promise<Blob> {
+  const contentType = res.headers.get('content-type') || 'application/octet-stream';
+  const totalHeader = Number(res.headers.get('content-length') || '0');
+  if (!res.body || !res.body.getReader) {
+    onProgress?.(55);
+    const blob = await res.blob();
+    onProgress?.(100);
+    return blob;
+  }
+
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let loaded = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      chunks.push(value);
+      loaded += value.byteLength;
+      if (totalHeader > 0) {
+        const pct = Math.min(98, Math.max(8, Math.round((loaded / totalHeader) * 95)));
+        onProgress?.(pct);
+      } else {
+        // Smooth asymptotic progression when server omits Content-Length
+        const approx = Math.min(92, Math.round(15 + (1 - Math.exp(-loaded / (512 * 1024))) * 77));
+        onProgress?.(approx);
+      }
+    }
+  }
+
+  onProgress?.(100);
+  return new Blob(chunks as BlobPart[], { type: contentType });
+}
+
 export async function downloadMediaFile(
   adminEmail: string,
-  file: Pick<MediaAssetItem, 'bucket' | 'path' | 'name' | 'publicUrl'>
+  file: Pick<MediaAssetItem, 'bucket' | 'path' | 'name' | 'publicUrl'>,
+  onProgress?: (percent: number) => void
 ): Promise<void> {
   const proxyUrl = `/api/admin/storage/download?bucket=${encodeURIComponent(file.bucket)}&path=${encodeURIComponent(file.path)}`;
+  onProgress?.(5);
 
   try {
     const res = await fetch(proxyUrl, {
       credentials: 'include',
       headers: { 'x-admin-email': adminEmail },
     });
-    if (res.ok) {
-      const blob = await res.blob();
+    const contentType = (res.headers.get('content-type') || '').toLowerCase();
+    // Ensure static hosts returning index.html on 200/404 are never saved as the file
+    if (res.ok && !contentType.includes('text/html')) {
+      const blob = await readResponseBlobWithProgress(res, onProgress);
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
@@ -822,7 +871,7 @@ export async function downloadMediaFile(
   if (!directRes.ok) {
     throw new Error('Could not download file from Supabase Storage.');
   }
-  const blob = await directRes.blob();
+  const blob = await readResponseBlobWithProgress(directRes, onProgress);
   const blobUrl = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = blobUrl;

@@ -352,10 +352,68 @@ async function convertImageFileToWebpBlob(
   }
 }
 
+function uploadBlobDirectWithProgress(
+  bucket: SupabaseBucketId,
+  objectPath: string,
+  payload: Blob | File,
+  contentType: string,
+  onProgress?: (percent: number) => void
+): Promise<{ ok: boolean; error?: string }> {
+  return new Promise((resolve) => {
+    try {
+      const encodedPath = objectPath
+        .split('/')
+        .map((segment) => encodeURIComponent(segment))
+        .join('/');
+      const endpoint = `${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`;
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', endpoint, true);
+      xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
+      xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON_KEY}`);
+      xhr.setRequestHeader('x-upsert', 'true');
+      xhr.setRequestHeader('cache-control', '3600');
+      if (contentType) {
+        xhr.setRequestHeader('Content-Type', contentType);
+      }
+
+      xhr.upload.onprogress = (ev) => {
+        if (ev.lengthComputable && ev.total > 0) {
+          const pct = Math.min(95, Math.max(8, Math.round((ev.loaded / ev.total) * 90) + 5));
+          onProgress?.(pct);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          onProgress?.(98);
+          resolve({ ok: true });
+        } else {
+          let errMsg = `Upload failed (HTTP ${xhr.status})`;
+          try {
+            const parsed = JSON.parse(xhr.responseText);
+            errMsg = parsed?.message || parsed?.error || errMsg;
+          } catch {
+            // Keep default HTTP status message
+          }
+          resolve({ ok: false, error: errMsg });
+        }
+      };
+
+      xhr.onerror = () => resolve({ ok: false, error: 'Network error while uploading to Supabase Storage.' });
+      xhr.ontimeout = () => resolve({ ok: false, error: 'Upload timed out. Please retry.' });
+      xhr.timeout = 180000;
+      xhr.send(payload);
+    } catch (err: any) {
+      resolve({ ok: false, error: err?.message || 'Direct upload initialization failed' });
+    }
+  });
+}
+
 export async function uploadFileToSupabaseStorageDirect(
   file: File,
   bucket: SupabaseBucketId,
-  folder?: string
+  folder?: string,
+  onProgress?: (percent: number) => void
 ): Promise<{ url?: string; path?: string; error?: string; convertedTo?: string }> {
   if (!isSupabaseConfigured || !supabase) {
     return { error: 'Supabase is not configured in browser environment (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).' };
@@ -397,24 +455,25 @@ export async function uploadFileToSupabaseStorageDirect(
   const objectPath = `${cleanFolder}/${safeBase}-${uniqueSuffix}.${ext}`;
 
   try {
-    const { error } = await supabase.storage.from(bucket).upload(objectPath, file, {
-      contentType: normalizedMime,
-      cacheControl: '3600',
-      upsert: true,
-    });
-    if (error) {
+    onProgress?.(8);
+    const xhrResult = await uploadBlobDirectWithProgress(bucket, objectPath, file, normalizedMime, onProgress);
+
+    if (!xhrResult.ok) {
+      const errMsg = xhrResult.error || '';
       // If Supabase bucket rejects a modern image MIME (e.g. image/avif), auto-convert to WebP and retry
-      const isMimeRejected = /mime type .* is not supported/i.test(error.message || '');
+      const isMimeRejected = /mime type .* is not supported/i.test(errMsg);
       if (isMimeRejected && normalizedMime.startsWith('image/') && normalizedMime !== 'image/webp') {
         const converted = await convertImageFileToWebpBlob(file);
         if (converted && converted.blob.size <= bucketConfig.maxSizeBytes) {
           const fallbackPath = `${cleanFolder}/${safeBase}-${uniqueSuffix}.${converted.ext}`;
-          const retry = await supabase.storage.from(bucket).upload(fallbackPath, converted.blob, {
-            contentType: converted.mime,
-            cacheControl: '3600',
-            upsert: true,
-          });
-          if (!retry.error) {
+          const retryXhr = await uploadBlobDirectWithProgress(
+            bucket,
+            fallbackPath,
+            converted.blob,
+            converted.mime,
+            onProgress
+          );
+          if (retryXhr.ok) {
             const { data } = supabase.storage.from(bucket).getPublicUrl(fallbackPath);
             return {
               url: data?.publicUrl || '',
@@ -422,11 +481,12 @@ export async function uploadFileToSupabaseStorageDirect(
               convertedTo: converted.mime,
             };
           }
-          return { error: retry.error.message };
+          return { error: retryXhr.error || 'Converted WebP upload failed.' };
         }
       }
-      return { error: error.message };
+      return { error: errMsg || 'Direct Supabase upload failed' };
     }
+
     const { data } = supabase.storage.from(bucket).getPublicUrl(objectPath);
     return { url: data?.publicUrl || '', path: objectPath };
   } catch (err: any) {
