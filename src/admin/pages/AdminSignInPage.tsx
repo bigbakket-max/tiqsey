@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth, ADMIN_EMAILS, ADMIN_PASSWORD } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Lock, 
   Mail, 
@@ -26,7 +26,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
   const [showForgotModal, setShowForgotModal] = useState(false);
 
   // If a regular non-admin user is currently signed in
-  const isRegularUserLoggedIn = user && !ADMIN_EMAILS.includes(user.email.toLowerCase());
+  const isRegularUserLoggedIn = user && user.role !== 'admin';
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +60,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
     try {
       const loggedUser = await login(emailToUse, password);
       const normalizedEmail = loggedUser.email.toLowerCase();
-      const hasAdminRights = ADMIN_EMAILS.includes(normalizedEmail) || loggedUser.role === 'admin';
+      const hasAdminRights = loggedUser.role === 'admin';
 
       if (!hasAdminRights) {
         setError('Access Denied: This account is authenticated, but does not have administrator privileges.');
@@ -79,11 +79,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
     }
   };
 
-  const quickFill = (adminEmail: string) => {
-    setEmail(adminEmail);
-    setPassword(ADMIN_PASSWORD);
-    setError(null);
-  };
+  const closeForgotModal = () => setShowForgotModal(false);
 
   return (
     <div className="min-h-[100dvh] w-full relative bg-[#edf5fc] overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6 font-sans select-none">
@@ -281,20 +277,13 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
               Administrator Password Recovery
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
-              To reset your administrator credentials or regain access, please use the master credentials:
+              For security, administrator passwords are not displayed or auto-filled here. Ask your system owner to reset the server-side administrator credential or provision a new staff account.
             </p>
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono space-y-1 mb-4 break-all">
-              <div>Email: <span className="font-bold text-[#1d64db]">bigbakket@gmail.com</span></div>
-              <div>Password: <span className="font-bold text-[#1d64db]">bigbakket@admin@1997</span></div>
-            </div>
             <button
-              onClick={() => {
-                quickFill('bigbakket@gmail.com');
-                setShowForgotModal(false);
-              }}
+              onClick={closeForgotModal}
               className="w-full min-h-[44px] py-2.5 px-4 bg-[#1d64db] text-white text-xs font-semibold rounded-xl hover:bg-[#1755be] transition-colors cursor-pointer"
             >
-              Auto-fill & Close
+              Close
             </button>
           </div>
         </div>
