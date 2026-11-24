@@ -785,6 +785,16 @@ db.exec(`
   );
   CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_booking_id ON reviews(booking_id);
 
+  CREATE TABLE IF NOT EXISTS customer_users (
+    id TEXT PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash TEXT NOT NULL,
+    password_salt TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'Active',
+    created_at TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS backend_users (
     id TEXT PRIMARY KEY,
     full_name TEXT NOT NULL,
@@ -1226,43 +1236,9 @@ async function startServer() {
 
   const checkAdminAuth = (req: express.Request): boolean => {
     const signedUser = getSignedSessionUser(req);
-    if (
-      signedUser &&
-      typeof signedUser.email === 'string' &&
-      (ADMIN_EMAILS.includes(signedUser.email.toLowerCase().trim()) || signedUser.role === 'admin')
-    ) {
-      return true;
-    }
-    const adminEmail = (req.headers['x-admin-email'] || req.query.adminEmail || req.body?.adminEmail || '') as string;
-    const normalizedAdminEmail = adminEmail.toLowerCase().trim();
-    if (normalizedAdminEmail && ADMIN_EMAILS.includes(normalizedAdminEmail)) {
-      return true;
-    }
-    if (normalizedAdminEmail) {
-      try {
-        const dbUser = db
-          .prepare("SELECT role FROM users WHERE LOWER(email) = ? LIMIT 1")
-          .get(normalizedAdminEmail) as { role?: string } | undefined;
-        if (dbUser && String(dbUser.role || '').toLowerCase() === 'admin') {
-          return true;
-        }
-      } catch {
-        // Ignore lookup error
-      }
-    }
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      const session = db.prepare("SELECT * FROM backend_sessions WHERE id = ?").get(token) as any;
-      if (session) {
-        if (session.expires_at && new Date() > new Date(session.expires_at)) {
-          db.prepare("DELETE FROM backend_sessions WHERE id = ?").run(token);
-          return false;
-        }
-        return true;
-      }
-    }
-    return false;
+    if (!signedUser || typeof signedUser.email !== 'string') return false;
+    const email = signedUser.email.toLowerCase().trim();
+    return signedUser.role === 'admin' && ADMIN_EMAILS.includes(email);
   };
 
   // Public endpoint: Fetch current active favicon configuration
@@ -3520,6 +3496,7 @@ async function startServer() {
 
   // Get all bookings from backend database
   app.get("/api/bookings", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       console.log("[Database] Fetching all bookings...");
       
@@ -3659,6 +3636,15 @@ async function startServer() {
       const existing = (rawOrderNum
         ? db.prepare('SELECT id FROM bookings WHERE id = ? OR order_number = ?').get(id, order_number)
         : db.prepare('SELECT id FROM bookings WHERE id = ?').get(id)) as { id: string } | undefined;
+
+      if (existing && !checkAdminAuth(req)) {
+        return res.status(409).json({ error: "This booking already exists and cannot be overwritten." });
+      }
+      if (!existing && (!guest_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(guest_email)) ||
+          !Number.isInteger(Number(tickets_count)) || Number(tickets_count) < 1 ||
+          !Number.isFinite(Number(total_price)) || Number(total_price) < 0)) {
+        return res.status(400).json({ error: "Booking details are incomplete or invalid." });
+      }
 
       if (existing) {
         const stmt = db.prepare(`
@@ -3802,6 +3788,7 @@ async function startServer() {
 
   // Patch/update specific booking fields (status, date, timeslot, etc.)
   app.patch("/api/bookings/:id", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { id } = req.params;
       const updates = req.body || {};
@@ -3897,6 +3884,7 @@ async function startServer() {
 
   // Delete a booking from backend database
   app.delete("/api/bookings/:id", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { id } = req.params;
       console.log(`[Database] Deleting booking: ${id}`);
@@ -4231,22 +4219,22 @@ async function startServer() {
   app.post("/api/auth/login", (req, res) => {
     const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
-    if (!rawEmail || !password) {
+    if (!rawEmail || !password || rawEmail.length > 254 || password.length > 1024) {
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
     const normalizedEmail = rawEmail.toLowerCase();
     const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
-    const configuredAdminPass = (process.env.ADMIN_PASSWORD || '').trim();
+    let sessionUser: Record<string, any> | null = null;
 
     if (isAdmin) {
+      const configuredAdminPass = (process.env.ADMIN_PASSWORD || '').trim();
       let verified = false;
       if (configuredAdminPass) {
         const a = Buffer.from(password, 'utf8');
         const b = Buffer.from(configuredAdminPass, 'utf8');
         verified = a.length === b.length && crypto.timingSafeEqual(a, b);
       } else {
-        // Fallback: verify against salted PBKDF2 hash in backend_users when ADMIN_PASSWORD env is unset
         try {
           const beUser = db
             .prepare("SELECT password_hash, password_salt, status FROM backend_users WHERE lower(email) = ?")
@@ -4261,33 +4249,40 @@ async function startServer() {
           verified = false;
         }
       }
+      if (!verified) return res.status(401).json({ error: "Incorrect administrator password." });
 
-      if (!verified) {
-        return res.status(401).json({ error: "Incorrect administrator password." });
+      sessionUser = {
+        id: normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
+        name: normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
+        email: normalizedEmail,
+        role: 'admin',
+        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
+      };
+    } else {
+      const customer = db.prepare(
+        "SELECT id, full_name, email, password_hash, password_salt, status FROM customer_users WHERE lower(email) = ?"
+      ).get(normalizedEmail) as any;
+      if (!customer || customer.status !== 'Active') {
+        return res.status(401).json({ error: "Invalid email or password." });
       }
+      const calculated = crypto.pbkdf2Sync(password, customer.password_salt, 120000, 64, 'sha512').toString('hex');
+      const supplied = Buffer.from(calculated, 'utf8');
+      const stored = Buffer.from(String(customer.password_hash), 'utf8');
+      if (supplied.length !== stored.length || !crypto.timingSafeEqual(supplied, stored)) {
+        return res.status(401).json({ error: "Invalid email or password." });
+      }
+      sessionUser = {
+        id: customer.id,
+        name: customer.full_name,
+        email: customer.email,
+        role: 'user',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+      };
     }
 
-    const sessionUser = {
-      id: isAdmin
-        ? (normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456')
-        : `user-${crypto.createHash('sha256').update(normalizedEmail).digest('hex').slice(0, 12)}`,
-      name: isAdmin
-        ? (normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin')
-        : normalizedEmail.split('@')[0],
-      email: normalizedEmail,
-      role: isAdmin ? 'admin' : 'user',
-      avatarUrl: isAdmin
-        ? (normalizedEmail === 'bigbakket@gmail.com'
-            ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'
-            : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200')
-        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-      exp: Date.now() + SESSION_TTL_MS,
-    };
-
-    const signedCookie = signSessionCookiePayload(sessionUser);
+    const signedCookie = signSessionCookiePayload({ ...sessionUser, exp: Date.now() + SESSION_TTL_MS });
     res.setHeader('Set-Cookie', buildSessionCookieHeader(req, signedCookie, Math.floor(SESSION_TTL_MS / 1000)));
-    const { exp: _exp, ...publicUser } = sessionUser;
-    return res.json({ success: true, user: publicUser });
+    return res.json({ success: true, user: sessionUser });
   });
 
   app.get("/api/auth/session", (req, res) => {
@@ -4308,11 +4303,46 @@ async function startServer() {
   });
 
   app.post("/api/auth/register", (req, res) => {
-    const { name, email, password } = req.body;
-    if (name && email && password) {
-      res.json({ success: true });
-    } else {
-      res.status(400).json({ error: "All fields are required" });
+    const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    if (name.length < 2 || name.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return res.status(400).json({ error: "Please provide a valid name and email address." });
+    }
+    if (password.length < 10 || password.length > 1024) {
+      return res.status(400).json({ error: "Password must contain at least 10 characters." });
+    }
+    if (ADMIN_EMAILS.includes(email)) {
+      return res.status(403).json({ error: "Administrator accounts must be provisioned by an administrator." });
+    }
+
+    try {
+      const existing = db.prepare("SELECT id FROM customer_users WHERE lower(email) = ?").get(email);
+      if (existing) return res.status(409).json({ error: "An account with this email already exists." });
+
+      const id = `customer-${crypto.randomUUID()}`;
+      const salt = crypto.randomBytes(32).toString('hex');
+      const passwordHash = crypto.pbkdf2Sync(password, salt, 120000, 64, 'sha512').toString('hex');
+      db.prepare(
+        "INSERT INTO customer_users (id, full_name, email, password_hash, password_salt, status, created_at) VALUES (?, ?, ?, ?, ?, 'Active', ?)"
+      ).run(id, name, email, passwordHash, salt, new Date().toISOString());
+
+      const sessionUser = {
+        id,
+        name,
+        email,
+        role: 'user',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+      };
+      const signedCookie = signSessionCookiePayload({ ...sessionUser, exp: Date.now() + SESSION_TTL_MS });
+      res.setHeader('Set-Cookie', buildSessionCookieHeader(req, signedCookie, Math.floor(SESSION_TTL_MS / 1000)));
+      return res.status(201).json({ success: true, user: sessionUser });
+    } catch (err: any) {
+      if (String(err?.code || '').includes('CONSTRAINT')) {
+        return res.status(409).json({ error: "An account with this email already exists." });
+      }
+      console.error('[Auth] Registration failed:', err?.message || err);
+      return res.status(500).json({ error: "Unable to create account right now." });
     }
   });
 
