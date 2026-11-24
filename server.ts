@@ -1236,9 +1236,35 @@ async function startServer() {
 
   const checkAdminAuth = (req: express.Request): boolean => {
     const signedUser = getSignedSessionUser(req);
-    if (!signedUser || typeof signedUser.email !== 'string') return false;
-    const email = signedUser.email.toLowerCase().trim();
-    return signedUser.role === 'admin' && ADMIN_EMAILS.includes(email);
+    if (signedUser && typeof signedUser.email === 'string') {
+      const email = signedUser.email.toLowerCase().trim();
+      if (signedUser.role === 'admin' && ADMIN_EMAILS.includes(email)) return true;
+    }
+
+    // The separate staff/admin panel uses opaque database-backed sessions.
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7).trim();
+      if (!token) return false;
+      try {
+        const session = db.prepare(`
+          SELECT s.expires_at, u.role, u.status
+          FROM backend_sessions s
+          INNER JOIN backend_users u ON u.id = s.user_id
+          WHERE s.id = ?
+          LIMIT 1
+        `).get(token) as any;
+        if (!session || (session.expires_at && Date.now() > new Date(session.expires_at).getTime())) {
+          if (session) db.prepare("DELETE FROM backend_sessions WHERE id = ?").run(token);
+          return false;
+        }
+        const role = String(session.role || '').trim().toLowerCase();
+        return session.status === 'Active' && ['admin', 'administrator', 'super admin', 'superadmin'].includes(role);
+      } catch {
+        return false;
+      }
+    }
+    return false;
   };
 
   // Public endpoint: Fetch current active favicon configuration
@@ -3613,7 +3639,7 @@ async function startServer() {
       const booking_date = booking.bookingDate || "";
       const tickets_count = booking.ticketsCount || booking.travelers || 1;
       const total_price = booking.totalPrice || booking.collectedAmount || 0;
-      const status = booking.status || "confirmed";
+      const status = checkAdminAuth(req) ? (booking.status || "confirmed") : "Confirmation Pending";
       const child_count = booking.childCount || booking.children || 0;
       
       const guest_name = booking.guestInfo?.name || booking.customerName || "";
@@ -3637,7 +3663,7 @@ async function startServer() {
         ? db.prepare('SELECT id FROM bookings WHERE id = ? OR order_number = ?').get(id, order_number)
         : db.prepare('SELECT id FROM bookings WHERE id = ?').get(id)) as { id: string } | undefined;
 
-      if (existing && !checkAdminAuth(req)) {
+      if (existing && !String(existing.id).startsWith('temp-') && !checkAdminAuth(req)) {
         return res.status(409).json({ error: "This booking already exists and cannot be overwritten." });
       }
       if (!existing && (!guest_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(guest_email)) ||
@@ -4216,6 +4242,9 @@ async function startServer() {
     }
   });
 
+  // Shared in-memory throttle for customer and administrator sign-in endpoints.
+  const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
+
   app.post("/api/auth/login", (req, res) => {
     const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
@@ -4224,6 +4253,21 @@ async function startServer() {
     }
 
     const normalizedEmail = rawEmail.toLowerCase();
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const attemptKey = `${normalizedEmail}:${ip}`;
+    const previousAttempt = loginAttempts.get(attemptKey);
+    if (previousAttempt && Date.now() - previousAttempt.lastAttempt < 15 * 60 * 1000 && previousAttempt.count >= 5) {
+      return res.status(429).json({ error: "Too many sign-in attempts. Please try again in 15 minutes." });
+    }
+    if (previousAttempt && Date.now() - previousAttempt.lastAttempt >= 15 * 60 * 1000) {
+      loginAttempts.delete(attemptKey);
+    }
+    const recordFailedAttempt = () => {
+      const current = loginAttempts.get(attemptKey) || { count: 0, lastAttempt: Date.now() };
+      current.count += 1;
+      current.lastAttempt = Date.now();
+      loginAttempts.set(attemptKey, current);
+    };
     const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
     let sessionUser: Record<string, any> | null = null;
 
@@ -4249,7 +4293,10 @@ async function startServer() {
           verified = false;
         }
       }
-      if (!verified) return res.status(401).json({ error: "Incorrect administrator password." });
+      if (!verified) {
+        recordFailedAttempt();
+        return res.status(401).json({ error: "Incorrect administrator password." });
+      }
 
       sessionUser = {
         id: normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
@@ -4263,12 +4310,14 @@ async function startServer() {
         "SELECT id, full_name, email, password_hash, password_salt, status FROM customer_users WHERE lower(email) = ?"
       ).get(normalizedEmail) as any;
       if (!customer || customer.status !== 'Active') {
+        recordFailedAttempt();
         return res.status(401).json({ error: "Invalid email or password." });
       }
       const calculated = crypto.pbkdf2Sync(password, customer.password_salt, 120000, 64, 'sha512').toString('hex');
       const supplied = Buffer.from(calculated, 'utf8');
       const stored = Buffer.from(String(customer.password_hash), 'utf8');
       if (supplied.length !== stored.length || !crypto.timingSafeEqual(supplied, stored)) {
+        recordFailedAttempt();
         return res.status(401).json({ error: "Invalid email or password." });
       }
       sessionUser = {
@@ -4280,6 +4329,7 @@ async function startServer() {
       };
     }
 
+    loginAttempts.delete(attemptKey);
     const signedCookie = signSessionCookiePayload({ ...sessionUser, exp: Date.now() + SESSION_TTL_MS });
     res.setHeader('Set-Cookie', buildSessionCookieHeader(req, signedCookie, Math.floor(SESSION_TTL_MS / 1000)));
     return res.json({ success: true, user: sessionUser });
@@ -4345,9 +4395,6 @@ async function startServer() {
       return res.status(500).json({ error: "Unable to create account right now." });
     }
   });
-
-  // Login Rate Limiter In-Memory Store
-  const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
 
   // Token session validator helper
   function getBackendUserByToken(token: string) {
