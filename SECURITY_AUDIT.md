@@ -12,7 +12,7 @@ Files: `server.ts`, `src/contexts/AuthContext.tsx`
 - Removed hardcoded administrator/demo passwords and local mock-user seeding from the browser authentication flow.
 - Removed browser-local-storage authentication as an authority. The UI now restores sessions from the server's signed HttpOnly cookie.
 - Login and registration now require successful server responses; offline/local fallback no longer creates a signed-in browser identity.
-- Added persistent SQLite customer accounts with salted PBKDF2 password hashes, unique email enforcement, input validation, and a minimum 10-character password.
+- Added persistent SQLite customer accounts with salted PBKDF2 password hashes, unique email enforcement, input validation, a minimum 10-character password, and a signed-session profile update endpoint.
 - Added a basic in-memory sign-in throttle (five failed attempts per email/IP over 15 minutes).
 - Administrator login continues to use server-side configuration or the existing server-side staff credential store. Administrator self-registration is blocked.
 - The old `loginWithGoogle(email, name, avatar)` client-only shortcut has been disabled because profile fields supplied by the browser are not proof of Google identity. A real Google OAuth ID-token verification flow still needs to be implemented before Google sign-in can be enabled.
@@ -22,6 +22,7 @@ File: `server.ts`
 
 - Removed authorization bypasses based on caller-supplied `x-admin-email`, query parameters, or body fields.
 - Admin access now requires a valid signed administrator session or a valid active database-backed staff session with an administrator role.
+- Added Origin-based CSRF validation for cookie-authenticated state-changing requests.
 - Added admin authorization to booking collection reads, booking updates/deletes, custom-domain management, inventory mutations, Supabase diagnostics, Instagram administration, and Gemini content generation.
 - New customer bookings are stored as `Confirmation Pending`; non-admin callers cannot overwrite an existing booking.
 - Booking fields are validated before new records are stored.
