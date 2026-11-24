@@ -4084,7 +4084,7 @@ async function startServer() {
     try {
       const { attractionId } = req.params;
       console.log(`[Database] Fetching reviews for attraction: ${attractionId}`);
-      const rows = db.prepare('SELECT * FROM reviews WHERE attraction_id = ? ORDER BY created_at DESC').all(attractionId) as any[];
+      const rows = db.prepare('SELECT id, attraction_id, user_name, rating, comment, created_at FROM reviews WHERE attraction_id = ? ORDER BY created_at DESC').all(attractionId) as any[];
       res.json({ success: true, reviews: rows });
     } catch (err: any) {
       console.error("[Database Error] Failed to fetch reviews:", err);
@@ -4096,8 +4096,13 @@ async function startServer() {
   app.get("/api/reviews/booking/:bookingId", (req, res) => {
     try {
       const { bookingId } = req.params;
-      console.log(`[Database] Fetching review for booking: ${bookingId}`);
-      const row = db.prepare('SELECT * FROM reviews WHERE booking_id = ?').get(bookingId);
+      const signedUser = getSignedSessionUser(req);
+      if (!signedUser) return res.status(401).json({ error: "Sign in to view your booking review." });
+      const booking = db.prepare("SELECT id, guest_email FROM bookings WHERE id = ? OR order_number = ? LIMIT 1").get(bookingId, bookingId) as any;
+      if (!booking) return res.status(404).json({ error: "Booking not found." });
+      const isOwner = String(booking.guest_email || '').toLowerCase() === String(signedUser.email || '').toLowerCase();
+      if (!isOwner && !checkAdminAuth(req)) return res.status(403).json({ error: "Access denied." });
+      const row = db.prepare('SELECT id, attraction_id, user_name, rating, comment, created_at FROM reviews WHERE booking_id = ?').get(booking.id);
       res.json({ success: true, review: row || null });
     } catch (err: any) {
       console.error("[Database Error] Failed to fetch booking review:", err);
@@ -4163,9 +4168,9 @@ async function startServer() {
       // Gracefully sync review to Supabase
       const supabaseSynced = await saveReviewToSupabase({
         id: reviewId,
-        bookingId,
+        bookingId: booking.id,
         attractionId,
-        userId: userId || 'anonymous',
+        userId,
         userName: userName || 'Guest',
         userEmail: userEmail || '',
         rating,
