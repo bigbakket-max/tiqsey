@@ -24,6 +24,7 @@ File: `server.ts`
 - Admin access now requires a valid signed administrator session or a valid active database-backed staff session with an administrator role.
 - Added Origin-based CSRF validation for cookie-authenticated state-changing requests.
 - Added admin authorization to booking collection reads, booking updates/deletes, custom-domain management, inventory mutations, Supabase diagnostics, Instagram administration, and Gemini content generation.
+- Corrected the media upload progress component props to match its typed interface.
 - New customer bookings are stored as `Confirmation Pending`; non-admin callers cannot overwrite an existing booking.
 - Booking fields are validated before new records are stored.
 - Reviews now require a signed-in customer, a completed booking, and a matching booking email; public attraction-review responses omit private email/user identifiers.
