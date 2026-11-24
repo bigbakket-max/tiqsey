@@ -209,11 +209,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (_name: string, _email: string, bio?: string, avatarUrl?: string): Promise<User> => {
     if (!user) throw new Error('No authenticated user');
-    const updatedUser: User = {
-      ...user,
-      bio: bio !== undefined ? bio : user.bio,
-      avatarUrl: avatarUrl || user.avatarUrl,
-    };
+    const response = await fetch('/api/auth/profile', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({
+        bio: bio !== undefined ? bio : user.bio || '',
+        avatarUrl: avatarUrl !== undefined ? avatarUrl : user.avatarUrl || '',
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.success || !data?.user) {
+      throw new Error(data?.error || 'Unable to update your profile.');
+    }
+    const updatedUser = sanitizeSessionUser(data.user);
+    if (!updatedUser) throw new Error('The server returned an invalid profile.');
     setUser(updatedUser);
     return updatedUser;
   };
