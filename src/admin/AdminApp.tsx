@@ -18,7 +18,16 @@ import StorageManager from './pages/StorageManager';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 function RequireAdmin({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, isAuthReady } = useAuth();
+
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-[100dvh] w-full bg-[#0f172a] flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 rounded-full border-2 border-indigo-400/25 border-t-indigo-400 animate-spin" />
+        <p className="text-xs font-medium text-slate-400 tracking-wide">Restoring admin session...</p>
+      </div>
+    );
+  }
 
   const isAdmin = user && (
     user.email.toLowerCase() === 'admin@tiqsey.com' ||

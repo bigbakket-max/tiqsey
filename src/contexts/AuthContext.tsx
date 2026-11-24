@@ -4,6 +4,7 @@ import { TRAVEL_AVATARS } from '../utils/avatars';
 
 interface AuthContextType {
   user: User | null;
+  isAuthReady: boolean;
   bookings: Booking[];
   isAuthModalOpen: boolean;
   setAuthModalOpen: (isOpen: boolean) => void;
@@ -61,15 +62,162 @@ export const deriveNameFromEmail = (emailStr: string): string => {
     .trim();
 };
 
+const SESSION_STORAGE_KEY = 'tiqsey_current_session';
+
+const safeStorageGet = (storage: Storage | undefined, key: string): string | null => {
+  try {
+    return storage ? storage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+};
+
+const safeStorageSet = (storage: Storage | undefined, key: string, value: string): boolean => {
+  try {
+    if (!storage) return false;
+    storage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const safeStorageRemove = (storage: Storage | undefined, key: string): void => {
+  try {
+    storage?.removeItem(key);
+  } catch {
+    // Ignore restricted storage errors
+  }
+};
+
+const sanitizeSessionUser = (raw: any): User | null => {
+  if (!raw || typeof raw !== 'object' || typeof raw.email !== 'string' || !raw.email.trim()) {
+    return null;
+  }
+  const { password: _removed, ...rest } = raw;
+  const normalizedEmail = raw.email.trim().toLowerCase();
+  const isAdmin = ADMIN_EMAILS.includes(normalizedEmail) || raw.role === 'admin';
+  return {
+    ...rest,
+    id: raw.id || (isAdmin ? (normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456') : `user-${Date.now()}`),
+    name: raw.name || deriveNameFromEmail(raw.email),
+    email: raw.email.trim(),
+    role: isAdmin ? 'admin' : (raw.role || 'user'),
+  } as User;
+};
+
+const readStoredSession = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  const raw =
+    safeStorageGet(window.localStorage, SESSION_STORAGE_KEY) ||
+    safeStorageGet(window.sessionStorage, SESSION_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return sanitizeSessionUser(parsed);
+  } catch {
+    return null;
+  }
+};
+
+const persistStoredSession = (sessionUser: User | null): void => {
+  if (typeof window === 'undefined') return;
+  if (!sessionUser) {
+    safeStorageRemove(window.localStorage, SESSION_STORAGE_KEY);
+    safeStorageRemove(window.sessionStorage, SESSION_STORAGE_KEY);
+    return;
+  }
+  const clean = sanitizeSessionUser(sessionUser);
+  if (!clean) return;
+  const serialized = JSON.stringify(clean);
+  safeStorageSet(window.localStorage, SESSION_STORAGE_KEY, serialized);
+  safeStorageSet(window.sessionStorage, SESSION_STORAGE_KEY, serialized);
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => readStoredSession());
+  const [isAuthReady, setIsAuthReady] = useState<boolean>(() => readStoredSession() !== null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
 
-  // Load user and bookings on mount
+  const hydrateUserBookings = (loggedUser: User) => {
+    const storedBookings = safeStorageGet(window.localStorage, `tiqsey_bookings_${loggedUser.id}`);
+    let parsedBookings: Booking[] | null = null;
+    if (storedBookings) {
+      try {
+        const parsed = JSON.parse(storedBookings);
+        parsedBookings = Array.isArray(parsed) ? parsed : null;
+      } catch {
+        parsedBookings = null;
+      }
+    }
+    if (parsedBookings && parsedBookings.length === 2 && loggedUser.email === DEMO_EMAIL) {
+      parsedBookings.push({
+        id: 'book-3',
+        attractionId: 'louvre-museum',
+        attractionName: 'Louvre Museum: Ultimate Priority Access & Audio Tour',
+        attractionImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=85&w=1200',
+        city: 'Paris',
+        bookingDate: '2026-04-10',
+        ticketsCount: 3,
+        totalPrice: 90,
+        bookingRef: 'TQ-452109-FR',
+        status: 'confirmed'
+      });
+      safeStorageSet(window.localStorage, `tiqsey_bookings_${loggedUser.id}`, JSON.stringify(parsedBookings));
+    }
+    if (parsedBookings) {
+      setBookings(parsedBookings);
+    } else if (loggedUser.email === DEMO_EMAIL) {
+      const prePopulated: Booking[] = [
+        {
+          id: 'book-1',
+          attractionId: 'sagrada-familia',
+          attractionName: 'Sagrada Familia | Skip-The-Line Tickets + Audio Guide',
+          attractionImageUrl: 'https://images.unsplash.com/photo-1511527661048-7fe73d85e9a4?auto=format&fit=crop&q=85&w=1200',
+          city: 'Barcelona',
+          bookingDate: '2026-06-15',
+          ticketsCount: 2,
+          totalPrice: 60,
+          bookingRef: 'TQ-983105-ES',
+          status: 'confirmed'
+        },
+        {
+          id: 'book-2',
+          attractionId: 'van-gogh',
+          attractionName: 'Van Gogh Museum: Timed-entry Admission Ticket',
+          attractionImageUrl: 'https://images.unsplash.com/photo-1572947650440-e8a97ef053b2?auto=format&fit=crop&q=85&w=1200',
+          city: 'Amsterdam',
+          bookingDate: '2026-06-12',
+          ticketsCount: 1,
+          totalPrice: 22,
+          bookingRef: 'TQ-340120-NL',
+          status: 'confirmed'
+        },
+        {
+          id: 'book-3',
+          attractionId: 'louvre-museum',
+          attractionName: 'Louvre Museum: Ultimate Priority Access & Audio Tour',
+          attractionImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=85&w=1200',
+          city: 'Paris',
+          bookingDate: '2026-04-10',
+          ticketsCount: 3,
+          totalPrice: 90,
+          bookingRef: 'TQ-452109-FR',
+          status: 'confirmed'
+        }
+      ];
+      safeStorageSet(window.localStorage, `tiqsey_bookings_${loggedUser.id}`, JSON.stringify(prePopulated));
+      setBookings(prePopulated);
+    }
+  };
+
+  // Load user, seed defaults safely, and verify server cookie session if needed
   useEffect(() => {
-    // Prime the mock users database with demo account
-    const registeredUsers = localStorage.getItem('tiqsey_users');
+    let active = true;
+
+    // Prime the mock users database safely (never throw if storage quota is full)
+    const registeredUsers = safeStorageGet(window.localStorage, 'tiqsey_users');
     if (!registeredUsers) {
       const initialUsers = [
         {
@@ -103,127 +251,104 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: 'admin',
         }
       ];
-      localStorage.setItem('tiqsey_users', JSON.stringify(initialUsers));
+      safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(initialUsers));
     } else {
       try {
         const users = JSON.parse(registeredUsers);
-        let modified = false;
+        if (Array.isArray(users)) {
+          let modified = false;
 
-        ADMIN_EMAILS.forEach((admEmail) => {
-          const found = users.find((u: any) => u.email.toLowerCase() === admEmail.toLowerCase());
-          if (!found) {
-            users.push({
-              id: admEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
-              name: admEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
-              email: admEmail,
-              password: ADMIN_PASSWORD,
-              bio: 'Administrator.',
-              avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
-              createdAt: new Date().toLocaleDateString(),
-              role: 'admin',
-            });
-            modified = true;
-          } else {
-            if (found.role !== 'admin') {
-              found.role = 'admin';
+          ADMIN_EMAILS.forEach((admEmail) => {
+            const found = users.find((u: any) => u.email?.toLowerCase() === admEmail.toLowerCase());
+            if (!found) {
+              users.push({
+                id: admEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
+                name: admEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
+                email: admEmail,
+                password: ADMIN_PASSWORD,
+                bio: 'Administrator.',
+                avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
+                createdAt: new Date().toLocaleDateString(),
+                role: 'admin',
+              });
               modified = true;
+            } else {
+              if (found.role !== 'admin') {
+                found.role = 'admin';
+                modified = true;
+              }
+              if (found.password !== ADMIN_PASSWORD) {
+                found.password = ADMIN_PASSWORD;
+                modified = true;
+              }
             }
-            if (found.password !== ADMIN_PASSWORD) {
-              found.password = ADMIN_PASSWORD;
-              modified = true;
-            }
+          });
+
+          if (modified) {
+            safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
           }
-        });
-
-        if (modified) {
-          localStorage.setItem('tiqsey_users', JSON.stringify(users));
         }
       } catch (e) {
         console.error('Failed to parse registered users', e);
       }
     }
 
-    // Check if there is an active session
-    const currentSession = localStorage.getItem('tiqsey_current_session');
-    if (currentSession) {
-      try {
-        const loggedUser = JSON.parse(currentSession);
-        if (loggedUser && ADMIN_EMAILS.includes(loggedUser.email?.toLowerCase()) && loggedUser.role !== 'admin') {
-          loggedUser.role = 'admin';
-          localStorage.setItem('tiqsey_current_session', JSON.stringify(loggedUser));
-        }
-        setUser(loggedUser);
-        
-        // Load bookings for this user
-        const storedBookings = localStorage.getItem(`tiqsey_bookings_${loggedUser.id}`);
-        let parsedBookings = storedBookings ? JSON.parse(storedBookings) : null;
-        if (parsedBookings && parsedBookings.length === 2 && loggedUser.email === DEMO_EMAIL) {
-          parsedBookings.push({
-            id: 'book-3',
-            attractionId: 'louvre-museum',
-            attractionName: 'Louvre Museum: Ultimate Priority Access & Audio Tour',
-            attractionImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=85&w=1200',
-            city: 'Paris',
-            bookingDate: '2026-04-10',
-            ticketsCount: 3,
-            totalPrice: 90,
-            bookingRef: 'TQ-452109-FR',
-            status: 'confirmed'
-          });
-          localStorage.setItem(`tiqsey_bookings_${loggedUser.id}`, JSON.stringify(parsedBookings));
-        }
-        if (parsedBookings) {
-          setBookings(parsedBookings);
-        } else {
-          // Pre-populate some historical bookings for the demo user to make the "My Tickets" section feel rich and real
-          if (loggedUser.email === DEMO_EMAIL) {
-            const prePopulated: Booking[] = [
-              {
-                id: 'book-1',
-                attractionId: 'sagrada-familia',
-                attractionName: 'Sagrada Familia | Skip-The-Line Tickets + Audio Guide',
-                attractionImageUrl: 'https://images.unsplash.com/photo-1511527661048-7fe73d85e9a4?auto=format&fit=crop&q=85&w=1200',
-                city: 'Barcelona',
-                bookingDate: '2026-06-15',
-                ticketsCount: 2,
-                totalPrice: 60,
-                bookingRef: 'TQ-983105-ES',
-                status: 'confirmed'
-              },
-              {
-                id: 'book-2',
-                attractionId: 'van-gogh',
-                attractionName: 'Van Gogh Museum: Timed-entry Admission Ticket',
-                attractionImageUrl: 'https://images.unsplash.com/photo-1572947650440-e8a97ef053b2?auto=format&fit=crop&q=85&w=1200',
-                city: 'Amsterdam',
-                bookingDate: '2026-06-12',
-                ticketsCount: 1,
-                totalPrice: 22,
-                bookingRef: 'TQ-340120-NL',
-                status: 'confirmed'
-              },
-              {
-                id: 'book-3',
-                attractionId: 'louvre-museum',
-                attractionName: 'Louvre Museum: Ultimate Priority Access & Audio Tour',
-                attractionImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=85&w=1200',
-                city: 'Paris',
-                bookingDate: '2026-04-10',
-                ticketsCount: 3,
-                totalPrice: 90,
-                bookingRef: 'TQ-452109-FR',
-                status: 'confirmed'
-              }
-            ];
-            localStorage.setItem(`tiqsey_bookings_${loggedUser.id}`, JSON.stringify(prePopulated));
-            setBookings(prePopulated);
+    const storedUser = readStoredSession();
+    if (storedUser) {
+      // Ensure both localStorage and sessionStorage stay mirrored
+      persistStoredSession(storedUser);
+      setUser(storedUser);
+      hydrateUserBookings(storedUser);
+      setIsAuthReady(true);
+    } else {
+      // Fallback: check server-side signed HttpOnly session cookie (when Node server is active)
+      fetch('/api/auth/session', { credentials: 'include' })
+        .then(async (res) => {
+          const ct = res.headers.get('content-type') || '';
+          if (!res.ok || !ct.includes('application/json')) return null;
+          const data = await res.json();
+          return data?.authenticated && data?.user ? sanitizeSessionUser(data.user) : null;
+        })
+        .then((serverUser) => {
+          if (!active) return;
+          if (serverUser) {
+            persistStoredSession(serverUser);
+            setUser(serverUser);
+            hydrateUserBookings(serverUser);
           }
-        }
-      } catch (e) {
-        console.error('Session restoration failed', e);
-      }
+          setIsAuthReady(true);
+        })
+        .catch(() => {
+          if (active) setIsAuthReady(true);
+        });
     }
+
+    // Keep auth state synchronized across browser tabs
+    const handleStorageSync = (e: StorageEvent) => {
+      if (e.key !== SESSION_STORAGE_KEY) return;
+      if (!e.newValue) {
+        setUser(null);
+        setBookings([]);
+        return;
+      }
+      try {
+        const synced = sanitizeSessionUser(JSON.parse(e.newValue));
+        if (synced) {
+          setUser(synced);
+          hydrateUserBookings(synced);
+        }
+      } catch {
+        // Ignore malformed cross-tab data
+      }
+    };
+
+    window.addEventListener('storage', handleStorageSync);
+    return () => {
+      active = false;
+      window.removeEventListener('storage', handleStorageSync);
+    };
   }, []);
+  // (bookings hydration handled by hydrateUserBookings above)
 
   const login = async (email: string, password: string): Promise<User> => {
     const trimmedEmail = email.trim();
@@ -231,11 +356,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Please fill in both email and password.');
     }
 
-    // Attempt backend sync safely without breaking if backend returns HTML (e.g., on static host)
+    // Attempt backend sync & HttpOnly session cookie safely without breaking if backend returns HTML (e.g., on static host)
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
         body: JSON.stringify({ email: trimmedEmail, password }),
       });
       const contentType = response.headers.get("content-type") || "";
@@ -251,17 +380,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
+        const usersRaw = safeStorageGet(window.localStorage, 'tiqsey_users') || '[]';
         let users: any[] = [];
         try {
-          users = JSON.parse(usersRaw);
+          const parsedUsers = JSON.parse(usersRaw);
+          users = Array.isArray(parsedUsers) ? parsedUsers : [];
         } catch (_) {
           users = [];
         }
         
         const normalizedEmail = trimmedEmail.toLowerCase();
         const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
-        let matched = users.find((u: any) => u.email.toLowerCase() === normalizedEmail);
+        let matched = users.find((u: any) => u.email?.toLowerCase() === normalizedEmail);
         
         if (isAdmin) {
           if (!matched) {
@@ -276,7 +406,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               role: 'admin',
             };
             users.push(matched);
-            localStorage.setItem('tiqsey_users', JSON.stringify(users));
+            safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
           } else {
             let userModified = false;
             if (matched.role !== 'admin') {
@@ -288,7 +418,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               userModified = true;
             }
             if (userModified) {
-              localStorage.setItem('tiqsey_users', JSON.stringify(users));
+              safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
             }
           }
         }
@@ -310,11 +440,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (isAdmin) {
             userSession.role = 'admin';
           }
-          localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
+          persistStoredSession(userSession);
           setUser(userSession);
+          setIsAuthReady(true);
           
           // Load bookings
-          const storedBookings = localStorage.getItem(`tiqsey_bookings_${userSession.id}`);
+          const storedBookings = safeStorageGet(window.localStorage, `tiqsey_bookings_${userSession.id}`);
           if (storedBookings) {
             try {
               const parsed = JSON.parse(storedBookings);
@@ -340,11 +471,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: isAdmin ? 'admin' : 'user',
           };
           users.push(tempUser);
-          localStorage.setItem('tiqsey_users', JSON.stringify(users));
+          safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
 
           const { password: _, ...userSession } = tempUser;
-          localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
+          persistStoredSession(userSession);
           setUser(userSession);
+          setIsAuthReady(true);
           setBookings([]);
           resolve(userSession);
         }
@@ -407,12 +539,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         const updatedUsersList = [...users, newUserDb];
-        localStorage.setItem('tiqsey_users', JSON.stringify(updatedUsersList));
+        safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(updatedUsersList));
 
         // Create active session
         const { password: _, ...userSession } = newUserDb;
-        localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
+        persistStoredSession(userSession);
         setUser(userSession);
+        setIsAuthReady(true);
         setBookings([]); // starts blank
 
         resolve(userSession);
@@ -424,17 +557,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return new Promise((resolve) => {
       // Small network loading simulation
       setTimeout(() => {
-        const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
+        const usersRaw = safeStorageGet(window.localStorage, 'tiqsey_users') || '[]';
         let users: any[] = [];
         try {
-          users = JSON.parse(usersRaw);
+          const parsedUsers = JSON.parse(usersRaw);
+          users = Array.isArray(parsedUsers) ? parsedUsers : [];
         } catch (_) {
           users = [];
         }
         
         const normalizedEmail = email.toLowerCase().trim();
         const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
-        let matched = users.find((u: any) => u.email.toLowerCase() === normalizedEmail);
+        let matched = users.find((u: any) => u.email?.toLowerCase() === normalizedEmail);
         const derivedName = name || deriveNameFromEmail(email);
         
         if (!matched) {
@@ -455,14 +589,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (isAdmin) matched.role = 'admin';
         }
         
-        localStorage.setItem('tiqsey_users', JSON.stringify(users));
+        safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
 
         const { password: _, ...userSession } = matched;
         if (isAdmin) userSession.role = 'admin';
-        localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
+        persistStoredSession(userSession);
         setUser(userSession);
+        setIsAuthReady(true);
 
-        const storedBookings = localStorage.getItem(`tiqsey_bookings_${userSession.id}`);
+        const storedBookings = safeStorageGet(window.localStorage, `tiqsey_bookings_${userSession.id}`);
         if (storedBookings) {
           try {
             const parsed = JSON.parse(storedBookings);
@@ -480,9 +615,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem('tiqsey_current_session');
+    persistStoredSession(null);
     setUser(null);
     setBookings([]);
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    }).catch(() => {});
   };
 
   const updateProfile = async (name: string, email: string, bio?: string, avatarUrl?: string): Promise<User> => {
@@ -520,10 +660,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           
           users[matchedIdx] = updatedUserDb;
-          localStorage.setItem('tiqsey_users', JSON.stringify(users));
+          safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
           
           const { password: _, ...userSession } = updatedUserDb;
-          localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
+          persistStoredSession(userSession);
           setUser(userSession);
           resolve(userSession);
         } else {
@@ -539,10 +679,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           
           users.push(newUserDb);
-          localStorage.setItem('tiqsey_users', JSON.stringify(users));
+          safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
           
           const { password: _, ...userSession } = newUserDb;
-          localStorage.setItem('tiqsey_current_session', JSON.stringify(userSession));
+          persistStoredSession(userSession);
           setUser(userSession);
           resolve(userSession);
         }
@@ -581,7 +721,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         bio: 'Guest Voyager (Anonymous Checkout)'
       };
       // Save guest user state to DB
-      const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
+      const usersRaw = safeStorageGet(window.localStorage, 'tiqsey_users') || '[]';
       let users: any[] = [];
       try {
         const parsedUsers = JSON.parse(usersRaw);
@@ -590,9 +730,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         users = [];
       }
       users.push(newGuest);
-      localStorage.setItem('tiqsey_users', JSON.stringify(users));
+      safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
       // Authenticate guest user session
-      localStorage.setItem('tiqsey_current_session', JSON.stringify(newGuest));
+      persistStoredSession(newGuest);
       setUser(newGuest);
       activeUser = newGuest;
     }
@@ -858,6 +998,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{ 
       user, 
+      isAuthReady,
       bookings, 
       isAuthModalOpen, 
       setAuthModalOpen, 

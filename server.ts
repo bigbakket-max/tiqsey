@@ -1073,9 +1073,99 @@ async function startServer() {
   app.use(express.json({ limit: '70mb' }));
   app.use(express.urlencoded({ extended: true, limit: '70mb' }));
 
-  // Admin Authorization check helper
+  // Admin Authorization & Signed Session Cookie helpers
   const ADMIN_EMAILS = ['admin@tiqsey.com', 'bigbakket@gmail.com'];
+  const SESSION_COOKIE_NAME = 'tiqsey_session';
+  const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+  const SESSION_SIGNING_SECRET =
+    (process.env.SESSION_SECRET || '').trim() || crypto.randomBytes(32).toString('hex');
+
+  const parseCookies = (cookieHeader?: string): Record<string, string> => {
+    const out: Record<string, string> = {};
+    if (!cookieHeader) return out;
+    for (const part of cookieHeader.split(';')) {
+      const idx = part.indexOf('=');
+      if (idx === -1) continue;
+      const k = part.slice(0, idx).trim();
+      const v = part.slice(idx + 1).trim();
+      if (k) {
+        try {
+          out[k] = decodeURIComponent(v);
+        } catch {
+          out[k] = v;
+        }
+      }
+    }
+    return out;
+  };
+
+  const signSessionCookiePayload = (payload: Record<string, any>): string => {
+    const body = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+    const sig = crypto.createHmac('sha256', SESSION_SIGNING_SECRET).update(body).digest('base64url');
+    return `${body}.${sig}`;
+  };
+
+  const verifySessionCookieToken = (token?: string): Record<string, any> | null => {
+    if (!token || typeof token !== 'string') return null;
+    const dotIdx = token.indexOf('.');
+    if (dotIdx <= 0) return null;
+    const body = token.slice(0, dotIdx);
+    const sig = token.slice(dotIdx + 1);
+    const expected = crypto.createHmac('sha256', SESSION_SIGNING_SECRET).update(body).digest('base64url');
+    const sigBuf = Buffer.from(sig, 'utf8');
+    const expBuf = Buffer.from(expected, 'utf8');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+      if (!parsed || typeof parsed !== 'object' || typeof parsed.email !== 'string') return null;
+      if (typeof parsed.exp === 'number' && Date.now() > parsed.exp) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+
+  const buildSessionCookieHeader = (req: express.Request, value: string, maxAgeSeconds: number): string => {
+    const forwardedProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
+    const isSecure = req.secure || forwardedProto.includes('https');
+    const attrs = [`${SESSION_COOKIE_NAME}=${encodeURIComponent(value)}`, 'Path=/', `Max-Age=${maxAgeSeconds}`, 'HttpOnly'];
+    if (isSecure) {
+      attrs.push('Secure', 'SameSite=None', 'Partitioned');
+    } else {
+      attrs.push('SameSite=Lax');
+    }
+    return attrs.join('; ');
+  };
+
+  const getSignedSessionUser = (req: express.Request): Record<string, any> | null => {
+    const cookies = parseCookies(req.headers.cookie);
+    return verifySessionCookieToken(cookies[SESSION_COOKIE_NAME]);
+  };
+
+  const isValidCsrfRequest = (req: express.Request): boolean => {
+    if (req.headers['x-requested-with']) return true;
+    const origin = String(req.headers.origin || '').trim();
+    if (!origin) return true;
+    try {
+      const originHost = new URL(origin).host.toLowerCase();
+      const expectedHost = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
+      return Boolean(expectedHost && originHost === expectedHost);
+    } catch {
+      return false;
+    }
+  };
+
   const checkAdminAuth = (req: express.Request): boolean => {
+    const signedUser = getSignedSessionUser(req);
+    if (
+      signedUser &&
+      typeof signedUser.email === 'string' &&
+      (ADMIN_EMAILS.includes(signedUser.email.toLowerCase().trim()) || signedUser.role === 'admin')
+    ) {
+      return true;
+    }
     const adminEmail = (req.headers['x-admin-email'] || req.query.adminEmail || req.body?.adminEmail || '') as string;
     if (adminEmail && ADMIN_EMAILS.includes(adminEmail.toLowerCase().trim())) {
       return true;
@@ -2931,18 +3021,88 @@ async function startServer() {
   });
 
   app.post("/api/auth/login", (req, res) => {
-    const { email, password } = req.body;
-    if (email && password) {
-      res.json({ success: true, token: "dummy-jwt-token" });
-    } else {
-      res.status(400).json({ error: "Invalid credentials" });
+    const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    if (!rawEmail || !password) {
+      return res.status(400).json({ error: "Invalid credentials" });
     }
+
+    const normalizedEmail = rawEmail.toLowerCase();
+    const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
+    const configuredAdminPass = (process.env.ADMIN_PASSWORD || '').trim();
+
+    if (isAdmin) {
+      let verified = false;
+      if (configuredAdminPass) {
+        const a = Buffer.from(password, 'utf8');
+        const b = Buffer.from(configuredAdminPass, 'utf8');
+        verified = a.length === b.length && crypto.timingSafeEqual(a, b);
+      } else {
+        // Fallback: verify against salted PBKDF2 hash in backend_users when ADMIN_PASSWORD env is unset
+        try {
+          const beUser = db
+            .prepare("SELECT password_hash, password_salt, status FROM backend_users WHERE lower(email) = ?")
+            .get(normalizedEmail) as any;
+          if (beUser && beUser.status === 'Active' && beUser.password_hash && beUser.password_salt) {
+            const calc = crypto.pbkdf2Sync(password, beUser.password_salt, 1000, 64, 'sha512').toString('hex');
+            const a = Buffer.from(calc, 'utf8');
+            const b = Buffer.from(String(beUser.password_hash), 'utf8');
+            verified = a.length === b.length && crypto.timingSafeEqual(a, b);
+          }
+        } catch {
+          verified = false;
+        }
+      }
+
+      if (!verified) {
+        return res.status(401).json({ error: "Incorrect administrator password." });
+      }
+    }
+
+    const sessionUser = {
+      id: isAdmin
+        ? (normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456')
+        : `user-${crypto.createHash('sha256').update(normalizedEmail).digest('hex').slice(0, 12)}`,
+      name: isAdmin
+        ? (normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin')
+        : normalizedEmail.split('@')[0],
+      email: normalizedEmail,
+      role: isAdmin ? 'admin' : 'user',
+      avatarUrl: isAdmin
+        ? (normalizedEmail === 'bigbakket@gmail.com'
+            ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'
+            : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200')
+        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+      exp: Date.now() + SESSION_TTL_MS,
+    };
+
+    const signedCookie = signSessionCookiePayload(sessionUser);
+    res.setHeader('Set-Cookie', buildSessionCookieHeader(req, signedCookie, Math.floor(SESSION_TTL_MS / 1000)));
+    const { exp: _exp, ...publicUser } = sessionUser;
+    return res.json({ success: true, user: publicUser });
+  });
+
+  app.get("/api/auth/session", (req, res) => {
+    const signedUser = getSignedSessionUser(req);
+    if (!signedUser) {
+      return res.json({ authenticated: false, user: null });
+    }
+    const { exp: _exp, ...publicUser } = signedUser;
+    return res.json({ authenticated: true, user: publicUser });
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    if (!isValidCsrfRequest(req)) {
+      return res.status(403).json({ error: "Invalid request origin" });
+    }
+    res.setHeader('Set-Cookie', buildSessionCookieHeader(req, '', 0));
+    return res.json({ success: true });
   });
 
   app.post("/api/auth/register", (req, res) => {
     const { name, email, password } = req.body;
     if (name && email && password) {
-      res.json({ success: true, token: "dummy-jwt-token" });
+      res.json({ success: true });
     } else {
       res.status(400).json({ error: "All fields are required" });
     }

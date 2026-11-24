@@ -13,7 +13,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 function Root() {
   const isBlockedAdminPath = /^\/admin(\/|$)/i.test(window.location.pathname);
-  const isAdminRoute = window.location.pathname.startsWith('/secure-panel');
+  const isAdminRoute = /^\/secure-panel(\/|$)/i.test(window.location.pathname);
 
   // Set page title to 404 Not Found when accessing blocked /admin paths
   useEffect(() => {
