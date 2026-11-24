@@ -792,6 +792,8 @@ db.exec(`
     password_hash TEXT NOT NULL,
     password_salt TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'Active',
+    bio TEXT NOT NULL DEFAULT '',
+    avatar_url TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
   );
 
@@ -4344,7 +4346,7 @@ async function startServer() {
       };
     } else {
       const customer = db.prepare(
-        "SELECT id, full_name, email, password_hash, password_salt, status FROM customer_users WHERE lower(email) = ?"
+        "SELECT id, full_name, email, password_hash, password_salt, status, bio, avatar_url FROM customer_users WHERE lower(email) = ?"
       ).get(normalizedEmail) as any;
       if (!customer || customer.status !== 'Active') {
         recordFailedAttempt();
@@ -4362,7 +4364,8 @@ async function startServer() {
         name: customer.full_name,
         email: customer.email,
         role: 'user',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+        bio: customer.bio || '',
+        avatarUrl: customer.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
       };
     }
 
@@ -4379,6 +4382,52 @@ async function startServer() {
     }
     const { exp: _exp, ...publicUser } = signedUser;
     return res.json({ authenticated: true, user: publicUser });
+  });
+
+  app.post("/api/auth/profile", (req, res) => {
+    const signedUser = getSignedSessionUser(req);
+    if (!signedUser || signedUser.role !== 'user' || typeof signedUser.id !== 'string') {
+      return res.status(401).json({ error: "A customer session is required." });
+    }
+
+    const bio = typeof req.body?.bio === 'string' ? req.body.bio.trim() : '';
+    const avatarUrl = typeof req.body?.avatarUrl === 'string' ? req.body.avatarUrl.trim() : '';
+    if (bio.length > 500 || avatarUrl.length > 2048) {
+      return res.status(400).json({ error: "Profile details exceed the allowed length." });
+    }
+    if (avatarUrl) {
+      try {
+        const parsed = new URL(avatarUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Invalid protocol');
+      } catch {
+        return res.status(400).json({ error: "Please provide a valid profile image URL." });
+      }
+    }
+
+    try {
+      const result = db.prepare(
+        "UPDATE customer_users SET bio = ?, avatar_url = ? WHERE id = ? AND status = 'Active'"
+      ).run(bio, avatarUrl || signedUser.avatarUrl || '', signedUser.id);
+      if (!result.changes) return res.status(404).json({ error: "Customer account not found." });
+
+      const sessionUser = {
+        id: signedUser.id,
+        name: signedUser.name,
+        email: signedUser.email,
+        role: 'user',
+        bio,
+        avatarUrl: avatarUrl || signedUser.avatarUrl || '',
+      };
+      const expiresAt = typeof signedUser.exp === 'number' && signedUser.exp > Date.now()
+        ? signedUser.exp
+        : Date.now() + SESSION_TTL_MS;
+      const signedCookie = signSessionCookiePayload({ ...sessionUser, exp: expiresAt });
+      res.setHeader('Set-Cookie', buildSessionCookieHeader(req, signedCookie, Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))));
+      return res.json({ success: true, user: sessionUser });
+    } catch (err: any) {
+      console.error('[Auth] Profile update failed:', err?.message || err);
+      return res.status(500).json({ error: "Unable to update your profile right now." });
+    }
   });
 
   app.post("/api/auth/logout", (req, res) => {
@@ -4411,14 +4460,15 @@ async function startServer() {
       const salt = crypto.randomBytes(32).toString('hex');
       const passwordHash = crypto.pbkdf2Sync(password, salt, 120000, 64, 'sha512').toString('hex');
       db.prepare(
-        "INSERT INTO customer_users (id, full_name, email, password_hash, password_salt, status, created_at) VALUES (?, ?, ?, ?, ?, 'Active', ?)"
-      ).run(id, name, email, passwordHash, salt, new Date().toISOString());
+        "INSERT INTO customer_users (id, full_name, email, password_hash, password_salt, status, bio, avatar_url, created_at) VALUES (?, ?, ?, ?, ?, 'Active', '', ?, ?)"
+      ).run(id, name, email, passwordHash, salt, 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200', new Date().toISOString());
 
       const sessionUser = {
         id,
         name,
         email,
         role: 'user',
+        bio: '',
         avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
       };
       const signedCookie = signSessionCookiePayload({ ...sessionUser, exp: Date.now() + SESSION_TTL_MS });
