@@ -420,129 +420,22 @@ function uploadBlobDirectWithProgress(
 }
 
 export async function uploadFileToSupabaseStorageDirect(
-  file: File,
-  bucket: SupabaseBucketId,
-  folder?: string,
-  onProgress?: (percent: number) => void
+  _file: File,
+  _bucket: SupabaseBucketId,
+  _folder?: string,
+  _onProgress?: (percent: number) => void
 ): Promise<{ url?: string; path?: string; error?: string; convertedTo?: string }> {
-  if (!isSupabaseConfigured || !supabase) {
-    return { error: 'Supabase is not configured in browser environment (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).' };
-  }
-
-  const bucketConfig = getBucketConfig(bucket);
-  const EXT_TO_MIME: Record<string, string> = {
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    png: 'image/png',
-    webp: 'image/webp',
-    avif: 'image/avif',
-    gif: 'image/gif',
-    svg: 'image/svg+xml',
-    mp4: 'video/mp4',
-    webm: 'video/webm',
-    mov: 'video/quicktime',
-    pdf: 'application/pdf',
-  };
-  const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
-  const rawMime = (file.type || EXT_TO_MIME[fileExt] || '').toLowerCase();
-  const normalizedMime = rawMime === 'image/jpg' ? 'image/jpeg' : rawMime;
-
-  if (!bucketConfig.allowedMimeTypes.includes(normalizedMime)) {
-    return {
-      error: `Type "${normalizedMime || 'unknown'}" is not allowed in "${bucket}". Allowed: ${bucketConfig.allowedMimeTypes.join(', ')}`,
-    };
-  }
-  if (file.size > bucketConfig.maxSizeBytes) {
-    return {
-      error: `File exceeds the ${bucketConfig.maxSizeLabel} size limit for "${bucket}".`,
-    };
-  }
-
-  const ext = MIME_TO_EXT[normalizedMime] || file.name.split('.').pop()?.toLowerCase() || 'bin';
-  const safeBase = file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 35) || 'file';
-  const cleanFolder = (folder || bucketConfig.defaultFolder).replace(/^\/+|\/+$/g, '') || 'uploads';
-  const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const objectPath = `${cleanFolder}/${safeBase}-${uniqueSuffix}.${ext}`;
-
-  try {
-    onProgress?.(8);
-    const xhrResult = await uploadBlobDirectWithProgress(bucket, objectPath, file, normalizedMime, onProgress);
-
-    if (!xhrResult.ok) {
-      const errMsg = xhrResult.error || '';
-      // If Supabase bucket rejects a modern image MIME (e.g. image/avif), auto-convert to WebP and retry
-      const isMimeRejected = /mime type .* is not supported/i.test(errMsg);
-      if (isMimeRejected && normalizedMime.startsWith('image/') && normalizedMime !== 'image/webp') {
-        const converted = await convertImageFileToWebpBlob(file);
-        if (converted && converted.blob.size <= bucketConfig.maxSizeBytes) {
-          const fallbackPath = `${cleanFolder}/${safeBase}-${uniqueSuffix}.${converted.ext}`;
-          const retryXhr = await uploadBlobDirectWithProgress(
-            bucket,
-            fallbackPath,
-            converted.blob,
-            converted.mime,
-            onProgress
-          );
-          if (retryXhr.ok) {
-            const { data } = supabase.storage.from(bucket).getPublicUrl(fallbackPath);
-            return {
-              url: data?.publicUrl || '',
-              path: fallbackPath,
-              convertedTo: converted.mime,
-            };
-          }
-          return { error: retryXhr.error || 'Converted WebP upload failed.' };
-        }
-      }
-      return { error: errMsg || 'Direct Supabase upload failed' };
-    }
-
-    const { data } = supabase.storage.from(bucket).getPublicUrl(objectPath);
-    return { url: data?.publicUrl || '', path: objectPath };
-  } catch (err: any) {
-    return { error: err?.message || 'Direct Supabase upload failed' };
-  }
+  return { error: 'Direct browser uploads are disabled. Use the authenticated Tiqsey Node API.' };
 }
 
 export async function deleteSupabaseBucketFilesDirect(
-  bucket: SupabaseBucketId,
-  paths: string[]
+  _bucket: SupabaseBucketId,
+  _paths: string[]
 ): Promise<{ ok: boolean; error?: string; rlsBlocked?: boolean }> {
-  if (!isSupabaseConfigured || !supabase) {
-    return { ok: false, error: 'Supabase is not configured in browser environment.' };
-  }
-  try {
-    const { data, error } = await supabase.storage.from(bucket).remove(paths);
-    if (error) {
-      const rlsBlocked = /row-level security|policy|permission|unauthorized|forbidden/i.test(error.message || '');
-      return { ok: false, error: error.message, rlsBlocked };
-    }
-    if (!Array.isArray(data) || data.length === 0) {
-      // Confirm whether the file actually still exists in Supabase Storage (vs already removed)
-      const firstPath = paths[0];
-      if (firstPath) {
-        try {
-          const { data: pub } = supabase.storage.from(bucket).getPublicUrl(firstPath);
-          if (pub?.publicUrl) {
-            const check = await fetch(`${pub.publicUrl}?t=${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
-            if (check.status === 400 || check.status === 404) {
-              return { ok: true };
-            }
-          }
-        } catch {
-          // Proceed to RLS message if probe fails
-        }
-      }
-      return {
-        ok: false,
-        rlsBlocked: true,
-        error: `Delete blocked by Supabase row-level security policy on "${bucket}".`,
-      };
-    }
-    return { ok: true };
-  } catch (err: any) {
-    return { ok: false, error: err?.message || 'Failed to delete file from Supabase Storage' };
-  }
+  return {
+    ok: false,
+    error: 'Direct browser deletion is disabled. Use the authenticated Tiqsey Node API.',
+  };
 }
 
 export interface SupabaseStorageConnectionReport {
