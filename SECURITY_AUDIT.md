@@ -33,6 +33,7 @@ File: `server.ts`
 File: `vite.config.ts`
 
 - Removed the Vite definition that could inject `GEMINI_API_KEY` into browser bundles. Gemini generation remains a server API operation and is admin-protected.
+- Validate Supabase URL protocol and hostname in both browser and server clients, accepting the configured Tiqsey `*.supabase.co` project and local development only; the server prefers the service-role key while keeping it out of browser configuration.
 
 ### Runtime database hygiene
 File: `.gitignore`
