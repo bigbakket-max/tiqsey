@@ -5702,8 +5702,8 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
   });
 
   app.post("/api/gemini/generate", async (req, res) => {
-    const {
-    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." }); action, prompt, tone, length, currentContent } = req.body;
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
+    const { action, prompt, tone, length, currentContent } = req.body || {};
     
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
