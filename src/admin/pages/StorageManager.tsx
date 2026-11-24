@@ -1090,7 +1090,7 @@ export default function StorageManager() {
                 {library?.mode === 'server'
                   ? ' · Live Server API'
                   : library?.mode === 'supabase-direct'
-                  ? ' · Direct Browser -> Supabase'
+                  ? ' · Public read-only fallback'
                   : ''}
                 {library?.latencyMs ? ` · ${library.latencyMs}ms` : ''}
                 {library?.supabaseMediaTableSynced ? ' · Metadata synced' : ''}
