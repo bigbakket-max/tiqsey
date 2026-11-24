@@ -34,7 +34,8 @@ import {
   RefreshCw,
   ExternalLink,
   Megaphone,
-  Info
+  Info,
+  FolderOpen
 } from 'lucide-react';
 import { PromotionalBanner, BannerTemplateType } from '../../types';
 import { 
@@ -44,6 +45,7 @@ import {
   deleteBanner 
 } from '../../utils/bannerStorage';
 import BannerCard from '../../components/BannerCard';
+import { MediaLibraryPickerModal } from '../components/MediaLibraryPickerModal';
 
 const TEMPLATE_PRESETS: {
   id: BannerTemplateType;
@@ -144,6 +146,7 @@ export default function PromotionalBannerForm() {
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
@@ -761,6 +764,14 @@ export default function PromotionalBannerForm() {
                       onChange={(e) => setCustomImageUrl(e.target.value)}
                       className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setIsLibraryOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                    >
+                      <FolderOpen className="w-3.5 h-3.5" />
+                      <span>Media Library</span>
+                    </button>
                     {customImageUrl && (
                       <button
                         type="button"
@@ -1620,6 +1631,19 @@ export default function PromotionalBannerForm() {
           </div>
         </div>
       )}
+
+      <MediaLibraryPickerModal
+        isOpen={isLibraryOpen}
+        onClose={() => setIsLibraryOpen(false)}
+        defaultBucket="admin-media"
+        defaultFolder="banners"
+        acceptTypes={['image']}
+        title="Select Promotional Banner Image"
+        onSelect={(asset) => {
+          setCustomImageUrl(asset.publicUrl);
+          setNotification({ message: 'Banner graphic linked from Supabase Media Library.', type: 'success' });
+        }}
+      />
     </div>
   );
 }

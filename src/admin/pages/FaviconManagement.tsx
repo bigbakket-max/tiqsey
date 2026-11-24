@@ -21,7 +21,8 @@ import {
   X,
   Sliders,
   Sun,
-  Moon
+  Moon,
+  FolderOpen
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
@@ -34,6 +35,7 @@ import {
   applyFaviconToDocument,
   FAVICON_EVENT_NAME
 } from '../../utils/faviconManager';
+import { MediaLibraryPickerModal } from '../components/MediaLibraryPickerModal';
 
 export default function FaviconManagement() {
   const { user } = useAuth();
@@ -54,6 +56,7 @@ export default function FaviconManagement() {
   const [isSaving, setIsSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -393,6 +396,15 @@ export default function FaviconManagement() {
                 ))}
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setIsLibraryOpen(true)}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors cursor-pointer"
+            >
+              <FolderOpen className="w-4 h-4" />
+              <span>Choose from Supabase Media Library</span>
+            </button>
 
             {validationError && (
               <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
@@ -809,6 +821,45 @@ export default function FaviconManagement() {
           </div>
         </div>
       )}
+
+      <MediaLibraryPickerModal
+        isOpen={isLibraryOpen}
+        onClose={() => setIsLibraryOpen(false)}
+        defaultBucket="media"
+        defaultFolder="favicons"
+        acceptTypes={['image']}
+        title="Select Favicon from Media Library"
+        onSelect={async (asset) => {
+          try {
+            const resp = await fetch(asset.publicUrl);
+            const blob = await resp.blob();
+            const ext = (asset.name.split('.').pop()?.toLowerCase() || 'png') as
+              | 'png'
+              | 'ico'
+              | 'svg'
+              | 'jpg'
+              | 'jpeg'
+              | 'webp';
+            const file = new File([blob], asset.name, { type: asset.mimeType || blob.type || 'image/png' });
+            const validation = await validateFaviconFile(file);
+            if (!validation.valid || !validation.dataUrl || !validation.format) {
+              showNotification(validation.error || 'Selected image cannot be used as a favicon.', 'error');
+              return;
+            }
+            setPendingFile({
+              file,
+              dataUrl: validation.dataUrl,
+              format: validation.format || ext,
+              mimeType: validation.mimeType || asset.mimeType || 'image/png',
+              dimensions: validation.dimensions || { width: 512, height: 512 },
+              warning: validation.warning,
+            });
+            showNotification(`Loaded "${asset.name}" from Media Library. Click "Save Changes" to publish.`, 'info');
+          } catch {
+            showNotification('Could not load selected asset for favicon preview.', 'error');
+          }
+        }}
+      />
     </div>
   );
 }

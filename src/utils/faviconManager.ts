@@ -279,6 +279,7 @@ export async function saveFaviconToBackend(payload: {
   const { fetchJsonSafely } = await import('./safeFetch');
   const res = await fetchJsonSafely<{ favicon?: FaviconConfig; error?: string }>('/api/admin/favicon', {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       'x-admin-email': payload.adminEmail,
@@ -341,6 +342,7 @@ export async function resetFaviconToDefault(adminEmail: string): Promise<Favicon
   const { fetchJsonSafely } = await import('./safeFetch');
   const res = await fetchJsonSafely<{ favicon?: FaviconConfig; error?: string }>('/api/admin/favicon', {
     method: 'DELETE',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       'x-admin-email': adminEmail,

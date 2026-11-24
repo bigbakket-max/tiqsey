@@ -2622,6 +2622,29 @@ export default function AttractionDetailModal({
                   </div>
                 </div>
 
+                {/* Activity Experience Video Showcase (when uploaded in Admin Panel) */}
+                {attraction?.videoUrl && (
+                  <div id="video-showcase-section" className="space-y-3 pt-1">
+                    <div className="flex items-center gap-2 select-none">
+                      <div className="w-1.5 h-5 bg-[#e3000f] rounded-xs shrink-0" />
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                        Experience Preview
+                      </h3>
+                    </div>
+                    <div className="bg-slate-950 rounded-2xl overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                      <video
+                        key={attraction.videoUrl}
+                        src={attraction.videoUrl}
+                        poster={mainImage}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="w-full max-h-[420px] object-contain bg-black"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Highlights Panel matching reference image */}
                 <div id="highlights-section" className="space-y-3 pt-1">
               <div className="flex items-center gap-2 select-none">

@@ -24,10 +24,12 @@ import {
   Upload,
   Globe,
   MapPin,
-  Tag
+  Tag,
+  FolderOpen
 } from 'lucide-react';
 import { LargeHeroBannerConfig, LargeHeroBannerSlide } from '../../types';
 import { uploadAndOptimizeImage } from '../../utils/imageUpload';
+import { MediaLibraryPickerModal } from './MediaLibraryPickerModal';
 import { 
   getStoredLargeHeroBannerConfig, 
   saveStoredLargeHeroBannerConfig,
@@ -84,6 +86,7 @@ export default function LargeBannerManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ type: 'delete'; id: string } | { type: 'reset' } | null>(null);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state for slide edit/add
@@ -791,6 +794,14 @@ export default function LargeBannerManager() {
                     <Upload className="w-3.5 h-3.5" />
                     <span>Upload</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsLibraryOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-900 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors shrink-0"
+                  >
+                    <FolderOpen className="w-3.5 h-3.5" />
+                    <span>Library</span>
+                  </button>
                 </div>
               </div>
 
@@ -973,6 +984,19 @@ export default function LargeBannerManager() {
           </div>
         </div>
       )}
+
+      <MediaLibraryPickerModal
+        isOpen={isLibraryOpen}
+        onClose={() => setIsLibraryOpen(false)}
+        defaultBucket="admin-media"
+        defaultFolder="hero-banners"
+        acceptTypes={['image']}
+        title="Select Hero Slide Image"
+        onSelect={(asset) => {
+          setFormData((prev) => ({ ...prev, imageUrl: asset.publicUrl }));
+          showToast('Hero slide image selected from Supabase Media Library');
+        }}
+      />
 
     </div>
   );

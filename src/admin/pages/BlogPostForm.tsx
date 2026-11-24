@@ -57,8 +57,10 @@ import {
   PenTool,
   UploadCloud,
   Tag,
-  Calendar
+  Calendar,
+  FolderOpen
 } from 'lucide-react';
+import { MediaLibraryPickerModal } from '../components/MediaLibraryPickerModal';
 import { useBlog } from '../../contexts/BlogContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -184,6 +186,7 @@ export default function BlogPostForm() {
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [imageError, setImageError] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [category, setCategory] = useState('Travel Tips');
   const [authorName, setAuthorName] = useState('Admin');
   const [publishedAt, setPublishedAt] = useState(getLocalDatetime());
@@ -1396,15 +1399,25 @@ export default function BlogPostForm() {
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Image URL (Optional)
               </label>
-              <input
-                type="text"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="Enter image URL..."
-                className="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 shadow-2xs"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="Enter image URL..."
+                  className="flex-1 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 shadow-2xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsLibraryOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-semibold hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  <span>Library</span>
+                </button>
+              </div>
               <p className="text-[11px] text-slate-400 mt-1">
-                Add an external image URL if you don't want to upload
+                Pick from Supabase Media Library or paste an external image URL
               </p>
             </div>
           </div>
@@ -3237,6 +3250,19 @@ export default function BlogPostForm() {
           </div>
         )}
       </AnimatePresence>
+
+      <MediaLibraryPickerModal
+        isOpen={isLibraryOpen}
+        onClose={() => setIsLibraryOpen(false)}
+        defaultBucket="blog"
+        defaultFolder="covers"
+        acceptTypes={['image']}
+        title="Select Blog Cover Image"
+        onSelect={(asset) => {
+          setImageUrl(asset.publicUrl);
+          setImageError(false);
+        }}
+      />
     </div>
   );
 }

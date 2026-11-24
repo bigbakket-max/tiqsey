@@ -24,6 +24,7 @@ export interface Attraction {
   duration?: string;
   cancellationPolicy?: string;
   galleryUrls?: string[];
+  videoUrl?: string;
   provider?: string;
   fastTrack?: boolean;
   liveGuide?: string;
@@ -50,6 +51,41 @@ export interface Attraction {
   seoTitle?: string;
   seoDescription?: string;
   customSlug?: string;
+}
+
+export type MediaCategory = 'image' | 'video' | 'document';
+
+export interface MediaUsageRef {
+  type: 'activity' | 'banner' | 'hero-slide' | 'blog' | 'favicon' | 'destination' | 'avatar' | 'instagram';
+  id: string;
+  title: string;
+  field: string;
+}
+
+export interface MediaAssetItem {
+  id: string;
+  bucket: string;
+  path: string;
+  folder: string;
+  name: string;
+  publicUrl: string;
+  mimeType: string;
+  mediaType: MediaCategory;
+  size: number;
+  sha256Hash?: string | null;
+  uploadedBy?: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  usageCount?: number;
+}
+
+export interface MediaFolderItem {
+  bucket: string;
+  path: string;
+  name: string;
+  parentFolder: string;
+  fileCount: number;
+  createdAt?: string | null;
 }
 
 export type BookingMode = 'manual' | 'affiliate';

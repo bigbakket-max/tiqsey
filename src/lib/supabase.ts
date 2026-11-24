@@ -45,6 +45,7 @@ export const SUPABASE_STORAGE_BUCKETS: Record<SupabaseBucketId, SupabaseBucketCo
       'image/svg+xml',
       'video/mp4',
       'video/webm',
+      'application/pdf',
     ],
     public: true,
     defaultFolder: 'uploads',
@@ -64,6 +65,7 @@ export const SUPABASE_STORAGE_BUCKETS: Record<SupabaseBucketId, SupabaseBucketCo
       'video/mp4',
       'video/webm',
       'video/quicktime',
+      'application/pdf',
     ],
     public: true,
     defaultFolder: 'banners',
@@ -168,7 +170,16 @@ const MIME_TO_EXT: Record<string, string> = {
   'video/mp4': 'mp4',
   'video/webm': 'webm',
   'video/quicktime': 'mov',
+  'application/pdf': 'pdf',
 };
+
+export function getMediaCategory(mimeType?: string | null, fileName?: string | null): 'image' | 'video' | 'document' {
+  const mime = (mimeType || '').toLowerCase();
+  const name = (fileName || '').toLowerCase();
+  if (mime.startsWith('video/') || /\.(mp4|webm|mov|m4v|ogg)$/.test(name)) return 'video';
+  if (mime.startsWith('image/') || /\.(jpe?g|png|webp|avif|gif|svg|ico)$/.test(name)) return 'image';
+  return 'document';
+}
 
 export async function uploadDataUrlToSupabaseStorage(
   dataUrl: string,
@@ -177,7 +188,7 @@ export async function uploadDataUrlToSupabaseStorage(
   bucket?: SupabaseBucketId
 ): Promise<string | null> {
   if (!isSupabaseConfigured || !supabase) return null;
-  const match = dataUrl.match(/^data:((?:image|video)\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
+  const match = dataUrl.match(/^data:((?:image|video|application)\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
   if (!match) return null;
 
   let mime = match[1].toLowerCase();
@@ -362,6 +373,7 @@ export async function uploadFileToSupabaseStorageDirect(
     mp4: 'video/mp4',
     webm: 'video/webm',
     mov: 'video/quicktime',
+    pdf: 'application/pdf',
   };
   const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
   const rawMime = (file.type || EXT_TO_MIME[fileExt] || '').toLowerCase();

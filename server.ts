@@ -74,6 +74,7 @@ const SUPABASE_STORAGE_BUCKETS: Record<SupabaseBucketId, SupabaseBucketSpec> = {
       'image/svg+xml',
       'video/mp4',
       'video/webm',
+      'application/pdf',
     ],
     defaultFolder: 'uploads',
   },
@@ -93,6 +94,7 @@ const SUPABASE_STORAGE_BUCKETS: Record<SupabaseBucketId, SupabaseBucketSpec> = {
       'video/mp4',
       'video/webm',
       'video/quicktime',
+      'application/pdf',
     ],
     defaultFolder: 'banners',
   },
@@ -161,7 +163,42 @@ const STORAGE_MIME_TO_EXT: Record<string, string> = {
   'video/mp4': 'mp4',
   'video/webm': 'webm',
   'video/quicktime': 'mov',
+  'application/pdf': 'pdf',
 };
+
+function classifyMediaType(mimeType?: string, fileName?: string): 'image' | 'video' | 'document' {
+  const m = (mimeType || '').toLowerCase();
+  const n = (fileName || '').toLowerCase();
+  if (m.startsWith('video/') || /\.(mp4|webm|mov|m4v|ogg)$/.test(n)) return 'video';
+  if (m.startsWith('image/') || /\.(jpe?g|png|webp|avif|gif|svg|ico)$/.test(n)) return 'image';
+  return 'document';
+}
+
+function sanitizeStorageFolder(raw?: string, fallback = 'uploads'): string {
+  if (!raw || typeof raw !== 'string') return fallback;
+  const cleaned = raw
+    .trim()
+    .replace(/\\/g, '/')
+    .split('/')
+    .map((seg) => seg.replace(/[^a-zA-Z0-9_-]/g, '').trim())
+    .filter((seg) => seg.length > 0 && seg !== '.' && seg !== '..')
+    .join('/');
+  return cleaned || fallback;
+}
+
+function sanitizeStorageObjectPath(raw?: string): string | null {
+  if (!raw || typeof raw !== 'string') return null;
+  const segments = raw
+    .trim()
+    .replace(/\\/g, '/')
+    .replace(/^\/+|\/+$/g, '')
+    .split('/');
+  if (segments.length === 0) return null;
+  for (const seg of segments) {
+    if (!seg || seg === '.' || seg === '..' || /[\0<>:"|?*]/.test(seg)) return null;
+  }
+  return segments.join('/');
+}
 
 function isValidStorageBucket(bucket: string): bucket is SupabaseBucketId {
   return Object.prototype.hasOwnProperty.call(SUPABASE_STORAGE_BUCKETS, bucket);
@@ -304,8 +341,9 @@ async function uploadBufferToSupabaseStorage(
   }
 
   const tryUpload = async (bucketName: string) => {
+    const dynamicTimeoutMs = Math.max(30000, Math.min(180000, Math.ceil(buffer.length / (100 * 1024)) * 1000));
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Supabase storage upload timed out')), 15000)
+      setTimeout(() => reject(new Error('Supabase storage upload timed out')), dynamicTimeoutMs)
     );
     const uploadPromise = supabase.storage
       .from(bucketName)
@@ -836,6 +874,35 @@ db.exec(`
     updated_at TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_ig_status ON instagram_posts(status);
+
+  CREATE TABLE IF NOT EXISTS media_assets (
+    id TEXT PRIMARY KEY,
+    bucket TEXT NOT NULL,
+    path TEXT NOT NULL,
+    folder TEXT NOT NULL DEFAULT '',
+    file_name TEXT NOT NULL,
+    public_url TEXT NOT NULL,
+    mime_type TEXT NOT NULL DEFAULT 'application/octet-stream',
+    media_type TEXT NOT NULL DEFAULT 'image',
+    file_size INTEGER NOT NULL DEFAULT 0,
+    sha256_hash TEXT,
+    uploaded_by TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(bucket, path)
+  );
+  CREATE INDEX IF NOT EXISTS idx_media_assets_bucket ON media_assets(bucket);
+  CREATE INDEX IF NOT EXISTS idx_media_assets_hash ON media_assets(sha256_hash);
+  CREATE INDEX IF NOT EXISTS idx_media_assets_url ON media_assets(public_url);
+
+  CREATE TABLE IF NOT EXISTS media_folders (
+    id TEXT PRIMARY KEY,
+    bucket TEXT NOT NULL,
+    folder_path TEXT NOT NULL,
+    created_by TEXT,
+    created_at TEXT NOT NULL,
+    UNIQUE(bucket, folder_path)
+  );
 `);
 
 // Seed default favicon in site_settings if not set
@@ -1361,6 +1428,19 @@ async function startServer() {
         );
       } catch (_) {}
 
+      // Record uploaded favicon in permanent media_assets catalog when stored in Supabase
+      if (storageResult.url && storageResult.bucket && storageResult.path) {
+        recordVerifiedMediaAsset({
+          bucket: storageResult.bucket as SupabaseBucketId,
+          path: storageResult.path,
+          publicUrl: storageResult.url,
+          mimeType: normalizedFaviconMime,
+          size: buffer.length,
+          sha256Hash: crypto.createHash('sha256').update(buffer).digest('hex'),
+          uploadedBy: adminEmail || 'admin@tiqsey.com',
+        }).catch(() => {});
+      }
+
       return res.json({ success: true, favicon: faviconConfig });
     } catch (err: any) {
       console.error("[Favicon Admin API] Error saving favicon:", err);
@@ -1368,7 +1448,332 @@ async function startServer() {
     }
   });
 
-  // General Media Upload Endpoint for all 7 Supabase Storage buckets (media, admin-media, blog, attractions, avatars, cities, attraction-photos)
+  // =========================================================================
+  // PERMANENT SUPABASE MEDIA CATALOG, FOLDERS, CHUNKED UPLOADS & USAGE HELPERS
+  // =========================================================================
+
+  let supabaseMediaTableAvailable: boolean | null = null;
+
+  interface MediaAssetRecordInput {
+    bucket: SupabaseBucketId;
+    path: string;
+    publicUrl: string;
+    mimeType: string;
+    size: number;
+    sha256Hash?: string | null;
+    uploadedBy?: string | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+  }
+
+  function extractFolderAndName(objectPath: string): { folder: string; fileName: string } {
+    const clean = objectPath.replace(/^\/+|\/+$/g, '');
+    const slashIdx = clean.lastIndexOf('/');
+    if (slashIdx === -1) return { folder: '', fileName: clean };
+    return {
+      folder: clean.slice(0, slashIdx),
+      fileName: clean.slice(slashIdx + 1),
+    };
+  }
+
+  async function verifySupabaseObjectExists(
+    supabase: any,
+    bucket: SupabaseBucketId,
+    objectPath: string
+  ): Promise<boolean> {
+    try {
+      const { folder, fileName } = extractFolderAndName(objectPath);
+      const { data, error } = await supabase.storage.from(bucket).list(folder, {
+        limit: 100,
+        search: fileName,
+      });
+      if (!error && Array.isArray(data) && data.some((item: any) => item?.name === fileName)) {
+        return true;
+      }
+      const { data: pub } = supabase.storage.from(bucket).getPublicUrl(objectPath);
+      if (pub?.publicUrl) {
+        const head = await fetch(pub.publicUrl, { method: 'HEAD' });
+        return head.ok;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  async function recordVerifiedMediaAsset(input: MediaAssetRecordInput) {
+    const now = new Date().toISOString();
+    const { folder, fileName } = extractFolderAndName(input.path);
+    const mediaType = classifyMediaType(input.mimeType, fileName);
+    const existing = db
+      .prepare('SELECT id, created_at, sha256_hash, uploaded_by FROM media_assets WHERE bucket = ? AND path = ?')
+      .get(input.bucket, input.path) as any;
+
+    const id = existing?.id || `media-${crypto.createHash('sha256').update(`${input.bucket}:${input.path}`).digest('hex').slice(0, 16)}`;
+    const createdAt = input.createdAt || existing?.created_at || now;
+    const updatedAt = input.updatedAt || now;
+    const sha256Hash = input.sha256Hash ?? existing?.sha256_hash ?? null;
+    const uploadedBy = input.uploadedBy || existing?.uploaded_by || 'admin@tiqsey.com';
+
+    db.prepare(`
+      INSERT INTO media_assets (
+        id, bucket, path, folder, file_name, public_url, mime_type, media_type,
+        file_size, sha256_hash, uploaded_by, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(bucket, path) DO UPDATE SET
+        folder = excluded.folder,
+        file_name = excluded.file_name,
+        public_url = excluded.public_url,
+        mime_type = excluded.mime_type,
+        media_type = excluded.media_type,
+        file_size = excluded.file_size,
+        sha256_hash = COALESCE(excluded.sha256_hash, media_assets.sha256_hash),
+        uploaded_by = COALESCE(excluded.uploaded_by, media_assets.uploaded_by),
+        updated_at = excluded.updated_at
+    `).run(
+      id,
+      input.bucket,
+      input.path,
+      folder,
+      fileName,
+      input.publicUrl,
+      input.mimeType || 'application/octet-stream',
+      mediaType,
+      Number(input.size) || 0,
+      sha256Hash,
+      uploadedBy,
+      createdAt,
+      updatedAt
+    );
+
+    if (folder) {
+      db.prepare(`
+        INSERT OR IGNORE INTO media_folders (id, bucket, folder_path, created_by, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(`fld-${input.bucket}-${folder}`, input.bucket, folder, uploadedBy, createdAt);
+    }
+
+    // Dual-sync to Supabase media_assets table if present
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase.from('media_assets').upsert(
+          {
+            id,
+            bucket: input.bucket,
+            path: input.path,
+            folder,
+            file_name: fileName,
+            public_url: input.publicUrl,
+            mime_type: input.mimeType || 'application/octet-stream',
+            media_type: mediaType,
+            file_size: Number(input.size) || 0,
+            sha256_hash: sha256Hash,
+            uploaded_by: uploadedBy,
+            created_at: createdAt,
+            updated_at: updatedAt,
+          },
+          { onConflict: 'bucket,path' }
+        );
+        if (!error) {
+          supabaseMediaTableAvailable = true;
+        } else if (/relation .* does not exist|could not find the table/i.test(error.message || '')) {
+          supabaseMediaTableAvailable = false;
+        }
+      } catch {
+        // Non-fatal: SQLite remains synced and Supabase SQL helper guides table creation
+      }
+    }
+
+    return {
+      id,
+      bucket: input.bucket,
+      path: input.path,
+      folder,
+      name: fileName,
+      publicUrl: input.publicUrl,
+      mimeType: input.mimeType || 'application/octet-stream',
+      mediaType,
+      size: Number(input.size) || 0,
+      sha256Hash,
+      uploadedBy,
+      createdAt,
+      updatedAt,
+    };
+  }
+
+  async function removeMediaAssetRecords(bucket: SupabaseBucketId, paths: string[]) {
+    if (paths.length === 0) return;
+    const delStmt = db.prepare('DELETE FROM media_assets WHERE bucket = ? AND path = ?');
+    const tx = db.transaction((list: string[]) => {
+      for (const p of list) delStmt.run(bucket, p);
+    });
+    tx(paths);
+
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('media_assets').delete().eq('bucket', bucket).in('path', paths);
+      } catch {
+        // Ignore if table not provisioned yet
+      }
+    }
+  }
+
+  function scanServerMediaReferences(targetUrl: string, targetPath?: string) {
+    const refs: Array<{ type: string; id: string; title: string; field: string }> = [];
+    const needles = [targetUrl, targetPath].filter((v): v is string => Boolean(v && v.trim().length > 4));
+    if (needles.length === 0) return refs;
+    const matches = (val?: string | null) => Boolean(val && needles.some((n) => val.includes(n)));
+
+    // 1. Attractions table (cover, gallery, videoUrl)
+    try {
+      const rows = db.prepare('SELECT id, name, data_json FROM attractions').all() as any[];
+      for (const row of rows) {
+        try {
+          const data = JSON.parse(row.data_json);
+          if (matches(data?.imageUrl)) {
+            refs.push({ type: 'activity', id: row.id, title: row.name || data?.name || row.id, field: 'Cover Image' });
+          }
+          if (matches(data?.videoUrl)) {
+            refs.push({ type: 'activity', id: row.id, title: row.name || data?.name || row.id, field: 'Activity Video' });
+          }
+          if (Array.isArray(data?.galleryUrls) && data.galleryUrls.some((g: any) => matches(String(g)))) {
+            refs.push({ type: 'activity', id: row.id, title: row.name || data?.name || row.id, field: 'Gallery Photo' });
+          }
+        } catch {}
+      }
+    } catch {}
+
+    // 2. Site Settings (favicon, banners, etc.)
+    try {
+      const settings = db.prepare('SELECT key, value FROM site_settings').all() as any[];
+      for (const s of settings) {
+        if (matches(s.value)) {
+          refs.push({
+            type: s.key === 'favicon' ? 'favicon' : 'banner',
+            id: s.key,
+            title: s.key === 'favicon' ? 'Site Favicon & App Icon' : `Site Setting (${s.key})`,
+            field: s.key,
+          });
+        }
+      }
+    } catch {}
+
+    // 3. Instagram posts
+    try {
+      const posts = db.prepare('SELECT id, attraction_name, media_urls FROM instagram_posts').all() as any[];
+      for (const p of posts) {
+        if (matches(p.media_urls)) {
+          refs.push({
+            type: 'instagram',
+            id: p.id,
+            title: p.attraction_name || p.id,
+            field: 'Social Media Asset',
+          });
+        }
+      }
+    } catch {}
+
+    return refs;
+  }
+
+  function replaceServerMediaReferences(oldUrl: string, newUrl: string) {
+    const updated: Array<{ type: string; id: string; title: string; field: string }> = [];
+    if (!oldUrl || !newUrl || oldUrl === newUrl) return updated;
+    const now = new Date().toISOString();
+
+    // 1. Update attractions JSON
+    try {
+      const rows = db.prepare('SELECT id, name, data_json FROM attractions').all() as any[];
+      const updateAttr = db.prepare('UPDATE attractions SET data_json = ?, updated_at = ? WHERE id = ?');
+      for (const row of rows) {
+        if (!row.data_json || !row.data_json.includes(oldUrl)) continue;
+        try {
+          const data = JSON.parse(row.data_json);
+          let changed = false;
+          if (data.imageUrl === oldUrl) {
+            data.imageUrl = newUrl;
+            changed = true;
+            updated.push({ type: 'activity', id: row.id, title: row.name || row.id, field: 'Cover Image' });
+          }
+          if (data.videoUrl === oldUrl) {
+            data.videoUrl = newUrl;
+            changed = true;
+            updated.push({ type: 'activity', id: row.id, title: row.name || row.id, field: 'Activity Video' });
+          }
+          if (Array.isArray(data.galleryUrls)) {
+            const nextGallery = data.galleryUrls.map((u: string) => (u === oldUrl ? newUrl : u));
+            if (JSON.stringify(nextGallery) !== JSON.stringify(data.galleryUrls)) {
+              data.galleryUrls = nextGallery;
+              changed = true;
+              updated.push({ type: 'activity', id: row.id, title: row.name || row.id, field: 'Gallery Photo' });
+            }
+          }
+          if (changed) {
+            updateAttr.run(JSON.stringify(data), now, row.id);
+          }
+        } catch {}
+      }
+    } catch {}
+
+    // 2. Update site_settings (favicon, banners, etc.)
+    try {
+      const settings = db.prepare('SELECT key, value FROM site_settings').all() as any[];
+      const updateSetting = db.prepare('UPDATE site_settings SET value = ?, updated_at = ? WHERE key = ?');
+      for (const s of settings) {
+        if (!s.value || !s.value.includes(oldUrl)) continue;
+        const nextVal = s.value.split(oldUrl).join(newUrl);
+        updateSetting.run(nextVal, now, s.key);
+        updated.push({
+          type: s.key === 'favicon' ? 'favicon' : 'banner',
+          id: s.key,
+          title: s.key === 'favicon' ? 'Site Favicon & App Icon' : `Site Setting (${s.key})`,
+          field: s.key,
+        });
+      }
+    } catch {}
+
+    // 3. Update instagram_posts
+    try {
+      const posts = db.prepare('SELECT id, attraction_name, media_urls FROM instagram_posts').all() as any[];
+      const updatePost = db.prepare('UPDATE instagram_posts SET media_urls = ?, updated_at = ? WHERE id = ?');
+      for (const p of posts) {
+        if (!p.media_urls || !p.media_urls.includes(oldUrl)) continue;
+        updatePost.run(p.media_urls.split(oldUrl).join(newUrl), now, p.id);
+        updated.push({ type: 'instagram', id: p.id, title: p.attraction_name || p.id, field: 'Social Media Asset' });
+      }
+    } catch {}
+
+    return updated;
+  }
+
+  // In-memory resumable chunked upload sessions (auto-cleaned after 30 minutes)
+  interface ChunkUploadSession {
+    id: string;
+    bucket: SupabaseBucketId;
+    folder: string;
+    filename: string;
+    mimeType: string;
+    totalSize: number;
+    totalChunks: number;
+    sha256Hash?: string;
+    uploadedBy: string;
+    replaceOldPath?: string;
+    replaceOldUrl?: string;
+    chunks: Map<number, Buffer>;
+    createdAt: number;
+  }
+  const activeUploadSessions = new Map<string, ChunkUploadSession>();
+
+  const cleanupExpiredUploadSessions = () => {
+    const cutoff = Date.now() - 30 * 60 * 1000;
+    for (const [key, sess] of activeUploadSessions.entries()) {
+      if (sess.createdAt < cutoff) activeUploadSessions.delete(key);
+    }
+  };
+
+  // General Media Upload Endpoint for all 7 Supabase Storage buckets (Permanent Supabase Primary Storage)
   app.post("/api/upload", async (req, res) => {
     try {
       const payload = req.body?.image || req.body?.dataUrl;
@@ -1384,6 +1789,18 @@ async function startServer() {
         ? requestedBucketRaw
         : getConfiguredStorageBucket();
       const bucketSpec = SUPABASE_STORAGE_BUCKETS[targetBucket];
+
+      // Enforce access control: only authorized admins can upload to website/admin buckets;
+      // profile avatar uploads require an authenticated user session or admin privileges.
+      const isAdmin = checkAdminAuth(req);
+      const isSignedInUser = Boolean(getSignedSessionUser(req));
+      if (targetBucket === 'avatars') {
+        if (!isAdmin && !isSignedInUser) {
+          return res.status(401).json({ error: "Sign in required to upload a profile avatar." });
+        }
+      } else if (!isAdmin) {
+        return res.status(403).json({ error: "Access denied. Only authorized administrators can upload website media." });
+      }
 
       let buffer: Buffer;
       let ext = 'jpg';
@@ -1404,7 +1821,6 @@ async function startServer() {
         return res.status(400).json({ error: "Expected base64 data URI" });
       }
 
-      // Check bucket MIME rules; if unsupported in requested bucket, check whether another bucket supports it when caller didn't strictly require the bucket
       let effectiveBucket: SupabaseBucketId = targetBucket;
       if (!bucketSpec.allowedMimeTypes.includes(mime)) {
         if (requestedBucketRaw && isValidStorageBucket(requestedBucketRaw)) {
@@ -1428,32 +1844,12 @@ async function startServer() {
         });
       }
 
-      const safeFolder = (requestedFolderRaw || effectiveSpec.defaultFolder)
-        .replace(/[^a-zA-Z0-9/_-]/g, '')
-        .replace(/^\/+|\/+$/g, '')
-        .replace(/\.\./g, '') || effectiveSpec.defaultFolder;
-
-      const publicUploadsDir = path.resolve(process.cwd(), 'public', 'uploads', effectiveBucket);
-      const distUploadsDir = path.resolve(process.cwd(), 'dist', 'uploads', effectiveBucket);
-      if (!fs.existsSync(publicUploadsDir)) fs.mkdirSync(publicUploadsDir, { recursive: true });
-      if (!fs.existsSync(distUploadsDir)) fs.mkdirSync(distUploadsDir, { recursive: true });
-
+      const safeFolder = sanitizeStorageFolder(requestedFolderRaw, effectiveSpec.defaultFolder);
       const baseOnly = typeof filename === 'string' ? path.basename(filename, path.extname(filename)) : 'media';
-      const safeBase = baseOnly.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30) || 'media';
+      const safeBase = baseOnly.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 35) || 'media';
       const uploadedFilename = `${safeBase}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
-      const publicUploadPath = path.resolve(publicUploadsDir, uploadedFilename);
-      const distUploadPath = path.resolve(distUploadsDir, uploadedFilename);
-
-      if (!publicUploadPath.startsWith(publicUploadsDir + path.sep)) {
-        return res.status(400).json({ error: "Invalid upload path" });
-      }
-
-      fs.writeFileSync(publicUploadPath, buffer);
-      if (fs.existsSync(distUploadsDir) && distUploadPath.startsWith(distUploadsDir + path.sep)) {
-        fs.writeFileSync(distUploadPath, buffer);
-      }
-
       const objectPath = `${safeFolder}/${uploadedFilename}`;
+
       const storageResult = await uploadBufferToSupabaseStorage(
         buffer,
         objectPath,
@@ -1461,18 +1857,38 @@ async function startServer() {
         effectiveBucket
       );
 
-      const localUrl = `/uploads/${effectiveBucket}/${uploadedFilename}`;
+      if (!storageResult.url) {
+        return res.status(502).json({
+          error: storageResult.error || `Supabase Storage upload failed for bucket "${effectiveBucket}".`,
+          storage: 'disconnected',
+        });
+      }
+
+      const finalBucket = (storageResult.bucket || effectiveBucket) as SupabaseBucketId;
+      const finalPath = storageResult.path || objectPath;
+      const sha256Hash = crypto.createHash('sha256').update(buffer).digest('hex');
+      const uploaderEmail = String(req.headers['x-admin-email'] || getSignedSessionUser(req)?.email || 'admin@tiqsey.com');
+
+      const asset = await recordVerifiedMediaAsset({
+        bucket: finalBucket,
+        path: finalPath,
+        publicUrl: storageResult.url,
+        mimeType: mime,
+        size: buffer.length,
+        sha256Hash,
+        uploadedBy: uploaderEmail,
+      });
+
       return res.json({
         success: true,
-        url: storageResult.url || localUrl,
-        localUrl,
+        url: storageResult.url,
         filename: uploadedFilename,
-        storage: storageResult.url ? 'supabase' : 'local',
-        bucket: storageResult.bucket || effectiveBucket,
-        path: storageResult.path || objectPath,
+        storage: 'supabase',
+        bucket: finalBucket,
+        path: finalPath,
         contentType: mime,
         size: buffer.length,
-        warning: storageResult.url ? undefined : storageResult.error,
+        asset,
       });
     } catch (err: any) {
       console.error("[Upload API] Error saving uploaded media:", err);
@@ -1480,40 +1896,785 @@ async function startServer() {
     }
   });
 
-  // Helper: recursively collect files inside a Supabase Storage bucket (up to depth 2)
-  async function listBucketFilesRecursive(supabase: any, bucketName: string, prefix = '', depth = 0): Promise<any[]> {
+  // Helper: recursively collect files & folders inside a Supabase Storage bucket
+  async function listBucketEntriesRecursive(
+    supabase: any,
+    bucketName: SupabaseBucketId,
+    prefix = '',
+    depth = 0
+  ): Promise<{ files: any[]; folders: string[] }> {
     const { data, error } = await supabase.storage.from(bucketName).list(prefix, {
-      limit: 100,
+      limit: 1000,
       sortBy: { column: 'updated_at', order: 'desc' },
     });
-    if (error || !Array.isArray(data)) return [];
+    if (error || !Array.isArray(data)) return { files: [], folders: [] };
 
-    const results: any[] = [];
+    const files: any[] = [];
+    const folders: string[] = [];
     for (const item of data) {
-      if (!item?.name || item.name === '.emptyFolderPlaceholder') continue;
+      if (!item?.name) continue;
+      if (item.name === '.emptyFolderPlaceholder' || item.name === '.keep' || item.name === '.folder_placeholder.png') {
+        if (prefix && !folders.includes(prefix)) folders.push(prefix);
+        continue;
+      }
       const fullPath = prefix ? `${prefix}/${item.name}` : item.name;
       const isFolder = item.id === null || item.metadata === null;
       if (isFolder) {
+        folders.push(fullPath);
         if (depth < 4) {
-          const nested = await listBucketFilesRecursive(supabase, bucketName, fullPath, depth + 1);
-          results.push(...nested);
+          const nested = await listBucketEntriesRecursive(supabase, bucketName, fullPath, depth + 1);
+          files.push(...nested.files);
+          folders.push(...nested.folders);
         }
       } else {
         const { data: pub } = supabase.storage.from(bucketName).getPublicUrl(fullPath);
-        results.push({
+        const { folder } = extractFolderAndName(fullPath);
+        if (folder && !folders.includes(folder)) folders.push(folder);
+        files.push({
           name: item.name,
           path: fullPath,
+          folder,
           bucket: bucketName,
           publicUrl: pub?.publicUrl || '',
-          size: item.metadata?.size ?? 0,
-          mimeType: item.metadata?.mimetype || '',
+          size: Number(item.metadata?.size ?? 0),
+          mimeType: String(item.metadata?.mimetype || ''),
+          mediaType: classifyMediaType(item.metadata?.mimetype, item.name),
           createdAt: item.created_at || null,
           updatedAt: item.updated_at || item.created_at || null,
         });
       }
     }
-    return results;
+    return { files, folders: Array.from(new Set(folders)) };
   }
+
+  async function listBucketFilesRecursive(supabase: any, bucketName: SupabaseBucketId, prefix = '', depth = 0): Promise<any[]> {
+    const { files } = await listBucketEntriesRecursive(supabase, bucketName, prefix, depth);
+    return files;
+  }
+
+  // Admin Storage API: Unified Media Library (all 7 buckets, folders, KPI metrics, reconciled metadata)
+  app.get("/api/admin/storage/library", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can view the media library." });
+    }
+    const startedAt = Date.now();
+    try {
+      const supabase = getSupabaseClient();
+      const projectId = getSupabaseProjectId();
+      const requestedBucket = typeof req.query.bucket === 'string' ? req.query.bucket.trim() : 'all';
+
+      if (!supabase) {
+        return res.json({
+          connected: false,
+          projectId: projectId || null,
+          storageEndpoint: projectId ? `https://${projectId}.supabase.co/storage/v1` : null,
+          dashboardUrl: projectId ? `https://supabase.com/dashboard/project/${projectId}/storage/files` : null,
+          supabaseMediaTableSynced: false,
+          latencyMs: Date.now() - startedAt,
+          summary: {
+            totalImages: 0,
+            totalVideos: 0,
+            totalDocuments: 0,
+            totalFolders: 0,
+            totalFiles: 0,
+            totalBytes: 0,
+            quotaBytes: 1024 * 1024 * 1024,
+          },
+          buckets: ALL_SUPABASE_BUCKET_IDS.map((id) => ({
+            ...SUPABASE_STORAGE_BUCKETS[id],
+            existsInSupabase: false,
+            fileCount: 0,
+            folderCount: 0,
+            totalSize: 0,
+          })),
+          folders: [],
+          files: [],
+        });
+      }
+
+      const { data: remoteBuckets, error: listErr } = await supabase.storage.listBuckets();
+      const remoteMap = new Map<string, any>();
+      if (!listErr && Array.isArray(remoteBuckets)) {
+        remoteBuckets.forEach((b: any) => remoteMap.set(b.name, b));
+      }
+
+      // Check Supabase media_assets table availability once if unknown
+      if (supabaseMediaTableAvailable === null) {
+        try {
+          const { error: probeErr } = await supabase.from('media_assets').select('id').limit(1);
+          supabaseMediaTableAvailable = !probeErr;
+        } catch {
+          supabaseMediaTableAvailable = false;
+        }
+      }
+
+      const existingMetaRows = db.prepare('SELECT * FROM media_assets').all() as any[];
+      const metaByKey = new Map<string, any>();
+      existingMetaRows.forEach((r) => metaByKey.set(`${r.bucket}:${r.path}`, r));
+
+      const dbFolders = db.prepare('SELECT bucket, folder_path, created_at FROM media_folders').all() as any[];
+
+      const allFiles: any[] = [];
+      const folderMap = new Map<string, { bucket: SupabaseBucketId; path: string; name: string; parentFolder: string; fileCount: number; createdAt: string | null }>();
+
+      for (const df of dbFolders) {
+        if (!isValidStorageBucket(df.bucket) || !df.folder_path) continue;
+        const clean = df.folder_path.replace(/^\/+|\/+$/g, '');
+        if (!clean) continue;
+        const slashIdx = clean.lastIndexOf('/');
+        folderMap.set(`${df.bucket}:${clean}`, {
+          bucket: df.bucket,
+          path: clean,
+          name: slashIdx === -1 ? clean : clean.slice(slashIdx + 1),
+          parentFolder: slashIdx === -1 ? '' : clean.slice(0, slashIdx),
+          fileCount: 0,
+          createdAt: df.created_at || null,
+        });
+      }
+
+      const bucketDetails = await Promise.all(
+        ALL_SUPABASE_BUCKET_IDS.map(async (id) => {
+          const spec = SUPABASE_STORAGE_BUCKETS[id];
+          const remote = remoteMap.get(id);
+          const entries = await listBucketEntriesRecursive(supabase, id).catch(() => ({ files: [], folders: [] }));
+          const totalSize = entries.files.reduce((sum, f) => sum + (Number(f.size) || 0), 0);
+
+          for (const fld of entries.folders) {
+            const clean = fld.replace(/^\/+|\/+$/g, '');
+            if (!clean) continue;
+            const slashIdx = clean.lastIndexOf('/');
+            const key = `${id}:${clean}`;
+            if (!folderMap.has(key)) {
+              folderMap.set(key, {
+                bucket: id,
+                path: clean,
+                name: slashIdx === -1 ? clean : clean.slice(slashIdx + 1),
+                parentFolder: slashIdx === -1 ? '' : clean.slice(0, slashIdx),
+                fileCount: 0,
+                createdAt: null,
+              });
+            }
+          }
+
+          for (const file of entries.files) {
+            const key = `${id}:${file.path}`;
+            const cached = metaByKey.get(key);
+            if (!cached) {
+              // Reconcile pre-existing Supabase object into SQLite catalog non-destructively
+              await recordVerifiedMediaAsset({
+                bucket: id,
+                path: file.path,
+                publicUrl: file.publicUrl,
+                mimeType: file.mimeType || 'application/octet-stream',
+                size: file.size,
+                createdAt: file.createdAt,
+                updatedAt: file.updatedAt,
+              }).catch(() => {});
+            }
+            const enriched = {
+              id: cached?.id || `media-${crypto.createHash('sha256').update(key).digest('hex').slice(0, 16)}`,
+              bucket: id,
+              path: file.path,
+              folder: file.folder || '',
+              name: file.name,
+              publicUrl: file.publicUrl,
+              mimeType: file.mimeType || cached?.mime_type || 'application/octet-stream',
+              mediaType: classifyMediaType(file.mimeType || cached?.mime_type, file.name),
+              size: Number(file.size || cached?.file_size || 0),
+              sha256Hash: cached?.sha256_hash || null,
+              uploadedBy: cached?.uploaded_by || 'admin@tiqsey.com',
+              createdAt: file.createdAt || cached?.created_at || null,
+              updatedAt: file.updatedAt || cached?.updated_at || file.createdAt || null,
+            };
+            allFiles.push(enriched);
+
+            // Increment folder counts for every ancestor folder
+            if (enriched.folder) {
+              const parts = enriched.folder.split('/');
+              let acc = '';
+              for (const part of parts) {
+                acc = acc ? `${acc}/${part}` : part;
+                const fKey = `${id}:${acc}`;
+                const existingFld = folderMap.get(fKey);
+                if (existingFld) {
+                  existingFld.fileCount += 1;
+                } else {
+                  const slashIdx = acc.lastIndexOf('/');
+                  folderMap.set(fKey, {
+                    bucket: id,
+                    path: acc,
+                    name: part,
+                    parentFolder: slashIdx === -1 ? '' : acc.slice(0, slashIdx),
+                    fileCount: 1,
+                    createdAt: enriched.createdAt,
+                  });
+                }
+              }
+            }
+          }
+
+          const bucketFoldersCount = Array.from(folderMap.values()).filter((f) => f.bucket === id).length;
+          return {
+            ...spec,
+            existsInSupabase: Boolean(remote) || entries.files.length > 0,
+            public: remote ? Boolean(remote.public) : spec.public,
+            fileSizeLimit: remote?.file_size_limit ?? spec.fileSizeLimit,
+            allowedMimeTypes: Array.isArray(remote?.allowed_mime_types) && remote.allowed_mime_types.length > 0
+              ? remote.allowed_mime_types
+              : spec.allowedMimeTypes,
+            fileCount: entries.files.length,
+            folderCount: bucketFoldersCount,
+            totalSize,
+            createdAt: remote?.created_at || null,
+            updatedAt: remote?.updated_at || null,
+          };
+        })
+      );
+
+      // Remove stale SQLite media_assets entries that no longer exist in Supabase
+      const liveKeySet = new Set(allFiles.map((f) => `${f.bucket}:${f.path}`));
+      const staleRows = existingMetaRows.filter((r) => !liveKeySet.has(`${r.bucket}:${r.path}`));
+      if (staleRows.length > 0) {
+        const delStale = db.prepare('DELETE FROM media_assets WHERE id = ?');
+        db.transaction((rows: any[]) => {
+          for (const r of rows) delStale.run(r.id);
+        })(staleRows);
+      }
+
+      const allFolders = Array.from(folderMap.values()).sort((a, b) => a.path.localeCompare(b.path));
+      const scopedFiles = requestedBucket !== 'all' && isValidStorageBucket(requestedBucket)
+        ? allFiles.filter((f) => f.bucket === requestedBucket)
+        : allFiles;
+      const scopedFolders = requestedBucket !== 'all' && isValidStorageBucket(requestedBucket)
+        ? allFolders.filter((f) => f.bucket === requestedBucket)
+        : allFolders;
+
+      const totalImages = allFiles.filter((f) => f.mediaType === 'image').length;
+      const totalVideos = allFiles.filter((f) => f.mediaType === 'video').length;
+      const totalDocuments = allFiles.filter((f) => f.mediaType === 'document').length;
+      const totalBytes = allFiles.reduce((sum, f) => sum + (Number(f.size) || 0), 0);
+
+      return res.json({
+        connected: true,
+        projectId,
+        storageEndpoint: projectId ? `https://${projectId}.supabase.co/storage/v1` : null,
+        dashboardUrl: projectId ? `https://supabase.com/dashboard/project/${projectId}/storage/files` : null,
+        supabaseMediaTableSynced: Boolean(supabaseMediaTableAvailable),
+        latencyMs: Date.now() - startedAt,
+        summary: {
+          totalImages,
+          totalVideos,
+          totalDocuments,
+          totalFolders: allFolders.length,
+          totalFiles: allFiles.length,
+          totalBytes,
+          quotaBytes: 1024 * 1024 * 1024, // 1 GB Supabase Free Tier reference
+        },
+        buckets: bucketDetails,
+        folders: scopedFolders,
+        files: scopedFiles,
+      });
+    } catch (err: any) {
+      console.error("[Admin Storage API] Library error:", err);
+      return res.status(500).json({ error: err.message || "Failed to load media library" });
+    }
+  });
+
+  // Admin Storage API: Duplicate check by SHA-256 hash or filename in target bucket/folder
+  app.post("/api/admin/storage/check-duplicate", (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    try {
+      const bucket = typeof req.body?.bucket === 'string' ? req.body.bucket.trim() : '';
+      const filename = typeof req.body?.filename === 'string' ? req.body.filename.trim() : '';
+      const sha256Hash = typeof req.body?.sha256Hash === 'string' ? req.body.sha256Hash.trim() : '';
+      const folder = typeof req.body?.folder === 'string' ? sanitizeStorageFolder(req.body.folder, '') : '';
+
+      let match: any = null;
+      let matchType: 'hash' | 'name' | null = null;
+
+      if (sha256Hash) {
+        match = bucket && isValidStorageBucket(bucket)
+          ? db.prepare('SELECT * FROM media_assets WHERE sha256_hash = ? AND bucket = ? LIMIT 1').get(sha256Hash, bucket)
+          : db.prepare('SELECT * FROM media_assets WHERE sha256_hash = ? LIMIT 1').get(sha256Hash);
+        if (!match && bucket) {
+          match = db.prepare('SELECT * FROM media_assets WHERE sha256_hash = ? LIMIT 1').get(sha256Hash);
+        }
+        if (match) matchType = 'hash';
+      }
+
+      if (!match && filename && bucket && isValidStorageBucket(bucket)) {
+        const baseName = path.basename(filename, path.extname(filename)).replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+        const rows = db
+          .prepare('SELECT * FROM media_assets WHERE bucket = ? AND folder = ?')
+          .all(bucket, folder) as any[];
+        match = rows.find((r) => {
+          const rLower = String(r.file_name || '').toLowerCase();
+          return rLower === filename.toLowerCase() || rLower.startsWith(`${baseName}-`);
+        }) || null;
+        if (match) matchType = 'name';
+      }
+
+      if (!match) {
+        return res.json({ isDuplicate: false, matchType: null, existing: null });
+      }
+
+      return res.json({
+        isDuplicate: true,
+        matchType,
+        existing: {
+          id: match.id,
+          bucket: match.bucket,
+          path: match.path,
+          folder: match.folder,
+          name: match.file_name,
+          publicUrl: match.public_url,
+          mimeType: match.mime_type,
+          mediaType: match.media_type,
+          size: match.file_size,
+          sha256Hash: match.sha256_hash,
+          uploadedBy: match.uploaded_by,
+          createdAt: match.created_at,
+          updatedAt: match.updated_at,
+        },
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Duplicate check failed" });
+    }
+  });
+
+  // Admin Storage API: Chunked / Resumable Upload Init (supports large videos up to 50MB cleanly)
+  app.post("/api/admin/storage/upload/init", (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can upload media." });
+    }
+    cleanupExpiredUploadSessions();
+
+    const bucketRaw = typeof req.body?.bucket === 'string' ? req.body.bucket.trim() : 'media';
+    if (!isValidStorageBucket(bucketRaw)) {
+      return res.status(400).json({ error: `Unknown storage bucket: ${bucketRaw}` });
+    }
+    const spec = SUPABASE_STORAGE_BUCKETS[bucketRaw];
+    const filename = typeof req.body?.filename === 'string' && req.body.filename.trim() ? req.body.filename.trim() : 'media';
+    const mimeType = normalizeMimeType(String(req.body?.mimeType || ''));
+    const totalSize = Number(req.body?.totalSize || 0);
+    const totalChunks = Math.max(1, Math.min(200, Number(req.body?.totalChunks || 1)));
+    const sha256Hash = typeof req.body?.sha256Hash === 'string' ? req.body.sha256Hash.trim() : undefined;
+    const folder = sanitizeStorageFolder(req.body?.folder, spec.defaultFolder);
+    const replaceOldPath = sanitizeStorageObjectPath(req.body?.replaceOldPath) || undefined;
+    const replaceOldUrl = typeof req.body?.replaceOldUrl === 'string' ? req.body.replaceOldUrl.trim() : undefined;
+
+    if (!spec.allowedMimeTypes.includes(mimeType)) {
+      return res.status(400).json({
+        error: `Type "${mimeType || 'unknown'}" is not allowed in bucket "${bucketRaw}". Allowed: ${spec.allowedMimeTypes.join(', ')}`,
+      });
+    }
+    if (totalSize <= 0 || totalSize > spec.fileSizeLimit) {
+      return res.status(400).json({
+        error: `File size must be between 1 byte and ${spec.maxSizeLabel} for "${bucketRaw}".`,
+      });
+    }
+
+    const uploadId = `upl-${crypto.randomBytes(16).toString('hex')}`;
+    const uploadedBy = String(req.headers['x-admin-email'] || getSignedSessionUser(req)?.email || 'admin@tiqsey.com');
+
+    activeUploadSessions.set(uploadId, {
+      id: uploadId,
+      bucket: bucketRaw,
+      folder,
+      filename,
+      mimeType,
+      totalSize,
+      totalChunks,
+      sha256Hash,
+      uploadedBy,
+      replaceOldPath,
+      replaceOldUrl,
+      chunks: new Map(),
+      createdAt: Date.now(),
+    });
+
+    return res.json({ success: true, uploadId, chunkSize: 2 * 1024 * 1024 });
+  });
+
+  // Admin Storage API: Chunked / Resumable Upload Binary Chunk Receiver
+  app.put(
+    "/api/admin/storage/upload/chunk/:uploadId",
+    express.raw({ type: 'application/octet-stream', limit: '6mb' }),
+    (req, res) => {
+      if (!checkAdminAuth(req)) {
+        return res.status(403).json({ error: "Access denied." });
+      }
+      const uploadId = String(req.params.uploadId || '');
+      const session = activeUploadSessions.get(uploadId);
+      if (!session) {
+        return res.status(404).json({ error: "Upload session expired or not found. Please retry." });
+      }
+      const chunkIndex = Number(req.headers['x-chunk-index']);
+      if (!Number.isInteger(chunkIndex) || chunkIndex < 0 || chunkIndex >= session.totalChunks) {
+        return res.status(400).json({ error: "Invalid chunk index." });
+      }
+      const chunkBuffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || '');
+      if (chunkBuffer.length === 0) {
+        return res.status(400).json({ error: "Empty upload chunk received." });
+      }
+
+      session.chunks.set(chunkIndex, chunkBuffer);
+      let receivedBytes = 0;
+      for (const b of session.chunks.values()) receivedBytes += b.length;
+
+      return res.json({
+        success: true,
+        chunkIndex,
+        receivedChunks: session.chunks.size,
+        totalChunks: session.totalChunks,
+        receivedBytes,
+        totalBytes: session.totalSize,
+      });
+    }
+  );
+
+  // Admin Storage API: Complete Chunked Upload -> Upload to Supabase -> Verify -> Save Metadata -> Optional Replace
+  app.post("/api/admin/storage/upload/complete/:uploadId", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    const uploadId = String(req.params.uploadId || '');
+    const session = activeUploadSessions.get(uploadId);
+    if (!session) {
+      return res.status(404).json({ error: "Upload session expired or not found." });
+    }
+
+    try {
+      if (session.chunks.size !== session.totalChunks) {
+        return res.status(400).json({
+          error: `Incomplete upload: received ${session.chunks.size} of ${session.totalChunks} chunks.`,
+        });
+      }
+
+      const orderedBuffers: Buffer[] = [];
+      for (let i = 0; i < session.totalChunks; i++) {
+        const part = session.chunks.get(i);
+        if (!part) {
+          return res.status(400).json({ error: `Missing chunk ${i}` });
+        }
+        orderedBuffers.push(part);
+      }
+
+      const buffer = Buffer.concat(orderedBuffers);
+      const spec = SUPABASE_STORAGE_BUCKETS[session.bucket];
+      if (buffer.length > spec.fileSizeLimit) {
+        activeUploadSessions.delete(uploadId);
+        return res.status(400).json({ error: `File exceeds the ${spec.maxSizeLabel} limit for "${session.bucket}".` });
+      }
+
+      const ext = STORAGE_MIME_TO_EXT[session.mimeType] || path.extname(session.filename).replace('.', '').toLowerCase() || 'bin';
+      const baseOnly = path.basename(session.filename, path.extname(session.filename));
+      const safeBase = baseOnly.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40) || 'file';
+      const objectPath = `${session.folder}/${safeBase}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
+
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return res.status(503).json({ error: "Supabase Storage is not connected." });
+      }
+
+      const uploadResult = await uploadBufferToSupabaseStorage(buffer, objectPath, session.mimeType, session.bucket);
+      if (!uploadResult.url) {
+        return res.status(502).json({ error: uploadResult.error || `Failed to upload to "${session.bucket}"` });
+      }
+
+      const finalBucket = (uploadResult.bucket || session.bucket) as SupabaseBucketId;
+      const finalPath = uploadResult.path || objectPath;
+
+      // Verify uploaded object exists in Supabase Storage before saving metadata
+      const verified = await verifySupabaseObjectExists(supabase, finalBucket, finalPath);
+      if (!verified) {
+        return res.status(502).json({ error: "Upload verification failed: object could not be confirmed in Supabase Storage." });
+      }
+
+      const computedHash = crypto.createHash('sha256').update(buffer).digest('hex');
+      const asset = await recordVerifiedMediaAsset({
+        bucket: finalBucket,
+        path: finalPath,
+        publicUrl: uploadResult.url,
+        mimeType: session.mimeType,
+        size: buffer.length,
+        sha256Hash: session.sha256Hash || computedHash,
+        uploadedBy: session.uploadedBy,
+      });
+
+      let updatedReferences: Array<{ type: string; id: string; title: string; field: string }> = [];
+      if (session.replaceOldPath && session.replaceOldPath !== finalPath) {
+        if (session.replaceOldUrl) {
+          updatedReferences = replaceServerMediaReferences(session.replaceOldUrl, asset.publicUrl);
+        }
+        await supabase.storage.from(session.bucket).remove([session.replaceOldPath]).catch(() => {});
+        await removeMediaAssetRecords(session.bucket, [session.replaceOldPath]);
+      }
+
+      activeUploadSessions.delete(uploadId);
+      return res.json({
+        success: true,
+        verified: true,
+        asset,
+        oldUrl: session.replaceOldUrl || null,
+        updatedReferences,
+      });
+    } catch (err: any) {
+      console.error("[Admin Storage API] Complete chunked upload error:", err);
+      return res.status(500).json({ error: err.message || "Failed to finalize upload" });
+    }
+  });
+
+  // Admin Storage API: Create folder inside a bucket
+  app.post("/api/admin/storage/folders", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    const bucket = typeof req.body?.bucket === 'string' ? req.body.bucket.trim() : '';
+    if (!isValidStorageBucket(bucket)) {
+      return res.status(400).json({ error: `Unknown storage bucket: ${bucket}` });
+    }
+    const folderPath = sanitizeStorageFolder(req.body?.folderPath, '');
+    if (!folderPath) {
+      return res.status(400).json({ error: "Please enter a valid folder name (letters, numbers, hyphens, underscores)." });
+    }
+
+    try {
+      const now = new Date().toISOString();
+      const createdBy = String(req.headers['x-admin-email'] || getSignedSessionUser(req)?.email || 'admin@tiqsey.com');
+      db.prepare(`
+        INSERT OR IGNORE INTO media_folders (id, bucket, folder_path, created_by, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(`fld-${bucket}-${folderPath}`, bucket, folderPath, createdBy, now);
+
+      // Also persist a tiny 1x1 transparent PNG folder marker in Supabase Storage so empty folders survive server restarts
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        const tinyPng = Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          'base64'
+        );
+        await supabase.storage
+          .from(bucket)
+          .upload(`${folderPath}/.folder_placeholder.png`, tinyPng, {
+            contentType: 'image/png',
+            upsert: true,
+          })
+          .catch(() => {});
+      }
+
+      const slashIdx = folderPath.lastIndexOf('/');
+      return res.json({
+        success: true,
+        folder: {
+          bucket,
+          path: folderPath,
+          name: slashIdx === -1 ? folderPath : folderPath.slice(slashIdx + 1),
+          parentFolder: slashIdx === -1 ? '' : folderPath.slice(0, slashIdx),
+          fileCount: 0,
+          createdAt: now,
+        },
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Failed to create folder" });
+    }
+  });
+
+  // Admin Storage API: Rename folder inside a bucket (moves all objects & updates linked URLs)
+  app.patch("/api/admin/storage/folders/rename", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    const bucket = typeof req.body?.bucket === 'string' ? req.body.bucket.trim() : '';
+    if (!isValidStorageBucket(bucket)) {
+      return res.status(400).json({ error: `Unknown storage bucket: ${bucket}` });
+    }
+    const oldFolderPath = sanitizeStorageFolder(req.body?.oldFolderPath, '');
+    const newFolderPath = sanitizeStorageFolder(req.body?.newFolderPath, '');
+    if (!oldFolderPath || !newFolderPath || oldFolderPath === newFolderPath) {
+      return res.status(400).json({ error: "Valid source and destination folder names are required." });
+    }
+
+    try {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return res.status(503).json({ error: "Supabase Storage is not connected." });
+      }
+
+      const entries = await listBucketEntriesRecursive(supabase, bucket, oldFolderPath);
+      const urlReplacements: Array<{ oldUrl: string; newUrl: string }> = [];
+      let movedCount = 0;
+
+      for (const file of entries.files) {
+        const relativeSuffix = file.path.slice(oldFolderPath.length);
+        const targetPath = `${newFolderPath}${relativeSuffix}`;
+        const { error: moveErr } = await supabase.storage.from(bucket).move(file.path, targetPath);
+        if (moveErr) {
+          return res.status(500).json({ error: `Failed to move "${file.name}": ${moveErr.message}` });
+        }
+        const { data: newPub } = supabase.storage.from(bucket).getPublicUrl(targetPath);
+        const newUrl = newPub?.publicUrl || '';
+        const oldRow = db.prepare('SELECT sha256_hash, uploaded_by, created_at FROM media_assets WHERE bucket = ? AND path = ?').get(bucket, file.path) as any;
+        await removeMediaAssetRecords(bucket, [file.path]);
+        await recordVerifiedMediaAsset({
+          bucket,
+          path: targetPath,
+          publicUrl: newUrl,
+          mimeType: file.mimeType,
+          size: file.size,
+          sha256Hash: oldRow?.sha256_hash || null,
+          uploadedBy: oldRow?.uploaded_by || 'admin@tiqsey.com',
+          createdAt: oldRow?.created_at || file.createdAt,
+        });
+        if (file.publicUrl && newUrl) {
+          replaceServerMediaReferences(file.publicUrl, newUrl);
+          urlReplacements.push({ oldUrl: file.publicUrl, newUrl });
+        }
+        movedCount += 1;
+      }
+
+      // Move placeholder marker if present
+      await supabase.storage
+        .from(bucket)
+        .move(`${oldFolderPath}/.folder_placeholder.png`, `${newFolderPath}/.folder_placeholder.png`)
+        .catch(() => {});
+
+      // Update media_folders records
+      db.prepare('DELETE FROM media_folders WHERE bucket = ? AND (folder_path = ? OR folder_path LIKE ?)').run(
+        bucket,
+        oldFolderPath,
+        `${oldFolderPath}/%`
+      );
+      db.prepare(`
+        INSERT OR IGNORE INTO media_folders (id, bucket, folder_path, created_by, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(`fld-${bucket}-${newFolderPath}`, bucket, newFolderPath, 'admin@tiqsey.com', new Date().toISOString());
+
+      return res.json({
+        success: true,
+        bucket,
+        oldFolderPath,
+        newFolderPath,
+        movedCount,
+        urlReplacements,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Failed to rename folder" });
+    }
+  });
+
+  // Admin Storage API: Delete folder inside a bucket
+  app.delete("/api/admin/storage/folders", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    const bucket = typeof req.body?.bucket === 'string' ? req.body.bucket.trim() : '';
+    if (!isValidStorageBucket(bucket)) {
+      return res.status(400).json({ error: `Unknown storage bucket: ${bucket}` });
+    }
+    const folderPath = sanitizeStorageFolder(req.body?.folderPath, '');
+    const force = Boolean(req.body?.force);
+    if (!folderPath) {
+      return res.status(400).json({ error: "Folder path is required." });
+    }
+
+    try {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return res.status(503).json({ error: "Supabase Storage is not connected." });
+      }
+
+      const entries = await listBucketEntriesRecursive(supabase, bucket, folderPath);
+      const allRefs: Array<{ type: string; id: string; title: string; field: string }> = [];
+      for (const file of entries.files) {
+        allRefs.push(...scanServerMediaReferences(file.publicUrl, file.path));
+      }
+
+      if (allRefs.length > 0 && !force) {
+        return res.status(409).json({
+          error: "Folder contains media linked to active website content.",
+          requiresConfirmation: true,
+          fileCount: entries.files.length,
+          references: allRefs,
+        });
+      }
+
+      const pathsToRemove = [
+        ...entries.files.map((f) => f.path),
+        `${folderPath}/.folder_placeholder.png`,
+        `${folderPath}/.emptyFolderPlaceholder`,
+        `${folderPath}/.keep`,
+      ];
+
+      if (pathsToRemove.length > 0) {
+        await supabase.storage.from(bucket).remove(pathsToRemove).catch(() => {});
+      }
+      await removeMediaAssetRecords(bucket, entries.files.map((f) => f.path));
+      db.prepare('DELETE FROM media_folders WHERE bucket = ? AND (folder_path = ? OR folder_path LIKE ?)').run(
+        bucket,
+        folderPath,
+        `${folderPath}/%`
+      );
+
+      return res.json({
+        success: true,
+        bucket,
+        folderPath,
+        deletedFiles: entries.files.length,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Failed to delete folder" });
+    }
+  });
+
+  // Admin Storage API: Scan linked usage references for a file
+  app.post("/api/admin/storage/usage", (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    const publicUrl = typeof req.body?.publicUrl === 'string' ? req.body.publicUrl.trim() : '';
+    const objectPath = typeof req.body?.path === 'string' ? req.body.path.trim() : '';
+    const references = scanServerMediaReferences(publicUrl, objectPath);
+    return res.json({ count: references.length, references });
+  });
+
+  // Admin Storage API: Authenticated Download Proxy (streams clean attachment download without CORS issues)
+  app.get("/api/admin/storage/download", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    const bucket = typeof req.query.bucket === 'string' ? req.query.bucket.trim() : '';
+    const rawPath = typeof req.query.path === 'string' ? req.query.path.trim() : '';
+    if (!isValidStorageBucket(bucket)) {
+      return res.status(400).json({ error: "Invalid bucket" });
+    }
+    const safePath = sanitizeStorageObjectPath(rawPath);
+    if (!safePath) {
+      return res.status(400).json({ error: "Invalid file path" });
+    }
+
+    try {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return res.status(503).json({ error: "Supabase Storage is not connected." });
+      }
+      const { data, error } = await supabase.storage.from(bucket).download(safePath);
+      if (error || !data) {
+        return res.status(404).json({ error: error?.message || "File not found in Supabase Storage" });
+      }
+      const arrayBuf = await data.arrayBuffer();
+      const buf = Buffer.from(arrayBuf);
+      const safeFileName = path.basename(safePath).replace(/[^a-zA-Z0-9._-]/g, '_');
+      res.setHeader('Content-Type', data.type || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
+      res.setHeader('Content-Length', String(buf.length));
+      return res.send(buf);
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Failed to download file" });
+    }
+  });
 
   // Admin Storage API: List all 7 Supabase Storage buckets with live status & file counts
   app.get("/api/admin/storage/buckets", async (req, res) => {
@@ -1603,7 +2764,7 @@ async function startServer() {
     }
   });
 
-  // Admin Storage API: Upload directly to a specific bucket
+  // Admin Storage API: Upload directly to a specific bucket (verified + persisted in media_assets)
   app.post("/api/admin/storage/buckets/:bucket/upload", async (req, res) => {
     if (!checkAdminAuth(req)) {
       return res.status(403).json({ error: "Access denied." });
@@ -1615,9 +2776,7 @@ async function startServer() {
     try {
       const payload = req.body?.dataUrl || req.body?.image;
       const filename = typeof req.body?.filename === 'string' ? req.body.filename : 'asset';
-      const folder = typeof req.body?.folder === 'string' && req.body.folder.trim()
-        ? req.body.folder.trim().replace(/[^a-zA-Z0-9/_-]/g, '').replace(/^\/+|\/+$/g, '').replace(/\.\./g, '')
-        : SUPABASE_STORAGE_BUCKETS[bucket].defaultFolder;
+      const folder = sanitizeStorageFolder(req.body?.folder, SUPABASE_STORAGE_BUCKETS[bucket].defaultFolder);
 
       if (!payload || typeof payload !== 'string' || !payload.startsWith('data:')) {
         return res.status(400).json({ error: "Missing valid base64 data URI" });
@@ -1645,18 +2804,41 @@ async function startServer() {
       const safeBase = baseOnly.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 35) || 'file';
       const objectPath = `${folder}/${safeBase}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
 
+      const supabase = getSupabaseClient();
       const result = await uploadBufferToSupabaseStorage(buffer, objectPath, mime, bucket);
       if (!result.url) {
         return res.status(502).json({ error: result.error || `Failed to upload to "${bucket}"` });
       }
 
+      const finalBucket = (result.bucket || bucket) as SupabaseBucketId;
+      const finalPath = result.path || objectPath;
+      if (supabase) {
+        const verified = await verifySupabaseObjectExists(supabase, finalBucket, finalPath);
+        if (!verified) {
+          return res.status(502).json({ error: "Upload could not be verified in Supabase Storage." });
+        }
+      }
+
+      const sha256Hash = crypto.createHash('sha256').update(buffer).digest('hex');
+      const uploadedBy = String(req.headers['x-admin-email'] || getSignedSessionUser(req)?.email || 'admin@tiqsey.com');
+      const asset = await recordVerifiedMediaAsset({
+        bucket: finalBucket,
+        path: finalPath,
+        publicUrl: result.url,
+        mimeType: mime,
+        size: buffer.length,
+        sha256Hash,
+        uploadedBy,
+      });
+
       return res.json({
         success: true,
-        bucket: result.bucket,
-        path: result.path,
+        bucket: finalBucket,
+        path: finalPath,
         url: result.url,
         size: buffer.length,
         contentType: mime,
+        asset,
       });
     } catch (err: any) {
       console.error(`[Admin Storage API] Upload error (${bucket}):`, err);
@@ -1664,7 +2846,7 @@ async function startServer() {
     }
   });
 
-  // Admin Storage API: Delete file(s) from a specific bucket
+  // Admin Storage API: Delete file(s) from a specific bucket + media_assets catalog
   app.delete("/api/admin/storage/buckets/:bucket/files", async (req, res) => {
     if (!checkAdminAuth(req)) {
       return res.status(403).json({ error: "Access denied." });
@@ -1676,7 +2858,9 @@ async function startServer() {
     try {
       const pathsInput = req.body?.paths || (req.body?.path ? [req.body.path] : []);
       const paths: string[] = Array.isArray(pathsInput)
-        ? pathsInput.filter((p): p is string => typeof p === 'string' && p.trim().length > 0 && !p.includes('..'))
+        ? pathsInput
+            .map((p) => sanitizeStorageObjectPath(typeof p === 'string' ? p : ''))
+            .filter((p): p is string => Boolean(p))
         : [];
       if (paths.length === 0) {
         return res.status(400).json({ error: "No valid file paths provided" });
@@ -1689,6 +2873,7 @@ async function startServer() {
       if (error) {
         return res.status(500).json({ error: error.message || "Failed to delete file(s)" });
       }
+      await removeMediaAssetRecords(bucket, paths);
       return res.json({ success: true, bucket, deleted: paths });
     } catch (err: any) {
       console.error(`[Admin Storage API] Delete error (${bucket}):`, err);
@@ -1696,7 +2881,7 @@ async function startServer() {
     }
   });
 
-  // Admin Storage API: Sync/verify all 7 Supabase Storage bucket definitions (public, limits, MIME types)
+  // Admin Storage API: Sync/verify all 7 Supabase Storage bucket definitions (non-destructive)
   app.post("/api/admin/storage/sync-buckets", async (req, res) => {
     if (!checkAdminAuth(req)) {
       return res.status(403).json({ error: "Access denied." });
@@ -1718,7 +2903,12 @@ async function startServer() {
             allowedMimeTypes: spec.allowedMimeTypes,
           };
           if (existingSet.has(id)) {
-            const { error } = await supabase.storage.updateBucket(id, options);
+            let { error } = await supabase.storage.updateBucket(id, options);
+            // If Supabase rejects SVG/PDF on updateBucket, retry with safe MIME subset
+            if (error && /mime/i.test(error.message || '')) {
+              const fallbackMimes = spec.allowedMimeTypes.filter((m) => m !== 'image/svg+xml');
+              ({ error } = await supabase.storage.updateBucket(id, { ...options, allowedMimeTypes: fallbackMimes }));
+            }
             return { id, action: 'updated', ok: !error, error: error?.message || null };
           } else {
             const { error } = await supabase.storage.createBucket(id, options);

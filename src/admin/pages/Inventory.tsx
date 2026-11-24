@@ -49,10 +49,13 @@ import {
   Link,
   Activity,
   RefreshCw,
-  ArrowUpRight
+  ArrowUpRight,
+  Film,
+  FolderOpen
 } from "lucide-react";
 import { POPULAR_ATTRACTIONS, syncCustomAttractions, deduplicateAttractions } from "../../data/mockData";
-import { uploadAndOptimizeImage } from "../../utils/imageUpload";
+import { uploadAndOptimizeImage, uploadMediaFile } from "../../utils/imageUpload";
+import { MediaLibraryPickerModal } from "../components/MediaLibraryPickerModal";
 import { generateUniqueProductId, getDisplayProductId, registerUsedProductId } from "../../utils/productIdGenerator";
 import { Attraction, Variant, VariantRule, BookingMode, AffiliateConfig } from "../../types";
 import { AFFILIATE_VENDORS, isValidAffiliateUrl, buildAffiliateUrl, resolveAffiliateUrlTokens } from "../../utils/affiliate";
@@ -717,6 +720,10 @@ export default function Inventory() {
   const [fastTrack, setFastTrack] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
   const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState<string>("");
+  const [uploadingVideo, setUploadingVideo] = useState<boolean>(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState<number>(0);
+  const [mediaPickerTarget, setMediaPickerTarget] = useState<null | 'gallery' | 'video'>(null);
   const [isReordering, setIsReordering] = useState(false);
   const [newUrlInput, setNewUrlInput] = useState("");
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
@@ -917,6 +924,7 @@ export default function Inventory() {
           ? attr.galleryUrls 
           : (attr.imageUrl ? [attr.imageUrl] : []);
         setGalleryUrls(urls);
+        setVideoUrl(attr.videoUrl || "");
         setIsReordering(false);
 
         if (attr.variants && attr.variants.length > 0) {
@@ -1065,6 +1073,7 @@ export default function Inventory() {
       setAffiliateClickCount(0);
       setAffiliateLastClickedAt("");
       setGalleryUrls([]);
+      setVideoUrl("");
       setIsReordering(false);
       setVariants([]);
     } else {
@@ -1453,6 +1462,32 @@ export default function Inventory() {
     }
   };
 
+  // Upload activity showcase video permanently to Supabase Storage "admin-media/videos"
+  const handleActivityVideoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingVideo(true);
+    setVideoUploadProgress(5);
+    try {
+      const uploadedUrl = await uploadMediaFile(file, {
+        bucket: 'admin-media',
+        folder: 'videos',
+        onProgress: (pct) => setVideoUploadProgress(pct),
+      });
+      if (uploadedUrl) {
+        setVideoUrl(uploadedUrl);
+        triggerInventoryToast("Activity video uploaded permanently to Supabase Storage.", "success");
+      }
+    } catch (err: any) {
+      console.error("Error uploading activity video:", err);
+      triggerInventoryToast(err?.message || "Failed to upload activity video.", "error");
+    } finally {
+      setUploadingVideo(false);
+      setVideoUploadProgress(0);
+      e.target.value = "";
+    }
+  };
+
   // Preset image URLs picker
   const handlePresetImageSelect = (url: string) => {
     setImageUrl(url);
@@ -1612,6 +1647,7 @@ export default function Inventory() {
       allowLastMinuteBooking,
       variants: normalizedVariants,
       galleryUrls,
+      videoUrl: videoUrl.trim() || undefined,
       bookingMode: isAllAffiliate ? 'affiliate' : 'manual',
       affiliateConfig: firstAffiliate?.affiliateConfig ? { ...firstAffiliate.affiliateConfig } : undefined,
       seoTitle: seoTitle.trim() || undefined,
@@ -6325,13 +6361,23 @@ export default function Inventory() {
                               />
                             </label>
 
-                            <button
-                              type="button"
-                              onClick={() => setShowGalleryUrlInput(!showGalleryUrlInput)}
-                              className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors mt-1 underline cursor-pointer"
-                            >
-                              {showGalleryUrlInput ? "Hide URL input" : "Or paste image link"}
-                            </button>
+                            <div className="flex flex-wrap items-center justify-center gap-3 mt-1">
+                              <button
+                                type="button"
+                                onClick={() => setMediaPickerTarget('gallery')}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-semibold hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors cursor-pointer"
+                              >
+                                <FolderOpen className="w-3.5 h-3.5" />
+                                <span>Choose from Media Library</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setShowGalleryUrlInput(!showGalleryUrlInput)}
+                                className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors underline cursor-pointer"
+                              >
+                                {showGalleryUrlInput ? "Hide URL input" : "Or paste image link"}
+                              </button>
+                            </div>
 
                             {showGalleryUrlInput && (
                               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-2 w-full max-w-md">
@@ -6488,6 +6534,80 @@ export default function Inventory() {
                               <path d="M12 5v14M19 12l-7 7-7-7" />
                             </svg>
                           </button>
+                        </div>
+
+                        {/* Activity Promo Video Section (Supabase Storage permanent video) */}
+                        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <Film className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                              <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                                Activity Video Showcase (Optional)
+                              </h3>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
+                                {uploadingVideo ? (
+                                  <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <span>Uploading {videoUploadProgress}%</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="w-3.5 h-3.5" />
+                                    <span>Upload Video</span>
+                                  </>
+                                )}
+                                <input
+                                  type="file"
+                                  accept="video/mp4,video/webm,video/quicktime"
+                                  disabled={uploadingVideo}
+                                  onChange={handleActivityVideoFileChange}
+                                  className="hidden"
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => setMediaPickerTarget('video')}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-semibold hover:bg-slate-800 dark:hover:bg-slate-200 cursor-pointer"
+                              >
+                                <FolderOpen className="w-3.5 h-3.5" />
+                                <span>Media Library</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <input
+                              type="url"
+                              value={videoUrl}
+                              onChange={(e) => setVideoUrl(e.target.value)}
+                              placeholder="Supabase Storage video URL (MP4, WebM, MOV up to 50 MB)"
+                              className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-sky-500"
+                            />
+                            {videoUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setVideoUrl("")}
+                                className="px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg border border-rose-200 dark:border-rose-900/50 cursor-pointer"
+                              >
+                                Remove Video
+                              </button>
+                            )}
+                          </div>
+
+                          {videoUrl && (
+                            <div className="rounded-xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-800 max-w-xl">
+                              <video
+                                key={videoUrl}
+                                src={videoUrl}
+                                controls
+                                playsInline
+                                preload="metadata"
+                                className="w-full max-h-[280px] bg-black"
+                              />
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -7061,6 +7181,27 @@ export default function Inventory() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <MediaLibraryPickerModal
+        isOpen={mediaPickerTarget !== null}
+        onClose={() => setMediaPickerTarget(null)}
+        defaultBucket={mediaPickerTarget === 'video' ? 'admin-media' : 'attraction-photos'}
+        defaultFolder={mediaPickerTarget === 'video' ? 'videos' : 'gallery'}
+        acceptTypes={mediaPickerTarget === 'video' ? ['video'] : ['image']}
+        title={mediaPickerTarget === 'video' ? 'Select Activity Video' : 'Select Activity Image'}
+        onSelect={(asset) => {
+          if (mediaPickerTarget === 'video') {
+            setVideoUrl(asset.publicUrl);
+            triggerInventoryToast("Activity video linked from Supabase Media Library.", "success");
+          } else {
+            setGalleryUrls((prev) => (prev.includes(asset.publicUrl) ? prev : [...prev, asset.publicUrl]));
+            if (!imageUrl.trim()) {
+              setImageUrl(asset.publicUrl);
+            }
+            triggerInventoryToast("Image added from Supabase Media Library.", "success");
+          }
+        }}
+      />
     </div>
   );
 }
