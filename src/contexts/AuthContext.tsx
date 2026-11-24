@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Booking } from '../types';
-import { TRAVEL_AVATARS } from '../utils/avatars';
 
 interface AuthContextType {
   user: User | null;
@@ -44,11 +43,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Default demo credentials
-const DEMO_EMAIL = 'demo@tiqsey.com';
-const DEMO_PASSWORD = 'password123';
-export const ADMIN_PASSWORD = 'bigbakket@admin@1997';
-export const ADMIN_EMAILS = ['admin@tiqsey.com', 'bigbakket@gmail.com'];
-
 export const deriveNameFromEmail = (emailStr: string): string => {
   if (!emailStr) return '';
   const parts = emailStr.split('@')[0];
@@ -61,8 +55,6 @@ export const deriveNameFromEmail = (emailStr: string): string => {
     .join(' ')
     .trim();
 };
-
-const SESSION_STORAGE_KEY = 'tiqsey_current_session';
 
 const safeStorageGet = (storage: Storage | undefined, key: string): string | null => {
   try {
@@ -96,7 +88,7 @@ const sanitizeSessionUser = (raw: any): User | null => {
   }
   const { password: _removed, ...rest } = raw;
   const normalizedEmail = raw.email.trim().toLowerCase();
-  const isAdmin = ADMIN_EMAILS.includes(normalizedEmail) || raw.role === 'admin';
+  const isAdmin = raw.role === 'admin';
   return {
     ...rest,
     id: raw.id || (isAdmin ? (normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456') : `user-${Date.now()}`),
@@ -106,516 +98,106 @@ const sanitizeSessionUser = (raw: any): User | null => {
   } as User;
 };
 
-const readStoredSession = (): User | null => {
-  if (typeof window === 'undefined') return null;
-  const raw =
-    safeStorageGet(window.localStorage, SESSION_STORAGE_KEY) ||
-    safeStorageGet(window.sessionStorage, SESSION_STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    return sanitizeSessionUser(parsed);
-  } catch {
-    return null;
-  }
-};
-
-const persistStoredSession = (sessionUser: User | null): void => {
-  if (typeof window === 'undefined') return;
-  if (!sessionUser) {
-    safeStorageRemove(window.localStorage, SESSION_STORAGE_KEY);
-    safeStorageRemove(window.sessionStorage, SESSION_STORAGE_KEY);
-    return;
-  }
-  const clean = sanitizeSessionUser(sessionUser);
-  if (!clean) return;
-  const serialized = JSON.stringify(clean);
-  safeStorageSet(window.localStorage, SESSION_STORAGE_KEY, serialized);
-  safeStorageSet(window.sessionStorage, SESSION_STORAGE_KEY, serialized);
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => readStoredSession());
-  const [isAuthReady, setIsAuthReady] = useState<boolean>(() => readStoredSession() !== null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
 
   const hydrateUserBookings = (loggedUser: User) => {
     const storedBookings = safeStorageGet(window.localStorage, `tiqsey_bookings_${loggedUser.id}`);
-    let parsedBookings: Booking[] | null = null;
-    if (storedBookings) {
-      try {
-        const parsed = JSON.parse(storedBookings);
-        parsedBookings = Array.isArray(parsed) ? parsed : null;
-      } catch {
-        parsedBookings = null;
-      }
+    if (!storedBookings) {
+      setBookings([]);
+      return;
     }
-    if (parsedBookings && parsedBookings.length === 2 && loggedUser.email === DEMO_EMAIL) {
-      parsedBookings.push({
-        id: 'book-3',
-        attractionId: 'louvre-museum',
-        attractionName: 'Louvre Museum: Ultimate Priority Access & Audio Tour',
-        attractionImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=85&w=1200',
-        city: 'Paris',
-        bookingDate: '2026-04-10',
-        ticketsCount: 3,
-        totalPrice: 90,
-        bookingRef: 'TQ-452109-FR',
-        status: 'confirmed'
-      });
-      safeStorageSet(window.localStorage, `tiqsey_bookings_${loggedUser.id}`, JSON.stringify(parsedBookings));
-    }
-    if (parsedBookings) {
-      setBookings(parsedBookings);
-    } else if (loggedUser.email === DEMO_EMAIL) {
-      const prePopulated: Booking[] = [
-        {
-          id: 'book-1',
-          attractionId: 'sagrada-familia',
-          attractionName: 'Sagrada Familia | Skip-The-Line Tickets + Audio Guide',
-          attractionImageUrl: 'https://images.unsplash.com/photo-1511527661048-7fe73d85e9a4?auto=format&fit=crop&q=85&w=1200',
-          city: 'Barcelona',
-          bookingDate: '2026-06-15',
-          ticketsCount: 2,
-          totalPrice: 60,
-          bookingRef: 'TQ-983105-ES',
-          status: 'confirmed'
-        },
-        {
-          id: 'book-2',
-          attractionId: 'van-gogh',
-          attractionName: 'Van Gogh Museum: Timed-entry Admission Ticket',
-          attractionImageUrl: 'https://images.unsplash.com/photo-1572947650440-e8a97ef053b2?auto=format&fit=crop&q=85&w=1200',
-          city: 'Amsterdam',
-          bookingDate: '2026-06-12',
-          ticketsCount: 1,
-          totalPrice: 22,
-          bookingRef: 'TQ-340120-NL',
-          status: 'confirmed'
-        },
-        {
-          id: 'book-3',
-          attractionId: 'louvre-museum',
-          attractionName: 'Louvre Museum: Ultimate Priority Access & Audio Tour',
-          attractionImageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=85&w=1200',
-          city: 'Paris',
-          bookingDate: '2026-04-10',
-          ticketsCount: 3,
-          totalPrice: 90,
-          bookingRef: 'TQ-452109-FR',
-          status: 'confirmed'
-        }
-      ];
-      safeStorageSet(window.localStorage, `tiqsey_bookings_${loggedUser.id}`, JSON.stringify(prePopulated));
-      setBookings(prePopulated);
+    try {
+      const parsed = JSON.parse(storedBookings);
+      setBookings(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      setBookings([]);
     }
   };
 
-  // Load user, seed defaults safely, and verify server cookie session if needed
+  // Restore authentication only from the signed server-side HttpOnly session cookie.
   useEffect(() => {
     let active = true;
-
-    // Prime the mock users database safely (never throw if storage quota is full)
-    const registeredUsers = safeStorageGet(window.localStorage, 'tiqsey_users');
-    if (!registeredUsers) {
-      const initialUsers = [
-        {
-          id: 'demo-user-123',
-          name: 'Alex Mercer',
-          email: DEMO_EMAIL,
-          password: DEMO_PASSWORD,
-          bio: 'Adventurer, photographer, and world traveler. Always looking for the next historic landmark or nature hike.',
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-          createdAt: new Date().toLocaleDateString(),
-          role: 'user',
-        },
-        {
-          id: 'admin-user-456',
-          name: 'System Admin',
-          email: 'admin@tiqsey.com',
-          password: ADMIN_PASSWORD,
-          bio: 'Super Administrator.',
-          avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
-          createdAt: new Date().toLocaleDateString(),
-          role: 'admin',
-        },
-        {
-          id: 'admin-user-bigbakket',
-          name: 'Lead Admin',
-          email: 'bigbakket@gmail.com',
-          password: ADMIN_PASSWORD,
-          bio: 'Lead Administrator.',
-          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
-          createdAt: new Date().toLocaleDateString(),
-          role: 'admin',
-        }
-      ];
-      safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(initialUsers));
-    } else {
-      try {
-        const users = JSON.parse(registeredUsers);
-        if (Array.isArray(users)) {
-          let modified = false;
-
-          ADMIN_EMAILS.forEach((admEmail) => {
-            const found = users.find((u: any) => u.email?.toLowerCase() === admEmail.toLowerCase());
-            if (!found) {
-              users.push({
-                id: admEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
-                name: admEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
-                email: admEmail,
-                password: ADMIN_PASSWORD,
-                bio: 'Administrator.',
-                avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
-                createdAt: new Date().toLocaleDateString(),
-                role: 'admin',
-              });
-              modified = true;
-            } else {
-              if (found.role !== 'admin') {
-                found.role = 'admin';
-                modified = true;
-              }
-              if (found.password !== ADMIN_PASSWORD) {
-                found.password = ADMIN_PASSWORD;
-                modified = true;
-              }
-            }
-          });
-
-          if (modified) {
-            safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
-          }
-        }
-      } catch (e) {
-        console.error('Failed to parse registered users', e);
-      }
-    }
-
-    const storedUser = readStoredSession();
-    if (storedUser) {
-      // Ensure both localStorage and sessionStorage stay mirrored
-      persistStoredSession(storedUser);
-      setUser(storedUser);
-      hydrateUserBookings(storedUser);
-      setIsAuthReady(true);
-    } else {
-      // Fallback: check server-side signed HttpOnly session cookie (when Node server is active)
-      fetch('/api/auth/session', { credentials: 'include' })
-        .then(async (res) => {
-          const ct = res.headers.get('content-type') || '';
-          if (!res.ok || !ct.includes('application/json')) return null;
-          const data = await res.json();
-          return data?.authenticated && data?.user ? sanitizeSessionUser(data.user) : null;
-        })
-        .then((serverUser) => {
-          if (!active) return;
-          if (serverUser) {
-            persistStoredSession(serverUser);
-            setUser(serverUser);
-            hydrateUserBookings(serverUser);
-          }
+    // Remove the legacy browser-side mock user store, which may contain plaintext demo credentials.
+    safeStorageRemove(window.localStorage, 'tiqsey_users');
+    fetch('/api/auth/session', { credentials: 'include' })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const data = await response.json().catch(() => null);
+        return data?.authenticated && data?.user ? sanitizeSessionUser(data.user) : null;
+      })
+      .then((serverUser) => {
+        if (!active) return;
+        setUser(serverUser);
+        if (serverUser) hydrateUserBookings(serverUser);
+        else setBookings([]);
+        setIsAuthReady(true);
+      })
+      .catch(() => {
+        if (active) {
+          setUser(null);
+          setBookings([]);
           setIsAuthReady(true);
-        })
-        .catch(() => {
-          if (active) setIsAuthReady(true);
-        });
-    }
-
-    // Keep auth state synchronized across browser tabs
-    const handleStorageSync = (e: StorageEvent) => {
-      if (e.key !== SESSION_STORAGE_KEY) return;
-      if (!e.newValue) {
-        setUser(null);
-        setBookings([]);
-        return;
-      }
-      try {
-        const synced = sanitizeSessionUser(JSON.parse(e.newValue));
-        if (synced) {
-          setUser(synced);
-          hydrateUserBookings(synced);
         }
-      } catch {
-        // Ignore malformed cross-tab data
-      }
-    };
-
-    window.addEventListener('storage', handleStorageSync);
-    return () => {
-      active = false;
-      window.removeEventListener('storage', handleStorageSync);
-    };
+      });
+    return () => { active = false; };
   }, []);
+
   // (bookings hydration handled by hydrateUserBookings above)
 
   const login = async (email: string, password: string): Promise<User> => {
     const trimmedEmail = email.trim();
-    if (!trimmedEmail || !password) {
-      throw new Error('Please fill in both email and password.');
-    }
+    if (!trimmedEmail || !password) throw new Error('Please enter your email and password.');
 
-    // Attempt backend sync & HttpOnly session cookie safely without breaking if backend returns HTML (e.g., on static host)
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        body: JSON.stringify({ email: trimmedEmail, password }),
-      });
-      const contentType = response.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
-        const data = await response.json();
-        if (!response.ok && data?.error) {
-          console.warn("[Backend Login Warning]:", data.error);
-        }
-      }
-    } catch (_) {
-      // Backend unreachable or static hosting - fall back seamlessly to client session
-    }
-
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const usersRaw = safeStorageGet(window.localStorage, 'tiqsey_users') || '[]';
-        let users: any[] = [];
-        try {
-          const parsedUsers = JSON.parse(usersRaw);
-          users = Array.isArray(parsedUsers) ? parsedUsers : [];
-        } catch (_) {
-          users = [];
-        }
-        
-        const normalizedEmail = trimmedEmail.toLowerCase();
-        const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
-        let matched = users.find((u: any) => u.email?.toLowerCase() === normalizedEmail);
-        
-        if (isAdmin) {
-          if (!matched) {
-            matched = {
-              id: normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
-              name: normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
-              email: normalizedEmail,
-              password: ADMIN_PASSWORD,
-              bio: 'Super Administrator.',
-              avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
-              createdAt: new Date().toLocaleDateString(),
-              role: 'admin',
-            };
-            users.push(matched);
-            safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
-          } else {
-            let userModified = false;
-            if (matched.role !== 'admin') {
-              matched.role = 'admin';
-              userModified = true;
-            }
-            if (matched.password !== ADMIN_PASSWORD) {
-              matched.password = ADMIN_PASSWORD;
-              userModified = true;
-            }
-            if (userModified) {
-              safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
-            }
-          }
-        }
-        
-        if (matched) {
-          // Verify password
-          if (isAdmin) {
-            if (password !== ADMIN_PASSWORD) {
-              reject(new Error('Incorrect administrator password. Please check your credentials.'));
-              return;
-            }
-          } else if (matched.password && matched.password !== password) {
-            reject(new Error('Incorrect password. Please verify your credentials or use the demo password.'));
-            return;
-          }
-
-          // Clean password before setting state
-          const { password: _, ...userSession } = matched;
-          if (isAdmin) {
-            userSession.role = 'admin';
-          }
-          persistStoredSession(userSession);
-          setUser(userSession);
-          setIsAuthReady(true);
-          
-          // Load bookings
-          const storedBookings = safeStorageGet(window.localStorage, `tiqsey_bookings_${userSession.id}`);
-          if (storedBookings) {
-            try {
-              const parsed = JSON.parse(storedBookings);
-              setBookings(Array.isArray(parsed) ? parsed : []);
-            } catch {
-              setBookings([]);
-            }
-          } else {
-            setBookings([]);
-          }
-          
-          resolve(userSession);
-        } else {
-          // Create user account seamlessly for new email
-          const tempUser: any = {
-            id: `user-${Date.now()}`,
-            name: deriveNameFromEmail(trimmedEmail),
-            email: trimmedEmail,
-            password: password,
-            bio: 'New explorer on Tiqsey!',
-            avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200`,
-            createdAt: new Date().toLocaleDateString(),
-            role: isAdmin ? 'admin' : 'user',
-          };
-          users.push(tempUser);
-          safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
-
-          const { password: _, ...userSession } = tempUser;
-          persistStoredSession(userSession);
-          setUser(userSession);
-          setIsAuthReady(true);
-          setBookings([]);
-          resolve(userSession);
-        }
-      }, 300);
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ email: trimmedEmail, password }),
     });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.success || !data?.user) {
+      throw new Error(data?.error || 'Sign in failed. Please check your credentials.');
+    }
+    const authenticatedUser = sanitizeSessionUser(data.user);
+    if (!authenticatedUser) throw new Error('The server returned an invalid user session.');
+    setUser(authenticatedUser);
+    setIsAuthReady(true);
+    hydrateUserBookings(authenticatedUser);
+    return authenticatedUser;
   };
 
   const register = async (name: string, email: string, password: string): Promise<User> => {
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail || !password) {
-      throw new Error('Please fill in all required fields.');
-    }
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedName || !trimmedEmail || !password) throw new Error('Please complete all required fields.');
 
-    // Check if account already exists locally
-    const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
-    let users: any[] = [];
-    try {
-      users = JSON.parse(usersRaw);
-    } catch (_) {
-      users = [];
-    }
-
-    const emailExists = users.some((u: any) => u.email.toLowerCase() === trimmedEmail.toLowerCase());
-    if (emailExists) {
-      throw new Error('An account with this email is already registered. Please sign in instead.');
-    }
-
-    // Attempt backend sync safely without breaking if backend returns HTML (e.g. on static hosting like Hostinger)
-    try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email: trimmedEmail, password }),
-      });
-      const contentType = response.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
-        const data = await response.json();
-        if (!response.ok && data?.error) {
-          console.warn("[Backend Register Warning]:", data.error);
-        }
-      }
-    } catch (_) {
-      // Backend unreachable or static hosting - proceed seamlessly
-    }
-
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const normalizedEmail = trimmedEmail.toLowerCase();
-        const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
-
-        const newUserDb = {
-          id: `user-${Date.now()}`,
-          name: name || deriveNameFromEmail(trimmedEmail),
-          email: trimmedEmail,
-          password,
-          bio: 'New explorer on Tiqsey! Adventure is just a booking away.',
-          avatarUrl: TRAVEL_AVATARS[Math.floor(Math.random() * TRAVEL_AVATARS.length)]?.url || TRAVEL_AVATARS[0].url,
-          createdAt: new Date().toLocaleDateString(),
-          role: (isAdmin ? 'admin' : 'user') as 'admin' | 'user',
-        };
-
-        const updatedUsersList = [...users, newUserDb];
-        safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(updatedUsersList));
-
-        // Create active session
-        const { password: _, ...userSession } = newUserDb;
-        persistStoredSession(userSession);
-        setUser(userSession);
-        setIsAuthReady(true);
-        setBookings([]); // starts blank
-
-        resolve(userSession);
-      }, 300);
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ name: trimmedName, email: trimmedEmail, password }),
     });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.success || !data?.user) {
+      throw new Error(data?.error || 'Account registration failed.');
+    }
+    const authenticatedUser = sanitizeSessionUser(data.user);
+    if (!authenticatedUser) throw new Error('The server returned an invalid user session.');
+    setUser(authenticatedUser);
+    setIsAuthReady(true);
+    setBookings([]);
+    return authenticatedUser;
   };
 
-  const loginWithGoogle = async (email: string, name: string, avatarUrl: string): Promise<User> => {
-    return new Promise((resolve) => {
-      // Small network loading simulation
-      setTimeout(() => {
-        const usersRaw = safeStorageGet(window.localStorage, 'tiqsey_users') || '[]';
-        let users: any[] = [];
-        try {
-          const parsedUsers = JSON.parse(usersRaw);
-          users = Array.isArray(parsedUsers) ? parsedUsers : [];
-        } catch (_) {
-          users = [];
-        }
-        
-        const normalizedEmail = email.toLowerCase().trim();
-        const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
-        let matched = users.find((u: any) => u.email?.toLowerCase() === normalizedEmail);
-        const derivedName = name || deriveNameFromEmail(email);
-        
-        if (!matched) {
-          matched = {
-            id: `google-${Date.now()}`,
-            name: derivedName,
-            email: normalizedEmail,
-            password: `google-auth-${Date.now()}`,
-            bio: 'Explorer signed in via Google Secure Identity Gateway.',
-            avatarUrl,
-            createdAt: new Date().toLocaleDateString(),
-            role: isAdmin ? 'admin' : 'user',
-          };
-          users.push(matched);
-        } else {
-          matched.name = derivedName;
-          matched.avatarUrl = avatarUrl;
-          if (isAdmin) matched.role = 'admin';
-        }
-        
-        safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
-
-        const { password: _, ...userSession } = matched;
-        if (isAdmin) userSession.role = 'admin';
-        persistStoredSession(userSession);
-        setUser(userSession);
-        setIsAuthReady(true);
-
-        const storedBookings = safeStorageGet(window.localStorage, `tiqsey_bookings_${userSession.id}`);
-        if (storedBookings) {
-          try {
-            const parsed = JSON.parse(storedBookings);
-            setBookings(Array.isArray(parsed) ? parsed : []);
-          } catch {
-            setBookings([]);
-          }
-        } else {
-          setBookings([]);
-        }
-
-        resolve(userSession);
-      }, 500);
-    });
+  const loginWithGoogle = async (_email: string, _name: string, _avatarUrl: string): Promise<User> => {
+    throw new Error('Google sign-in must be completed through the verified OAuth flow. Client-supplied profile details cannot authenticate an account.');
   };
 
   const logout = () => {
-    persistStoredSession(null);
     setUser(null);
     setBookings([]);
     fetch('/api/auth/logout', {
@@ -625,69 +207,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }).catch(() => {});
   };
 
-  const updateProfile = async (name: string, email: string, bio?: string, avatarUrl?: string): Promise<User> => {
-    return new Promise((resolve, reject) => {
-      if (!user) {
-        reject(new Error('No authenticated user'));
-        return;
-      }
-      setTimeout(() => {
-        const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
-        let users: any[] = [];
-        try {
-          const parsedUsers = JSON.parse(usersRaw);
-          users = Array.isArray(parsedUsers) ? parsedUsers : [];
-        } catch {
-          users = [];
-        }
-        
-        let matchedIdx = users.findIndex((u: any) => u.id === user.id);
-        if (matchedIdx === -1) {
-          // Fallback: search by email
-          matchedIdx = users.findIndex((u: any) => u.email.toLowerCase() === user.email.toLowerCase());
-        }
-        
-        if (matchedIdx !== -1) {
-          // Keep the original name and email to avoid profile modifications
-          const originalUser = users[matchedIdx];
-          const updatedUserDb = {
-            ...originalUser,
-            // Guaranteed locked properties
-            name: originalUser.name || deriveNameFromEmail(originalUser.email),
-            email: originalUser.email,
-            bio: bio !== undefined ? bio : originalUser.bio,
-            avatarUrl: avatarUrl || originalUser.avatarUrl
-          };
-          
-          users[matchedIdx] = updatedUserDb;
-          safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
-          
-          const { password: _, ...userSession } = updatedUserDb;
-          persistStoredSession(userSession);
-          setUser(userSession);
-          resolve(userSession);
-        } else {
-          // If the user isn't in local mock DB, create it dynamically to avoid throwing an error
-          const newUserDb = {
-            id: user.id || `user-${Date.now()}`,
-            name: user.name || deriveNameFromEmail(user.email),
-            email: user.email,
-            password: 'password123',
-            bio: bio || user.bio || 'New explorer on Tiqsey!',
-            avatarUrl: avatarUrl || user.avatarUrl || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200`,
-            createdAt: user.createdAt || new Date().toLocaleDateString(),
-          };
-          
-          users.push(newUserDb);
-          safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
-          
-          const { password: _, ...userSession } = newUserDb;
-          persistStoredSession(userSession);
-          setUser(userSession);
-          resolve(userSession);
-        }
-      }, 500);
+  const updateProfile = async (_name: string, _email: string, bio?: string, avatarUrl?: string): Promise<User> => {
+    if (!user) throw new Error('No authenticated user');
+    const response = await fetch('/api/auth/profile', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({
+        bio: bio !== undefined ? bio : user.bio || '',
+        avatarUrl: avatarUrl !== undefined ? avatarUrl : user.avatarUrl || '',
+      }),
     });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.success || !data?.user) {
+      throw new Error(data?.error || 'Unable to update your profile.');
+    }
+    const updatedUser = sanitizeSessionUser(data.user);
+    if (!updatedUser) throw new Error('The server returned an invalid profile.');
+    setUser(updatedUser);
+    return updatedUser;
   };
 
 
@@ -732,7 +270,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       users.push(newGuest);
       safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
       // Authenticate guest user session
-      persistStoredSession(newGuest);
       setUser(newGuest);
       activeUser = newGuest;
     }

@@ -3,12 +3,9 @@ import {
   SUPABASE_STORAGE_BUCKET_LIST,
   SUPABASE_PROJECT_ID,
   isSupabaseConfigured,
-  supabase,
   getBucketConfig,
   getMediaCategory,
   listSupabaseBucketFilesDirect,
-  uploadFileToSupabaseStorageDirect,
-  deleteSupabaseBucketFilesDirect,
   testSupabaseStorageConnectionDirect,
   type SupabaseBucketId,
   type SupabaseStorageConnectionReport,
@@ -426,45 +423,9 @@ export async function uploadMediaChunked(params: ChunkedUploadParams): Promise<C
     }),
   });
 
-  // If Node backend is unreachable (static host), fall back to direct Supabase Storage upload with real XHR progress
+  // Fail closed: anonymous browser uploads are disabled. Admin writes must pass through the authenticated Node API.
   if (!initRes.isJson) {
-    onProgress?.(8, 'uploading');
-    const direct = await uploadFileToSupabaseStorageDirect(
-      file,
-      bucket,
-      folder ?? spec.defaultFolder,
-      (pct) => {
-        onProgress?.(pct, pct >= 95 ? 'verifying' : 'uploading');
-      }
-    );
-    if (direct.error || !direct.url || !direct.path) {
-      throw new Error(direct.error || `Failed to upload "${file.name}" to Supabase Storage.`);
-    }
-    if (replaceOldPath && replaceOldPath !== direct.path) {
-      await deleteSupabaseBucketFilesDirect(bucket, [replaceOldPath]).catch(() => {});
-    }
-    onProgress?.(100, 'done');
-    const slashIdx = direct.path.lastIndexOf('/');
-    return {
-      verified: true,
-      oldUrl: replaceOldUrl || null,
-      updatedReferences: [],
-      asset: {
-        id: `direct-${bucket}-${direct.path}`,
-        bucket,
-        path: direct.path,
-        folder: slashIdx === -1 ? '' : direct.path.slice(0, slashIdx),
-        name: slashIdx === -1 ? direct.path : direct.path.slice(slashIdx + 1),
-        publicUrl: direct.url,
-        mimeType: direct.convertedTo || mimeType,
-        mediaType: getMediaCategory(direct.convertedTo || mimeType, file.name),
-        size: file.size,
-        sha256Hash: sha256Hash || null,
-        uploadedBy: adminEmail,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    };
+    throw new Error('Secure media uploads require the authenticated Tiqsey backend. Direct anonymous Supabase uploads are disabled.');
   }
 
   if (!initRes.ok || !initRes.data?.uploadId) {
@@ -568,37 +529,8 @@ export async function createStorageFolder(
     return { error: res.data?.error || 'Failed to create folder.' };
   }
 
-  // Direct Supabase Storage fallback for static hosting
-  if (isSupabaseConfigured && supabase) {
-    const clean = folderPath.replace(/^\/+|\/+$/g, '').replace(/[^a-zA-Z0-9/_-]/g, '-');
-    if (!clean) return { error: 'Please enter a valid folder name.' };
-    try {
-      const tinyPngBytes = Uint8Array.from(
-        atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='),
-        (c) => c.charCodeAt(0)
-      );
-      const { error } = await supabase.storage
-        .from(bucket)
-        .upload(`${clean}/.folder_placeholder.png`, new Blob([tinyPngBytes], { type: 'image/png' }), {
-          contentType: 'image/png',
-          upsert: true,
-        });
-      if (error) return { error: error.message };
-      const slashIdx = clean.lastIndexOf('/');
-      return {
-        folder: {
-          bucket,
-          path: clean,
-          name: slashIdx === -1 ? clean : clean.slice(slashIdx + 1),
-          parentFolder: slashIdx === -1 ? '' : clean.slice(0, slashIdx),
-          fileCount: 0,
-          createdAt: new Date().toISOString(),
-        },
-      };
-    } catch (err: any) {
-      return { error: err?.message || 'Failed to create folder in Supabase Storage.' };
-    }
-  }
+  // Fail closed when the authenticated backend is unavailable; do not write with the public anon key.
+  return { error: 'Secure folder creation requires the authenticated Tiqsey backend.' };
 
   return { error: 'Failed to create folder.' };
 }
@@ -640,31 +572,8 @@ export async function renameStorageFolder(
     return { ok: false, error: res.data?.error || 'Failed to rename folder.' };
   }
 
-  // Direct Supabase Storage fallback for static hosting
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const cleanOld = oldFolderPath.replace(/^\/+|\/+$/g, '');
-      const cleanNew = newFolderPath.replace(/^\/+|\/+$/g, '');
-      const listed = await listSupabaseBucketFilesDirect(bucket, cleanOld);
-      const urlReplacements: Array<{ oldUrl: string; newUrl: string }> = [];
-      let movedCount = 0;
-
-      for (const file of listed.files) {
-        const suffix = file.path.slice(cleanOld.length);
-        const targetPath = `${cleanNew}${suffix}`;
-        const { error } = await supabase.storage.from(bucket).move(file.path, targetPath);
-        if (error) return { ok: false, error: error.message };
-        const { data: pub } = supabase.storage.from(bucket).getPublicUrl(targetPath);
-        if (file.publicUrl && pub?.publicUrl) {
-          urlReplacements.push({ oldUrl: file.publicUrl, newUrl: pub.publicUrl });
-        }
-        movedCount += 1;
-      }
-      return { ok: true, movedCount, urlReplacements };
-    } catch (err: any) {
-      return { ok: false, error: err?.message || 'Failed to rename folder in Supabase Storage.' };
-    }
-  }
+  // Folder moves require the authenticated server-side Storage client.
+  return { ok: false, error: 'Secure folder renaming requires the authenticated Tiqsey backend.' };
 
   return { ok: false, error: 'Failed to rename folder.' };
 }
@@ -712,17 +621,8 @@ export async function deleteStorageFolder(
     return { ok: false, error: res.data?.error || 'Failed to delete folder.' };
   }
 
-  // Direct Supabase Storage fallback for static hosting
-  if (isSupabaseConfigured && supabase) {
-    const clean = folderPath.replace(/^\/+|\/+$/g, '');
-    const listed = await listSupabaseBucketFilesDirect(bucket, clean);
-    const paths = [
-      ...listed.files.map((f) => f.path),
-      `${clean}/.folder_placeholder.png`,
-      `${clean}/.emptyFolderPlaceholder`,
-    ];
-    return deleteSupabaseBucketFilesDirect(bucket, paths);
-  }
+  // Folder deletion requires the authenticated server-side Storage client.
+  return { ok: false, error: 'Secure folder deletion requires the authenticated Tiqsey backend.' };
 
   return { ok: false, error: 'Failed to delete folder.' };
 }
@@ -790,12 +690,9 @@ export async function deleteMediaFiles(
     return { ok: false, error: res.data?.error || 'Failed to delete file.' };
   }
 
-  // Direct Supabase Storage fallback when deployed on static hosting without a Node backend
-  const direct = await deleteSupabaseBucketFilesDirect(bucket, paths);
-  if (!direct.ok && /row-level security|policy|permission|unauthorized/i.test(direct.error || '')) {
-    return { ok: false, error: direct.error, rlsBlocked: true };
-  }
-  return direct;
+  // File deletion requires the authenticated server-side Storage client.
+  return { ok: false, error: 'Secure file deletion requires the authenticated Tiqsey backend.' };
+
 }
 
 async function readResponseBlobWithProgress(
