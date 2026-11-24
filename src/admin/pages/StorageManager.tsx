@@ -131,6 +131,10 @@ create table if not exists public.media_assets (
   unique(bucket, path)
 );
 
+-- The metadata table is accessed only by the authenticated server using the service-role key.
+alter table public.media_assets enable row level security;
+revoke all on table public.media_assets from anon, authenticated;
+
 -- 2. Public read access for the public media buckets.
 drop policy if exists "Tiqsey storage public read" on storage.objects;
 drop policy if exists "Tiqsey storage upload" on storage.objects;
