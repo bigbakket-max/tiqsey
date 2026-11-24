@@ -138,16 +138,26 @@ export function getBucketConfig(bucket?: string): SupabaseBucketConfig {
   return SUPABASE_STORAGE_BUCKETS.media;
 }
 
+const isValidSupabaseUrl = (value: string): boolean => {
+  if (!value || value.includes('placeholder') || value.includes('your-project')) return false;
+  try {
+    const parsed = new URL(value);
+    const isLocalDevelopment = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+    return (
+      (parsed.protocol === 'https:' || (isLocalDevelopment && parsed.protocol === 'http:')) &&
+      (isLocalDevelopment || parsed.hostname.endsWith('.supabase.co'))
+    );
+  } catch {
+    return false;
+  }
+};
+
 export const isSupabaseConfigured = Boolean(
-  SUPABASE_URL &&
-  SUPABASE_ANON_KEY &&
-  !SUPABASE_URL.includes('placeholder') &&
-  !SUPABASE_URL.includes('your-project') &&
-  /^https?:\/\//i.test(SUPABASE_URL)
+  isValidSupabaseUrl(SUPABASE_URL) && SUPABASE_ANON_KEY
 );
 
 export const SUPABASE_PROJECT_ID = isSupabaseConfigured
-  ? (SUPABASE_URL.match(/https?:\/\/([^.]+)\./)?.[1] || '')
+  ? (new URL(SUPABASE_URL).hostname.split('.')[0] || '')
   : '';
 
 export const supabase: SupabaseClient | null = isSupabaseConfigured
