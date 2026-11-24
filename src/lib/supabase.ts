@@ -437,16 +437,35 @@ export async function uploadFileToSupabaseStorageDirect(
 export async function deleteSupabaseBucketFilesDirect(
   bucket: SupabaseBucketId,
   paths: string[]
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; rlsBlocked?: boolean }> {
   if (!isSupabaseConfigured || !supabase) {
     return { ok: false, error: 'Supabase is not configured in browser environment.' };
   }
   try {
     const { data, error } = await supabase.storage.from(bucket).remove(paths);
-    if (error) return { ok: false, error: error.message };
+    if (error) {
+      const rlsBlocked = /row-level security|policy|permission|unauthorized|forbidden/i.test(error.message || '');
+      return { ok: false, error: error.message, rlsBlocked };
+    }
     if (!Array.isArray(data) || data.length === 0) {
+      // Confirm whether the file actually still exists in Supabase Storage (vs already removed)
+      const firstPath = paths[0];
+      if (firstPath) {
+        try {
+          const { data: pub } = supabase.storage.from(bucket).getPublicUrl(firstPath);
+          if (pub?.publicUrl) {
+            const check = await fetch(`${pub.publicUrl}?t=${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
+            if (check.status === 400 || check.status === 404) {
+              return { ok: true };
+            }
+          }
+        } catch {
+          // Proceed to RLS message if probe fails
+        }
+      }
       return {
         ok: false,
+        rlsBlocked: true,
         error: `Delete blocked by Supabase row-level security policy on "${bucket}".`,
       };
     }

@@ -1134,7 +1134,7 @@ function generatePnrNumber(): string {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // Use JSON middleware with 70MB limit to support 50MB media/video uploads (base64 overhead)
   app.use(express.json({ limit: '70mb' }));

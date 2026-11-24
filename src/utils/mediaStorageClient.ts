@@ -673,6 +673,7 @@ export async function deleteStorageFolder(
   fileCount?: number;
   references?: MediaUsageRef[];
   error?: string;
+  rlsBlocked?: boolean;
 }> {
   const res = await fetchJsonSafely<{
     success?: boolean;

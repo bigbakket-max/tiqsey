@@ -137,7 +137,30 @@ create policy "Tiqsey storage upload" on storage.objects
 
 create policy "Tiqsey storage update" on storage.objects
   for update to anon, authenticated
+  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'))
+  with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
+
+create policy "Tiqsey storage delete" on storage.objects
+  for delete to anon, authenticated
+  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));`;
+
+const SUPABASE_DELETE_RLS_SQL = `drop policy if exists "Tiqsey storage public read" on storage.objects;
+drop policy if exists "Tiqsey storage upload" on storage.objects;
+drop policy if exists "Tiqsey storage update" on storage.objects;
+drop policy if exists "Tiqsey storage delete" on storage.objects;
+
+create policy "Tiqsey storage public read" on storage.objects
+  for select to anon, authenticated
   using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
+
+create policy "Tiqsey storage upload" on storage.objects
+  for insert to anon, authenticated
+  with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
+
+create policy "Tiqsey storage update" on storage.objects
+  for update to anon, authenticated
+  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'))
+  with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
 
 create policy "Tiqsey storage delete" on storage.objects
   for delete to anon, authenticated
@@ -190,6 +213,12 @@ export default function StorageManager() {
   const [inspectedRefs, setInspectedRefs] = useState<MediaUsageRef[]>([]);
   const [loadingInspectedRefs, setLoadingInspectedRefs] = useState<boolean>(false);
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState | null>(null);
+  const [rlsFixModal, setRlsFixModal] = useState<{
+    pendingDelete: DeleteConfirmState;
+    bucket: string;
+    retrying: boolean;
+    copied: boolean;
+  } | null>(null);
 
   // Folder modals
   const [createFolderOpen, setCreateFolderOpen] = useState<boolean>(false);
@@ -705,21 +734,36 @@ export default function StorageManager() {
     });
   };
 
-  const executeConfirmedDelete = async () => {
-    if (!deleteConfirm) return;
-    setDeleteConfirm((prev) => (prev ? { ...prev, deleting: true } : null));
+  const executeConfirmedDelete = async (overrideTarget?: DeleteConfirmState) => {
+    const activeDelete = overrideTarget || deleteConfirm;
+    if (!activeDelete) return;
+    if (overrideTarget) {
+      setRlsFixModal((prev) => (prev ? { ...prev, retrying: true } : null));
+    } else {
+      setDeleteConfirm((prev) => (prev ? { ...prev, deleting: true } : null));
+    }
 
     try {
-      if (deleteConfirm.kind === 'file' && deleteConfirm.file) {
-        const target = deleteConfirm.file;
+      if (activeDelete.kind === 'file' && activeDelete.file) {
+        const target = activeDelete.file;
         const result = await deleteMediaFiles(adminEmail, target.bucket as SupabaseBucketId, [target.path]);
         if (!result.ok) {
-          showToast('error', result.error || 'Failed to delete file.');
           if (result.rlsBlocked || /row-level security|policy/i.test(result.error || '')) {
             setDeleteConfirm(null);
-            setShowSqlDrawer(true);
+            setRlsFixModal({
+              pendingDelete: { ...activeDelete, deleting: false },
+              bucket: target.bucket,
+              retrying: false,
+              copied: false,
+            });
+            showToast(
+              'info',
+              `Run the 1-time Delete RLS policy in Supabase SQL Editor, then click "Retry Delete Now".`
+            );
           } else {
+            showToast('error', result.error || 'Failed to delete file.');
             setDeleteConfirm((prev) => (prev ? { ...prev, deleting: false } : null));
+            setRlsFixModal((prev) => (prev ? { ...prev, retrying: false } : null));
           }
           return;
         }
@@ -743,9 +787,10 @@ export default function StorageManager() {
         });
         showToast('success', `Deleted "${target.name}" permanently from Supabase Storage.`);
         setDeleteConfirm(null);
+        setRlsFixModal(null);
         await loadLibrary(true);
-      } else if (deleteConfirm.kind === 'folder' && deleteConfirm.folder) {
-        const folder = deleteConfirm.folder;
+      } else if (activeDelete.kind === 'folder' && activeDelete.folder) {
+        const folder = activeDelete.folder;
         const result = await deleteStorageFolder(
           adminEmail,
           folder.bucket as SupabaseBucketId,
@@ -753,23 +798,35 @@ export default function StorageManager() {
           true
         );
         if (!result.ok) {
-          showToast('error', result.error || 'Failed to delete folder.');
-          if (/row-level security|policy/i.test(result.error || '')) {
+          if (result.rlsBlocked || /row-level security|policy/i.test(result.error || '')) {
             setDeleteConfirm(null);
-            setShowSqlDrawer(true);
+            setRlsFixModal({
+              pendingDelete: { ...activeDelete, deleting: false },
+              bucket: folder.bucket,
+              retrying: false,
+              copied: false,
+            });
+            showToast(
+              'info',
+              `Run the 1-time Delete RLS policy in Supabase SQL Editor, then click "Retry Delete Now".`
+            );
           } else {
+            showToast('error', result.error || 'Failed to delete folder.');
             setDeleteConfirm((prev) => (prev ? { ...prev, deleting: false } : null));
+            setRlsFixModal((prev) => (prev ? { ...prev, retrying: false } : null));
           }
           return;
         }
         if (currentFolder === folder.path) setCurrentFolder('');
         showToast('success', `Deleted folder "${folder.path}" and its files from Supabase Storage.`);
         setDeleteConfirm(null);
+        setRlsFixModal(null);
         await loadLibrary(true);
       }
     } catch (err: any) {
       showToast('error', err?.message || 'Delete operation failed.');
       setDeleteConfirm((prev) => (prev ? { ...prev, deleting: false } : null));
+      setRlsFixModal((prev) => (prev ? { ...prev, retrying: false } : null));
     }
   };
 
@@ -1006,6 +1063,11 @@ export default function StorageManager() {
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {library?.projectId ? `Supabase Project ${library.projectId}` : 'Supabase Storage'} ·{' '}
                 {verifiedBucketsCount}/{SUPABASE_STORAGE_BUCKET_LIST.length} buckets active
+                {library?.mode === 'server'
+                  ? ' · Live Server API'
+                  : library?.mode === 'supabase-direct'
+                  ? ' · Direct Browser -> Supabase'
+                  : ''}
                 {library?.latencyMs ? ` · ${library.latencyMs}ms` : ''}
                 {library?.supabaseMediaTableSynced ? ' · Metadata synced' : ''}
               </p>
@@ -2187,7 +2249,7 @@ export default function StorageManager() {
               <button
                 type="button"
                 disabled={deleteConfirm.deleting || deleteConfirm.loadingRefs}
-                onClick={executeConfirmedDelete}
+                onClick={() => executeConfirmedDelete()}
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
               >
                 {deleteConfirm.deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -2314,6 +2376,113 @@ export default function StorageManager() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Centered 1-Step Supabase Delete Policy Modal (shown only on static hosting if Supabase blocks DELETE via RLS) */}
+      {rlsFixModal && (
+        <div
+          className="fixed inset-0 z-[105] flex items-center justify-center bg-slate-950/65 backdrop-blur-xs p-4"
+          onClick={() => !rlsFixModal.retrying && setRlsFixModal(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden"
+          >
+            <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/70 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Enable Live Delete in Supabase (1-Time Setup)
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    This site is running in <strong>Direct Browser → Supabase</strong> mode (static hosting). Supabase
+                    allows uploads to <span className="font-mono font-semibold">{rlsFixModal.bucket}</span>, but blocks
+                    deleting until you add the Delete policy once in your Supabase SQL Editor.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={rlsFixModal.retrying}
+                onClick={() => setRlsFixModal(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                  <div className="font-bold text-slate-900 dark:text-white">1. Copy SQL</div>
+                  <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                    Click <strong>Copy Delete SQL</strong> below.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                  <div className="font-bold text-slate-900 dark:text-white">2. Run in Supabase</div>
+                  <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                    Paste in Supabase SQL Editor and click <strong>Run</strong>.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                  <div className="font-bold text-slate-900 dark:text-white">3. Delete Live</div>
+                  <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                    Come back and click <strong>Retry Delete Now</strong>.
+                  </p>
+                </div>
+              </div>
+
+              <div className="relative">
+                <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto max-h-56 leading-relaxed border border-slate-800">
+                  {SUPABASE_DELETE_RLS_SQL}
+                </pre>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      copyText(SUPABASE_DELETE_RLS_SQL, 'rls-delete-sql', 'Delete RLS SQL');
+                      setRlsFixModal((prev) => (prev ? { ...prev, copied: true } : null));
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 hover:opacity-90"
+                  >
+                    {rlsFixModal.copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{rlsFixModal.copied ? 'SQL Copied!' : '1. Copy Delete SQL'}</span>
+                  </button>
+                  <a
+                    href={`https://supabase.com/dashboard/project/${library?.projectId || 'lzjjwsvalvfkgwtzuime'}/sql/new`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700"
+                  >
+                    <span>2. Open Supabase SQL Editor</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={rlsFixModal.retrying}
+                  onClick={() => executeConfirmedDelete(rlsFixModal.pendingDelete)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
+                >
+                  {rlsFixModal.retrying ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>{rlsFixModal.retrying ? 'Deleting...' : '3. Retry Delete Now'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
