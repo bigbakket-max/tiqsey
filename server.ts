@@ -223,21 +223,28 @@ function isSupabaseConfigured(): boolean {
     return false;
   }
 
-  if (
-    supabaseUrl.includes('placeholder') ||
-    supabaseUrl.includes('your-project') ||
-    !/^https?:\/\//i.test(supabaseUrl)
-  ) {
+  if (supabaseUrl.includes('placeholder') || supabaseUrl.includes('your-project')) {
     return false;
   }
 
-  return true;
+  try {
+    const parsed = new URL(supabaseUrl);
+    const isLocalDevelopment = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+    return (
+      (parsed.protocol === 'https:' || (isLocalDevelopment && parsed.protocol === 'http:')) &&
+      (isLocalDevelopment || parsed.hostname.endsWith('.supabase.co'))
+    );
+  } catch {
+    return false;
+  }
 }
 
 function getSupabaseProjectId(): string {
-  const supabaseUrl = getSupabaseUrl();
-  const match = supabaseUrl.match(/https?:\/\/([^.]+)\./);
-  return match ? match[1] : '';
+  try {
+    return new URL(getSupabaseUrl()).hostname.split('.')[0] || '';
+  } catch {
+    return '';
+  }
 }
 
 function isSupabaseNetworkFailure(errOrMsg: any): boolean {
