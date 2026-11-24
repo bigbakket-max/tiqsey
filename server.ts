@@ -1158,6 +1158,9 @@ async function startServer() {
   const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
   const SESSION_SIGNING_SECRET =
     (process.env.SESSION_SECRET || '').trim() || crypto.randomBytes(32).toString('hex');
+  if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET?.trim()) {
+    console.warn('[Security] SESSION_SECRET is not configured. Session cookies will be invalidated on server restart; set a stable random secret in production.');
+  }
 
   const parseCookies = (cookieHeader?: string): Record<string, string> => {
     const out: Record<string, string> = {};
@@ -1224,20 +1227,25 @@ async function startServer() {
   };
 
   const isValidCsrfRequest = (req: express.Request): boolean => {
-    if (req.headers['x-requested-with']) return true;
     const origin = String(req.headers.origin || '').trim();
-    if (!origin) return true;
-    try {
-      const originHost = new URL(origin).host.toLowerCase();
-      const expectedHost = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
-      return Boolean(expectedHost && originHost === expectedHost);
-    } catch {
-      return false;
+    if (origin) {
+      try {
+        const originHost = new URL(origin).host.toLowerCase();
+        const expectedHost = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
+        return Boolean(expectedHost && originHost === expectedHost);
+      } catch {
+        return false;
+      }
     }
+    // Non-browser clients may omit Origin; require the explicit same-site request marker.
+    return Boolean(req.headers['x-requested-with']);
   };
 
   const checkAdminAuth = (req: express.Request): boolean => {
     const signedUser = getSignedSessionUser(req);
+    if (signedUser && !['GET', 'HEAD', 'OPTIONS'].includes(req.method.toUpperCase()) && !isValidCsrfRequest(req)) {
+      return false;
+    }
     if (signedUser && typeof signedUser.email === 'string') {
       const email = signedUser.email.toLowerCase().trim();
       if (signedUser.role === 'admin' && ADMIN_EMAILS.includes(email)) return true;
@@ -3502,6 +3510,7 @@ async function startServer() {
 
   // API routes
   app.post("/api/bookings/generate-ids", (req, res) => {
+    if (!isValidCsrfRequest(req)) return res.status(403).json({ error: "Invalid request origin." });
     let attempts = 0;
     const maxAttempts = 10;
 
@@ -3626,6 +3635,7 @@ async function startServer() {
 
   // Save/Update booking details in backend database
   app.post("/api/bookings", async (req, res) => {
+    if (!isValidCsrfRequest(req)) return res.status(403).json({ error: "Invalid request origin." });
     try {
       const booking = req.body;
       if (!booking || !booking.id) {
@@ -3823,6 +3833,7 @@ async function startServer() {
 
   // Patch/update specific booking fields (status, date, timeslot, etc.)
   app.patch("/api/bookings/:id", async (req, res) => {
+    if (!isValidCsrfRequest(req)) return res.status(403).json({ error: "Invalid request origin." });
     if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { id } = req.params;
@@ -3919,6 +3930,7 @@ async function startServer() {
 
   // Delete a booking from backend database
   app.delete("/api/bookings/:id", async (req, res) => {
+    if (!isValidCsrfRequest(req)) return res.status(403).json({ error: "Invalid request origin." });
     if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { id } = req.params;
@@ -4114,6 +4126,7 @@ async function startServer() {
 
   // Submit or update a review
   app.post("/api/reviews", async (req, res) => {
+    if (!isValidCsrfRequest(req)) return res.status(403).json({ error: "Invalid request origin." });
     try {
       const { id, bookingId, attractionId, rating, comment, createdAt } = req.body || {};
       const signedUser = getSignedSessionUser(req);
@@ -4285,6 +4298,7 @@ async function startServer() {
   const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
 
   app.post("/api/auth/login", (req, res) => {
+    if (!isValidCsrfRequest(req)) return res.status(403).json({ error: "Invalid request origin." });
     const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
     if (!rawEmail || !password || rawEmail.length > 254 || password.length > 1024) {
@@ -4385,6 +4399,7 @@ async function startServer() {
   });
 
   app.post("/api/auth/profile", (req, res) => {
+    if (!isValidCsrfRequest(req)) return res.status(403).json({ error: "Invalid request origin." });
     const signedUser = getSignedSessionUser(req);
     if (!signedUser || signedUser.role !== 'user' || typeof signedUser.id !== 'string') {
       return res.status(401).json({ error: "A customer session is required." });
@@ -4439,6 +4454,7 @@ async function startServer() {
   });
 
   app.post("/api/auth/register", (req, res) => {
+    if (!isValidCsrfRequest(req)) return res.status(403).json({ error: "Invalid request origin." });
     const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
