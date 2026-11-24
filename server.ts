@@ -3642,8 +3642,9 @@ async function startServer() {
       const status = checkAdminAuth(req) ? (booking.status || "confirmed") : "Confirmation Pending";
       const child_count = booking.childCount || booking.children || 0;
       
-      const guest_name = booking.guestInfo?.name || booking.customerName || "";
-      const guest_email = booking.guestInfo?.email || booking.customerEmail || "";
+      const authenticatedUser = getSignedSessionUser(req);
+      const guest_name = booking.guestInfo?.name || booking.customerName || authenticatedUser?.name || "";
+      const guest_email = booking.guestInfo?.email || booking.customerEmail || authenticatedUser?.email || "";
       const guest_phone = booking.guestInfo?.phone || booking.customerPhone || "";
       const passengers_json = JSON.stringify(booking.passengers || booking.guestInfo?.passengers || []);
       
@@ -3666,7 +3667,8 @@ async function startServer() {
       if (existing && !String(existing.id).startsWith('temp-') && !checkAdminAuth(req)) {
         return res.status(409).json({ error: "This booking already exists and cannot be overwritten." });
       }
-      if (!existing && (!guest_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(guest_email)) ||
+      if ((!existing || String(existing.id).startsWith('temp-')) &&
+          (!guest_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(guest_email)) ||
           !Number.isInteger(Number(tickets_count)) || Number(tickets_count) < 1 ||
           !Number.isFinite(Number(total_price)) || Number(total_price) < 0)) {
         return res.status(400).json({ error: "Booking details are incomplete or invalid." });
