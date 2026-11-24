@@ -1,7 +1,6 @@
 import {
   getBucketConfig,
   isSupabaseConfigured,
-  uploadDataUrlToSupabaseStorage,
   type SupabaseBucketId,
 } from '../lib/supabase';
 import { fetchJsonSafely } from './safeFetch';
@@ -59,23 +58,15 @@ async function sendToUploadEndpoint(
     console.warn(`[imageUpload] Upload error (${bucket}):`, serverError);
   }
 
-  // Fallback to direct Supabase Storage upload (e.g. static deployment)
-  try {
-    const storageUrl = await uploadDataUrlToSupabaseStorage(dataUrl, filename, folder, bucket);
-    if (storageUrl) return { url: storageUrl };
-  } catch (err: any) {
-    return { url: null, error: err?.message || serverError };
-  }
-
   return {
     url: null,
-    error: serverError || 'Supabase Storage upload failed. Please check your connection and try again.',
+    error: serverError || 'The authenticated Tiqsey upload API is unavailable. Direct anonymous Supabase uploads are disabled.',
   };
 }
 
 /**
  * Optimizes and permanently uploads image files to Supabase Storage via /api/upload
- * (or direct Supabase Storage fallback). Never silently stores temporary browser-only base64 URLs
+ * through the authenticated Tiqsey Node API. Never silently stores temporary browser-only base64 URLs
  * when Supabase Storage is configured.
  */
 export async function uploadAndOptimizeImage(
