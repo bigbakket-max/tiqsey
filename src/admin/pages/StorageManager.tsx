@@ -151,17 +151,7 @@ create policy "Tiqsey storage public read" on storage.objects
 -- administrator authentication. The server uses SUPABASE_SERVICE_ROLE_KEY, which
 -- bypasses Storage RLS. Never expose that key to the browser.`;
 
-const SUPABASE_DELETE_RLS_SQL = `-- Remove any legacy anonymous write permissions.
-drop policy if exists "Tiqsey storage upload" on storage.objects;
-drop policy if exists "Tiqsey storage update" on storage.objects;
-drop policy if exists "Tiqsey storage delete" on storage.objects;
-drop policy if exists "Tiqsey storage authenticated write" on storage.objects;
 
--- Retain public read access for the configured public media buckets.
-drop policy if exists "Tiqsey storage public read" on storage.objects;
-create policy "Tiqsey storage public read" on storage.objects
-  for select to anon, authenticated
-  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));`;
 
 function formatDateShort(iso?: string | null): string {
   if (!iso) return '—';
@@ -2658,7 +2648,7 @@ export default function StorageManager() {
         )}
       </AnimatePresence>
 
-      {/* Centered 1-Step Supabase Delete Policy Modal (shown only on static hosting if Supabase blocks DELETE via RLS) */}
+      {/* Server-side Storage permission diagnostics; never instruct anonymous write grants. */}
       <AnimatePresence>
         {rlsFixModal && (
           <motion.div
@@ -2676,7 +2666,7 @@ export default function StorageManager() {
               exit={{ opacity: 0, scale: 0.97, y: 8 }}
               transition={{ duration: 0.2, ease: ADMIN_EASE }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden"
+              className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden"
             >
               <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
@@ -2685,12 +2675,10 @@ export default function StorageManager() {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      Enable Live Delete in Supabase (1-Time Setup)
+                      Secure Storage operation needs attention
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      This site is running in <strong>Direct Browser → Supabase</strong> mode (static hosting). Supabase
-                      allows uploads to <span className="font-mono font-semibold">{rlsFixModal.bucket}</span>, but blocks
-                      deleting until you add the Delete policy once in your Supabase SQL Editor.
+                      The authenticated Tiqsey backend could not complete this operation for <strong>{rlsFixModal.bucket}</strong>.
                     </p>
                   </div>
                 </div>
@@ -2699,75 +2687,39 @@ export default function StorageManager() {
                   disabled={rlsFixModal.retrying}
                   onClick={() => setRlsFixModal(null)}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  aria-label="Close"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               <div className="p-6 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
-                    <div className="font-bold text-slate-900 dark:text-white">1. Copy SQL</div>
-                    <p className="text-slate-500 dark:text-slate-400 mt-0.5">
-                      Click <strong>Copy Delete SQL</strong> below.
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
-                    <div className="font-bold text-slate-900 dark:text-white">2. Run in Supabase</div>
-                    <p className="text-slate-500 dark:text-slate-400 mt-0.5">
-                      Paste in Supabase SQL Editor and click <strong>Run</strong>.
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
-                    <div className="font-bold text-slate-900 dark:text-white">3. Delete Live</div>
-                    <p className="text-slate-500 dark:text-slate-400 mt-0.5">
-                      Come back and click <strong>Retry Delete Now</strong>.
-                    </p>
-                  </div>
+                <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-4 text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
+                  <strong>Do not enable anonymous Storage INSERT, UPDATE, or DELETE policies.</strong> Those permissions would allow anyone with the public anon key to change or delete Tiqsey media.
                 </div>
-
-                <div className="relative">
-                  <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto max-h-56 leading-relaxed border border-slate-800">
-                    {SUPABASE_DELETE_RLS_SQL}
-                  </pre>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        copyText(SUPABASE_DELETE_RLS_SQL, 'rls-delete-sql', 'Delete RLS SQL');
-                        setRlsFixModal((prev) => (prev ? { ...prev, copied: true } : null));
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 hover:opacity-90"
-                    >
-                      {rlsFixModal.copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{rlsFixModal.copied ? 'SQL Copied!' : '1. Copy Delete SQL'}</span>
-                    </button>
-                    <a
-                      href={`https://supabase.com/dashboard/project/${library?.projectId || 'lzjjwsvalvfkgwtzuime'}/sql/new`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700"
-                    >
-                      <span>2. Open Supabase SQL Editor</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  </div>
-
+                <ol className="list-decimal pl-5 space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                  <li>Confirm the Tiqsey Node API is running and reachable from the admin site.</li>
+                  <li>Confirm <code>SUPABASE_URL</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> are set in the server environment only.</li>
+                  <li>Check the Hostinger Node server logs for the exact Supabase permission error.</li>
+                  <li>After correcting the server configuration, retry the operation.</li>
+                </ol>
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={rlsFixModal.retrying}
+                    onClick={() => setRlsFixModal(null)}
+                    className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+                  >
+                    Close
+                  </button>
                   <button
                     type="button"
                     disabled={rlsFixModal.retrying}
                     onClick={() => executeConfirmedDelete(rlsFixModal.pendingDelete)}
                     className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50"
                   >
-                    {rlsFixModal.retrying ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-3.5 h-3.5" />
-                    )}
-                    <span>{rlsFixModal.retrying ? 'Deleting...' : '3. Retry Delete Now'}</span>
+                    {rlsFixModal.retrying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    <span>{rlsFixModal.retrying ? 'Retrying...' : 'Retry operation'}</span>
                   </button>
                 </div>
               </div>
