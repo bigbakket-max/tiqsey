@@ -1807,6 +1807,7 @@ async function startServer() {
 
   // General Media Upload Endpoint for all 7 Supabase Storage buckets (Permanent Supabase Primary Storage)
   app.post("/api/upload", async (req, res) => {
+    if (!isValidCsrfRequest(req)) return res.status(403).json({ error: "Invalid request origin." });
     try {
       const payload = req.body?.image || req.body?.dataUrl;
       const filename = req.body?.filename;
