@@ -4108,10 +4108,32 @@ async function startServer() {
   // Submit or update a review
   app.post("/api/reviews", async (req, res) => {
     try {
-      const { id, bookingId, attractionId, userId, userName, userEmail, rating, comment, createdAt } = req.body;
-      if (!bookingId || !attractionId || rating === undefined || comment === undefined) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const { id, bookingId, attractionId, rating, comment, createdAt } = req.body || {};
+      const signedUser = getSignedSessionUser(req);
+      if (!signedUser || typeof signedUser.email !== 'string') {
+        return res.status(401).json({ error: "Please sign in to submit a review." });
       }
+      const numericRating = Number(rating);
+      if (!bookingId || !attractionId || !Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5 ||
+          typeof comment !== 'string' || !comment.trim() || comment.length > 2000) {
+        return res.status(400).json({ error: "Provide a booking, a rating from 1 to 5, and a review under 2,000 characters." });
+      }
+
+      const booking = db.prepare(
+        "SELECT id, attraction_id, guest_email, status FROM bookings WHERE id = ? OR order_number = ? LIMIT 1"
+      ).get(String(bookingId), String(bookingId)) as any;
+      if (!booking) return res.status(404).json({ error: "Booking not found." });
+      if (String(booking.status || '').toLowerCase() !== 'completed') {
+        return res.status(409).json({ error: "Only completed bookings can be reviewed." });
+      }
+      if (String(booking.attraction_id || '') !== String(attractionId) ||
+          String(booking.guest_email || '').toLowerCase() !== signedUser.email.toLowerCase()) {
+        return res.status(403).json({ error: "This booking does not belong to the signed-in customer." });
+      }
+      const userId = String(signedUser.id || '');
+      const userName = String(signedUser.name || 'Customer');
+      const userEmail = signedUser.email;
+      const safeComment = comment.trim();
 
       console.log(`[Database] Saving review for booking ${bookingId}`);
 
@@ -4125,18 +4147,18 @@ async function startServer() {
             created_at = ?
           WHERE booking_id = ?
         `);
-        stmt.run(rating, comment, createdAt, bookingId);
+        stmt.run(numericRating, safeComment, createdAt || new Date().toISOString(), booking.id);
       } else {
         const stmt = db.prepare(`
           INSERT INTO reviews (id, booking_id, attraction_id, user_id, user_name, user_email, rating, comment, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
-        stmt.run(reviewId, bookingId, attractionId, userId || 'anonymous', userName || 'Guest', userEmail || '', rating, comment, createdAt);
+        stmt.run(reviewId, booking.id, attractionId, userId, userName, userEmail, numericRating, safeComment, createdAt || new Date().toISOString());
       }
 
       // Also update rating in the bookings table
       const bookingStmt = db.prepare('UPDATE bookings SET rating = ? WHERE id = ?');
-      bookingStmt.run(rating, bookingId);
+      bookingStmt.run(numericRating, booking.id);
 
       // Gracefully sync review to Supabase
       const supabaseSynced = await saveReviewToSupabase({
