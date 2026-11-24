@@ -1259,7 +1259,7 @@ async function startServer() {
           return false;
         }
         const role = String(session.role || '').trim().toLowerCase();
-        return session.status === 'Active' && ['admin', 'administrator', 'super admin', 'superadmin'].includes(role);
+        return session.status === 'Active' && ['admin', 'administrator', 'super admin', 'superadmin', 'super_admin'].includes(role);
       } catch {
         return false;
       }
@@ -3069,6 +3069,7 @@ async function startServer() {
 
   // Custom Domain endpoints
   app.get("/api/custom-domain", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const row = db.prepare("SELECT value FROM site_settings WHERE key = 'custom_domain'").get() as any;
       const targetHost = "ais-pre-3xmqqplj6iyf7445xaenj4-389000849295.asia-southeast1.run.app";
@@ -3103,6 +3104,7 @@ async function startServer() {
   });
 
   app.post("/api/custom-domain", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { domain, provider } = req.body;
       if (!domain || typeof domain !== 'string' || !domain.includes('.')) {
@@ -3415,6 +3417,7 @@ async function startServer() {
   }
 
   app.post("/api/custom-domain/scan-health", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const cleanDomain = validatePublicHostname(req.body?.domain);
       if (!cleanDomain) {
@@ -3432,6 +3435,7 @@ async function startServer() {
   });
 
   app.post("/api/custom-domain/verify", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const cleanDomain = validatePublicHostname(req.body?.domain || 'tiqsey.com');
       if (!cleanDomain) {
@@ -3485,6 +3489,7 @@ async function startServer() {
   });
 
   app.delete("/api/custom-domain", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       db.prepare("DELETE FROM site_settings WHERE key = 'custom_domain'").run();
       return res.json({ success: true, message: "Custom domain configuration cleared." });
@@ -3965,6 +3970,7 @@ async function startServer() {
 
   // Upsert attraction or batch of attractions
   app.post("/api/inventory/attractions", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const payload = req.body;
       const items = Array.isArray(payload) ? payload : (payload.attraction ? [payload.attraction] : (payload.attractions ? payload.attractions : [payload]));
@@ -4061,6 +4067,7 @@ async function startServer() {
 
   // Delete an attraction from database
   app.delete("/api/inventory/attractions/:id", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { id } = req.params;
       console.log(`[Database] Deleting attraction: ${id}`);
@@ -4153,6 +4160,7 @@ async function startServer() {
 
   // Supabase Live Status Endpoint (Database + Storage)
   app.get("/api/supabase/status", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const isConfigured = isSupabaseConfigured();
       const projectId = getSupabaseProjectId();
@@ -4965,6 +4973,7 @@ async function startServer() {
 
   // Get Instagram Account Settings (Masked for Security)
   app.get("/api/admin/instagram/settings", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const row = db.prepare("SELECT * FROM instagram_settings WHERE id = 'default'").get() as any;
       if (!row) {
@@ -5016,6 +5025,7 @@ async function startServer() {
 
   // Save Instagram Settings & Credentials
   app.post("/api/admin/instagram/settings", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const {
         username,
@@ -5076,6 +5086,7 @@ async function startServer() {
 
   // Test Meta Graph API Connection
   app.post("/api/admin/instagram/test-connection", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const row = db.prepare("SELECT * FROM instagram_settings WHERE id = 'default'").get() as any;
       const accountId = req.body.account_id || row?.account_id;
@@ -5136,6 +5147,7 @@ async function startServer() {
 
   // List Instagram Posts (filter by status)
   app.get("/api/admin/instagram/posts", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { status } = req.query;
       let query = "SELECT * FROM instagram_posts";
@@ -5170,6 +5182,7 @@ async function startServer() {
 
   // AI-Powered Caption & Hashtags Generator (Gemini API with fallback)
   app.post("/api/admin/instagram/generate-caption", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const {
         attraction_name,
@@ -5252,6 +5265,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
 
   // Publish Post to Instagram (Single or Carousel)
   app.post("/api/admin/instagram/publish", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const {
         id,
@@ -5440,6 +5454,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
 
   // Schedule Post for Future Publishing
   app.post("/api/admin/instagram/schedule", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const {
         id,
@@ -5497,6 +5512,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
 
   // Save Draft Post
   app.post("/api/admin/instagram/save-draft", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const {
         id,
@@ -5542,6 +5558,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
 
   // Retry Failed Publication
   app.post("/api/admin/instagram/retry/:id", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { id } = req.params;
       const post = db.prepare("SELECT * FROM instagram_posts WHERE id = ?").get(id) as any;
@@ -5587,6 +5604,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
 
   // Delete Post
   app.delete("/api/admin/instagram/posts/:id", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { id } = req.params;
       db.prepare("DELETE FROM instagram_posts WHERE id = ?").run(id);
@@ -5599,6 +5617,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
 
   // Instagram Analytics Summary
   app.get("/api/admin/instagram/analytics", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const counts = db.prepare(`
         SELECT 
