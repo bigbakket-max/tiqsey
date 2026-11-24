@@ -169,8 +169,6 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
     })
   : null;
 
-};
-
 export function getMediaCategory(mimeType?: string | null, fileName?: string | null): 'image' | 'video' | 'document' {
   const mime = (mimeType || '').toLowerCase();
   const name = (fileName || '').toLowerCase();
