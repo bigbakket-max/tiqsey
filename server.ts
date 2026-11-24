@@ -785,6 +785,16 @@ db.exec(`
   );
   CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_booking_id ON reviews(booking_id);
 
+  CREATE TABLE IF NOT EXISTS customer_users (
+    id TEXT PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash TEXT NOT NULL,
+    password_salt TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'Active',
+    created_at TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS backend_users (
     id TEXT PRIMARY KEY,
     full_name TEXT NOT NULL,
@@ -1226,40 +1236,32 @@ async function startServer() {
 
   const checkAdminAuth = (req: express.Request): boolean => {
     const signedUser = getSignedSessionUser(req);
-    if (
-      signedUser &&
-      typeof signedUser.email === 'string' &&
-      (ADMIN_EMAILS.includes(signedUser.email.toLowerCase().trim()) || signedUser.role === 'admin')
-    ) {
-      return true;
+    if (signedUser && typeof signedUser.email === 'string') {
+      const email = signedUser.email.toLowerCase().trim();
+      if (signedUser.role === 'admin' && ADMIN_EMAILS.includes(email)) return true;
     }
-    const adminEmail = (req.headers['x-admin-email'] || req.query.adminEmail || req.body?.adminEmail || '') as string;
-    const normalizedAdminEmail = adminEmail.toLowerCase().trim();
-    if (normalizedAdminEmail && ADMIN_EMAILS.includes(normalizedAdminEmail)) {
-      return true;
-    }
-    if (normalizedAdminEmail) {
-      try {
-        const dbUser = db
-          .prepare("SELECT role FROM users WHERE LOWER(email) = ? LIMIT 1")
-          .get(normalizedAdminEmail) as { role?: string } | undefined;
-        if (dbUser && String(dbUser.role || '').toLowerCase() === 'admin') {
-          return true;
-        }
-      } catch {
-        // Ignore lookup error
-      }
-    }
+
+    // The separate staff/admin panel uses opaque database-backed sessions.
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      const session = db.prepare("SELECT * FROM backend_sessions WHERE id = ?").get(token) as any;
-      if (session) {
-        if (session.expires_at && new Date() > new Date(session.expires_at)) {
-          db.prepare("DELETE FROM backend_sessions WHERE id = ?").run(token);
+      const token = authHeader.slice(7).trim();
+      if (!token) return false;
+      try {
+        const session = db.prepare(`
+          SELECT s.expires_at, u.role, u.status
+          FROM backend_sessions s
+          INNER JOIN backend_users u ON u.id = s.user_id
+          WHERE s.id = ?
+          LIMIT 1
+        `).get(token) as any;
+        if (!session || (session.expires_at && Date.now() > new Date(session.expires_at).getTime())) {
+          if (session) db.prepare("DELETE FROM backend_sessions WHERE id = ?").run(token);
           return false;
         }
-        return true;
+        const role = String(session.role || '').trim().toLowerCase();
+        return session.status === 'Active' && ['admin', 'administrator', 'super admin', 'superadmin', 'super_admin'].includes(role);
+      } catch {
+        return false;
       }
     }
     return false;
@@ -3067,6 +3069,7 @@ async function startServer() {
 
   // Custom Domain endpoints
   app.get("/api/custom-domain", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const row = db.prepare("SELECT value FROM site_settings WHERE key = 'custom_domain'").get() as any;
       const targetHost = "ais-pre-3xmqqplj6iyf7445xaenj4-389000849295.asia-southeast1.run.app";
@@ -3101,6 +3104,7 @@ async function startServer() {
   });
 
   app.post("/api/custom-domain", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { domain, provider } = req.body;
       if (!domain || typeof domain !== 'string' || !domain.includes('.')) {
@@ -3413,6 +3417,7 @@ async function startServer() {
   }
 
   app.post("/api/custom-domain/scan-health", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const cleanDomain = validatePublicHostname(req.body?.domain);
       if (!cleanDomain) {
@@ -3430,6 +3435,7 @@ async function startServer() {
   });
 
   app.post("/api/custom-domain/verify", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const cleanDomain = validatePublicHostname(req.body?.domain || 'tiqsey.com');
       if (!cleanDomain) {
@@ -3483,6 +3489,7 @@ async function startServer() {
   });
 
   app.delete("/api/custom-domain", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       db.prepare("DELETE FROM site_settings WHERE key = 'custom_domain'").run();
       return res.json({ success: true, message: "Custom domain configuration cleared." });
@@ -3520,6 +3527,7 @@ async function startServer() {
 
   // Get all bookings from backend database
   app.get("/api/bookings", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       console.log("[Database] Fetching all bookings...");
       
@@ -3636,11 +3644,12 @@ async function startServer() {
       const booking_date = booking.bookingDate || "";
       const tickets_count = booking.ticketsCount || booking.travelers || 1;
       const total_price = booking.totalPrice || booking.collectedAmount || 0;
-      const status = booking.status || "confirmed";
+      const status = checkAdminAuth(req) ? (booking.status || "confirmed") : "Confirmation Pending";
       const child_count = booking.childCount || booking.children || 0;
       
-      const guest_name = booking.guestInfo?.name || booking.customerName || "";
-      const guest_email = booking.guestInfo?.email || booking.customerEmail || "";
+      const authenticatedUser = getSignedSessionUser(req);
+      const guest_name = booking.guestInfo?.name || booking.customerName || authenticatedUser?.name || "";
+      const guest_email = booking.guestInfo?.email || booking.customerEmail || authenticatedUser?.email || "";
       const guest_phone = booking.guestInfo?.phone || booking.customerPhone || "";
       const passengers_json = JSON.stringify(booking.passengers || booking.guestInfo?.passengers || []);
       
@@ -3659,6 +3668,16 @@ async function startServer() {
       const existing = (rawOrderNum
         ? db.prepare('SELECT id FROM bookings WHERE id = ? OR order_number = ?').get(id, order_number)
         : db.prepare('SELECT id FROM bookings WHERE id = ?').get(id)) as { id: string } | undefined;
+
+      if (existing && !String(existing.id).startsWith('temp-') && !checkAdminAuth(req)) {
+        return res.status(409).json({ error: "This booking already exists and cannot be overwritten." });
+      }
+      if ((!existing || String(existing.id).startsWith('temp-')) &&
+          (!guest_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(guest_email)) ||
+          !Number.isInteger(Number(tickets_count)) || Number(tickets_count) < 1 ||
+          !Number.isFinite(Number(total_price)) || Number(total_price) < 0)) {
+        return res.status(400).json({ error: "Booking details are incomplete or invalid." });
+      }
 
       if (existing) {
         const stmt = db.prepare(`
@@ -3802,6 +3821,7 @@ async function startServer() {
 
   // Patch/update specific booking fields (status, date, timeslot, etc.)
   app.patch("/api/bookings/:id", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { id } = req.params;
       const updates = req.body || {};
@@ -3897,6 +3917,7 @@ async function startServer() {
 
   // Delete a booking from backend database
   app.delete("/api/bookings/:id", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { id } = req.params;
       console.log(`[Database] Deleting booking: ${id}`);
@@ -3949,6 +3970,7 @@ async function startServer() {
 
   // Upsert attraction or batch of attractions
   app.post("/api/inventory/attractions", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const payload = req.body;
       const items = Array.isArray(payload) ? payload : (payload.attraction ? [payload.attraction] : (payload.attractions ? payload.attractions : [payload]));
@@ -4045,6 +4067,7 @@ async function startServer() {
 
   // Delete an attraction from database
   app.delete("/api/inventory/attractions/:id", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { id } = req.params;
       console.log(`[Database] Deleting attraction: ${id}`);
@@ -4061,7 +4084,7 @@ async function startServer() {
     try {
       const { attractionId } = req.params;
       console.log(`[Database] Fetching reviews for attraction: ${attractionId}`);
-      const rows = db.prepare('SELECT * FROM reviews WHERE attraction_id = ? ORDER BY created_at DESC').all(attractionId) as any[];
+      const rows = db.prepare('SELECT id, attraction_id, user_name, rating, comment, created_at FROM reviews WHERE attraction_id = ? ORDER BY created_at DESC').all(attractionId) as any[];
       res.json({ success: true, reviews: rows });
     } catch (err: any) {
       console.error("[Database Error] Failed to fetch reviews:", err);
@@ -4073,8 +4096,13 @@ async function startServer() {
   app.get("/api/reviews/booking/:bookingId", (req, res) => {
     try {
       const { bookingId } = req.params;
-      console.log(`[Database] Fetching review for booking: ${bookingId}`);
-      const row = db.prepare('SELECT * FROM reviews WHERE booking_id = ?').get(bookingId);
+      const signedUser = getSignedSessionUser(req);
+      if (!signedUser) return res.status(401).json({ error: "Sign in to view your booking review." });
+      const booking = db.prepare("SELECT id, guest_email FROM bookings WHERE id = ? OR order_number = ? LIMIT 1").get(bookingId, bookingId) as any;
+      if (!booking) return res.status(404).json({ error: "Booking not found." });
+      const isOwner = String(booking.guest_email || '').toLowerCase() === String(signedUser.email || '').toLowerCase();
+      if (!isOwner && !checkAdminAuth(req)) return res.status(403).json({ error: "Access denied." });
+      const row = db.prepare('SELECT id, attraction_id, user_name, rating, comment, created_at FROM reviews WHERE booking_id = ?').get(booking.id);
       res.json({ success: true, review: row || null });
     } catch (err: any) {
       console.error("[Database Error] Failed to fetch booking review:", err);
@@ -4085,10 +4113,32 @@ async function startServer() {
   // Submit or update a review
   app.post("/api/reviews", async (req, res) => {
     try {
-      const { id, bookingId, attractionId, userId, userName, userEmail, rating, comment, createdAt } = req.body;
-      if (!bookingId || !attractionId || rating === undefined || comment === undefined) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const { id, bookingId, attractionId, rating, comment, createdAt } = req.body || {};
+      const signedUser = getSignedSessionUser(req);
+      if (!signedUser || typeof signedUser.email !== 'string') {
+        return res.status(401).json({ error: "Please sign in to submit a review." });
       }
+      const numericRating = Number(rating);
+      if (!bookingId || !attractionId || !Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5 ||
+          typeof comment !== 'string' || !comment.trim() || comment.length > 2000) {
+        return res.status(400).json({ error: "Provide a booking, a rating from 1 to 5, and a review under 2,000 characters." });
+      }
+
+      const booking = db.prepare(
+        "SELECT id, attraction_id, guest_email, status FROM bookings WHERE id = ? OR order_number = ? LIMIT 1"
+      ).get(String(bookingId), String(bookingId)) as any;
+      if (!booking) return res.status(404).json({ error: "Booking not found." });
+      if (String(booking.status || '').toLowerCase() !== 'completed') {
+        return res.status(409).json({ error: "Only completed bookings can be reviewed." });
+      }
+      if (String(booking.attraction_id || '') !== String(attractionId) ||
+          String(booking.guest_email || '').toLowerCase() !== signedUser.email.toLowerCase()) {
+        return res.status(403).json({ error: "This booking does not belong to the signed-in customer." });
+      }
+      const userId = String(signedUser.id || '');
+      const userName = String(signedUser.name || 'Customer');
+      const userEmail = signedUser.email;
+      const safeComment = comment.trim();
 
       console.log(`[Database] Saving review for booking ${bookingId}`);
 
@@ -4102,25 +4152,25 @@ async function startServer() {
             created_at = ?
           WHERE booking_id = ?
         `);
-        stmt.run(rating, comment, createdAt, bookingId);
+        stmt.run(numericRating, safeComment, createdAt || new Date().toISOString(), booking.id);
       } else {
         const stmt = db.prepare(`
           INSERT INTO reviews (id, booking_id, attraction_id, user_id, user_name, user_email, rating, comment, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
-        stmt.run(reviewId, bookingId, attractionId, userId || 'anonymous', userName || 'Guest', userEmail || '', rating, comment, createdAt);
+        stmt.run(reviewId, booking.id, attractionId, userId, userName, userEmail, numericRating, safeComment, createdAt || new Date().toISOString());
       }
 
       // Also update rating in the bookings table
       const bookingStmt = db.prepare('UPDATE bookings SET rating = ? WHERE id = ?');
-      bookingStmt.run(rating, bookingId);
+      bookingStmt.run(numericRating, booking.id);
 
       // Gracefully sync review to Supabase
       const supabaseSynced = await saveReviewToSupabase({
         id: reviewId,
-        bookingId,
+        bookingId: booking.id,
         attractionId,
-        userId: userId || 'anonymous',
+        userId,
         userName: userName || 'Guest',
         userEmail: userEmail || '',
         rating,
@@ -4137,6 +4187,7 @@ async function startServer() {
 
   // Supabase Live Status Endpoint (Database + Storage)
   app.get("/api/supabase/status", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const isConfigured = isSupabaseConfigured();
       const projectId = getSupabaseProjectId();
@@ -4228,25 +4279,43 @@ async function startServer() {
     }
   });
 
+  // Shared in-memory throttle for customer and administrator sign-in endpoints.
+  const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
+
   app.post("/api/auth/login", (req, res) => {
     const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
-    if (!rawEmail || !password) {
+    if (!rawEmail || !password || rawEmail.length > 254 || password.length > 1024) {
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
     const normalizedEmail = rawEmail.toLowerCase();
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const attemptKey = `${normalizedEmail}:${ip}`;
+    const previousAttempt = loginAttempts.get(attemptKey);
+    if (previousAttempt && Date.now() - previousAttempt.lastAttempt < 15 * 60 * 1000 && previousAttempt.count >= 5) {
+      return res.status(429).json({ error: "Too many sign-in attempts. Please try again in 15 minutes." });
+    }
+    if (previousAttempt && Date.now() - previousAttempt.lastAttempt >= 15 * 60 * 1000) {
+      loginAttempts.delete(attemptKey);
+    }
+    const recordFailedAttempt = () => {
+      const current = loginAttempts.get(attemptKey) || { count: 0, lastAttempt: Date.now() };
+      current.count += 1;
+      current.lastAttempt = Date.now();
+      loginAttempts.set(attemptKey, current);
+    };
     const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
-    const configuredAdminPass = (process.env.ADMIN_PASSWORD || '').trim();
+    let sessionUser: Record<string, any> | null = null;
 
     if (isAdmin) {
+      const configuredAdminPass = (process.env.ADMIN_PASSWORD || '').trim();
       let verified = false;
       if (configuredAdminPass) {
         const a = Buffer.from(password, 'utf8');
         const b = Buffer.from(configuredAdminPass, 'utf8');
         verified = a.length === b.length && crypto.timingSafeEqual(a, b);
       } else {
-        // Fallback: verify against salted PBKDF2 hash in backend_users when ADMIN_PASSWORD env is unset
         try {
           const beUser = db
             .prepare("SELECT password_hash, password_salt, status FROM backend_users WHERE lower(email) = ?")
@@ -4261,33 +4330,46 @@ async function startServer() {
           verified = false;
         }
       }
-
       if (!verified) {
+        recordFailedAttempt();
         return res.status(401).json({ error: "Incorrect administrator password." });
       }
+
+      sessionUser = {
+        id: normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
+        name: normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
+        email: normalizedEmail,
+        role: 'admin',
+        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
+      };
+    } else {
+      const customer = db.prepare(
+        "SELECT id, full_name, email, password_hash, password_salt, status FROM customer_users WHERE lower(email) = ?"
+      ).get(normalizedEmail) as any;
+      if (!customer || customer.status !== 'Active') {
+        recordFailedAttempt();
+        return res.status(401).json({ error: "Invalid email or password." });
+      }
+      const calculated = crypto.pbkdf2Sync(password, customer.password_salt, 120000, 64, 'sha512').toString('hex');
+      const supplied = Buffer.from(calculated, 'utf8');
+      const stored = Buffer.from(String(customer.password_hash), 'utf8');
+      if (supplied.length !== stored.length || !crypto.timingSafeEqual(supplied, stored)) {
+        recordFailedAttempt();
+        return res.status(401).json({ error: "Invalid email or password." });
+      }
+      sessionUser = {
+        id: customer.id,
+        name: customer.full_name,
+        email: customer.email,
+        role: 'user',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+      };
     }
 
-    const sessionUser = {
-      id: isAdmin
-        ? (normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456')
-        : `user-${crypto.createHash('sha256').update(normalizedEmail).digest('hex').slice(0, 12)}`,
-      name: isAdmin
-        ? (normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin')
-        : normalizedEmail.split('@')[0],
-      email: normalizedEmail,
-      role: isAdmin ? 'admin' : 'user',
-      avatarUrl: isAdmin
-        ? (normalizedEmail === 'bigbakket@gmail.com'
-            ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'
-            : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200')
-        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-      exp: Date.now() + SESSION_TTL_MS,
-    };
-
-    const signedCookie = signSessionCookiePayload(sessionUser);
+    loginAttempts.delete(attemptKey);
+    const signedCookie = signSessionCookiePayload({ ...sessionUser, exp: Date.now() + SESSION_TTL_MS });
     res.setHeader('Set-Cookie', buildSessionCookieHeader(req, signedCookie, Math.floor(SESSION_TTL_MS / 1000)));
-    const { exp: _exp, ...publicUser } = sessionUser;
-    return res.json({ success: true, user: publicUser });
+    return res.json({ success: true, user: sessionUser });
   });
 
   app.get("/api/auth/session", (req, res) => {
@@ -4308,16 +4390,48 @@ async function startServer() {
   });
 
   app.post("/api/auth/register", (req, res) => {
-    const { name, email, password } = req.body;
-    if (name && email && password) {
-      res.json({ success: true });
-    } else {
-      res.status(400).json({ error: "All fields are required" });
+    const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    if (name.length < 2 || name.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return res.status(400).json({ error: "Please provide a valid name and email address." });
+    }
+    if (password.length < 10 || password.length > 1024) {
+      return res.status(400).json({ error: "Password must contain at least 10 characters." });
+    }
+    if (ADMIN_EMAILS.includes(email)) {
+      return res.status(403).json({ error: "Administrator accounts must be provisioned by an administrator." });
+    }
+
+    try {
+      const existing = db.prepare("SELECT id FROM customer_users WHERE lower(email) = ?").get(email);
+      if (existing) return res.status(409).json({ error: "An account with this email already exists." });
+
+      const id = `customer-${crypto.randomUUID()}`;
+      const salt = crypto.randomBytes(32).toString('hex');
+      const passwordHash = crypto.pbkdf2Sync(password, salt, 120000, 64, 'sha512').toString('hex');
+      db.prepare(
+        "INSERT INTO customer_users (id, full_name, email, password_hash, password_salt, status, created_at) VALUES (?, ?, ?, ?, ?, 'Active', ?)"
+      ).run(id, name, email, passwordHash, salt, new Date().toISOString());
+
+      const sessionUser = {
+        id,
+        name,
+        email,
+        role: 'user',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+      };
+      const signedCookie = signSessionCookiePayload({ ...sessionUser, exp: Date.now() + SESSION_TTL_MS });
+      res.setHeader('Set-Cookie', buildSessionCookieHeader(req, signedCookie, Math.floor(SESSION_TTL_MS / 1000)));
+      return res.status(201).json({ success: true, user: sessionUser });
+    } catch (err: any) {
+      if (String(err?.code || '').includes('CONSTRAINT')) {
+        return res.status(409).json({ error: "An account with this email already exists." });
+      }
+      console.error('[Auth] Registration failed:', err?.message || err);
+      return res.status(500).json({ error: "Unable to create account right now." });
     }
   });
-
-  // Login Rate Limiter In-Memory Store
-  const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
 
   // Token session validator helper
   function getBackendUserByToken(token: string) {
@@ -4886,6 +5000,7 @@ async function startServer() {
 
   // Get Instagram Account Settings (Masked for Security)
   app.get("/api/admin/instagram/settings", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const row = db.prepare("SELECT * FROM instagram_settings WHERE id = 'default'").get() as any;
       if (!row) {
@@ -4937,6 +5052,7 @@ async function startServer() {
 
   // Save Instagram Settings & Credentials
   app.post("/api/admin/instagram/settings", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const {
         username,
@@ -4997,6 +5113,7 @@ async function startServer() {
 
   // Test Meta Graph API Connection
   app.post("/api/admin/instagram/test-connection", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const row = db.prepare("SELECT * FROM instagram_settings WHERE id = 'default'").get() as any;
       const accountId = req.body.account_id || row?.account_id;
@@ -5057,6 +5174,7 @@ async function startServer() {
 
   // List Instagram Posts (filter by status)
   app.get("/api/admin/instagram/posts", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { status } = req.query;
       let query = "SELECT * FROM instagram_posts";
@@ -5091,6 +5209,7 @@ async function startServer() {
 
   // AI-Powered Caption & Hashtags Generator (Gemini API with fallback)
   app.post("/api/admin/instagram/generate-caption", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const {
         attraction_name,
@@ -5173,6 +5292,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
 
   // Publish Post to Instagram (Single or Carousel)
   app.post("/api/admin/instagram/publish", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const {
         id,
@@ -5361,6 +5481,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
 
   // Schedule Post for Future Publishing
   app.post("/api/admin/instagram/schedule", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const {
         id,
@@ -5418,6 +5539,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
 
   // Save Draft Post
   app.post("/api/admin/instagram/save-draft", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const {
         id,
@@ -5463,6 +5585,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
 
   // Retry Failed Publication
   app.post("/api/admin/instagram/retry/:id", async (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { id } = req.params;
       const post = db.prepare("SELECT * FROM instagram_posts WHERE id = ?").get(id) as any;
@@ -5508,6 +5631,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
 
   // Delete Post
   app.delete("/api/admin/instagram/posts/:id", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const { id } = req.params;
       db.prepare("DELETE FROM instagram_posts WHERE id = ?").run(id);
@@ -5520,6 +5644,7 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
 
   // Instagram Analytics Summary
   app.get("/api/admin/instagram/analytics", (req, res) => {
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
     try {
       const counts = db.prepare(`
         SELECT 
@@ -5577,7 +5702,8 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
   });
 
   app.post("/api/gemini/generate", async (req, res) => {
-    const { action, prompt, tone, length, currentContent } = req.body;
+    if (!checkAdminAuth(req)) return res.status(403).json({ error: "Administrator access required." });
+    const { action, prompt, tone, length, currentContent } = req.body || {};
     
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
