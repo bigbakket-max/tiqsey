@@ -178,67 +178,14 @@ export function getMediaCategory(mimeType?: string | null, fileName?: string | n
 }
 
 export async function uploadDataUrlToSupabaseStorage(
-  dataUrl: string,
-  filename = 'media',
-  folder?: string,
-  bucket?: SupabaseBucketId
+  _dataUrl: string,
+  _filename = 'media',
+  _folder?: string,
+  _bucket?: SupabaseBucketId
 ): Promise<string | null> {
-  if (!isSupabaseConfigured || !supabase) return null;
-  const match = dataUrl.match(/^data:((?:image|video|application)\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
-  if (!match) return null;
-
-  let mime = match[1].toLowerCase();
-  if (mime === 'image/jpg') mime = 'image/jpeg';
-  const base64 = match[2];
-  const ext = MIME_TO_EXT[mime] || 'jpg';
-
-  const bucketConfig = getBucketConfig(bucket);
-  let targetBucket: SupabaseBucketId = bucketConfig.id;
-
-  // Route to a compatible bucket if the MIME type is unsupported in the requested bucket
-  if (!bucketConfig.allowedMimeTypes.includes(mime)) {
-    const compatible = SUPABASE_STORAGE_BUCKET_LIST.find((b) => b.allowedMimeTypes.includes(mime));
-    if (!compatible) return null;
-    targetBucket = compatible.id;
-  }
-
-  try {
-    const binaryString = atob(base64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    const activeConfig = SUPABASE_STORAGE_BUCKETS[targetBucket];
-    if (bytes.length > activeConfig.maxSizeBytes) {
-      console.warn(`[Supabase Storage Client Upload Warning]: File exceeds ${activeConfig.maxSizeLabel} limit for bucket "${targetBucket}"`);
-      return null;
-    }
-
-    const blob = new Blob([bytes], { type: mime });
-    const safeBase = filename.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30) || 'media';
-    const cleanFolder = (folder || activeConfig.defaultFolder).replace(/^\/+|\/+$/g, '') || 'uploads';
-    const objectPath = `${cleanFolder}/${safeBase}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
-
-    const { error } = await supabase.storage
-      .from(targetBucket)
-      .upload(objectPath, blob, {
-        contentType: mime,
-        cacheControl: '3600',
-        upsert: true,
-      });
-
-    if (error) {
-      console.warn(`[Supabase Storage Client Upload Warning] (${targetBucket}):`, error.message);
-      return null;
-    }
-
-    const { data } = supabase.storage.from(targetBucket).getPublicUrl(objectPath);
-    return data?.publicUrl || null;
-  } catch (err: any) {
-    console.warn('[Supabase Storage Client Upload Error]:', err?.message || err);
-    return null;
-  }
+  // Browser-side writes using the public anon key are intentionally disabled.
+  // Use the authenticated Tiqsey Node API (/api/upload) instead.
+  return null;
 }
 
 export interface DirectStoredFileItem {
