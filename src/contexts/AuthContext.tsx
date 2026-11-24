@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Booking } from '../types';
-import { TRAVEL_AVATARS } from '../utils/avatars';
 
 interface AuthContextType {
   user: User | null;
@@ -44,8 +43,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Default demo credentials
-const SESSION_STORAGE_KEY = 'tiqsey_current_session';
-
 export const deriveNameFromEmail = (emailStr: string): string => {
   if (!emailStr) return '';
   const parts = emailStr.split('@')[0];
@@ -101,16 +98,9 @@ const sanitizeSessionUser = (raw: any): User | null => {
   } as User;
 };
 
-const readStoredSession = (): User | null => null;
-
-// Authentication is held by the server's signed HttpOnly cookie.
-// Never persist a client-editable user or role as an authentication credential.
-const persistStoredSession = (_sessionUser: User | null): void => {};
-
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => readStoredSession());
-  const [isAuthReady, setIsAuthReady] = useState<boolean>(() => readStoredSession() !== null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
 
@@ -208,7 +198,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    persistStoredSession(null);
     setUser(null);
     setBookings([]);
     fetch('/api/auth/logout', {
