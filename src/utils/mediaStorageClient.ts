@@ -693,7 +693,6 @@ export async function deleteMediaFiles(
   // File deletion requires the authenticated server-side Storage client.
   return { ok: false, error: 'Secure file deletion requires the authenticated Tiqsey backend.' };
 
-  return direct;
 }
 
 async function readResponseBlobWithProgress(
