@@ -131,6 +131,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Restore authentication only from the signed server-side HttpOnly session cookie.
   useEffect(() => {
     let active = true;
+    // Remove the legacy browser-side mock user store, which may contain plaintext demo credentials.
+    safeStorageRemove(window.localStorage, 'tiqsey_users');
     fetch('/api/auth/session', { credentials: 'include' })
       .then(async (response) => {
         if (!response.ok) return null;
@@ -216,69 +218,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }).catch(() => {});
   };
 
-  const updateProfile = async (name: string, email: string, bio?: string, avatarUrl?: string): Promise<User> => {
-    return new Promise((resolve, reject) => {
-      if (!user) {
-        reject(new Error('No authenticated user'));
-        return;
-      }
-      setTimeout(() => {
-        const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
-        let users: any[] = [];
-        try {
-          const parsedUsers = JSON.parse(usersRaw);
-          users = Array.isArray(parsedUsers) ? parsedUsers : [];
-        } catch {
-          users = [];
-        }
-        
-        let matchedIdx = users.findIndex((u: any) => u.id === user.id);
-        if (matchedIdx === -1) {
-          // Fallback: search by email
-          matchedIdx = users.findIndex((u: any) => u.email.toLowerCase() === user.email.toLowerCase());
-        }
-        
-        if (matchedIdx !== -1) {
-          // Keep the original name and email to avoid profile modifications
-          const originalUser = users[matchedIdx];
-          const updatedUserDb = {
-            ...originalUser,
-            // Guaranteed locked properties
-            name: originalUser.name || deriveNameFromEmail(originalUser.email),
-            email: originalUser.email,
-            bio: bio !== undefined ? bio : originalUser.bio,
-            avatarUrl: avatarUrl || originalUser.avatarUrl
-          };
-          
-          users[matchedIdx] = updatedUserDb;
-          safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
-          
-          const { password: _, ...userSession } = updatedUserDb;
-          persistStoredSession(userSession);
-          setUser(userSession);
-          resolve(userSession);
-        } else {
-          // If the user isn't in local mock DB, create it dynamically to avoid throwing an error
-          const newUserDb = {
-            id: user.id || `user-${Date.now()}`,
-            name: user.name || deriveNameFromEmail(user.email),
-            email: user.email,
-            password: 'password123',
-            bio: bio || user.bio || 'New explorer on Tiqsey!',
-            avatarUrl: avatarUrl || user.avatarUrl || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200`,
-            createdAt: user.createdAt || new Date().toLocaleDateString(),
-          };
-          
-          users.push(newUserDb);
-          safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
-          
-          const { password: _, ...userSession } = newUserDb;
-          persistStoredSession(userSession);
-          setUser(userSession);
-          resolve(userSession);
-        }
-      }, 500);
-    });
+  const updateProfile = async (_name: string, _email: string, bio?: string, avatarUrl?: string): Promise<User> => {
+    if (!user) throw new Error('No authenticated user');
+    const updatedUser: User = {
+      ...user,
+      bio: bio !== undefined ? bio : user.bio,
+      avatarUrl: avatarUrl || user.avatarUrl,
+    };
+    setUser(updatedUser);
+    return updatedUser;
   };
 
 
