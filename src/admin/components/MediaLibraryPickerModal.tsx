@@ -290,7 +290,7 @@ export const MediaLibraryPickerModal: React.FC<MediaLibraryPickerModalProps> = (
                           {uploadPercent}%
                         </span>
                       </div>
-                      <AnimatedProgressBar value={uploadPercent} status="uploading" height="sm" />
+                      <AnimatedProgressBar progress={uploadPercent} state="active" heightClass="h-2" />
                     </div>
                   </motion.div>
                 )}
