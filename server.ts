@@ -1141,7 +1141,7 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: '70mb' }));
 
   // Admin Authorization & Signed Session Cookie helpers
-  const ADMIN_EMAILS = ['admin@tiqsey.com', 'bigbakket@gmail.com'];
+  const ADMIN_EMAILS = ['admin@tiqsey.com', 'superadmin@tiqsey.com', 'bigbakket@gmail.com'];
   const SESSION_COOKIE_NAME = 'tiqsey_session';
   const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
   const SESSION_SIGNING_SECRET =
@@ -1234,8 +1234,21 @@ async function startServer() {
       return true;
     }
     const adminEmail = (req.headers['x-admin-email'] || req.query.adminEmail || req.body?.adminEmail || '') as string;
-    if (adminEmail && ADMIN_EMAILS.includes(adminEmail.toLowerCase().trim())) {
+    const normalizedAdminEmail = adminEmail.toLowerCase().trim();
+    if (normalizedAdminEmail && ADMIN_EMAILS.includes(normalizedAdminEmail)) {
       return true;
+    }
+    if (normalizedAdminEmail) {
+      try {
+        const dbUser = db
+          .prepare("SELECT role FROM users WHERE LOWER(email) = ? LIMIT 1")
+          .get(normalizedAdminEmail) as { role?: string } | undefined;
+        if (dbUser && String(dbUser.role || '').toLowerCase() === 'admin') {
+          return true;
+        }
+      } catch {
+        // Ignore lookup error
+      }
     }
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -2565,8 +2578,8 @@ async function startServer() {
     }
   });
 
-  // Admin Storage API: Delete folder inside a bucket
-  app.delete("/api/admin/storage/folders", async (req, res) => {
+  // Admin Storage API: Delete folder inside a bucket (supports both DELETE and POST for proxy compatibility)
+  const handleDeleteStorageFolder = async (req: express.Request, res: express.Response) => {
     if (!checkAdminAuth(req)) {
       return res.status(403).json({ error: "Access denied." });
     }
@@ -2627,7 +2640,9 @@ async function startServer() {
     } catch (err: any) {
       return res.status(500).json({ error: err.message || "Failed to delete folder" });
     }
-  });
+  };
+  app.delete("/api/admin/storage/folders", handleDeleteStorageFolder);
+  app.post("/api/admin/storage/folders/delete", handleDeleteStorageFolder);
 
   // Admin Storage API: Scan linked usage references for a file
   app.post("/api/admin/storage/usage", (req, res) => {
@@ -2847,7 +2862,8 @@ async function startServer() {
   });
 
   // Admin Storage API: Delete file(s) from a specific bucket + media_assets catalog
-  app.delete("/api/admin/storage/buckets/:bucket/files", async (req, res) => {
+  // Supports both DELETE and POST so reverse proxies never strip the JSON request body
+  const handleDeleteBucketFiles = async (req: express.Request, res: express.Response) => {
     if (!checkAdminAuth(req)) {
       return res.status(403).json({ error: "Access denied." });
     }
@@ -2879,7 +2895,9 @@ async function startServer() {
       console.error(`[Admin Storage API] Delete error (${bucket}):`, err);
       return res.status(500).json({ error: err.message || "Failed to delete file(s)" });
     }
-  });
+  };
+  app.delete("/api/admin/storage/buckets/:bucket/files", handleDeleteBucketFiles);
+  app.post("/api/admin/storage/buckets/:bucket/delete", handleDeleteBucketFiles);
 
   // Admin Storage API: Sync/verify all 7 Supabase Storage bucket definitions (non-destructive)
   app.post("/api/admin/storage/sync-buckets", async (req, res) => {

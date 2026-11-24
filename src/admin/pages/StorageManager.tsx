@@ -76,6 +76,7 @@ interface UploadQueueItem {
   progress: number;
   stage: 'queued' | 'hashing' | 'uploading' | 'verifying' | 'done' | 'error' | 'reused';
   error?: string;
+  asset?: MediaAssetItem;
   replaceOldPath?: string;
   replaceOldUrl?: string;
 }
@@ -117,19 +118,30 @@ create table if not exists public.media_assets (
   unique(bucket, path)
 );
 
--- 2. Storage RLS Policies: public read for website delivery, authenticated admin writes
+-- 2. Storage RLS Policies for all 7 Tiqsey buckets (Read, Upload, Update & Delete)
 drop policy if exists "Tiqsey storage public read" on storage.objects;
+drop policy if exists "Tiqsey storage upload" on storage.objects;
+drop policy if exists "Tiqsey storage update" on storage.objects;
+drop policy if exists "Tiqsey storage delete" on storage.objects;
+drop policy if exists "Tiqsey storage authenticated write" on storage.objects;
+
 create policy "Tiqsey storage public read" on storage.objects
   for select to anon, authenticated
   using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
 
--- Server-side Node API uses SUPABASE_SERVICE_ROLE_KEY safely behind Tiqsey Admin Auth.
--- Only enable direct authenticated writes if deploying without the Node backend:
-drop policy if exists "Tiqsey storage authenticated write" on storage.objects;
-create policy "Tiqsey storage authenticated write" on storage.objects
-  for all to authenticated
-  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'))
-  with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));`;
+-- If running with the Tiqsey Node backend, privileged writes use SUPABASE_SERVICE_ROLE_KEY behind Admin Auth.
+-- If hosting statically (direct browser -> Supabase), run the policies below so upload, replace, and delete work live:
+create policy "Tiqsey storage upload" on storage.objects
+  for insert to anon, authenticated
+  with check (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
+
+create policy "Tiqsey storage update" on storage.objects
+  for update to anon, authenticated
+  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));
+
+create policy "Tiqsey storage delete" on storage.objects
+  for delete to anon, authenticated
+  using (bucket_id in ('media','admin-media','blog','attractions','avatars','cities','attraction-photos'));`;
 
 function formatDateShort(iso?: string | null): string {
   if (!iso) return '—';
@@ -460,7 +472,34 @@ export default function StorageManager() {
         }
       }
 
-      updateItem({ progress: 100, stage: 'done', error: undefined });
+      updateItem({ progress: 100, stage: 'done', asset: result.asset, error: undefined });
+
+      // Optimistically insert the verified Supabase asset into library immediately so it appears without delay
+      setLibrary((prev) => {
+        if (!prev) return prev;
+        const withoutOld = prev.files.filter(
+          (f) => f.path !== result.asset.path && (!item.replaceOldPath || f.path !== item.replaceOldPath)
+        );
+        const nextFiles = [result.asset, ...withoutOld];
+        return {
+          ...prev,
+          files: nextFiles,
+          summary: {
+            ...prev.summary,
+            totalFiles: nextFiles.length,
+            totalImages: nextFiles.filter((f) => f.mediaType === 'image').length,
+            totalVideos: nextFiles.filter((f) => f.mediaType === 'video').length,
+            totalDocuments: nextFiles.filter((f) => f.mediaType === 'document').length,
+            totalBytes: nextFiles.reduce((s, f) => s + (Number(f.size) || 0), 0),
+          },
+        };
+      });
+
+      // Auto-dismiss completed Upload Activity item after 3.5s so the panel stays clean
+      setTimeout(() => {
+        setUploadQueue((prev) => prev.filter((q) => q.id !== item.id || q.stage !== 'done'));
+      }, 3500);
+
       return result.asset;
     } catch (err: any) {
       updateItem({
@@ -477,6 +516,7 @@ export default function StorageManager() {
 
     let uploadedCount = 0;
     let reusedCount = 0;
+    const uploadedAssets: MediaAssetItem[] = [];
 
     for (const file of incoming) {
       const target = resolveUploadTarget(file);
@@ -493,12 +533,25 @@ export default function StorageManager() {
       setUploadQueue((prev) => [queueItem, ...prev.slice(0, 14)]);
 
       const sha256Hash = await computeFileSha256(file);
-      const dupCheck = await checkDuplicateMedia(adminEmail, {
+      let dupCheck = await checkDuplicateMedia(adminEmail, {
         bucket: target.bucket,
         filename: file.name,
         sha256Hash,
         folder: target.folder,
       });
+
+      // Also check loaded files in memory when running on static hosting without SQLite backend
+      if (!dupCheck.isDuplicate && allFiles.length > 0) {
+        const cleanBase = file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 35).toLowerCase();
+        const memMatch = allFiles.find(
+          (f) =>
+            f.bucket === target.bucket &&
+            (f.size === file.size && f.name.toLowerCase().startsWith(cleanBase.slice(0, 18)))
+        );
+        if (memMatch) {
+          dupCheck = { isDuplicate: true, matchType: 'name', existing: memMatch };
+        }
+      }
 
       let finalItem = queueItem;
       if (dupCheck.isDuplicate && dupCheck.existing && dupCheck.matchType) {
@@ -519,8 +572,13 @@ export default function StorageManager() {
         if (choice === 'reuse') {
           reusedCount += 1;
           setUploadQueue((prev) =>
-            prev.map((q) => (q.id === itemId ? { ...q, progress: 100, stage: 'reused' } : q))
+            prev.map((q) =>
+              q.id === itemId ? { ...q, progress: 100, stage: 'reused', asset: dupCheck.existing || undefined } : q
+            )
           );
+          setTimeout(() => {
+            setUploadQueue((prev) => prev.filter((q) => q.id !== itemId || q.stage !== 'reused'));
+          }, 3500);
           await copyText(dupCheck.existing.publicUrl, `reuse-${dupCheck.existing.id}`, 'Existing file URL');
           continue;
         }
@@ -537,10 +595,31 @@ export default function StorageManager() {
       }
 
       const uploaded = await executeUploadQueueItem(finalItem, sha256Hash);
-      if (uploaded) uploadedCount += 1;
+      if (uploaded) {
+        uploadedCount += 1;
+        uploadedAssets.push(uploaded);
+      }
     }
 
     if (uploadedCount > 0) {
+      // Ensure newly uploaded media is never hidden behind a mismatched filter (e.g. uploading an image while "Docs" tab is active)
+      const firstUploaded = uploadedAssets[0];
+      if (firstUploaded) {
+        if (mediaTypeFilter !== 'all' && uploadedAssets.some((a) => a.mediaType !== mediaTypeFilter)) {
+          setMediaTypeFilter('all');
+        }
+        if (mimeFilter !== 'all' && uploadedAssets.some((a) => a.mimeType !== mimeFilter)) {
+          setMimeFilter('all');
+        }
+        if (searchQuery.trim()) {
+          setSearchQuery('');
+        }
+        if (selectedBucket !== 'all' && firstUploaded.bucket !== selectedBucket) {
+          setSelectedBucket(firstUploaded.bucket as SupabaseBucketId);
+          setCurrentFolder('');
+        }
+      }
+
       showToast(
         'success',
         `Uploaded and verified ${uploadedCount} file${uploadedCount === 1 ? '' : 's'} in Supabase Storage.`
@@ -636,11 +715,33 @@ export default function StorageManager() {
         const result = await deleteMediaFiles(adminEmail, target.bucket as SupabaseBucketId, [target.path]);
         if (!result.ok) {
           showToast('error', result.error || 'Failed to delete file.');
-          setDeleteConfirm((prev) => (prev ? { ...prev, deleting: false } : null));
+          if (result.rlsBlocked || /row-level security|policy/i.test(result.error || '')) {
+            setDeleteConfirm(null);
+            setShowSqlDrawer(true);
+          } else {
+            setDeleteConfirm((prev) => (prev ? { ...prev, deleting: false } : null));
+          }
           return;
         }
         if (inspectedFile?.id === target.id) setInspectedFile(null);
-        showToast('success', `Deleted "${target.name}" from Supabase Storage.`);
+        // Immediately remove from live state before background refresh
+        setLibrary((prev) => {
+          if (!prev) return prev;
+          const nextFiles = prev.files.filter((f) => !(f.bucket === target.bucket && f.path === target.path));
+          return {
+            ...prev,
+            files: nextFiles,
+            summary: {
+              ...prev.summary,
+              totalFiles: nextFiles.length,
+              totalImages: nextFiles.filter((f) => f.mediaType === 'image').length,
+              totalVideos: nextFiles.filter((f) => f.mediaType === 'video').length,
+              totalDocuments: nextFiles.filter((f) => f.mediaType === 'document').length,
+              totalBytes: nextFiles.reduce((s, f) => s + (Number(f.size) || 0), 0),
+            },
+          };
+        });
+        showToast('success', `Deleted "${target.name}" permanently from Supabase Storage.`);
         setDeleteConfirm(null);
         await loadLibrary(true);
       } else if (deleteConfirm.kind === 'folder' && deleteConfirm.folder) {
@@ -653,11 +754,16 @@ export default function StorageManager() {
         );
         if (!result.ok) {
           showToast('error', result.error || 'Failed to delete folder.');
-          setDeleteConfirm((prev) => (prev ? { ...prev, deleting: false } : null));
+          if (/row-level security|policy/i.test(result.error || '')) {
+            setDeleteConfirm(null);
+            setShowSqlDrawer(true);
+          } else {
+            setDeleteConfirm((prev) => (prev ? { ...prev, deleting: false } : null));
+          }
           return;
         }
         if (currentFolder === folder.path) setCurrentFolder('');
-        showToast('success', `Deleted folder "${folder.path}" and its files.`);
+        showToast('success', `Deleted folder "${folder.path}" and its files from Supabase Storage.`);
         setDeleteConfirm(null);
         await loadLibrary(true);
       }
@@ -1365,6 +1471,26 @@ export default function StorageManager() {
                         <span>Retry</span>
                       </button>
                     )}
+                    {(item.stage === 'done' || item.stage === 'reused') && item.asset && (
+                      <button
+                        type="button"
+                        onClick={() => setInspectedFile(item.asset!)}
+                        className="px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold text-[11px] shrink-0"
+                      >
+                        View
+                      </button>
+                    )}
+                    {(item.stage === 'done' || item.stage === 'reused' || item.stage === 'error') && (
+                      <button
+                        type="button"
+                        onClick={() => setUploadQueue((prev) => prev.filter((q) => q.id !== item.id))}
+                        className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-white shrink-0"
+                        title="Dismiss"
+                        aria-label="Dismiss upload activity item"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1477,13 +1603,32 @@ export default function StorageManager() {
                 <Upload className="w-5 h-5" />
               </div>
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                {searchQuery || mediaTypeFilter !== 'all' || mimeFilter !== 'all'
-                  ? 'No media matches your current filters'
+                {searchQuery || mediaTypeFilter !== 'all' || mimeFilter !== 'all' || currentFolder
+                  ? 'No media matches your current filter'
                   : 'Your Supabase Media Library is ready'}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
-                Drag and drop images, videos, or PDF documents anywhere on this card, or click Upload Media below to permanently store them in Supabase Storage.
+                {searchQuery || mediaTypeFilter !== 'all' || mimeFilter !== 'all' || currentFolder
+                  ? summary.totalFiles > 0
+                    ? `You have ${summary.totalFiles} file${summary.totalFiles === 1 ? '' : 's'} stored in Supabase Storage under other filters or folders.`
+                    : 'Try clearing your search or filter to view all files.'
+                  : 'Drag and drop images, videos, or PDF documents anywhere on this card, or click Upload Media below to permanently store them in Supabase Storage.'}
               </p>
+              {(searchQuery || mediaTypeFilter !== 'all' || mimeFilter !== 'all' || currentFolder) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMediaTypeFilter('all');
+                    setMimeFilter('all');
+                    setSearchQuery('');
+                    setCurrentFolder('');
+                    setSelectedBucket('all');
+                  }}
+                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-semibold hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+                >
+                  <span>Show All Files ({summary.totalFiles})</span>
+                </button>
+              )}
             </div>
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

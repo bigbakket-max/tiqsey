@@ -3,6 +3,7 @@ import {
   SUPABASE_STORAGE_BUCKET_LIST,
   SUPABASE_PROJECT_ID,
   isSupabaseConfigured,
+  supabase,
   getBucketConfig,
   getMediaCategory,
   listSupabaseBucketFilesDirect,
@@ -555,10 +556,44 @@ export async function createStorageFolder(
       body: JSON.stringify({ bucket, folderPath }),
     }
   );
-  if (res.isJson && res.ok && res.data?.folder) {
-    return { folder: res.data.folder };
+  if (res.isJson) {
+    if (res.ok && res.data?.folder) return { folder: res.data.folder };
+    return { error: res.data?.error || 'Failed to create folder.' };
   }
-  return { error: res.data?.error || 'Failed to create folder.' };
+
+  // Direct Supabase Storage fallback for static hosting
+  if (isSupabaseConfigured && supabase) {
+    const clean = folderPath.replace(/^\/+|\/+$/g, '').replace(/[^a-zA-Z0-9/_-]/g, '-');
+    if (!clean) return { error: 'Please enter a valid folder name.' };
+    try {
+      const tinyPngBytes = Uint8Array.from(
+        atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='),
+        (c) => c.charCodeAt(0)
+      );
+      const { error } = await supabase.storage
+        .from(bucket)
+        .upload(`${clean}/.folder_placeholder.png`, new Blob([tinyPngBytes], { type: 'image/png' }), {
+          contentType: 'image/png',
+          upsert: true,
+        });
+      if (error) return { error: error.message };
+      const slashIdx = clean.lastIndexOf('/');
+      return {
+        folder: {
+          bucket,
+          path: clean,
+          name: slashIdx === -1 ? clean : clean.slice(slashIdx + 1),
+          parentFolder: slashIdx === -1 ? '' : clean.slice(0, slashIdx),
+          fileCount: 0,
+          createdAt: new Date().toISOString(),
+        },
+      };
+    } catch (err: any) {
+      return { error: err?.message || 'Failed to create folder in Supabase Storage.' };
+    }
+  }
+
+  return { error: 'Failed to create folder.' };
 }
 
 export async function renameStorageFolder(
@@ -587,14 +622,44 @@ export async function renameStorageFolder(
     body: JSON.stringify({ bucket, oldFolderPath, newFolderPath }),
   });
 
-  if (res.isJson && res.ok && res.data?.success) {
-    return {
-      ok: true,
-      movedCount: res.data.movedCount ?? 0,
-      urlReplacements: res.data.urlReplacements || [],
-    };
+  if (res.isJson) {
+    if (res.ok && res.data?.success) {
+      return {
+        ok: true,
+        movedCount: res.data.movedCount ?? 0,
+        urlReplacements: res.data.urlReplacements || [],
+      };
+    }
+    return { ok: false, error: res.data?.error || 'Failed to rename folder.' };
   }
-  return { ok: false, error: res.data?.error || 'Failed to rename folder.' };
+
+  // Direct Supabase Storage fallback for static hosting
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const cleanOld = oldFolderPath.replace(/^\/+|\/+$/g, '');
+      const cleanNew = newFolderPath.replace(/^\/+|\/+$/g, '');
+      const listed = await listSupabaseBucketFilesDirect(bucket, cleanOld);
+      const urlReplacements: Array<{ oldUrl: string; newUrl: string }> = [];
+      let movedCount = 0;
+
+      for (const file of listed.files) {
+        const suffix = file.path.slice(cleanOld.length);
+        const targetPath = `${cleanNew}${suffix}`;
+        const { error } = await supabase.storage.from(bucket).move(file.path, targetPath);
+        if (error) return { ok: false, error: error.message };
+        const { data: pub } = supabase.storage.from(bucket).getPublicUrl(targetPath);
+        if (file.publicUrl && pub?.publicUrl) {
+          urlReplacements.push({ oldUrl: file.publicUrl, newUrl: pub.publicUrl });
+        }
+        movedCount += 1;
+      }
+      return { ok: true, movedCount, urlReplacements };
+    } catch (err: any) {
+      return { ok: false, error: err?.message || 'Failed to rename folder in Supabase Storage.' };
+    }
+  }
+
+  return { ok: false, error: 'Failed to rename folder.' };
 }
 
 export async function deleteStorageFolder(
@@ -615,8 +680,8 @@ export async function deleteStorageFolder(
     fileCount?: number;
     references?: MediaUsageRef[];
     error?: string;
-  }>('/api/admin/storage/folders', {
-    method: 'DELETE',
+  }>('/api/admin/storage/folders/delete', {
+    method: 'POST',
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
@@ -625,19 +690,33 @@ export async function deleteStorageFolder(
     body: JSON.stringify({ bucket, folderPath, force }),
   });
 
-  if (res.isJson && res.ok && res.data?.success) {
-    return { ok: true };
+  if (res.isJson) {
+    if (res.ok && res.data?.success) return { ok: true };
+    if (res.status === 409 && res.data?.requiresConfirmation) {
+      return {
+        ok: false,
+        requiresConfirmation: true,
+        fileCount: res.data.fileCount,
+        references: res.data.references || [],
+        error: res.data.error,
+      };
+    }
+    return { ok: false, error: res.data?.error || 'Failed to delete folder.' };
   }
-  if (res.status === 409 && res.data?.requiresConfirmation) {
-    return {
-      ok: false,
-      requiresConfirmation: true,
-      fileCount: res.data.fileCount,
-      references: res.data.references || [],
-      error: res.data.error,
-    };
+
+  // Direct Supabase Storage fallback for static hosting
+  if (isSupabaseConfigured && supabase) {
+    const clean = folderPath.replace(/^\/+|\/+$/g, '');
+    const listed = await listSupabaseBucketFilesDirect(bucket, clean);
+    const paths = [
+      ...listed.files.map((f) => f.path),
+      `${clean}/.folder_placeholder.png`,
+      `${clean}/.emptyFolderPlaceholder`,
+    ];
+    return deleteSupabaseBucketFilesDirect(bucket, paths);
   }
-  return { ok: false, error: res.data?.error || 'Failed to delete folder.' };
+
+  return { ok: false, error: 'Failed to delete folder.' };
 }
 
 export async function fetchServerMediaUsage(
@@ -667,11 +746,12 @@ export async function deleteMediaFiles(
   adminEmail: string,
   bucket: SupabaseBucketId,
   paths: string[]
-): Promise<{ ok: boolean; error?: string }> {
-  const res = await fetchJsonSafely<{ success?: boolean; error?: string }>(
-    `/api/admin/storage/buckets/${encodeURIComponent(bucket)}/files`,
+): Promise<{ ok: boolean; error?: string; rlsBlocked?: boolean }> {
+  // Prefer POST endpoint so reverse proxies / CDNs never strip the JSON body on DELETE
+  let res = await fetchJsonSafely<{ success?: boolean; error?: string }>(
+    `/api/admin/storage/buckets/${encodeURIComponent(bucket)}/delete`,
     {
-      method: 'DELETE',
+      method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
@@ -681,12 +761,33 @@ export async function deleteMediaFiles(
     }
   );
 
+  // Fallback to DELETE endpoint if older server instance doesn't expose /delete yet
+  if (res.isJson && res.status === 404) {
+    res = await fetchJsonSafely<{ success?: boolean; error?: string }>(
+      `/api/admin/storage/buckets/${encodeURIComponent(bucket)}/files`,
+      {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-email': adminEmail,
+        },
+        body: JSON.stringify({ paths }),
+      }
+    );
+  }
+
   if (res.isJson) {
     if (res.ok) return { ok: true };
     return { ok: false, error: res.data?.error || 'Failed to delete file.' };
   }
 
-  return deleteSupabaseBucketFilesDirect(bucket, paths);
+  // Direct Supabase Storage fallback when deployed on static hosting without a Node backend
+  const direct = await deleteSupabaseBucketFilesDirect(bucket, paths);
+  if (!direct.ok && /row-level security|policy|permission|unauthorized/i.test(direct.error || '')) {
+    return { ok: false, error: direct.error, rlsBlocked: true };
+  }
+  return direct;
 }
 
 export async function downloadMediaFile(
