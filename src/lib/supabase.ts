@@ -169,18 +169,6 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
     })
   : null;
 
-const MIME_TO_EXT: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/jpg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/avif': 'avif',
-  'image/gif': 'gif',
-  'image/svg+xml': 'svg',
-  'video/mp4': 'mp4',
-  'video/webm': 'webm',
-  'video/quicktime': 'mov',
-  'application/pdf': 'pdf',
 };
 
 export function getMediaCategory(mimeType?: string | null, fileName?: string | null): 'image' | 'video' | 'document' {
@@ -317,106 +305,6 @@ export async function listSupabaseBucketFilesDirect(
   } catch (err: any) {
     return { files: [], error: err?.message || 'Failed to list files from Supabase Storage' };
   }
-}
-
-async function convertImageFileToWebpBlob(
-  file: File
-): Promise<{ blob: Blob; mime: 'image/webp' | 'image/png'; ext: 'webp' | 'png' } | null> {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return null;
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
-      el.onerror = () => reject(new Error('Unable to decode image'));
-      el.src = objectUrl;
-    });
-    const width = img.naturalWidth || img.width;
-    const height = img.naturalHeight || img.height;
-    if (!width || !height) return null;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    ctx.drawImage(img, 0, 0, width, height);
-
-    const webpBlob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob((b) => resolve(b), 'image/webp', 0.92)
-    );
-    if (webpBlob && webpBlob.type === 'image/webp') {
-      return { blob: webpBlob, mime: 'image/webp', ext: 'webp' };
-    }
-    const pngBlob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob((b) => resolve(b), 'image/png')
-    );
-    if (pngBlob) {
-      return { blob: pngBlob, mime: 'image/png', ext: 'png' };
-    }
-    return null;
-  } catch {
-    return null;
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
-}
-
-function uploadBlobDirectWithProgress(
-  bucket: SupabaseBucketId,
-  objectPath: string,
-  payload: Blob | File,
-  contentType: string,
-  onProgress?: (percent: number) => void
-): Promise<{ ok: boolean; error?: string }> {
-  return new Promise((resolve) => {
-    try {
-      const encodedPath = objectPath
-        .split('/')
-        .map((segment) => encodeURIComponent(segment))
-        .join('/');
-      const endpoint = `${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`;
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', endpoint, true);
-      xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
-      xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON_KEY}`);
-      xhr.setRequestHeader('x-upsert', 'true');
-      xhr.setRequestHeader('cache-control', '3600');
-      if (contentType) {
-        xhr.setRequestHeader('Content-Type', contentType);
-      }
-
-      xhr.upload.onprogress = (ev) => {
-        if (ev.lengthComputable && ev.total > 0) {
-          const pct = Math.min(95, Math.max(8, Math.round((ev.loaded / ev.total) * 90) + 5));
-          onProgress?.(pct);
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          onProgress?.(98);
-          resolve({ ok: true });
-        } else {
-          let errMsg = `Upload failed (HTTP ${xhr.status})`;
-          try {
-            const parsed = JSON.parse(xhr.responseText);
-            errMsg = parsed?.message || parsed?.error || errMsg;
-          } catch {
-            // Keep default HTTP status message
-          }
-          resolve({ ok: false, error: errMsg });
-        }
-      };
-
-      xhr.onerror = () => resolve({ ok: false, error: 'Network error while uploading to Supabase Storage.' });
-      xhr.ontimeout = () => resolve({ ok: false, error: 'Upload timed out. Please retry.' });
-      xhr.timeout = 180000;
-      xhr.send(payload);
-    } catch (err: any) {
-      resolve({ ok: false, error: err?.message || 'Direct upload initialization failed' });
-    }
-  });
 }
 
 export async function uploadFileToSupabaseStorageDirect(
