@@ -44,6 +44,11 @@ The server accepts several fallback key variables, including public/anon-style k
 - `npm run lint` (the repository's TypeScript no-emit check)
 - `npm run build` (Vite frontend and Express server bundle)
 
+### High — dependency lockfile is stale
+File: `package-lock.json`
+
+GitHub Actions confirmed `npm ci` fails because the committed lockfile does not match `package.json` (including Vite and esbuild version mismatches and missing optional platform packages). The CI workflow now uses `npm install` in its ephemeral runner to reconcile dependencies for the audit checks. The repository lockfile itself still needs to be regenerated and committed from a trusted Node/npm environment; do not consider this a permanent dependency-lock fix.
+
 ## Not yet verified
 
 - CI execution result on this branch (workflow must run in GitHub Actions).
