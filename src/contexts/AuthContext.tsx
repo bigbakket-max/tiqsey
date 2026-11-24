@@ -260,7 +260,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       users.push(newGuest);
       safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
       // Authenticate guest user session
-      persistStoredSession(newGuest);
       setUser(newGuest);
       activeUser = newGuest;
     }
