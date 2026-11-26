@@ -35,10 +35,14 @@ import {
   applyFaviconToDocument,
   FAVICON_EVENT_NAME
 } from '../../utils/faviconManager';
+import { motion, AnimatePresence } from 'motion/react';
 import { MediaLibraryPickerModal } from '../components/MediaLibraryPickerModal';
+import { DiamondDotsSpinner, ADMIN_EASE } from '../components/AdminMotion';
+import { useAdminToast } from '../contexts/AdminToastContext';
 
 export default function FaviconManagement() {
   const { user } = useAuth();
+  const { notify } = useAdminToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // States
@@ -92,10 +96,9 @@ export default function FaviconManagement() {
   };
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    setNotification({ message, type });
-    setTimeout(() => {
-      setNotification(null);
-    }, 4500);
+    notify(type, message, {
+      title: type === 'success' ? 'Favicon Updated' : type === 'error' ? 'Favicon Error' : 'Favicon Notice',
+    });
   };
 
   // Handle file selection and validation
@@ -207,30 +210,6 @@ export default function FaviconManagement() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Toast Notification */}
-      {notification && (
-        <div className="fixed bottom-20 md:bottom-6 right-4 left-4 sm:left-auto sm:right-6 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border ${
-            notification.type === 'success' 
-              ? 'bg-emerald-50 dark:bg-emerald-950/90 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800'
-              : notification.type === 'error'
-              ? 'bg-rose-50 dark:bg-rose-950/90 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-800'
-              : 'bg-sky-50 dark:bg-sky-950/90 text-sky-800 dark:text-sky-200 border-sky-300 dark:border-sky-800'
-          }`}>
-            {notification.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />}
-            {notification.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />}
-            {notification.type === 'info' && <Info className="w-5 h-5 text-sky-600 dark:text-sky-400 shrink-0" />}
-            <span className="flex-1 min-w-0 break-words">{notification.message}</span>
-            <button 
-              onClick={() => setNotification(null)}
-              aria-label="Dismiss notification"
-              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer shrink-0"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Top Header & Overview */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
@@ -308,8 +287,15 @@ export default function FaviconManagement() {
       />
 
       {/* Pending changes banner */}
+      <AnimatePresence>
       {pendingFile && (
-        <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border-2 border-amber-500/40 dark:border-amber-400/30 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in duration-150">
+        <motion.div
+          initial={{ opacity: 0, y: -8, scale: 0.99 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.99 }}
+          transition={{ duration: 0.2, ease: ADMIN_EASE }}
+          className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border-2 border-amber-500/40 dark:border-amber-400/30 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md">
               <Sparkles className="w-5 h-5" />
@@ -334,11 +320,11 @@ export default function FaviconManagement() {
             <button
               onClick={handleSaveChanges}
               disabled={isSaving}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-md transition-all cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-md transition-all cursor-pointer active:scale-95 disabled:opacity-75"
             >
               {isSaving ? (
                 <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <DiamondDotsSpinner size="xs" tone="white" label="Publishing favicon" />
                   <span>Publishing...</span>
                 </>
               ) : (
@@ -349,8 +335,9 @@ export default function FaviconManagement() {
               )}
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Main Grid: Upload & Current Status */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -406,12 +393,20 @@ export default function FaviconManagement() {
               <span>Choose from Supabase Media Library</span>
             </button>
 
+            <AnimatePresence>
             {validationError && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.16 }}
+                className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2"
+              >
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{validationError}</span>
-              </div>
+              </motion.div>
             )}
+            </AnimatePresence>
           </div>
 
           {/* Active Favicon Details Card */}
@@ -783,9 +778,24 @@ export default function FaviconManagement() {
       </div>
 
       {/* Reset Confirmation Modal */}
+      <AnimatePresence>
       {showResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.16 }}
+          onClick={() => !isResetting && setShowResetModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 6 }}
+            transition={{ duration: 0.2, ease: ADMIN_EASE }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4"
+          >
             <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
               <RotateCcw className="w-6 h-6" />
             </div>
@@ -806,11 +816,11 @@ export default function FaviconManagement() {
               <button
                 onClick={handleResetToDefault}
                 disabled={isResetting}
-                className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-75"
               >
                 {isResetting ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <DiamondDotsSpinner size="xs" tone="white" label="Resetting favicon" />
                     <span>Resetting...</span>
                   </>
                 ) : (
@@ -818,9 +828,10 @@ export default function FaviconManagement() {
                 )}
               </button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <MediaLibraryPickerModal
         isOpen={isLibraryOpen}

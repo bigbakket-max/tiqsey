@@ -11,6 +11,8 @@ import {
   ArrowLeft,
   X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { DiamondDotsSpinner, ADMIN_EASE } from '../components/AdminMotion';
 
 interface AdminSignInPageProps {
   onSuccess?: () => void;
@@ -115,7 +117,12 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
         </svg>
       </div>
 
-      <div className="relative z-10 w-full max-w-[480px] flex flex-col items-center">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: ADMIN_EASE }}
+        className="relative z-10 w-full max-w-[480px] flex flex-col items-center"
+      >
         
         {/* Brand Logo & Title Above Card */}
         <div className="text-center mb-7">
@@ -154,12 +161,20 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
           )}
 
           {/* Error Message Alert */}
+          <AnimatePresence>
           {error && (
-            <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2 animate-in fade-in">
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.16 }}
+              className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2"
+            >
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
               <div className="font-medium leading-relaxed">{error}</div>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
 
           {/* Form */}
           <form onSubmit={handleSignIn} className="space-y-5">
@@ -241,7 +256,7 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <DiamondDotsSpinner size="xs" tone="white" label="Signing in" />
                     Signing In...
                   </>
                 ) : (
@@ -264,12 +279,27 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
           </a>
         </div>
 
-      </div>
+      </motion.div>
 
       {/* Forgot Password Modal */}
+      <AnimatePresence>
       {showForgotModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-sm w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-slate-200 relative">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.16 }}
+          onClick={() => setShowForgotModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 6 }}
+            transition={{ duration: 0.2, ease: ADMIN_EASE }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl max-w-sm w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-slate-200 relative"
+          >
             <button
               onClick={() => setShowForgotModal(false)}
               aria-label="Close modal"
@@ -296,9 +326,10 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
             >
               Auto-fill & Close
             </button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
     </div>
   );

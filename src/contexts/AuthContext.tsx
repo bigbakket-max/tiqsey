@@ -47,7 +47,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const DEMO_EMAIL = 'demo@tiqsey.com';
 const DEMO_PASSWORD = 'password123';
 export const ADMIN_PASSWORD = 'bigbakket@admin@1997';
-export const ADMIN_EMAILS = ['admin@tiqsey.com', 'bigbakket@gmail.com'];
+export const ADMIN_EMAILS = ['admin@tiqsey.com', 'superadmin@tiqsey.com', 'bigbakket@gmail.com'];
 
 export const deriveNameFromEmail = (emailStr: string): string => {
   if (!emailStr) return '';
@@ -491,7 +491,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Check if account already exists locally
-    const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
+    const usersRaw = safeStorageGet(window.localStorage, 'tiqsey_users') || '[]';
     let users: any[] = [];
     try {
       users = JSON.parse(usersRaw);
@@ -632,7 +632,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       setTimeout(() => {
-        const usersRaw = localStorage.getItem('tiqsey_users') || '[]';
+        const usersRaw = safeStorageGet(window.localStorage, 'tiqsey_users') || '[]';
         let users: any[] = [];
         try {
           const parsedUsers = JSON.parse(usersRaw);
@@ -793,7 +793,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     
     const updatedBookings = [newBooking, ...bookings];
-    localStorage.setItem(`tiqsey_bookings_${activeUser.id}`, JSON.stringify(updatedBookings));
+    safeStorageSet(window.localStorage, `tiqsey_bookings_${activeUser.id}`, JSON.stringify(updatedBookings));
     setBookings(updatedBookings);
 
     // Save/Sync the completed booking to the backend database if available
@@ -866,7 +866,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const updatedBookings = bookings.map(b => 
           b.id === bookingId ? { ...b, rating } : b
         );
-        localStorage.setItem(`tiqsey_bookings_${activeUser.id}`, JSON.stringify(updatedBookings));
+        safeStorageSet(window.localStorage, `tiqsey_bookings_${activeUser.id}`, JSON.stringify(updatedBookings));
         setBookings(updatedBookings);
         resolve();
       }, 300);
@@ -941,7 +941,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         b.id === bookingId ? { ...b, rating } : b
       );
       if (activeUser.id !== 'anonymous') {
-        localStorage.setItem(`tiqsey_bookings_${activeUser.id}`, JSON.stringify(updatedBookings));
+        safeStorageSet(window.localStorage, `tiqsey_bookings_${activeUser.id}`, JSON.stringify(updatedBookings));
       }
       setBookings(updatedBookings);
     } catch (err: any) {
@@ -961,7 +961,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const updatedBookings = bookings.map(b => 
           b.id === bookingId ? { ...b, status: 'cancelled' as const } : b
         );
-        localStorage.setItem(`tiqsey_bookings_${activeUser.id}`, JSON.stringify(updatedBookings));
+        safeStorageSet(window.localStorage, `tiqsey_bookings_${activeUser.id}`, JSON.stringify(updatedBookings));
         setBookings(updatedBookings);
 
         // Sync cancellation to backend (and fallback to direct Supabase if backend unavailable)

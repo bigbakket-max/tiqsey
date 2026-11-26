@@ -47,9 +47,12 @@ import {
 } from '../../utils/bannerStorage';
 import BannerCard from '../../components/BannerCard';
 import LargeBannerManager from '../components/LargeBannerManager';
+import { AdminStatusBadge, ADMIN_EASE } from '../components/AdminMotion';
+import { useAdminToast } from '../contexts/AdminToastContext';
 
 export default function PromotionalBanners() {
   const navigate = useNavigate();
+  const { notify } = useAdminToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'large-hero' | 'promo-cards'>(
     searchParams.get('tab') === 'cards' ? 'promo-cards' : 'large-hero'
@@ -89,10 +92,9 @@ export default function PromotionalBanners() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const showToast = (message: string, type: 'success' | 'info' = 'success') => {
-    setNotification({ message, type });
-    setTimeout(() => {
-      setNotification(null);
-    }, 3000);
+    notify(type, message, {
+      title: type === 'info' ? 'Banner Notice' : 'Banner Updated',
+    });
   };
 
   const loadData = () => {
@@ -327,45 +329,19 @@ export default function PromotionalBanners() {
   const getCampaignStatusBadge = (banner: PromotionalBanner) => {
     const now = new Date().toISOString().substring(0, 10);
     if (!banner.isActive) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-          Disabled
-        </span>
-      );
+      return <AdminStatusBadge status="inactive" label="Disabled" />;
     }
     if (banner.startDate && banner.startDate > now) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200/50">
-          <Calendar className="w-3 h-3" />
-          Scheduled
-        </span>
-      );
+      return <AdminStatusBadge status="pending" label="Scheduled" />;
     }
     if (banner.endDate && banner.endDate < now) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200/50">
-          <AlertCircle className="w-3 h-3" />
-          Expired
-        </span>
-      );
+      return <AdminStatusBadge status="inactive" label="Expired" />;
     }
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/40">
-        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-        Active
-      </span>
-    );
+    return <AdminStatusBadge status="active" label="Active" />;
   };
 
   return (
     <div className="space-y-6 pb-16">
-      {/* Toast notification */}
-      {notification && (
-        <div className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xl text-sm font-medium animate-in fade-in slide-in-from-bottom-4 duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>{notification.message}</span>
-        </div>
-      )}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
@@ -392,10 +368,10 @@ export default function PromotionalBanners() {
             setActiveTab('large-hero');
             setSearchParams({ tab: 'large-hero' });
           }}
-          className={`pb-3 px-1 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap shrink-0 min-h-[44px] ${
+          className={`relative pb-3 px-1 text-xs sm:text-sm font-bold flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap shrink-0 min-h-[44px] ${
             activeTab === 'large-hero'
-              ? 'border-brand text-brand'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              ? 'text-brand'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <Sparkles className="w-4 h-4 text-brand shrink-0" />
@@ -403,6 +379,13 @@ export default function PromotionalBanners() {
           <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 dark:bg-red-950/60 text-brand">
             Featured
           </span>
+          {activeTab === 'large-hero' && (
+            <motion.span
+              layoutId="promo-main-tab-indicator"
+              transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+              className="absolute left-0 right-0 bottom-0 h-0.5 bg-brand rounded-full"
+            />
+          )}
         </button>
 
         <button
@@ -411,10 +394,10 @@ export default function PromotionalBanners() {
             setActiveTab('promo-cards');
             setSearchParams({ tab: 'cards' });
           }}
-          className={`pb-3 px-1 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer whitespace-nowrap shrink-0 min-h-[44px] ${
+          className={`relative pb-3 px-1 text-xs sm:text-sm font-bold flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap shrink-0 min-h-[44px] ${
             activeTab === 'promo-cards'
-              ? 'border-[#0284c7] text-[#0284c7]'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              ? 'text-[#0284c7]'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <Layers className="w-4 h-4 text-[#0284c7] shrink-0" />
@@ -422,6 +405,13 @@ export default function PromotionalBanners() {
           <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-sky-100 dark:bg-sky-950/60 text-[#0284c7] tabular-nums">
             {banners.length}
           </span>
+          {activeTab === 'promo-cards' && (
+            <motion.span
+              layoutId="promo-main-tab-indicator"
+              transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+              className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#0284c7] rounded-full"
+            />
+          )}
         </button>
       </div>
 
@@ -557,8 +547,15 @@ export default function PromotionalBanners() {
       </div>
 
       {/* Live Frontend Section Preview Box (Collapsible) */}
+      <AnimatePresence>
       {showLivePreview && (
-        <div className="bg-[#0b1120] rounded-2xl p-5 md:p-6 border border-slate-800/80 shadow-2xl overflow-hidden text-white relative">
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.22, ease: ADMIN_EASE }}
+          className="bg-[#0b1120] rounded-2xl p-5 md:p-6 border border-slate-800/80 shadow-2xl overflow-hidden text-white relative"
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800/60 gap-4 mb-5">
             <div className="flex items-center gap-2.5">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -642,8 +639,9 @@ export default function PromotionalBanners() {
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Main Table & Management Section */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs relative">
@@ -1268,11 +1266,20 @@ export default function PromotionalBanners() {
   {/* Confirmation Modal */}
   <AnimatePresence>
     {confirmAction && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.16 }}
+        onClick={() => setConfirmAction(null)}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+      >
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.95, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 6 }}
+          transition={{ duration: 0.2, ease: ADMIN_EASE }}
+          onClick={(e) => e.stopPropagation()}
           className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto"
         >
           <div className="flex items-start gap-3">
@@ -1315,7 +1322,7 @@ export default function PromotionalBanners() {
             </button>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
     )}
   </AnimatePresence>
 </div>

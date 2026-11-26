@@ -124,17 +124,20 @@ export default function SearchBar({
 
   // Load recent searches from localStorage
   useEffect(() => {
-    const stored = localStorage.getItem("tiqsey_recent_searches");
-    if (stored) {
-      try {
-        setRecentSearches(JSON.parse(stored));
-      } catch (e) {
-        console.error("Error reading recent searches:", e);
+    try {
+      const stored = localStorage.getItem("tiqsey_recent_searches");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setRecentSearches(parsed);
+          return;
+        }
       }
-    } else {
       const defaults = ["Phuket", "Tokyo", "Paris", "Acropolis"];
       setRecentSearches(defaults);
       localStorage.setItem("tiqsey_recent_searches", JSON.stringify(defaults));
+    } catch (e) {
+      setRecentSearches(["Phuket", "Tokyo", "Paris", "Acropolis"]);
     }
   }, []);
 
@@ -146,7 +149,9 @@ export default function SearchBar({
         cleaned,
         ...prev.filter((q) => q.toLowerCase() !== cleaned.toLowerCase()),
       ].slice(0, 6);
-      localStorage.setItem("tiqsey_recent_searches", JSON.stringify(updated));
+      try {
+        localStorage.setItem("tiqsey_recent_searches", JSON.stringify(updated));
+      } catch (_) {}
       return updated;
     });
   };
@@ -157,7 +162,9 @@ export default function SearchBar({
         (q) => q.toLowerCase() !== query.toLowerCase(),
       );
       if (updated.length > 0) {
-        localStorage.setItem("tiqsey_recent_searches", JSON.stringify(updated));
+        try {
+          localStorage.setItem("tiqsey_recent_searches", JSON.stringify(updated));
+        } catch (_) {}
       } else {
         localStorage.removeItem("tiqsey_recent_searches");
       }

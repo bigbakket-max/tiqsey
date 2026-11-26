@@ -56,6 +56,7 @@ import {
 import { POPULAR_ATTRACTIONS, syncCustomAttractions, deduplicateAttractions } from "../../data/mockData";
 import { uploadAndOptimizeImage, uploadMediaFile } from "../../utils/imageUpload";
 import { MediaLibraryPickerModal } from "../components/MediaLibraryPickerModal";
+import { DiamondDotsSpinner, ADMIN_EASE } from "../components/AdminMotion";
 import { generateUniqueProductId, getDisplayProductId, registerUsedProductId } from "../../utils/productIdGenerator";
 import { Attraction, Variant, VariantRule, BookingMode, AffiliateConfig } from "../../types";
 import { AFFILIATE_VENDORS, isValidAffiliateUrl, buildAffiliateUrl, resolveAffiliateUrlTokens } from "../../utils/affiliate";
@@ -6959,10 +6960,23 @@ export default function Inventory() {
       )}
 
       {/* Save Confirmation Modal */}
+      <AnimatePresence>
       {showSaveConfirm && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-          <div 
-            className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90dvh] overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.16 }}
+          onClick={() => !isSavingConfirm && setShowSaveConfirm(false)}
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 6 }}
+            transition={{ duration: 0.2, ease: ADMIN_EASE }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90dvh] overflow-hidden flex flex-col"
             role="dialog"
             aria-modal="true"
           >
@@ -7075,7 +7089,7 @@ export default function Inventory() {
               >
                 {isSavingConfirm ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <DiamondDotsSpinner size="xs" tone="white" label="Saving product" />
                     <span>Saving...</span>
                   </>
                 ) : (
@@ -7086,14 +7100,28 @@ export default function Inventory() {
                 )}
               </button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Generic In-App Confirm Dialog */}
+      <AnimatePresence>
       {confirmDialog && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.16 }}
+          onClick={() => setConfirmDialog(null)}
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 6 }}
+            transition={{ duration: 0.2, ease: ADMIN_EASE }}
+            onClick={(e) => e.stopPropagation()}
             className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90dvh] flex flex-col overflow-hidden"
             role="dialog"
             aria-modal="true"
@@ -7143,9 +7171,10 @@ export default function Inventory() {
                 {confirmDialog.confirmLabel}
               </button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* In-App Floating Toast Notification */}
       <AnimatePresence>

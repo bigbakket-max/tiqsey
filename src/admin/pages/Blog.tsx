@@ -22,10 +22,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useBlog } from '../../contexts/BlogContext';
 import { BlogPost } from '../../components/BlogPage';
 import { AdminPagination } from '../components/AdminPagination';
+import { useAdminToast } from '../contexts/AdminToastContext';
+import { ADMIN_EASE } from '../components/AdminMotion';
 
 export default function Blog() {
   const navigate = useNavigate();
   const { posts, addPost, updatePost, deletePost } = useBlog();
+  const toast = useAdminToast();
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState("");
@@ -125,10 +128,15 @@ export default function Blog() {
 
   const handleBulkSetStatus = (newStatus: 'Published' | 'Draft') => {
     if (selectedPostIds.length === 0) return;
+    const count = selectedPostIds.length;
     selectedPostIds.forEach(id => {
       updatePost(id, { status: newStatus });
     });
     setSelectedPostIds([]);
+    toast.success(
+      `${count} blog ${count === 1 ? 'post' : 'posts'} marked as ${newStatus}.`,
+      newStatus === 'Published' ? 'Posts Published' : 'Moved to Drafts'
+    );
   };
 
   const handleBulkDelete = () => {
@@ -139,10 +147,17 @@ export default function Blog() {
   const confirmDeleteAction = () => {
     if (!deleteConfirm) return;
     if (deleteConfirm.type === 'bulk') {
+      const count = selectedPostIds.length;
       selectedPostIds.forEach(id => deletePost(id));
       setSelectedPostIds([]);
+      toast.success(
+        `Permanently deleted ${count} selected blog ${count === 1 ? 'post' : 'posts'}.`,
+        'Posts Deleted'
+      );
     } else {
+      const title = deleteConfirm.post.title;
       deletePost(deleteConfirm.post.id);
+      toast.success(`"${title}" was permanently deleted.`, 'Post Deleted');
     }
     setDeleteConfirm(null);
   };
@@ -151,6 +166,10 @@ export default function Blog() {
     const currentStatus = post.status || 'Published';
     const nextStatus = currentStatus === 'Published' ? 'Draft' : 'Published';
     updatePost(post.id, { status: nextStatus });
+    toast.success(
+      `"${post.title}" is now ${nextStatus}.`,
+      nextStatus === 'Published' ? 'Post Published Live' : 'Moved to Draft'
+    );
   };
 
   const handleCopyPostId = (id: string) => {
@@ -168,6 +187,7 @@ export default function Blog() {
       publishedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     };
     addPost(cloned);
+    toast.success(`Created a draft copy of "${post.title}".`, 'Post Cloned as Draft');
   };
 
   const handleSort = (field: 'date' | 'title') => {
@@ -245,14 +265,21 @@ export default function Blog() {
                     setStatusTab(tab.id as any);
                     setCurrentPage(1);
                   }}
-                  className={`flex items-center gap-2 px-3.5 min-h-[38px] rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`relative flex items-center gap-2 px-3.5 min-h-[38px] rounded-xl text-xs font-bold transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0 ${
                     isActive 
-                      ? 'bg-blue-600 text-white shadow-xs' 
+                      ? 'text-white' 
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono tabular-nums ${
+                  {isActive && (
+                    <motion.span
+                      layoutId="blog-status-tab-bg"
+                      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                      className="absolute inset-0 rounded-xl bg-blue-600 shadow-xs"
+                    />
+                  )}
+                  <span className="relative z-10">{tab.label}</span>
+                  <span className={`relative z-10 px-1.5 py-0.2 rounded-md text-[10px] font-mono tabular-nums ${
                     isActive 
                       ? 'bg-blue-700/80 text-white' 
                       : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
@@ -820,11 +847,20 @@ export default function Blog() {
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {deleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            onClick={() => setDeleteConfirm(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 6 }}
+              transition={{ duration: 0.2, ease: ADMIN_EASE }}
+              onClick={(e) => e.stopPropagation()}
               className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto"
             >
               <div className="flex items-start gap-3">
@@ -861,7 +897,7 @@ export default function Blog() {
                 </button>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

@@ -128,11 +128,15 @@ export default function BlogPage({ onBackToHome, onViewAttraction }: BlogPagePro
   const [newCommentText, setNewCommentText] = useState("");
 
   useEffect(() => {
-    localStorage.setItem("blog_liked_posts", JSON.stringify(likedPosts));
+    try {
+      localStorage.setItem("blog_liked_posts", JSON.stringify(likedPosts));
+    } catch (_) {}
   }, [likedPosts]);
 
   useEffect(() => {
-    localStorage.setItem("blog_bookmarked_posts", JSON.stringify(bookmarkedPosts));
+    try {
+      localStorage.setItem("blog_bookmarked_posts", JSON.stringify(bookmarkedPosts));
+    } catch (_) {}
   }, [bookmarkedPosts]);
 
   // Handle Share link copy

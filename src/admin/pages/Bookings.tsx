@@ -38,6 +38,8 @@ import {
 import { downloadTicketVoucher } from '../../utils/ticketDownloader';
 import { motion, AnimatePresence } from 'motion/react';
 import BookingDetailsView from '../components/BookingDetailsView';
+import { TableSkeleton, ADMIN_EASE } from '../components/AdminMotion';
+import { useAdminToast } from '../contexts/AdminToastContext';
 
 interface Passenger {
   name: string;
@@ -82,6 +84,7 @@ interface AdminBooking {
 
 export default function Bookings() {
   const { showLoader, hideLoader } = useAdminLoader();
+  const { notify } = useAdminToast();
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
@@ -183,25 +186,14 @@ export default function Bookings() {
   const [newTravelDate, setNewTravelDate] = useState('');
   const [cancellationReason, setCancellationReason] = useState('');
   const [isCancelling, setIsCancelling] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
+  const [downloadingBookingId, setDownloadingBookingId] = useState<string | null>(null);
 
-  // Trigger toast alert
+  // Trigger unified animated toast alert
   const triggerToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToastMessage(message);
-    setToastType(type);
-    setShowToast(true);
+    notify(type, message, {
+      title: type === 'error' ? 'Booking Action Failed' : type === 'info' ? 'Booking Notice' : 'Booking Updated',
+    });
   };
-
-  useEffect(() => {
-    if (showToast) {
-      const timer = setTimeout(() => {
-        setShowToast(false);
-      }, 3500);
-      return () => clearTimeout(timer);
-    }
-  }, [showToast]);
 
   const saveBookingToBackend = async (booking: AdminBooking) => {
     const parsedVendorPayable = parseFloat(String(booking.vendorPayable || '').replace(/[^0-9.]/g, ''));
@@ -794,7 +786,9 @@ export default function Bookings() {
       return b;
     });
     setBookings(updated);
-    localStorage.setItem('tiqsey_admin_bookings', JSON.stringify(updated));
+    try {
+      localStorage.setItem('tiqsey_admin_bookings', JSON.stringify(updated));
+    } catch (_) {}
     triggerToast(`Booking status successfully marked as ${newStatus.toUpperCase()}`, 'success');
   };
 
@@ -804,7 +798,9 @@ export default function Bookings() {
     if (selectedBooking?.id === updatedBooking.id) {
       setSelectedBooking(updatedBooking);
     }
-    localStorage.setItem('tiqsey_admin_bookings', JSON.stringify(updated));
+    try {
+      localStorage.setItem('tiqsey_admin_bookings', JSON.stringify(updated));
+    } catch (_) {}
     syncToCustomerStorage(updatedBooking);
     // Sync to Backend Database
     saveBookingToBackend(updatedBooking);
@@ -992,11 +988,13 @@ export default function Bookings() {
     };
   }, [bookings]);
 
-  // Download ticket proxy
+  // Download ticket proxy with duplicate-click guard
   const handleDownload = async (booking: AdminBooking) => {
+    if (downloadingBookingId === booking.id) return;
+    setDownloadingBookingId(booking.id);
     showLoader();
     try {
-      await new Promise(resolve => setTimeout(resolve, 400));
+      await new Promise(resolve => setTimeout(resolve, 240));
       downloadTicketVoucher({
         bookingId: booking.id,
         bookingRef: booking.bookingRef,
@@ -1031,6 +1029,7 @@ export default function Bookings() {
       console.error('Error generating ticket download', e);
       triggerToast('Error issuing voucher. Please try again.', 'error');
     } finally {
+      setDownloadingBookingId(null);
       hideLoader();
     }
   };
@@ -1054,22 +1053,6 @@ export default function Bookings() {
 
   return (
     <div className="space-y-5 w-full mx-auto pb-24 md:pb-12 pl-7 sm:pl-12 pr-3 sm:pr-6 lg:pl-12 lg:pr-8 overflow-x-clip">
-      {/* Toast Alert Notification */}
-      <AnimatePresence>
-        {showToast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-16 md:top-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-2.5 px-4 py-3 rounded-lg shadow-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 font-sans"
-          >
-            {toastType === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />}
-            {toastType === 'error' && <XCircle className="w-5 h-5 text-red-500 shrink-0" />}
-            {toastType === 'info' && <AlertCircle className="w-5 h-5 text-[#5fa6d9] shrink-0" />}
-            <span className="text-xs font-semibold">{toastMessage}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {fetchError && (
         <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-medium font-sans">
@@ -1237,20 +1220,27 @@ export default function Bookings() {
               <button
                 key={tab}
                 onClick={() => setSelectedStatusTab(tab as any)}
-                className={`pb-3 text-[11px] font-black tracking-wider uppercase border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                className={`relative pb-3 text-[11px] font-black tracking-wider uppercase flex items-center gap-2 transition-colors cursor-pointer ${
                   isActive
-                    ? 'border-[#5fa6d9] text-[#5fa6d9]'
-                    : 'border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-600'
+                    ? 'text-[#5fa6d9]'
+                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
                 }`}
               >
                 {label}
-                <span className={`px-2 py-0.5 rounded text-[10px] font-black transition-colors ${
+                <span className={`px-2 py-0.5 rounded text-[10px] font-black tabular-nums transition-colors ${
                   isActive
                     ? 'bg-[#5fa6d9]/10 text-[#5fa6d9]'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                 }`}>
                   {count}
                 </span>
+                {isActive && (
+                  <motion.span
+                    layoutId="bookings-status-tab-indicator"
+                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                    className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#5fa6d9] rounded-full"
+                  />
+                )}
               </button>
             );
           })}
@@ -1263,11 +1253,18 @@ export default function Bookings() {
       <div className="space-y-4">
         {/* Orders List Container */}
         <div className="space-y-4">
-          {filteredBookings.length > 0 ? (
-            filteredBookings.map((booking) => (
-              <div
+          {isRefreshing && bookings.length === 0 ? (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 rounded-xl p-4 shadow-sm">
+              <TableSkeleton rows={5} cols={4} />
+            </div>
+          ) : filteredBookings.length > 0 ? (
+            filteredBookings.map((booking, idx) => (
+              <motion.div
                 key={booking.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 rounded-md relative overflow-visible pl-4 sm:pl-8 pr-4 sm:pr-6 py-4 shadow-sm transition-all hover:shadow-md"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: Math.min(idx, 6) * 0.025, ease: ADMIN_EASE }}
+                className="tiqsey-admin-card bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/80 rounded-md relative overflow-visible pl-4 sm:pl-8 pr-4 sm:pr-6 py-4 shadow-sm transition-all hover:shadow-md"
               >
                 {/* Left Vertical Tab containing White lightbulb icon sticking out to the left */}
                 <div className={`absolute right-full top-1/2 -translate-y-1/2 w-6 sm:w-8 h-10 sm:h-12 rounded-l-lg sm:rounded-l-xl flex items-center justify-center text-white shadow-sm transition-all ${
@@ -1486,7 +1483,7 @@ export default function Bookings() {
 
 
                 </div>
-              </div>
+              </motion.div>
             ))
           ) : (
             <div className="py-24 px-6 text-center flex flex-col items-center justify-center">

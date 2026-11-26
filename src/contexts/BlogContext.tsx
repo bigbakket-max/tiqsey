@@ -13,7 +13,10 @@ const BlogContext = createContext<BlogContextType | undefined>(undefined);
 
 export function BlogProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<BlogPost[]>(() => {
-    const savedPosts = localStorage.getItem('tiqsey_blog_posts');
+    let savedPosts: string | null = null;
+    try {
+      savedPosts = localStorage.getItem('tiqsey_blog_posts');
+    } catch (_) {}
     if (savedPosts) {
       try {
         const parsed = JSON.parse(savedPosts);
@@ -167,7 +170,9 @@ export function BlogProvider({ children }: { children: ReactNode }) {
           return post;
         });
         if (changed) {
-          localStorage.setItem('tiqsey_blog_posts', JSON.stringify(next));
+          try {
+            localStorage.setItem('tiqsey_blog_posts', JSON.stringify(next));
+          } catch (_) {}
           return next;
         }
         return prev;
@@ -212,7 +217,9 @@ export function BlogProvider({ children }: { children: ReactNode }) {
     const newPost = { ...post, id: post.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now() };
     setPosts(prev => {
       const next = [newPost, ...prev];
-      localStorage.setItem('tiqsey_blog_posts', JSON.stringify(next));
+      try {
+        localStorage.setItem('tiqsey_blog_posts', JSON.stringify(next));
+      } catch (_) {}
       return next;
     });
   };
@@ -220,7 +227,9 @@ export function BlogProvider({ children }: { children: ReactNode }) {
   const updatePost = (id: string, updatedPost: Partial<BlogPost>) => {
     setPosts(prev => {
       const next = prev.map(post => post.id === id ? { ...post, ...updatedPost } : post);
-      localStorage.setItem('tiqsey_blog_posts', JSON.stringify(next));
+      try {
+        localStorage.setItem('tiqsey_blog_posts', JSON.stringify(next));
+      } catch (_) {}
       return next;
     });
   };
@@ -228,7 +237,9 @@ export function BlogProvider({ children }: { children: ReactNode }) {
   const deletePost = (id: string) => {
     setPosts(prev => {
       const next = prev.map(post => post.id === id ? { ...post, deleted: true } : post);
-      localStorage.setItem('tiqsey_blog_posts', JSON.stringify(next));
+      try {
+        localStorage.setItem('tiqsey_blog_posts', JSON.stringify(next));
+      } catch (_) {}
       return next;
     });
   };

@@ -15,6 +15,9 @@ import {
   Settings2,
   X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { AdminStatusBadge, ADMIN_EASE } from '../components/AdminMotion';
+import { useAdminToast } from '../contexts/AdminToastContext';
 
 interface SubAgent {
   id: string;
@@ -100,11 +103,11 @@ const INITIAL_AGENTS: SubAgent[] = [
 ];
 
 export default function Analytics() {
+  const toast = useAdminToast();
   const [agents, setAgents] = useState<SubAgent[]>(INITIAL_AGENTS);
   const [selectedAgent, setSelectedAgent] = useState<SubAgent | null>(null);
   const [modalTriggerFreq, setModalTriggerFreq] = useState('Real-Time Event Driven (Instant)');
   const [modalConcurrency, setModalConcurrency] = useState<number>(25);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const openAgentModal = (agent: SubAgent) => {
     setSelectedAgent(agent);
@@ -113,8 +116,7 @@ export default function Analytics() {
   };
 
   const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    toast.success(msg, 'Operations Updated');
   };
 
   const toggleAgentStatus = (id: string) => {
@@ -133,13 +135,6 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Toast */}
-      {toastMessage && (
-        <div className="fixed bottom-20 md:bottom-6 right-4 left-4 sm:left-auto sm:right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl border border-slate-700 text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
-          <Zap className="w-4 h-4 text-amber-400 shrink-0" />
-          <span className="truncate">{toastMessage}</span>
-        </div>
-      )}
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -210,10 +205,13 @@ export default function Analytics() {
 
       {/* Agents Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {agents.map((agent) => (
-          <div 
+        {agents.map((agent, idx) => (
+          <motion.div 
             key={agent.id}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs flex flex-col justify-between"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, delay: idx * 0.03, ease: ADMIN_EASE }}
+            className="tiqsey-admin-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs flex flex-col justify-between"
           >
             <div>
               <div className="flex justify-between items-start mb-3">
@@ -226,13 +224,7 @@ export default function Analytics() {
                     <p className="text-[11px] text-slate-400">Uptime: {agent.uptime}</p>
                   </div>
                 </div>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                  agent.status === 'Active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
-                  agent.status === 'Training' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' :
-                  'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
-                }`}>
-                  {agent.status}
-                </span>
+                <AdminStatusBadge status={agent.status} label={agent.status} />
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-4 line-clamp-2 leading-relaxed">
@@ -275,14 +267,29 @@ export default function Analytics() {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
       {/* Agent Details / Configuration Modal */}
+      <AnimatePresence>
       {selectedAgent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl space-y-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.16 }}
+          onClick={() => setSelectedAgent(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 6 }}
+            transition={{ duration: 0.2, ease: ADMIN_EASE }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 shadow-2xl space-y-4"
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <BrainCircuit className="w-5 h-5 text-blue-600" />
@@ -360,9 +367,10 @@ export default function Analytics() {
                 Save Settings
               </button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
