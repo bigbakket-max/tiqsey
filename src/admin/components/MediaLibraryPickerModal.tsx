@@ -211,7 +211,7 @@ export const MediaLibraryPickerModal: React.FC<MediaLibraryPickerModalProps> = (
                 >
                   All Buckets
                 </button>
-                {SUPABASE_STORAGE_BUCKET_LIST.map((b) => {
+                {(buckets.length > 0 ? buckets : SUPABASE_STORAGE_BUCKET_LIST).map((b) => {
                   const live = buckets.find((x) => x.id === b.id);
                   return (
                     <button

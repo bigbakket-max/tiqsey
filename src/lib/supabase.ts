@@ -9,7 +9,7 @@ export const SUPABASE_ANON_KEY = (
 ).trim();
 export const SUPABASE_STORAGE_BUCKET = (import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || 'media').trim() || 'media';
 
-export type SupabaseBucketId =
+export type BuiltInSupabaseBucketId =
   | 'media'
   | 'admin-media'
   | 'blog'
@@ -17,6 +17,8 @@ export type SupabaseBucketId =
   | 'avatars'
   | 'cities'
   | 'attraction-photos';
+
+export type SupabaseBucketId = string;
 
 export interface SupabaseBucketConfig {
   id: SupabaseBucketId;
@@ -27,9 +29,23 @@ export interface SupabaseBucketConfig {
   allowedMimeTypes: string[];
   public: boolean;
   defaultFolder: string;
+  isCustom?: boolean;
 }
 
-export const SUPABASE_STORAGE_BUCKETS: Record<SupabaseBucketId, SupabaseBucketConfig> = {
+export const SAFE_STORAGE_MIME_TYPES: string[] = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+  'image/gif',
+  'image/svg+xml',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+  'application/pdf',
+];
+
+export const SUPABASE_STORAGE_BUCKETS: Record<BuiltInSupabaseBucketId, SupabaseBucketConfig> = {
   media: {
     id: 'media',
     label: 'Media',
@@ -124,15 +140,125 @@ export const SUPABASE_STORAGE_BUCKETS: Record<SupabaseBucketId, SupabaseBucketCo
 
 export const SUPABASE_STORAGE_BUCKET_LIST: SupabaseBucketConfig[] = Object.values(SUPABASE_STORAGE_BUCKETS);
 
-export function isValidSupabaseBucket(value: string): value is SupabaseBucketId {
+const CUSTOM_BUCKETS_STORAGE_KEY = 'tiqsey_custom_supabase_buckets';
+const BUCKET_NAME_REGEX = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+export function normalizeBucketName(raw: string): string {
+  return (raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 63);
+}
+
+export function isValidBucketName(value: string): boolean {
+  return typeof value === 'string' && value.length >= 2 && value.length <= 63 && BUCKET_NAME_REGEX.test(value);
+}
+
+export function isBuiltInSupabaseBucket(value: string): value is BuiltInSupabaseBucketId {
   return Object.prototype.hasOwnProperty.call(SUPABASE_STORAGE_BUCKETS, value);
 }
 
+export function isValidSupabaseBucket(value: string): value is SupabaseBucketId {
+  return isBuiltInSupabaseBucket(value) || isValidBucketName(value);
+}
+
+export function formatBucketLabel(id: string): string {
+  return id
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ') || id;
+}
+
+export function formatBucketSizeLabel(bytes: number): string {
+  if (!bytes || bytes <= 0) return '50 MB';
+  const mb = Math.round((bytes / (1024 * 1024)) * 10) / 10;
+  return `${mb} MB`;
+}
+
+export function getStoredCustomBuckets(): SupabaseBucketConfig[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(CUSTOM_BUCKETS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item: any) => item && typeof item.id === 'string' && isValidBucketName(item.id) && !isBuiltInSupabaseBucket(item.id))
+      .map((item: any) => {
+        const maxSizeBytes = Math.min(50 * 1024 * 1024, Math.max(1024 * 1024, Number(item.maxSizeBytes || item.fileSizeLimit || 50 * 1024 * 1024)));
+        const allowedMimeTypes = Array.isArray(item.allowedMimeTypes) && item.allowedMimeTypes.length > 0
+          ? item.allowedMimeTypes.filter((m: unknown) => typeof m === 'string' && SAFE_STORAGE_MIME_TYPES.includes(m))
+          : [...SAFE_STORAGE_MIME_TYPES];
+        return {
+          id: item.id,
+          label: typeof item.label === 'string' && item.label.trim() ? item.label.trim() : formatBucketLabel(item.id),
+          description: typeof item.description === 'string' && item.description.trim() ? item.description.trim() : `Custom storage bucket (${item.id})`,
+          maxSizeBytes,
+          maxSizeLabel: formatBucketSizeLabel(maxSizeBytes),
+          allowedMimeTypes: allowedMimeTypes.length > 0 ? allowedMimeTypes : [...SAFE_STORAGE_MIME_TYPES],
+          public: item.public !== false,
+          defaultFolder: typeof item.defaultFolder === 'string' && item.defaultFolder.trim() ? item.defaultFolder.trim() : 'uploads',
+          isCustom: true,
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
+export function saveStoredCustomBucket(config: SupabaseBucketConfig): void {
+  if (typeof window === 'undefined') return;
+  if (!isValidBucketName(config.id) || isBuiltInSupabaseBucket(config.id)) return;
+  try {
+    const existing = getStoredCustomBuckets().filter((b) => b.id !== config.id);
+    const next = [...existing, { ...config, isCustom: true }];
+    localStorage.setItem(CUSTOM_BUCKETS_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Ignore storage quota/privacy mode errors
+  }
+}
+
+export function buildCustomBucketConfig(
+  id: string,
+  overrides?: Partial<Pick<SupabaseBucketConfig, 'label' | 'description' | 'maxSizeBytes' | 'allowedMimeTypes' | 'public' | 'defaultFolder'>>
+): SupabaseBucketConfig {
+  const maxSizeBytes = Math.min(
+    50 * 1024 * 1024,
+    Math.max(1024 * 1024, Number(overrides?.maxSizeBytes || 50 * 1024 * 1024))
+  );
+  const allowedMimeTypes =
+    Array.isArray(overrides?.allowedMimeTypes) && overrides.allowedMimeTypes.length > 0
+      ? overrides.allowedMimeTypes.filter((m) => SAFE_STORAGE_MIME_TYPES.includes(m))
+      : [...SAFE_STORAGE_MIME_TYPES];
+
+  return {
+    id,
+    label: overrides?.label?.trim() || formatBucketLabel(id),
+    description: overrides?.description?.trim() || `Custom Supabase Storage bucket (${id})`,
+    maxSizeBytes,
+    maxSizeLabel: formatBucketSizeLabel(maxSizeBytes),
+    allowedMimeTypes: allowedMimeTypes.length > 0 ? allowedMimeTypes : [...SAFE_STORAGE_MIME_TYPES],
+    public: overrides?.public !== false,
+    defaultFolder: overrides?.defaultFolder?.trim() || 'uploads',
+    isCustom: true,
+  };
+}
+
 export function getBucketConfig(bucket?: string): SupabaseBucketConfig {
-  if (bucket && isValidSupabaseBucket(bucket)) {
+  if (bucket && isBuiltInSupabaseBucket(bucket)) {
     return SUPABASE_STORAGE_BUCKETS[bucket];
   }
-  if (isValidSupabaseBucket(SUPABASE_STORAGE_BUCKET)) {
+  if (bucket && isValidBucketName(bucket)) {
+    const stored = getStoredCustomBuckets().find((b) => b.id === bucket);
+    if (stored) return stored;
+    return buildCustomBucketConfig(bucket);
+  }
+  if (isBuiltInSupabaseBucket(SUPABASE_STORAGE_BUCKET)) {
     return SUPABASE_STORAGE_BUCKETS[SUPABASE_STORAGE_BUCKET];
   }
   return SUPABASE_STORAGE_BUCKETS.media;
@@ -213,7 +339,7 @@ export async function uploadDataUrlToSupabaseStorage(
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    const activeConfig = SUPABASE_STORAGE_BUCKETS[targetBucket];
+    const activeConfig = getBucketConfig(targetBucket);
     if (bytes.length > activeConfig.maxSizeBytes) {
       console.warn(`[Supabase Storage Client Upload Warning]: File exceeds ${activeConfig.maxSizeLabel} limit for bucket "${targetBucket}"`);
       return null;
@@ -548,6 +674,229 @@ export interface SupabaseStorageConnectionReport {
   error?: string;
 }
 
+export async function listSupabaseBucketsDirect(): Promise<SupabaseBucketConfig[]> {
+  const merged = new Map<string, SupabaseBucketConfig>();
+  for (const b of SUPABASE_STORAGE_BUCKET_LIST) {
+    merged.set(b.id, b);
+  }
+  for (const stored of getStoredCustomBuckets()) {
+    if (!merged.has(stored.id)) {
+      merged.set(stored.id, stored);
+    }
+  }
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase.storage.listBuckets();
+      if (!error && Array.isArray(data)) {
+        for (const remote of data as any[]) {
+          const id = String(remote?.name || remote?.id || '').trim();
+          if (!id || !isValidBucketName(id)) continue;
+          const existing = merged.get(id);
+          if (existing) {
+            merged.set(id, {
+              ...existing,
+              public: typeof remote.public === 'boolean' ? remote.public : existing.public,
+              maxSizeBytes: Number(remote.file_size_limit) > 0 ? Number(remote.file_size_limit) : existing.maxSizeBytes,
+              maxSizeLabel: formatBucketSizeLabel(
+                Number(remote.file_size_limit) > 0 ? Number(remote.file_size_limit) : existing.maxSizeBytes
+              ),
+              allowedMimeTypes:
+                Array.isArray(remote.allowed_mime_types) && remote.allowed_mime_types.length > 0
+                  ? remote.allowed_mime_types
+                  : existing.allowedMimeTypes,
+            });
+          } else {
+            const custom = buildCustomBucketConfig(id, {
+              public: remote.public !== false,
+              maxSizeBytes: Number(remote.file_size_limit) || 50 * 1024 * 1024,
+              allowedMimeTypes:
+                Array.isArray(remote.allowed_mime_types) && remote.allowed_mime_types.length > 0
+                  ? remote.allowed_mime_types
+                  : undefined,
+            });
+            merged.set(id, custom);
+            saveStoredCustomBucket(custom);
+          }
+        }
+      }
+    } catch {
+      // Ignore if anon key lacks SELECT policy on storage.buckets; stored custom buckets + built-ins still work
+    }
+  }
+
+  return Array.from(merged.values());
+}
+
+export interface CreateSupabaseBucketParams {
+  id: string;
+  public?: boolean;
+  fileSizeLimit?: number;
+  allowedMimeTypes?: string[];
+  description?: string;
+}
+
+export function buildCreateBucketSql(params: {
+  id: string;
+  public: boolean;
+  fileSizeLimit: number;
+  allowedMimeTypes: string[];
+}): string {
+  const safeId = normalizeBucketName(params.id);
+  const safePublic = params.public ? 'true' : 'false';
+  const safeLimit = Math.min(50 * 1024 * 1024, Math.max(1024 * 1024, Math.round(params.fileSizeLimit || 50 * 1024 * 1024)));
+  const safeMimes = (params.allowedMimeTypes || SAFE_STORAGE_MIME_TYPES).filter((m) =>
+    SAFE_STORAGE_MIME_TYPES.includes(m)
+  );
+  const mimeArrayLiteral =
+    safeMimes.length > 0
+      ? `array[${safeMimes.map((m) => `'${m}'`).join(', ')}]`
+      : 'null';
+
+  return `-- Create bucket "${safeId}" and enable Storage policies for Tiqsey Admin Panel
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('${safeId}', '${safeId}', ${safePublic}, ${safeLimit}, ${mimeArrayLiteral})
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+-- Allow reading, uploading, updating, and deleting files in "${safeId}"
+drop policy if exists "Tiqsey bucket ${safeId} read" on storage.objects;
+drop policy if exists "Tiqsey bucket ${safeId} insert" on storage.objects;
+drop policy if exists "Tiqsey bucket ${safeId} update" on storage.objects;
+drop policy if exists "Tiqsey bucket ${safeId} delete" on storage.objects;
+
+create policy "Tiqsey bucket ${safeId} read" on storage.objects
+  for select to anon, authenticated
+  using (bucket_id = '${safeId}');
+
+create policy "Tiqsey bucket ${safeId} insert" on storage.objects
+  for insert to anon, authenticated
+  with check (bucket_id = '${safeId}');
+
+create policy "Tiqsey bucket ${safeId} update" on storage.objects
+  for update to anon, authenticated
+  using (bucket_id = '${safeId}')
+  with check (bucket_id = '${safeId}');
+
+create policy "Tiqsey bucket ${safeId} delete" on storage.objects
+  for delete to anon, authenticated
+  using (bucket_id = '${safeId}');`;
+}
+
+export async function verifySupabaseBucketDirect(
+  bucketId: string
+): Promise<{ exists: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { exists: false, error: 'Supabase is not configured in browser environment.' };
+  }
+  const safeId = normalizeBucketName(bucketId);
+  if (!isValidBucketName(safeId)) {
+    return { exists: false, error: 'Invalid bucket name.' };
+  }
+  try {
+    const { error } = await supabase.storage.from(safeId).list('', { limit: 1 });
+    if (error) {
+      return { exists: false, error: error.message };
+    }
+    return { exists: true };
+  } catch (err: any) {
+    return { exists: false, error: err?.message || 'Could not verify bucket.' };
+  }
+}
+
+export async function createSupabaseBucketDirect(
+  params: CreateSupabaseBucketParams
+): Promise<{
+  ok: boolean;
+  bucket?: SupabaseBucketConfig;
+  error?: string;
+  rlsBlocked?: boolean;
+  sqlFix?: string;
+  alreadyExists?: boolean;
+}> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, error: 'Supabase is not configured in browser environment.' };
+  }
+
+  const safeId = normalizeBucketName(params.id);
+  if (!isValidBucketName(safeId)) {
+    return {
+      ok: false,
+      error: 'Bucket name must be 2–63 characters using lowercase letters, numbers, and hyphens only.',
+    };
+  }
+
+  const isPublic = params.public !== false;
+  const fileSizeLimit = Math.min(
+    50 * 1024 * 1024,
+    Math.max(1024 * 1024, Number(params.fileSizeLimit || 50 * 1024 * 1024))
+  );
+  const allowedMimeTypes =
+    Array.isArray(params.allowedMimeTypes) && params.allowedMimeTypes.length > 0
+      ? params.allowedMimeTypes.filter((m) => SAFE_STORAGE_MIME_TYPES.includes(m))
+      : [...SAFE_STORAGE_MIME_TYPES];
+
+  const config = buildCustomBucketConfig(safeId, {
+    public: isPublic,
+    maxSizeBytes: fileSizeLimit,
+    allowedMimeTypes,
+    description: params.description,
+  });
+
+  const sqlFix = buildCreateBucketSql({
+    id: safeId,
+    public: isPublic,
+    fileSizeLimit,
+    allowedMimeTypes,
+  });
+
+  try {
+    let { error } = await supabase.storage.createBucket(safeId, {
+      public: isPublic,
+      fileSizeLimit,
+      allowedMimeTypes,
+    });
+
+    if (error && /mime/i.test(error.message || '') && allowedMimeTypes.includes('image/svg+xml')) {
+      const fallbackMimes = allowedMimeTypes.filter((m) => m !== 'image/svg+xml');
+      ({ error } = await supabase.storage.createBucket(safeId, {
+        public: isPublic,
+        fileSizeLimit,
+        allowedMimeTypes: fallbackMimes,
+      }));
+      if (!error) {
+        config.allowedMimeTypes = fallbackMimes;
+      }
+    }
+
+    if (error) {
+      const msg = error.message || 'Failed to create bucket in Supabase Storage.';
+      if (/already exists|duplicate/i.test(msg)) {
+        saveStoredCustomBucket(config);
+        return { ok: false, alreadyExists: true, error: `Bucket "${safeId}" already exists in Supabase Storage.` };
+      }
+      const rlsBlocked = /row-level security|policy|permission|unauthorized|forbidden|not allowed|must be owner/i.test(msg);
+      if (rlsBlocked) {
+        return {
+          ok: false,
+          rlsBlocked: true,
+          error: `Direct browser bucket creation is protected by Supabase Storage RLS. Run the 1-click SQL snippet in Supabase SQL Editor to create "${safeId}".`,
+          sqlFix,
+        };
+      }
+      return { ok: false, error: msg, sqlFix };
+    }
+
+    saveStoredCustomBucket(config);
+    return { ok: true, bucket: config };
+  } catch (err: any) {
+    const msg = err?.message || 'Failed to create bucket in Supabase Storage.';
+    return { ok: false, error: msg, sqlFix };
+  }
+}
+
 export async function testSupabaseStorageConnectionDirect(): Promise<SupabaseStorageConnectionReport> {
   const startedAt = Date.now();
   const projectId = SUPABASE_PROJECT_ID || null;
@@ -555,6 +904,8 @@ export async function testSupabaseStorageConnectionDirect(): Promise<SupabaseSto
   const dashboardUrl = projectId
     ? `https://supabase.com/dashboard/project/${projectId}/storage/files`
     : null;
+
+  const targetBuckets = await listSupabaseBucketsDirect();
 
   if (!isSupabaseConfigured || !supabase) {
     return {
@@ -564,15 +915,15 @@ export async function testSupabaseStorageConnectionDirect(): Promise<SupabaseSto
       dashboardUrl,
       latencyMs: Date.now() - startedAt,
       verifiedBuckets: 0,
-      totalBuckets: SUPABASE_STORAGE_BUCKET_LIST.length,
-      missingBuckets: SUPABASE_STORAGE_BUCKET_LIST.map((b) => b.id),
+      totalBuckets: targetBuckets.length,
+      missingBuckets: targetBuckets.map((b) => b.id),
       checkedAt: new Date().toISOString(),
       error: 'VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are not configured.',
     };
   }
 
   const probes = await Promise.all(
-    SUPABASE_STORAGE_BUCKET_LIST.map(async (b) => {
+    targetBuckets.map(async (b) => {
       try {
         const { error } = await supabase.storage.from(b.id).list('', { limit: 1 });
         return { id: b.id, ok: !error, error: error?.message };
@@ -593,11 +944,9 @@ export async function testSupabaseStorageConnectionDirect(): Promise<SupabaseSto
     dashboardUrl,
     latencyMs: Date.now() - startedAt,
     verifiedBuckets,
-    totalBuckets: SUPABASE_STORAGE_BUCKET_LIST.length,
+    totalBuckets: targetBuckets.length,
     missingBuckets,
     checkedAt: new Date().toISOString(),
     error: verifiedBuckets === 0 ? firstError || 'Unable to reach Supabase Storage buckets.' : undefined,
   };
 }
-
-

@@ -32,12 +32,18 @@ import {
   Play,
   Database,
   HardDrive,
+  Plus,
+  Globe,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import type { MediaAssetItem, MediaCategory, MediaFolderItem, MediaUsageRef } from '../../types';
 import {
   SUPABASE_STORAGE_BUCKET_LIST,
+  SAFE_STORAGE_MIME_TYPES,
   getBucketConfig,
+  normalizeBucketName,
+  isValidBucketName,
   type SupabaseBucketId,
   type SupabaseStorageConnectionReport,
 } from '../../lib/supabase';
@@ -47,6 +53,8 @@ import {
   checkDuplicateMedia,
   computeFileSha256,
   uploadMediaChunked,
+  createStorageBucket,
+  verifyAndRegisterCustomBucket,
   createStorageFolder,
   renameStorageFolder,
   deleteStorageFolder,
@@ -240,6 +248,21 @@ export default function StorageManager() {
   const [savingFolder, setSavingFolder] = useState<boolean>(false);
   const [renameFolderTarget, setRenameFolderTarget] = useState<MediaFolderItem | null>(null);
   const [renameFolderValue, setRenameFolderValue] = useState<string>('');
+
+  // Create New Bucket modal state
+  const [createBucketOpen, setCreateBucketOpen] = useState<boolean>(false);
+  const [newBucketName, setNewBucketName] = useState<string>('');
+  const [newBucketPublic, setNewBucketPublic] = useState<boolean>(true);
+  const [newBucketLimitMb, setNewBucketLimitMb] = useState<number>(50);
+  const [newBucketMimePreset, setNewBucketMimePreset] = useState<'all' | 'images' | 'videos' | 'docs'>('all');
+  const [creatingBucket, setCreatingBucket] = useState<boolean>(false);
+  const [createBucketError, setCreateBucketError] = useState<string | null>(null);
+  const [createBucketRlsHelper, setCreateBucketRlsHelper] = useState<{
+    bucketId: string;
+    sql: string;
+    copied: boolean;
+    verifying: boolean;
+  } | null>(null);
 
   // Download progress state per file id (prevents duplicate clicks while processing)
   const [downloadingMap, setDownloadingMap] = useState<Record<string, number>>({});
@@ -930,6 +953,150 @@ export default function StorageManager() {
     }
   };
 
+  // Create New Bucket helpers & submit
+  const getMimeTypesForPreset = (preset: 'all' | 'images' | 'videos' | 'docs'): string[] => {
+    switch (preset) {
+      case 'images':
+        return ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif', 'image/svg+xml'];
+      case 'videos':
+        return ['video/mp4', 'video/webm', 'video/quicktime'];
+      case 'docs':
+        return ['application/pdf'];
+      case 'all':
+      default:
+        return [...SAFE_STORAGE_MIME_TYPES];
+    }
+  };
+
+  const openCreateBucketModal = () => {
+    setNewBucketName('');
+    setNewBucketPublic(true);
+    setNewBucketLimitMb(50);
+    setNewBucketMimePreset('all');
+    setCreateBucketError(null);
+    setCreateBucketRlsHelper(null);
+    setCreateBucketOpen(true);
+  };
+
+  const handleCreateBucketSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (creatingBucket) return;
+
+    const normalizedId = normalizeBucketName(newBucketName);
+    if (!isValidBucketName(normalizedId)) {
+      setCreateBucketError(
+        'Bucket name must be 2–63 characters using lowercase letters, numbers, and hyphens only.'
+      );
+      return;
+    }
+
+    const allowedMimeTypes = getMimeTypesForPreset(newBucketMimePreset);
+    const fileSizeLimit = newBucketLimitMb * 1024 * 1024;
+
+    setCreatingBucket(true);
+    setCreateBucketError(null);
+    setCreateBucketRlsHelper(null);
+
+    try {
+      const result = await createStorageBucket(adminEmail, {
+        id: normalizedId,
+        public: newBucketPublic,
+        fileSizeLimit,
+        allowedMimeTypes,
+      });
+
+      if (result.ok && result.bucket) {
+        const createdBucket = result.bucket;
+        setLibrary((prev) => {
+          if (!prev) return prev;
+          const exists = prev.buckets.some((b) => b.id === createdBucket.id);
+          return {
+            ...prev,
+            buckets: exists
+              ? prev.buckets.map((b) => (b.id === createdBucket.id ? createdBucket : b))
+              : [...prev.buckets, createdBucket],
+          };
+        });
+        setSelectedBucket(createdBucket.id);
+        setCurrentFolder('');
+        setNewFolderBucket(createdBucket.id);
+        setCreateBucketOpen(false);
+        setNewBucketName('');
+        showToast('success', `Created Supabase Storage bucket "${createdBucket.id}".`);
+        await loadLibrary(true);
+        return;
+      }
+
+      if (result.rlsBlocked && result.sqlFix) {
+        setCreateBucketRlsHelper({
+          bucketId: normalizedId,
+          sql: result.sqlFix,
+          copied: false,
+          verifying: false,
+        });
+        setCreateBucketError(null);
+        return;
+      }
+
+      if (result.alreadyExists) {
+        setCreateBucketError(result.error || `Bucket "${normalizedId}" already exists.`);
+        await loadLibrary(true);
+        return;
+      }
+
+      setCreateBucketError(result.error || 'Failed to create bucket.');
+    } catch (err: any) {
+      setCreateBucketError(err?.message || 'Failed to create bucket.');
+    } finally {
+      setCreatingBucket(false);
+    }
+  };
+
+  const handleVerifyBucketAfterSql = async () => {
+    if (!createBucketRlsHelper || createBucketRlsHelper.verifying) return;
+    setCreateBucketRlsHelper((prev) => (prev ? { ...prev, verifying: true } : null));
+    setCreateBucketError(null);
+
+    try {
+      const result = await verifyAndRegisterCustomBucket(adminEmail, {
+        id: createBucketRlsHelper.bucketId,
+        public: newBucketPublic,
+        fileSizeLimit: newBucketLimitMb * 1024 * 1024,
+        allowedMimeTypes: getMimeTypesForPreset(newBucketMimePreset),
+      });
+
+      if (result.ok && result.bucket) {
+        const verified = result.bucket;
+        setLibrary((prev) => {
+          if (!prev) return prev;
+          const exists = prev.buckets.some((b) => b.id === verified.id);
+          return {
+            ...prev,
+            buckets: exists
+              ? prev.buckets.map((b) => (b.id === verified.id ? verified : b))
+              : [...prev.buckets, verified],
+          };
+        });
+        setSelectedBucket(verified.id);
+        setCurrentFolder('');
+        setNewFolderBucket(verified.id);
+        setCreateBucketOpen(false);
+        setCreateBucketRlsHelper(null);
+        setNewBucketName('');
+        showToast('success', `Bucket "${verified.id}" verified and added to Tiqsey Media Storage.`);
+        await loadLibrary(true);
+      } else {
+        setCreateBucketError(
+          result.error || `Could not verify "${createBucketRlsHelper.bucketId}" yet. Run the SQL in Supabase first.`
+        );
+        setCreateBucketRlsHelper((prev) => (prev ? { ...prev, verifying: false } : null));
+      }
+    } catch (err: any) {
+      setCreateBucketError(err?.message || 'Verification failed.');
+      setCreateBucketRlsHelper((prev) => (prev ? { ...prev, verifying: false } : null));
+    }
+  };
+
   const handleDownload = async (file: MediaAssetItem) => {
     // Prevent duplicate download clicks while this file is already downloading
     if (downloadingMap[file.id] !== undefined) return;
@@ -993,8 +1160,50 @@ export default function StorageManager() {
   };
   const isConnected = Boolean(library?.connected);
   const usagePercent = Math.min(100, summary.quotaBytes > 0 ? (summary.totalBytes / summary.quotaBytes) * 100 : 0);
+  const displayBuckets = useMemo(() => {
+    const merged = new Map<
+      string,
+      {
+        id: SupabaseBucketId;
+        label: string;
+        description: string;
+        maxSizeLabel: string;
+        fileCount: number;
+        existsInSupabase: boolean;
+        public: boolean;
+        isCustom?: boolean;
+      }
+    >();
+    for (const b of SUPABASE_STORAGE_BUCKET_LIST) {
+      merged.set(b.id, {
+        id: b.id,
+        label: b.label,
+        description: b.description,
+        maxSizeLabel: b.maxSizeLabel,
+        fileCount: 0,
+        existsInSupabase: false,
+        public: b.public,
+        isCustom: false,
+      });
+    }
+    for (const live of buckets) {
+      const existing = merged.get(live.id);
+      merged.set(live.id, {
+        id: live.id,
+        label: live.label || existing?.label || live.id,
+        description: live.description || existing?.description || `Storage bucket (${live.id})`,
+        maxSizeLabel: live.maxSizeLabel || existing?.maxSizeLabel || '50 MB',
+        fileCount: live.fileCount ?? 0,
+        existsInSupabase: Boolean(live.existsInSupabase),
+        public: live.public !== false,
+        isCustom: live.isCustom ?? !existing,
+      });
+    }
+    return Array.from(merged.values());
+  }, [buckets]);
   const activeBucketConfig = selectedBucket === 'all' ? null : getBucketConfig(selectedBucket);
-  const verifiedBucketsCount = buckets.filter((b) => b.existsInSupabase).length;
+  const verifiedBucketsCount = displayBuckets.filter((b) => b.existsInSupabase).length;
+  const normalizedPreviewBucketId = normalizeBucketName(newBucketName);
 
   return (
     <div className="max-w-6xl mx-auto pb-10 space-y-5">
@@ -1112,7 +1321,7 @@ export default function StorageManager() {
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {library?.projectId ? `Supabase Project ${library.projectId}` : 'Supabase Storage'} ·{' '}
-                {verifiedBucketsCount}/{SUPABASE_STORAGE_BUCKET_LIST.length} buckets active
+                {verifiedBucketsCount}/{displayBuckets.length} buckets active
                 {library?.mode === 'server'
                   ? ' · Live Server API'
                   : library?.mode === 'supabase-direct'
@@ -1301,41 +1510,54 @@ export default function StorageManager() {
             </div>
           </div>
 
-          {/* Quick Bucket Switcher Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-            <button
-              type="button"
-              onClick={() => handleSelectBucket('all')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-colors flex items-center gap-1.5 ${
-                selectedBucket === 'all'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
-                  : 'bg-slate-100/80 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800'
-              }`}
-            >
-              <span>All Buckets</span>
-              <span className="opacity-75 tabular-nums">{summary.totalFiles}</span>
-            </button>
+          {/* Quick Bucket Switcher Tabs + New Bucket Action */}
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-1 min-w-0">
+              <button
+                type="button"
+                onClick={() => handleSelectBucket('all')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-colors flex items-center gap-1.5 ${
+                  selectedBucket === 'all'
+                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
+                    : 'bg-slate-100/80 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+                }`}
+              >
+                <span>All Buckets</span>
+                <span className="opacity-75 tabular-nums">{summary.totalFiles}</span>
+              </button>
 
-            {SUPABASE_STORAGE_BUCKET_LIST.map((b) => {
-              const live = buckets.find((x) => x.id === b.id);
-              const isActive = selectedBucket === b.id;
-              return (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => handleSelectBucket(b.id)}
-                  title={`${b.description} (Max ${b.maxSizeLabel})`}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 transition-colors flex items-center gap-1.5 ${
-                    isActive
-                      ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
-                      : 'bg-slate-100/80 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <span>{b.id}</span>
-                  <span className="opacity-70 tabular-nums">{live?.fileCount ?? 0}</span>
-                </button>
-              );
-            })}
+              {displayBuckets.map((b) => {
+                const isActive = selectedBucket === b.id;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => handleSelectBucket(b.id)}
+                    title={`${b.description} (Max ${b.maxSizeLabel})`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 transition-colors flex items-center gap-1.5 ${
+                      isActive
+                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
+                        : 'bg-slate-100/80 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>{b.id}</span>
+                    {!b.public && <Lock className="w-3 h-3 opacity-65" />}
+                    <span className="opacity-70 tabular-nums">{b.fileCount}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={openCreateBucketModal}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors whitespace-nowrap shrink-0 mb-1"
+            >
+              <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+              <span>New bucket</span>
+            </motion.button>
           </div>
 
           {/* Media Library Header + Filter Chips + Sort + View Toggle */}
@@ -2565,7 +2787,7 @@ export default function StorageManager() {
                     onChange={(e) => setNewFolderBucket(e.target.value as SupabaseBucketId)}
                     className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                   >
-                    {SUPABASE_STORAGE_BUCKET_LIST.map((b) => (
+                    {displayBuckets.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.id} — {b.label}
                       </option>
@@ -2787,6 +3009,288 @@ export default function StorageManager() {
                   </button>
                 </div>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Create New Supabase Storage Bucket Modal */}
+      <AnimatePresence>
+        {createBucketOpen && (
+          <motion.div
+            key="create-bucket-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/65 backdrop-blur-xs p-4"
+            onClick={() => !creatingBucket && !createBucketRlsHelper?.verifying && setCreateBucketOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: 8 }}
+              transition={{ duration: 0.2, ease: ADMIN_EASE }}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full ${
+                createBucketRlsHelper ? 'max-w-2xl' : 'max-w-md'
+              } bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden`}
+            >
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/70 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Database className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      {createBucketRlsHelper ? `Create Bucket "${createBucketRlsHelper.bucketId}" in Supabase` : 'Create Storage Bucket'}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {createBucketRlsHelper
+                        ? 'Run this 1-click SQL snippet once in Supabase SQL Editor, then verify'
+                        : 'Add a new Supabase Storage bucket to organize and host Tiqsey media'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={creatingBucket || Boolean(createBucketRlsHelper?.verifying)}
+                  onClick={() => setCreateBucketOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                  aria-label="Close create bucket modal"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {createBucketRlsHelper ? (
+                <div className="p-6 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                      <div className="font-bold text-slate-900 dark:text-white">1. Copy SQL</div>
+                      <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                        Copies bucket + storage policies for <span className="font-mono">{createBucketRlsHelper.bucketId}</span>.
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                      <div className="font-bold text-slate-900 dark:text-white">2. Run in Supabase</div>
+                      <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                        Paste into Supabase SQL Editor and click <strong>Run</strong>.
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                      <div className="font-bold text-slate-900 dark:text-white">3. Verify & Add</div>
+                      <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+                        Return here and click <strong>Verify & Add Bucket</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto max-h-56 leading-relaxed border border-slate-800">
+                    {createBucketRlsHelper.sql}
+                  </pre>
+
+                  {createBucketError && (
+                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{createBucketError}</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          copyText(createBucketRlsHelper.sql, 'create-bucket-sql', 'Bucket SQL');
+                          setCreateBucketRlsHelper((prev) => (prev ? { ...prev, copied: true } : null));
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-950 hover:opacity-90"
+                      >
+                        {createBucketRlsHelper.copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{createBucketRlsHelper.copied ? 'SQL Copied!' : '1. Copy Bucket SQL'}</span>
+                      </button>
+                      <a
+                        href={`https://supabase.com/dashboard/project/${library?.projectId || 'lzjjwsvalvfkgwtzuime'}/sql/new`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700"
+                      >
+                        <span>2. Open SQL Editor</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={createBucketRlsHelper.verifying}
+                        onClick={() => {
+                          setCreateBucketRlsHelper(null);
+                          setCreateBucketError(null);
+                        }}
+                        className="px-3 py-2 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="button"
+                        disabled={createBucketRlsHelper.verifying}
+                        onClick={handleVerifyBucketAfterSql}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+                      >
+                        {createBucketRlsHelper.verifying ? (
+                          <DiamondDotsSpinner size="xs" tone="white" label="Verifying bucket" />
+                        ) : (
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        )}
+                        <span>{createBucketRlsHelper.verifying ? 'Verifying...' : '3. Verify & Add Bucket'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleCreateBucketSubmit} className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                      Bucket name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      autoFocus
+                      value={newBucketName}
+                      onChange={(e) => {
+                        setNewBucketName(e.target.value);
+                        if (createBucketError) setCreateBucketError(null);
+                      }}
+                      placeholder="e.g. tour-videos or hotel-galleries"
+                      className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+                    />
+                    <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                      <span>Lowercase letters, numbers, and hyphens (2–63 chars)</span>
+                      {newBucketName.trim() && (
+                        <span
+                          className={`font-mono font-semibold ${
+                            isValidBucketName(normalizedPreviewBucketId)
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-rose-500'
+                          }`}
+                        >
+                          {normalizedPreviewBucketId || 'invalid'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Public / Private Bucket Toggle */}
+                  <div className="flex items-start justify-between gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800">
+                    <div className="flex items-start gap-2.5">
+                      {newBucketPublic ? (
+                        <Globe className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                      ) : (
+                        <Lock className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                      )}
+                      <div>
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">Public bucket</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          {newBucketPublic
+                            ? 'Anyone can view uploaded files via direct public URLs (recommended for website media).'
+                            : 'Files require signed URLs or authenticated access to view.'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={newBucketPublic}
+                      onClick={() => setNewBucketPublic((v) => !v)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                        newBucketPublic ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition-transform ${
+                          newBucketPublic ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* File Size Limit & Allowed File Types */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                        Max file size
+                      </label>
+                      <select
+                        value={newBucketLimitMb}
+                        onChange={(e) => setNewBucketLimitMb(Number(e.target.value))}
+                        className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      >
+                        <option value={5}>5 MB</option>
+                        <option value={10}>10 MB</option>
+                        <option value={25}>25 MB</option>
+                        <option value={50}>50 MB (Default)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                        Allowed file types
+                      </label>
+                      <select
+                        value={newBucketMimePreset}
+                        onChange={(e) => setNewBucketMimePreset(e.target.value as 'all' | 'images' | 'videos' | 'docs')}
+                        className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      >
+                        <option value="all">All Media (Images, Videos, PDF)</option>
+                        <option value="images">Images Only</option>
+                        <option value="videos">Videos Only</option>
+                        <option value="docs">Documents (PDF)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {createBucketError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2"
+                    >
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{createBucketError}</span>
+                    </motion.div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      disabled={creatingBucket}
+                      onClick={() => setCreateBucketOpen(false)}
+                      className="px-4 py-2 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={creatingBucket || !isValidBucketName(normalizedPreviewBucketId)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {creatingBucket ? (
+                        <>
+                          <DiamondDotsSpinner size="xs" tone="white" label="Creating bucket" />
+                          <span>Creating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Create bucket</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
             </motion.div>
           </motion.div>
         )}

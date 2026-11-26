@@ -37,7 +37,7 @@ function getSupabaseKey(): string {
   ).trim();
 }
 
-type SupabaseBucketId =
+type BuiltInSupabaseBucketId =
   | 'media'
   | 'admin-media'
   | 'blog'
@@ -45,6 +45,8 @@ type SupabaseBucketId =
   | 'avatars'
   | 'cities'
   | 'attraction-photos';
+
+type SupabaseBucketId = string;
 
 interface SupabaseBucketSpec {
   id: SupabaseBucketId;
@@ -55,9 +57,23 @@ interface SupabaseBucketSpec {
   maxSizeLabel: string;
   allowedMimeTypes: string[];
   defaultFolder: string;
+  isCustom?: boolean;
 }
 
-const SUPABASE_STORAGE_BUCKETS: Record<SupabaseBucketId, SupabaseBucketSpec> = {
+const SAFE_STORAGE_MIME_TYPES: string[] = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+  'image/gif',
+  'image/svg+xml',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+  'application/pdf',
+];
+
+const SUPABASE_STORAGE_BUCKETS: Record<BuiltInSupabaseBucketId, SupabaseBucketSpec> = {
   media: {
     id: 'media',
     label: 'Media',
@@ -200,8 +216,69 @@ function sanitizeStorageObjectPath(raw?: string): string | null {
   return segments.join('/');
 }
 
-function isValidStorageBucket(bucket: string): bucket is SupabaseBucketId {
+const BUCKET_NAME_REGEX = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+function isValidBucketName(bucket: string): boolean {
+  return typeof bucket === 'string' && bucket.length >= 2 && bucket.length <= 63 && BUCKET_NAME_REGEX.test(bucket);
+}
+
+function isBuiltInStorageBucket(bucket: string): bucket is BuiltInSupabaseBucketId {
   return Object.prototype.hasOwnProperty.call(SUPABASE_STORAGE_BUCKETS, bucket);
+}
+
+function isValidStorageBucket(bucket: string): bucket is SupabaseBucketId {
+  return isBuiltInStorageBucket(bucket) || isValidBucketName(bucket);
+}
+
+function formatBucketLabel(id: string): string {
+  return id
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ') || id;
+}
+
+function formatBucketSizeLabel(bytes: number): string {
+  if (!bytes || bytes <= 0) return '50 MB';
+  const mb = Math.round((bytes / (1024 * 1024)) * 10) / 10;
+  return `${mb} MB`;
+}
+
+function getStorageBucketSpec(bucket: string, remote?: any): SupabaseBucketSpec {
+  if (isBuiltInStorageBucket(bucket)) {
+    const base = SUPABASE_STORAGE_BUCKETS[bucket];
+    const limit = Number(remote?.file_size_limit) > 0 ? Number(remote.file_size_limit) : base.fileSizeLimit;
+    return {
+      ...base,
+      public: typeof remote?.public === 'boolean' ? remote.public : base.public,
+      fileSizeLimit: limit,
+      maxSizeLabel: formatBucketSizeLabel(limit),
+      allowedMimeTypes:
+        Array.isArray(remote?.allowed_mime_types) && remote.allowed_mime_types.length > 0
+          ? remote.allowed_mime_types
+          : base.allowedMimeTypes,
+    };
+  }
+
+  const limit = Number(remote?.file_size_limit) > 0
+    ? Math.min(50 * 1024 * 1024, Math.max(1024 * 1024, Number(remote.file_size_limit)))
+    : 50 * 1024 * 1024;
+  const mimes =
+    Array.isArray(remote?.allowed_mime_types) && remote.allowed_mime_types.length > 0
+      ? remote.allowed_mime_types.filter((m: unknown) => typeof m === 'string' && SAFE_STORAGE_MIME_TYPES.includes(m))
+      : [...SAFE_STORAGE_MIME_TYPES];
+
+  return {
+    id: bucket,
+    label: formatBucketLabel(bucket),
+    description: `Custom Supabase Storage bucket (${bucket})`,
+    public: remote ? Boolean(remote.public) : true,
+    fileSizeLimit: limit,
+    maxSizeLabel: formatBucketSizeLabel(limit),
+    allowedMimeTypes: mimes.length > 0 ? mimes : [...SAFE_STORAGE_MIME_TYPES],
+    defaultFolder: 'uploads',
+    isCustom: true,
+  };
 }
 
 function getConfiguredStorageBucket(): SupabaseBucketId {
@@ -317,9 +394,10 @@ async function uploadBufferToSupabaseStorage(
       : getConfiguredStorageBucket();
 
   // If the requested bucket does not permit this MIME type, pick a compatible bucket (e.g. media or admin-media)
-  if (!SUPABASE_STORAGE_BUCKETS[primaryBucket].allowedMimeTypes.includes(normalizedMime)) {
+  const initialSpec = getStorageBucketSpec(primaryBucket);
+  if (!initialSpec.allowedMimeTypes.includes(normalizedMime)) {
     const compatibleBucket = ALL_SUPABASE_BUCKET_IDS.find((id) =>
-      SUPABASE_STORAGE_BUCKETS[id].allowedMimeTypes.includes(normalizedMime)
+      getStorageBucketSpec(id).allowedMimeTypes.includes(normalizedMime)
     );
     if (!compatibleBucket) {
       return {
@@ -331,7 +409,7 @@ async function uploadBufferToSupabaseStorage(
     primaryBucket = compatibleBucket;
   }
 
-  const primarySpec = SUPABASE_STORAGE_BUCKETS[primaryBucket];
+  const primarySpec = getStorageBucketSpec(primaryBucket);
   if (buffer.length > primarySpec.fileSizeLimit) {
     return {
       url: null,
@@ -374,8 +452,8 @@ async function uploadBufferToSupabaseStorage(
         const compatibleFallbacks = ALL_SUPABASE_BUCKET_IDS.filter(
           (id) =>
             id !== bucketToUse &&
-            SUPABASE_STORAGE_BUCKETS[id].allowedMimeTypes.includes(normalizedMime) &&
-            buffer.length <= SUPABASE_STORAGE_BUCKETS[id].fileSizeLimit
+            getStorageBucketSpec(id).allowedMimeTypes.includes(normalizedMime) &&
+            buffer.length <= getStorageBucketSpec(id).fileSizeLimit
         );
         compatibleFallbacks.forEach((b) => candidateBuckets.add(b));
 
@@ -1801,7 +1879,7 @@ async function startServer() {
       const targetBucket: SupabaseBucketId = isValidStorageBucket(requestedBucketRaw)
         ? requestedBucketRaw
         : getConfiguredStorageBucket();
-      const bucketSpec = SUPABASE_STORAGE_BUCKETS[targetBucket];
+      const bucketSpec = getStorageBucketSpec(targetBucket);
 
       // Enforce access control: only authorized admins can upload to website/admin buckets;
       // profile avatar uploads require an authenticated user session or admin privileges.
@@ -1842,7 +1920,7 @@ async function startServer() {
           });
         }
         const compatible = ALL_SUPABASE_BUCKET_IDS.find((id) =>
-          SUPABASE_STORAGE_BUCKETS[id].allowedMimeTypes.includes(mime)
+          getStorageBucketSpec(id).allowedMimeTypes.includes(mime)
         );
         if (!compatible) {
           return res.status(400).json({ error: `Unsupported media type: ${mime}` });
@@ -1850,7 +1928,7 @@ async function startServer() {
         effectiveBucket = compatible;
       }
 
-      const effectiveSpec = SUPABASE_STORAGE_BUCKETS[effectiveBucket];
+      const effectiveSpec = getStorageBucketSpec(effectiveBucket);
       if (buffer.length > effectiveSpec.fileSizeLimit) {
         return res.status(400).json({
           error: `File exceeds maximum size limit of ${effectiveSpec.maxSizeLabel} for bucket "${effectiveBucket}"`,
@@ -2008,8 +2086,16 @@ async function startServer() {
       const { data: remoteBuckets, error: listErr } = await supabase.storage.listBuckets();
       const remoteMap = new Map<string, any>();
       if (!listErr && Array.isArray(remoteBuckets)) {
-        remoteBuckets.forEach((b: any) => remoteMap.set(b.name, b));
+        remoteBuckets.forEach((b: any) => {
+          const bId = String(b?.name || b?.id || '').trim();
+          if (bId) remoteMap.set(bId, b);
+        });
       }
+
+      const extraCustomBucketIds = Array.from(remoteMap.keys())
+        .filter((id) => !isBuiltInStorageBucket(id) && isValidBucketName(id))
+        .sort((a, b) => a.localeCompare(b));
+      const allDiscoveredBucketIds: SupabaseBucketId[] = [...ALL_SUPABASE_BUCKET_IDS, ...extraCustomBucketIds];
 
       // Check Supabase media_assets table availability once if unknown
       if (supabaseMediaTableAvailable === null) {
@@ -2046,9 +2132,9 @@ async function startServer() {
       }
 
       const bucketDetails = await Promise.all(
-        ALL_SUPABASE_BUCKET_IDS.map(async (id) => {
-          const spec = SUPABASE_STORAGE_BUCKETS[id];
+        allDiscoveredBucketIds.map(async (id) => {
           const remote = remoteMap.get(id);
+          const spec = getStorageBucketSpec(id, remote);
           const entries = await listBucketEntriesRecursive(supabase, id).catch(() => ({ files: [], folders: [] }));
           const totalSize = entries.files.reduce((sum, f) => sum + (Number(f.size) || 0), 0);
 
@@ -2266,9 +2352,9 @@ async function startServer() {
 
     const bucketRaw = typeof req.body?.bucket === 'string' ? req.body.bucket.trim() : 'media';
     if (!isValidStorageBucket(bucketRaw)) {
-      return res.status(400).json({ error: `Unknown storage bucket: ${bucketRaw}` });
+      return res.status(400).json({ error: `Invalid storage bucket: ${bucketRaw}` });
     }
-    const spec = SUPABASE_STORAGE_BUCKETS[bucketRaw];
+    const spec = getStorageBucketSpec(bucketRaw);
     const filename = typeof req.body?.filename === 'string' && req.body.filename.trim() ? req.body.filename.trim() : 'media';
     const mimeType = normalizeMimeType(String(req.body?.mimeType || ''));
     const totalSize = Number(req.body?.totalSize || 0);
@@ -2376,7 +2462,7 @@ async function startServer() {
       }
 
       const buffer = Buffer.concat(orderedBuffers);
-      const spec = SUPABASE_STORAGE_BUCKETS[session.bucket];
+      const spec = getStorageBucketSpec(session.bucket);
       if (buffer.length > spec.fileSizeLimit) {
         activeUploadSessions.delete(uploadId);
         return res.status(400).json({ error: `File exceeds the ${spec.maxSizeLabel} limit for "${session.bucket}".` });
@@ -2691,7 +2777,7 @@ async function startServer() {
     }
   });
 
-  // Admin Storage API: List all 7 Supabase Storage buckets with live status & file counts
+  // Admin Storage API: List all Supabase Storage buckets (built-in + custom) with live status & file counts
   app.get("/api/admin/storage/buckets", async (req, res) => {
     if (!checkAdminAuth(req)) {
       return res.status(403).json({ error: "Access denied. Only authorized administrators can view storage buckets." });
@@ -2714,13 +2800,21 @@ async function startServer() {
       const { data: remoteBuckets, error: listErr } = await supabase.storage.listBuckets();
       const remoteMap = new Map<string, any>();
       if (!listErr && Array.isArray(remoteBuckets)) {
-        remoteBuckets.forEach((b: any) => remoteMap.set(b.name, b));
+        remoteBuckets.forEach((b: any) => {
+          const bId = String(b?.name || b?.id || '').trim();
+          if (bId) remoteMap.set(bId, b);
+        });
       }
 
+      const extraCustomIds = Array.from(remoteMap.keys())
+        .filter((id) => !isBuiltInStorageBucket(id) && isValidBucketName(id))
+        .sort((a, b) => a.localeCompare(b));
+      const discoveredIds: SupabaseBucketId[] = [...ALL_SUPABASE_BUCKET_IDS, ...extraCustomIds];
+
       const bucketDetails = await Promise.all(
-        ALL_SUPABASE_BUCKET_IDS.map(async (id) => {
-          const spec = SUPABASE_STORAGE_BUCKETS[id];
+        discoveredIds.map(async (id) => {
           const remote = remoteMap.get(id);
+          const spec = getStorageBucketSpec(id, remote);
           const files = await listBucketFilesRecursive(supabase, id).catch(() => []);
           const totalSize = files.reduce((sum, f) => sum + (Number(f.size) || 0), 0);
           return {
@@ -2732,6 +2826,7 @@ async function startServer() {
               ? remote.allowed_mime_types
               : spec.allowedMimeTypes,
             fileCount: files.length,
+            folderCount: 0,
             totalSize,
             createdAt: remote?.created_at || null,
             updatedAt: remote?.updated_at || null,
@@ -2752,6 +2847,102 @@ async function startServer() {
     }
   });
 
+  // Admin Storage API: Create a new Supabase Storage bucket
+  app.post("/api/admin/storage/buckets", async (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can create storage buckets." });
+    }
+    try {
+      const rawName = typeof req.body?.id === 'string'
+        ? req.body.id
+        : typeof req.body?.name === 'string'
+        ? req.body.name
+        : '';
+      const bucketId = rawName.trim().toLowerCase();
+
+      if (!isValidBucketName(bucketId)) {
+        return res.status(400).json({
+          error: "Bucket name must be 2–63 characters using lowercase letters, numbers, and hyphens only (no leading or trailing hyphens).",
+        });
+      }
+
+      const isPublic = req.body?.public !== false;
+      const requestedLimit = Number(req.body?.fileSizeLimit);
+      const fileSizeLimit = Number.isFinite(requestedLimit) && requestedLimit > 0
+        ? Math.min(50 * 1024 * 1024, Math.max(1024 * 1024, Math.round(requestedLimit)))
+        : 50 * 1024 * 1024;
+
+      const requestedMimes = Array.isArray(req.body?.allowedMimeTypes)
+        ? req.body.allowedMimeTypes
+            .map((m: unknown) => (typeof m === 'string' ? normalizeMimeType(m) : ''))
+            .filter((m: string) => SAFE_STORAGE_MIME_TYPES.includes(m))
+        : [];
+      const allowedMimeTypes: string[] = requestedMimes.length > 0 ? Array.from(new Set(requestedMimes)) : [...SAFE_STORAGE_MIME_TYPES];
+
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return res.status(503).json({ error: "Supabase Storage is not connected on the server." });
+      }
+
+      let effectiveMimes = allowedMimeTypes;
+      let { error } = await supabase.storage.createBucket(bucketId, {
+        public: isPublic,
+        fileSizeLimit,
+        allowedMimeTypes: effectiveMimes,
+      });
+
+      // Fallback if Supabase rejects SVG MIME type on bucket creation
+      if (error && /mime/i.test(error.message || '') && effectiveMimes.includes('image/svg+xml')) {
+        effectiveMimes = effectiveMimes.filter((m) => m !== 'image/svg+xml');
+        ({ error } = await supabase.storage.createBucket(bucketId, {
+          public: isPublic,
+          fileSizeLimit,
+          allowedMimeTypes: effectiveMimes,
+        }));
+      }
+
+      if (error) {
+        const msg = error.message || "Failed to create storage bucket.";
+        if (/already exists|duplicate/i.test(msg)) {
+          return res.status(409).json({
+            error: `Bucket "${bucketId}" already exists in Supabase Storage.`,
+            alreadyExists: true,
+          });
+        }
+        const rlsBlocked = /row-level security|policy|permission|unauthorized|forbidden|not allowed|must be owner/i.test(msg);
+        if (rlsBlocked) {
+          return res.status(403).json({
+            error: `Supabase Storage rejected bucket creation because the active key lacks bucket-creation privileges (${msg}). Configure SUPABASE_SERVICE_ROLE_KEY on the server or run the SQL helper.`,
+            rlsBlocked: true,
+          });
+        }
+        return res.status(502).json({ error: msg });
+      }
+
+      const spec = getStorageBucketSpec(bucketId, {
+        public: isPublic,
+        file_size_limit: fileSizeLimit,
+        allowed_mime_types: effectiveMimes,
+      });
+
+      return res.status(201).json({
+        success: true,
+        bucket: {
+          ...spec,
+          existsInSupabase: true,
+          fileCount: 0,
+          folderCount: 0,
+          totalSize: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      });
+    } catch (err: any) {
+      console.error("[Admin Storage API] Error creating bucket:", err);
+      return res.status(500).json({ error: err.message || "Failed to create storage bucket" });
+    }
+  });
+
   // Admin Storage API: List files in a specific bucket
   app.get("/api/admin/storage/buckets/:bucket/files", async (req, res) => {
     if (!checkAdminAuth(req)) {
@@ -2759,7 +2950,7 @@ async function startServer() {
     }
     const bucket = String(req.params.bucket || '').trim();
     if (!isValidStorageBucket(bucket)) {
-      return res.status(400).json({ error: `Unknown storage bucket: ${bucket}` });
+      return res.status(400).json({ error: `Invalid storage bucket: ${bucket}` });
     }
     try {
       const supabase = getSupabaseClient();
@@ -2770,7 +2961,7 @@ async function startServer() {
       const files = await listBucketFilesRecursive(supabase, bucket, prefix);
       return res.json({
         bucket,
-        spec: SUPABASE_STORAGE_BUCKETS[bucket],
+        spec: getStorageBucketSpec(bucket),
         files,
       });
     } catch (err: any) {
@@ -2786,12 +2977,13 @@ async function startServer() {
     }
     const bucket = String(req.params.bucket || '').trim();
     if (!isValidStorageBucket(bucket)) {
-      return res.status(400).json({ error: `Unknown storage bucket: ${bucket}` });
+      return res.status(400).json({ error: `Invalid storage bucket: ${bucket}` });
     }
     try {
+      const spec = getStorageBucketSpec(bucket);
       const payload = req.body?.dataUrl || req.body?.image;
       const filename = typeof req.body?.filename === 'string' ? req.body.filename : 'asset';
-      const folder = sanitizeStorageFolder(req.body?.folder, SUPABASE_STORAGE_BUCKETS[bucket].defaultFolder);
+      const folder = sanitizeStorageFolder(req.body?.folder, spec.defaultFolder);
 
       if (!payload || typeof payload !== 'string' || !payload.startsWith('data:')) {
         return res.status(400).json({ error: "Missing valid base64 data URI" });
@@ -2801,7 +2993,6 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid base64 data URI" });
       }
       const mime = normalizeMimeType(matches[1]);
-      const spec = SUPABASE_STORAGE_BUCKETS[bucket];
       if (!spec.allowedMimeTypes.includes(mime)) {
         return res.status(400).json({
           error: `Type "${mime}" is not allowed in bucket "${bucket}". Allowed: ${spec.allowedMimeTypes.join(', ')}`,
@@ -2987,8 +3178,10 @@ async function startServer() {
       }
 
       const existingSet = new Set((remoteBuckets || []).map((b: any) => b.name));
-      const missingBuckets = ALL_SUPABASE_BUCKET_IDS.filter((id) => !existingSet.has(id));
-      const verifiedBuckets = ALL_SUPABASE_BUCKET_IDS.length - missingBuckets.length;
+      const customIds = Array.from(existingSet).filter((id: string) => !isBuiltInStorageBucket(id) && isValidBucketName(id));
+      const allExpectedIds = [...ALL_SUPABASE_BUCKET_IDS, ...customIds];
+      const missingBuckets = allExpectedIds.filter((id) => !existingSet.has(id));
+      const verifiedBuckets = allExpectedIds.length - missingBuckets.length;
 
       return res.json({
         connected: true,
@@ -2997,7 +3190,7 @@ async function startServer() {
         dashboardUrl: projectId ? `https://supabase.com/dashboard/project/${projectId}/storage/files` : null,
         latencyMs,
         verifiedBuckets,
-        totalBuckets: ALL_SUPABASE_BUCKET_IDS.length,
+        totalBuckets: allExpectedIds.length,
         missingBuckets,
         checkedAt: new Date().toISOString(),
       });

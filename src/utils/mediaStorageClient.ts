@@ -2,14 +2,24 @@ import type { MediaAssetItem, MediaFolderItem, MediaUsageRef } from '../types';
 import {
   SUPABASE_STORAGE_BUCKET_LIST,
   SUPABASE_PROJECT_ID,
+  SAFE_STORAGE_MIME_TYPES,
   isSupabaseConfigured,
   supabase,
   getBucketConfig,
   getMediaCategory,
+  getStoredCustomBuckets,
+  saveStoredCustomBucket,
+  buildCustomBucketConfig,
+  normalizeBucketName,
+  isValidBucketName,
+  listSupabaseBucketsDirect,
   listSupabaseBucketFilesDirect,
   uploadFileToSupabaseStorageDirect,
   deleteSupabaseBucketFilesDirect,
   testSupabaseStorageConnectionDirect,
+  createSupabaseBucketDirect,
+  verifySupabaseBucketDirect,
+  buildCreateBucketSql,
   type SupabaseBucketId,
   type SupabaseStorageConnectionReport,
 } from '../lib/supabase';
@@ -28,6 +38,7 @@ export interface LiveBucketSummary {
   fileCount: number;
   folderCount: number;
   totalSize: number;
+  isCustom?: boolean;
 }
 
 export interface MediaLibraryResponse {
@@ -180,9 +191,10 @@ export async function fetchMediaLibrary(
   if (isSupabaseConfigured) {
     const allFiles: MediaAssetItem[] = [];
     const folderMap = new Map<string, MediaFolderItem>();
+    const discoveredBuckets = await listSupabaseBucketsDirect();
 
     const bucketSummaries = await Promise.all(
-      SUPABASE_STORAGE_BUCKET_LIST.map(async (b) => {
+      discoveredBuckets.map(async (b) => {
         const listed = await listSupabaseBucketFilesDirect(b.id);
         let totalSize = 0;
         for (const f of listed.files) {
@@ -289,7 +301,7 @@ export async function fetchMediaLibrary(
       totalBytes: 0,
       quotaBytes: 1024 * 1024 * 1024,
     },
-    buckets: SUPABASE_STORAGE_BUCKET_LIST.map((b) => ({
+    buckets: [...SUPABASE_STORAGE_BUCKET_LIST, ...getStoredCustomBuckets()].map((b) => ({
       ...b,
       fileSizeLimit: b.maxSizeBytes,
       existsInSupabase: false,
@@ -300,6 +312,194 @@ export async function fetchMediaLibrary(
     folders: [],
     files: [],
     error: res.data?.error || 'Supabase Storage server is unavailable.',
+  };
+}
+
+export interface CreateStorageBucketParams {
+  id: string;
+  public?: boolean;
+  fileSizeLimit?: number;
+  allowedMimeTypes?: string[];
+  description?: string;
+}
+
+export interface CreateStorageBucketResult {
+  ok: boolean;
+  bucket?: LiveBucketSummary;
+  error?: string;
+  rlsBlocked?: boolean;
+  alreadyExists?: boolean;
+  sqlFix?: string;
+}
+
+/**
+ * Creates a new Supabase Storage bucket via the authenticated Node server API,
+ * automatically falling back to direct browser -> Supabase Storage creation on static hosting.
+ */
+export async function createStorageBucket(
+  adminEmail: string,
+  params: CreateStorageBucketParams
+): Promise<CreateStorageBucketResult> {
+  const safeId = normalizeBucketName(params.id);
+  if (!isValidBucketName(safeId)) {
+    return {
+      ok: false,
+      error: 'Bucket name must be 2–63 characters using lowercase letters, numbers, and hyphens only.',
+    };
+  }
+
+  const isPublic = params.public !== false;
+  const fileSizeLimit = Math.min(
+    50 * 1024 * 1024,
+    Math.max(1024 * 1024, Number(params.fileSizeLimit || 50 * 1024 * 1024))
+  );
+  const allowedMimeTypes =
+    Array.isArray(params.allowedMimeTypes) && params.allowedMimeTypes.length > 0
+      ? params.allowedMimeTypes.filter((m) => SAFE_STORAGE_MIME_TYPES.includes(m))
+      : [...SAFE_STORAGE_MIME_TYPES];
+
+  const sqlFix = buildCreateBucketSql({
+    id: safeId,
+    public: isPublic,
+    fileSizeLimit,
+    allowedMimeTypes,
+  });
+
+  const res = await fetchJsonSafely<{
+    success?: boolean;
+    bucket?: LiveBucketSummary;
+    error?: string;
+    rlsBlocked?: boolean;
+    alreadyExists?: boolean;
+  }>('/api/admin/storage/buckets', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-email': adminEmail,
+    },
+    body: JSON.stringify({
+      id: safeId,
+      public: isPublic,
+      fileSizeLimit,
+      allowedMimeTypes,
+    }),
+  });
+
+  if (res.isJson) {
+    if (res.ok && res.data?.bucket) {
+      const cfg = buildCustomBucketConfig(safeId, {
+        public: res.data.bucket.public,
+        maxSizeBytes: res.data.bucket.fileSizeLimit,
+        allowedMimeTypes: res.data.bucket.allowedMimeTypes,
+        description: params.description,
+      });
+      saveStoredCustomBucket(cfg);
+      return { ok: true, bucket: res.data.bucket };
+    }
+    if (res.data?.rlsBlocked) {
+      return {
+        ok: false,
+        rlsBlocked: true,
+        error: res.data.error || 'Supabase Storage blocked bucket creation due to RLS policy.',
+        sqlFix,
+      };
+    }
+    return {
+      ok: false,
+      alreadyExists: Boolean(res.data?.alreadyExists),
+      error: res.data?.error || 'Failed to create storage bucket.',
+      sqlFix: res.status === 403 ? sqlFix : undefined,
+    };
+  }
+
+  // Fallback for static hosting (Direct Browser -> Supabase)
+  const direct = await createSupabaseBucketDirect({
+    id: safeId,
+    public: isPublic,
+    fileSizeLimit,
+    allowedMimeTypes,
+    description: params.description,
+  });
+
+  if (direct.ok && direct.bucket) {
+    return {
+      ok: true,
+      bucket: {
+        ...direct.bucket,
+        fileSizeLimit: direct.bucket.maxSizeBytes,
+        existsInSupabase: true,
+        fileCount: 0,
+        folderCount: 0,
+        totalSize: 0,
+      },
+    };
+  }
+
+  return {
+    ok: false,
+    error: direct.error || 'Failed to create bucket in Supabase Storage.',
+    rlsBlocked: direct.rlsBlocked,
+    alreadyExists: direct.alreadyExists,
+    sqlFix: direct.sqlFix || sqlFix,
+  };
+}
+
+/**
+ * Verifies that a custom bucket exists in Supabase Storage (e.g., after running SQL or creating in Supabase Dashboard)
+ * and registers it in the Admin Panel so it can be browsed and uploaded to immediately.
+ */
+export async function verifyAndRegisterCustomBucket(
+  adminEmail: string,
+  params: CreateStorageBucketParams
+): Promise<CreateStorageBucketResult> {
+  const safeId = normalizeBucketName(params.id);
+  if (!isValidBucketName(safeId)) {
+    return { ok: false, error: 'Invalid bucket name.' };
+  }
+
+  const config = buildCustomBucketConfig(safeId, {
+    public: params.public !== false,
+    maxSizeBytes: params.fileSizeLimit || 50 * 1024 * 1024,
+    allowedMimeTypes: params.allowedMimeTypes,
+    description: params.description,
+  });
+
+  // Try verifying via Node server first
+  const serverRes = await fetchJsonSafely<{ buckets?: LiveBucketSummary[] }>('/api/admin/storage/buckets', {
+    credentials: 'include',
+    headers: { 'x-admin-email': adminEmail },
+  });
+  if (serverRes.isJson && serverRes.ok && Array.isArray(serverRes.data?.buckets)) {
+    const found = serverRes.data.buckets.find((b) => b.id === safeId && b.existsInSupabase);
+    if (found) {
+      saveStoredCustomBucket(config);
+      return { ok: true, bucket: found };
+    }
+  }
+
+  // Verify directly via Supabase browser client
+  const probe = await verifySupabaseBucketDirect(safeId);
+  if (!probe.exists) {
+    return {
+      ok: false,
+      error:
+        probe.error ||
+        `Bucket "${safeId}" was not found yet in Supabase Storage. Make sure you clicked Run in the Supabase SQL Editor first.`,
+    };
+  }
+
+  saveStoredCustomBucket(config);
+  return {
+    ok: true,
+    bucket: {
+      ...config,
+      fileSizeLimit: config.maxSizeBytes,
+      existsInSupabase: true,
+      fileCount: 0,
+      folderCount: 0,
+      totalSize: 0,
+    },
   };
 }
 
