@@ -981,6 +981,24 @@ db.exec(`
     created_at TEXT NOT NULL,
     UNIQUE(bucket, folder_path)
   );
+
+  CREATE TABLE IF NOT EXISTS support_tickets (
+    id TEXT PRIMARY KEY,
+    ticket_number TEXT NOT NULL UNIQUE,
+    customer_name TEXT NOT NULL,
+    customer_email TEXT NOT NULL,
+    booking_ref TEXT DEFAULT '',
+    subject TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'Booking',
+    priority TEXT NOT NULL DEFAULT 'medium',
+    status TEXT NOT NULL DEFAULT 'open',
+    message TEXT NOT NULL,
+    internal_notes TEXT DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
+  CREATE INDEX IF NOT EXISTS idx_support_tickets_created ON support_tickets(created_at);
 `);
 
 // Seed default favicon in site_settings if not set
@@ -1365,6 +1383,272 @@ async function startServer() {
     } catch (err: any) {
       console.error("[Favicon API] Error getting favicon:", err);
       return res.status(500).json({ error: "Failed to load favicon configuration" });
+    }
+  });
+
+  // Allowlisted admin configuration namespaces stored in site_settings
+  const ALLOWED_ADMIN_CONFIG_SECTIONS = new Set([
+    'website_settings',
+    'theme_settings',
+    'navigation_menus',
+    'platform_settings',
+    'marketing_coupons',
+  ]);
+
+  const PUBLIC_CONFIG_SECTIONS = ['website_settings', 'theme_settings', 'navigation_menus'] as const;
+
+  const isSafeExternalOrRelativeUrl = (val: unknown): boolean => {
+    if (typeof val !== 'string') return false;
+    const trimmed = val.trim();
+    if (!trimmed) return true;
+    if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return true;
+    try {
+      const u = new URL(trimmed);
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  // Public read-only sanitized site config (website_settings, theme_settings, navigation_menus)
+  app.get("/api/site/public-config", (_req, res) => {
+    try {
+      const result: Record<string, any> = {};
+      for (const section of PUBLIC_CONFIG_SECTIONS) {
+        const row = db
+          .prepare("SELECT value, updated_at FROM site_settings WHERE key = ?")
+          .get(`admin_${section}`) as { value?: string; updated_at?: string } | undefined;
+        if (row?.value) {
+          try {
+            result[section] = JSON.parse(row.value);
+          } catch {
+            result[section] = null;
+          }
+        } else {
+          result[section] = null;
+        }
+      }
+      return res.json({ success: true, config: result });
+    } catch (err: any) {
+      console.error("[Public Config API] Error:", err);
+      return res.status(500).json({ error: "Failed to load public site configuration" });
+    }
+  });
+
+  // Admin endpoint: Read allowlisted config section
+  app.get("/api/admin/config/:section", (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can read platform configuration." });
+    }
+    const section = String(req.params.section || '').trim();
+    if (!ALLOWED_ADMIN_CONFIG_SECTIONS.has(section)) {
+      return res.status(400).json({ error: `Invalid configuration section "${section}".` });
+    }
+    try {
+      const row = db
+        .prepare("SELECT value, updated_at FROM site_settings WHERE key = ?")
+        .get(`admin_${section}`) as { value?: string; updated_at?: string } | undefined;
+      if (!row?.value) {
+        return res.json({ success: true, section, value: null, updatedAt: null });
+      }
+      return res.json({
+        success: true,
+        section,
+        value: JSON.parse(row.value),
+        updatedAt: row.updated_at || null,
+      });
+    } catch (err: any) {
+      console.error(`[Admin Config API] Error reading ${section}:`, err);
+      return res.status(500).json({ error: "Failed to read configuration" });
+    }
+  });
+
+  // Admin endpoint: Save allowlisted config section
+  app.put("/api/admin/config/:section", (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can update platform configuration." });
+    }
+    const section = String(req.params.section || '').trim();
+    if (!ALLOWED_ADMIN_CONFIG_SECTIONS.has(section)) {
+      return res.status(400).json({ error: `Invalid configuration section "${section}".` });
+    }
+    const payload = req.body?.value;
+    if (payload === undefined || payload === null || typeof payload !== 'object') {
+      return res.status(400).json({ error: "Missing or invalid configuration payload." });
+    }
+
+    // Validate URLs in navigation_menus and website_settings socialLinks
+    if (section === 'navigation_menus') {
+      const lists = [
+        ...(Array.isArray(payload.headerItems) ? payload.headerItems : []),
+        ...(Array.isArray(payload.footerItems) ? payload.footerItems : []),
+      ];
+      for (const item of lists) {
+        if (item && typeof item.url === 'string' && !isSafeExternalOrRelativeUrl(item.url)) {
+          return res.status(400).json({ error: `Unsafe menu URL rejected: "${item.url}". Use relative paths or http/https URLs.` });
+        }
+      }
+    } else if (section === 'website_settings' && payload.socialLinks && typeof payload.socialLinks === 'object') {
+      for (const [, linkVal] of Object.entries(payload.socialLinks)) {
+        if (typeof linkVal === 'string' && linkVal.trim() && !isSafeExternalOrRelativeUrl(linkVal)) {
+          return res.status(400).json({ error: "Social links must use valid http:// or https:// URLs." });
+        }
+      }
+    }
+
+    const serialized = JSON.stringify(payload);
+    if (serialized.length > 150_000) {
+      return res.status(413).json({ error: "Configuration payload exceeds the 150 KB size limit." });
+    }
+
+    try {
+      const now = new Date().toISOString();
+      db.prepare(`
+        INSERT INTO site_settings (key, value, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+      `).run(`admin_${section}`, serialized, now);
+      return res.json({ success: true, section, value: payload, updatedAt: now });
+    } catch (err: any) {
+      console.error(`[Admin Config API] Error saving ${section}:`, err);
+      return res.status(500).json({ error: "Failed to save configuration" });
+    }
+  });
+
+  // Admin Support Tickets API
+  const ALLOWED_TICKET_PRIORITIES = new Set(['low', 'medium', 'high', 'urgent']);
+  const ALLOWED_TICKET_STATUSES = new Set(['open', 'in_progress', 'resolved']);
+  const ALLOWED_TICKET_CATEGORIES = new Set(['Booking', 'Refund', 'Tickets', 'Account', 'Technical', 'General']);
+
+  const mapSupportTicketRow = (row: any) => ({
+    id: row.id,
+    ticketNumber: row.ticket_number,
+    customerName: row.customer_name,
+    customerEmail: row.customer_email,
+    bookingRef: row.booking_ref || '',
+    subject: row.subject,
+    category: row.category || 'Booking',
+    priority: row.priority || 'medium',
+    status: row.status || 'open',
+    message: row.message,
+    internalNotes: row.internal_notes || '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  });
+
+  app.get("/api/admin/support/tickets", (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can view support tickets." });
+    }
+    try {
+      const rows = db
+        .prepare("SELECT * FROM support_tickets ORDER BY datetime(created_at) DESC")
+        .all();
+      return res.json({ success: true, tickets: rows.map(mapSupportTicketRow) });
+    } catch (err: any) {
+      console.error("[Support API] Error listing tickets:", err);
+      return res.status(500).json({ error: "Failed to load support tickets" });
+    }
+  });
+
+  app.post("/api/admin/support/tickets", (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can create support tickets." });
+    }
+    try {
+      const customerName = String(req.body?.customerName || '').trim().slice(0, 120);
+      const customerEmail = String(req.body?.customerEmail || '').trim().slice(0, 160);
+      const bookingRef = String(req.body?.bookingRef || '').trim().slice(0, 64);
+      const subject = String(req.body?.subject || '').trim().slice(0, 200);
+      const categoryRaw = String(req.body?.category || 'Booking').trim();
+      const category = ALLOWED_TICKET_CATEGORIES.has(categoryRaw) ? categoryRaw : 'General';
+      const priorityRaw = String(req.body?.priority || 'medium').toLowerCase().trim();
+      const priority = ALLOWED_TICKET_PRIORITIES.has(priorityRaw) ? priorityRaw : 'medium';
+      const statusRaw = String(req.body?.status || 'open').toLowerCase().trim();
+      const status = ALLOWED_TICKET_STATUSES.has(statusRaw) ? statusRaw : 'open';
+      const message = String(req.body?.message || '').trim().slice(0, 4000);
+      const internalNotes = String(req.body?.internalNotes || '').trim().slice(0, 4000);
+
+      if (!customerName || !customerEmail || !subject || !message) {
+        return res.status(400).json({ error: "Customer name, email, subject, and message are required." });
+      }
+
+      const id = `tkt_${crypto.randomUUID()}`;
+      const suffix = Math.floor(1000 + Math.random() * 9000);
+      const ticketNumber = `SUP-${new Date().getFullYear().toString().slice(-2)}${String(new Date().getMonth() + 1).padStart(2, '0')}-${suffix}`;
+      const now = new Date().toISOString();
+
+      db.prepare(`
+        INSERT INTO support_tickets (
+          id, ticket_number, customer_name, customer_email, booking_ref,
+          subject, category, priority, status, message, internal_notes, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        id, ticketNumber, customerName, customerEmail, bookingRef,
+        subject, category, priority, status, message, internalNotes, now, now
+      );
+
+      const created = db.prepare("SELECT * FROM support_tickets WHERE id = ?").get(id);
+      return res.status(201).json({ success: true, ticket: mapSupportTicketRow(created) });
+    } catch (err: any) {
+      console.error("[Support API] Error creating ticket:", err);
+      return res.status(500).json({ error: "Failed to create support ticket" });
+    }
+  });
+
+  app.patch("/api/admin/support/tickets/:id", (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can update support tickets." });
+    }
+    try {
+      const id = String(req.params.id || '').trim();
+      const existing = db.prepare("SELECT * FROM support_tickets WHERE id = ?").get(id) as any;
+      if (!existing) {
+        return res.status(404).json({ error: "Support ticket not found." });
+      }
+
+      const nextStatusRaw = req.body?.status !== undefined ? String(req.body.status).toLowerCase().trim() : existing.status;
+      if (!ALLOWED_TICKET_STATUSES.has(nextStatusRaw)) {
+        return res.status(400).json({ error: "Invalid ticket status." });
+      }
+      const nextPriorityRaw = req.body?.priority !== undefined ? String(req.body.priority).toLowerCase().trim() : existing.priority;
+      if (!ALLOWED_TICKET_PRIORITIES.has(nextPriorityRaw)) {
+        return res.status(400).json({ error: "Invalid ticket priority." });
+      }
+      const nextCategoryRaw = req.body?.category !== undefined ? String(req.body.category).trim() : existing.category;
+      const nextCategory = ALLOWED_TICKET_CATEGORIES.has(nextCategoryRaw) ? nextCategoryRaw : existing.category;
+      const nextNotes = req.body?.internalNotes !== undefined ? String(req.body.internalNotes).slice(0, 4000) : existing.internal_notes;
+      const nextSubject = req.body?.subject !== undefined ? String(req.body.subject).trim().slice(0, 200) || existing.subject : existing.subject;
+      const now = new Date().toISOString();
+
+      db.prepare(`
+        UPDATE support_tickets
+        SET status = ?, priority = ?, category = ?, subject = ?, internal_notes = ?, updated_at = ?
+        WHERE id = ?
+      `).run(nextStatusRaw, nextPriorityRaw, nextCategory, nextSubject, nextNotes, now, id);
+
+      const updated = db.prepare("SELECT * FROM support_tickets WHERE id = ?").get(id);
+      return res.json({ success: true, ticket: mapSupportTicketRow(updated) });
+    } catch (err: any) {
+      console.error("[Support API] Error updating ticket:", err);
+      return res.status(500).json({ error: "Failed to update support ticket" });
+    }
+  });
+
+  app.delete("/api/admin/support/tickets/:id", (req, res) => {
+    if (!checkAdminAuth(req)) {
+      return res.status(403).json({ error: "Access denied. Only authorized administrators can delete support tickets." });
+    }
+    try {
+      const id = String(req.params.id || '').trim();
+      const info = db.prepare("DELETE FROM support_tickets WHERE id = ?").run(id);
+      if (!info.changes) {
+        return res.status(404).json({ error: "Support ticket not found." });
+      }
+      return res.json({ success: true, id });
+    } catch (err: any) {
+      console.error("[Support API] Error deleting ticket:", err);
+      return res.status(500).json({ error: "Failed to delete support ticket" });
     }
   });
 

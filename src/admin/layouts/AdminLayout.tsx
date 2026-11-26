@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, 
-  Map, 
   Calendar, 
   Users, 
   Globe, 
@@ -20,7 +19,20 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   ExternalLink,
-  HardDrive
+  HardDrive,
+  Ticket,
+  Megaphone,
+  Palette,
+  CreditCard,
+  BarChart3,
+  Headphones,
+  Settings,
+  Tag,
+  Sliders,
+  LayoutList,
+  Rocket,
+  ArrowUpRight,
+  LineChart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -84,13 +96,33 @@ export default function AdminLayout() {
       lower.startsWith('tqx-')
     ) {
       navigate(`/bookings?search=${encodeURIComponent(query)}`);
-    } else if (query.toLowerCase().includes('banner') || query.toLowerCase().includes('promo')) {
+    } else if (lower.includes('coupon') || lower.includes('discount') || lower.includes('code')) {
+      navigate(`/marketing/coupons`);
+    } else if (lower.includes('banner') || lower.includes('promo')) {
       navigate(`/promotional-banners`);
-    } else if (query.toLowerCase().includes('favicon') || query.toLowerCase().includes('icon')) {
+    } else if (lower.includes('customer') || lower.includes('guest')) {
+      navigate(`/customers`);
+    } else if (lower.includes('favicon') || lower.includes('logo') || lower.includes('icon')) {
       navigate(`/favicon`);
-    } else if (query.toLowerCase().includes('storage') || query.toLowerCase().includes('bucket') || query.toLowerCase().includes('media')) {
+    } else if (lower.includes('theme')) {
+      navigate(`/appearance/theme`);
+    } else if (lower.includes('menu') || lower.includes('nav')) {
+      navigate(`/appearance/menus`);
+    } else if (lower.includes('website') || lower.includes('seo')) {
+      navigate(`/appearance/website`);
+    } else if (lower.includes('payment') || lower.includes('receipt') || lower.includes('payout')) {
+      navigate(`/payments`);
+    } else if (lower.includes('report') || lower.includes('revenue')) {
+      navigate(`/reports`);
+    } else if (lower.includes('agent') || lower.includes('analytic')) {
+      navigate(`/analytics`);
+    } else if (lower.includes('support') || lower.includes('ticket') || lower.includes('help')) {
+      navigate(`/support`);
+    } else if (lower.includes('setting') || lower.includes('currency') || lower.includes('tax')) {
+      navigate(`/settings`);
+    } else if (lower.includes('storage') || lower.includes('bucket') || lower.includes('media')) {
       navigate(`/storage`);
-    } else if (query.toLowerCase().includes('blog') || query.toLowerCase().includes('post')) {
+    } else if (lower.includes('blog') || lower.includes('post')) {
       navigate(`/blog`);
     } else {
       navigate(`/inventory?search=${encodeURIComponent(query)}`);
@@ -100,50 +132,75 @@ export default function AdminLayout() {
   const getBreadcrumbs = () => {
     const path = location.pathname;
     if (path === '/' || path === '/dashboard' || path === '') {
-      return [{ name: 'Home', icon: Home, path: '/' }];
+      return [{ name: 'Dashboard', icon: Home, path: '/' }];
     }
-    const crumbs = [{ name: 'Home', icon: Home, path: '/' }];
-    if (path.includes('/inventory') || path.includes('/activities') || path.includes('/products')) {
-      crumbs.push({ name: 'Activities', icon: undefined, path: '/inventory' });
-      if (path.includes('/inventory')) {
-        crumbs.push({ name: 'Products', icon: undefined, path: '/inventory' });
-        if (path.includes('/edit/')) {
-          crumbs.push({ name: 'Edit Product', icon: undefined, path: path });
-        } else if (path.includes('/new')) {
-          crumbs.push({ name: 'New Product', icon: undefined, path: path });
-        }
-      }
-    } else if (path.includes('/bookings') || path.includes('/orders')) {
+    const crumbs: Array<{ name: string; icon: typeof Home | undefined; path: string }> = [
+      { name: 'Dashboard', icon: Home, path: '/' },
+    ];
+    if (path.includes('/bookings') || path.includes('/orders')) {
       crumbs.push({ name: 'Bookings', icon: undefined, path: '/bookings' });
-      crumbs.push({ name: 'Orders', icon: undefined, path: '/bookings' });
       const searchParams = new URLSearchParams(location.search);
       const orderId = searchParams.get('orderId');
       if (orderId) {
         crumbs.push({ name: orderId, icon: undefined, path: `/bookings?orderId=${orderId}` });
       }
-    } else if (path.includes('/analytics') || path.includes('/agents')) {
-      crumbs.push({ name: 'Agents', icon: undefined, path: '/analytics' });
-    } else if (path.includes('/blog') || path.includes('/promotional-banners') || path.includes('/favicon') || path.includes('/storage') || path.includes('/website')) {
-      crumbs.push({ name: 'Website', icon: undefined, path: '/blog' });
-      if (path.includes('/blog')) {
-        crumbs.push({ name: 'Blog', icon: undefined, path: '/blog' });
-        if (path.includes('/new')) {
-          crumbs.push({ name: 'New Post', icon: undefined, path: '/blog/new' });
-        } else if (path.match(/\/blog\/[^/]+$/)) {
-          crumbs.push({ name: 'Edit Post', icon: undefined, path: path });
-        }
+    } else if (path.includes('/inventory') || path.includes('/activities') || path.includes('/products')) {
+      crumbs.push({ name: 'Activities', icon: undefined, path: '/inventory' });
+      if (path.includes('/edit/')) {
+        crumbs.push({ name: 'Edit Activity', icon: undefined, path });
+      } else if (path.includes('/new')) {
+        crumbs.push({ name: 'New Activity', icon: undefined, path });
+      }
+    } else if (path.includes('/customers')) {
+      crumbs.push({ name: 'Customers', icon: undefined, path: '/customers' });
+    } else if (path.includes('/promotional-banners') || path.includes('/marketing')) {
+      crumbs.push({ name: 'Marketing', icon: undefined, path: '/promotional-banners' });
+      if (path.includes('/marketing/coupons')) {
+        crumbs.push({ name: 'Coupons & Promos', icon: undefined, path: '/marketing/coupons' });
       } else if (path.includes('/promotional-banners')) {
         crumbs.push({ name: 'Promotional Banners', icon: undefined, path: '/promotional-banners' });
         if (path.includes('/new')) {
           crumbs.push({ name: 'New Banner', icon: undefined, path: '/promotional-banners/new' });
         } else if (path.includes('/edit/')) {
-          crumbs.push({ name: 'Edit Banner', icon: undefined, path: path });
+          crumbs.push({ name: 'Edit Banner', icon: undefined, path });
         }
-      } else if (path.includes('/favicon')) {
-        crumbs.push({ name: 'Favicon', icon: undefined, path: '/favicon' });
+      }
+    } else if (path.includes('/blog') || path.includes('/storage')) {
+      crumbs.push({ name: 'Content', icon: undefined, path: '/blog' });
+      if (path.includes('/blog')) {
+        crumbs.push({ name: 'Blog', icon: undefined, path: '/blog' });
+        if (path.includes('/new')) {
+          crumbs.push({ name: 'New Post', icon: undefined, path: '/blog/new' });
+        } else if (path.match(/\/blog\/[^/]+$/)) {
+          crumbs.push({ name: 'Edit Post', icon: undefined, path });
+        }
       } else if (path.includes('/storage')) {
         crumbs.push({ name: 'Storage', icon: undefined, path: '/storage' });
       }
+    } else if (path.includes('/appearance') || path.includes('/favicon')) {
+      crumbs.push({ name: 'Appearance', icon: undefined, path: '/appearance/website' });
+      if (path.includes('/favicon')) {
+        crumbs.push({ name: 'Logo & Favicon', icon: undefined, path: '/favicon' });
+      } else if (path.includes('/appearance/theme')) {
+        crumbs.push({ name: 'Theme Settings', icon: undefined, path: '/appearance/theme' });
+      } else if (path.includes('/appearance/menus')) {
+        crumbs.push({ name: 'Menus', icon: undefined, path: '/appearance/menus' });
+      } else {
+        crumbs.push({ name: 'Website Settings', icon: undefined, path: '/appearance/website' });
+      }
+    } else if (path.includes('/payments')) {
+      crumbs.push({ name: 'Payments', icon: undefined, path: '/payments' });
+    } else if (path.includes('/reports') || path.includes('/analytics')) {
+      crumbs.push({ name: 'Reports', icon: undefined, path: '/reports' });
+      if (path.includes('/analytics')) {
+        crumbs.push({ name: 'Agents & Analytics', icon: undefined, path: '/analytics' });
+      } else {
+        crumbs.push({ name: 'Business Reports', icon: undefined, path: '/reports' });
+      }
+    } else if (path.includes('/support')) {
+      crumbs.push({ name: 'Support', icon: undefined, path: '/support' });
+    } else if (path.includes('/settings')) {
+      crumbs.push({ name: 'Settings', icon: undefined, path: '/settings' });
     } else if (path.includes('/gemini-logo')) {
       crumbs.push({ name: 'Brand Assets', icon: undefined, path: '/gemini-logo' });
     }
@@ -151,10 +208,25 @@ export default function AdminLayout() {
   };
 
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
-    activities: true,
-    bookings: true,
-    website: true
+    marketing: false,
+    content: false,
+    appearance: true,
+    reports: false,
   });
+
+  // Auto-expand the matching sidebar section when navigating to a nested route
+  useEffect(() => {
+    const p = location.pathname;
+    if (p.startsWith('/promotional-banners') || p.startsWith('/marketing')) {
+      setExpandedMenus((prev) => (prev.marketing ? prev : { ...prev, marketing: true }));
+    } else if (p.startsWith('/blog') || p.startsWith('/storage')) {
+      setExpandedMenus((prev) => (prev.content ? prev : { ...prev, content: true }));
+    } else if (p.startsWith('/appearance') || p.startsWith('/favicon')) {
+      setExpandedMenus((prev) => (prev.appearance ? prev : { ...prev, appearance: true }));
+    } else if (p.startsWith('/reports') || p.startsWith('/analytics')) {
+      setExpandedMenus((prev) => (prev.reports ? prev : { ...prev, reports: true }));
+    }
+  }, [location.pathname]);
 
   const toggleMenu = (key: string) => {
     setExpandedMenus(prev => ({ ...prev, [key]: !prev[key] }));
@@ -167,13 +239,13 @@ export default function AdminLayout() {
 
   const renderSidebarContent = (collapsed: boolean, isMobile: boolean) => (
     <div className="flex-1 flex flex-col min-h-0 select-none">
-      <nav className="flex-1 px-2.5 py-3 space-y-1.5 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-[#0b1120]/40 via-transparent to-[#020617]/50">
-        {/* Home Nav */}
+      <nav className="flex-1 px-2.5 py-3 space-y-1 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-[#0b1120]/40 via-transparent to-[#020617]/50">
+        {/* 1. Dashboard */}
         <NavLink
           to="/"
           end
           onClick={() => setMobileMenuOpen(false)}
-          title={collapsed ? "Home" : undefined}
+          title={collapsed ? "Dashboard" : undefined}
           className={({ isActive }) =>
             `relative flex items-center transition-all duration-150 text-sm group ${
               collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : `w-full gap-2.5 px-3 ${isMobile ? 'py-2.5' : 'py-2'} rounded-xl`
@@ -195,160 +267,84 @@ export default function AdminLayout() {
               )}
               <Home className="relative z-10 w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
               <span className={`relative z-10 transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
-                Home
+                Dashboard
               </span>
             </>
           )}
         </NavLink>
 
-        {/* Activities Menu */}
-        <div>
-          <button 
-            onClick={() => {
-              if (collapsed) {
-                setSidebarCollapsed(false);
-                setExpandedMenus(prev => ({ ...prev, activities: true }));
-              } else {
-                toggleMenu('activities');
-              }
-            }}
-            title={collapsed ? "Activities" : undefined}
-            className={`flex items-center transition-all duration-150 text-sm cursor-pointer w-full group ${
-              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : 'justify-between px-3 py-2 rounded-xl'
-            } ${
-              expandedMenus.activities && !collapsed
-                ? 'text-white bg-white/10 font-bold'
-                : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
-            }`}
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Map className="w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
-              <span className={`transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
-                Activities
-              </span>
-            </div>
-            {!collapsed && (
-              <ChevronRight className={`w-4 h-4 text-slate-400 group-hover:text-white transition-transform duration-200 shrink-0 ${expandedMenus.activities ? 'rotate-90' : 'rotate-0'}`} />
-            )}
-          </button>
-          
-          <AnimatePresence initial={false}>
-            {expandedMenus.activities && !collapsed && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                className="overflow-hidden pl-8 pr-1 py-0.5 space-y-0.5"
-              >
-                <NavLink
-                  to="/inventory"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
-                      isActive 
-                        ? 'text-white font-bold' 
-                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
-                    }`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {isActive && (
-                        <motion.span
-                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
-                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
-                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
-                        />
-                      )}
-                      <Box className="relative z-10 w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
-                      <span className="relative z-10">Products</span>
-                    </>
-                  )}
-                </NavLink>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Bookings Menu */}
-        <div>
-          <button 
-            onClick={() => {
-              if (collapsed) {
-                setSidebarCollapsed(false);
-                setExpandedMenus(prev => ({ ...prev, bookings: true }));
-              } else {
-                toggleMenu('bookings');
-              }
-            }}
-            title={collapsed ? "Bookings" : undefined}
-            className={`flex items-center transition-all duration-150 text-sm cursor-pointer w-full group ${
-              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : 'justify-between px-3 py-2 rounded-xl'
-            } ${
-              expandedMenus.bookings && !collapsed
-                ? 'text-white bg-white/10 font-bold'
-                : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
-            }`}
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Calendar className="w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
-              <span className={`transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
-                Bookings
-              </span>
-            </div>
-            {!collapsed && (
-              <ChevronRight className={`w-4 h-4 text-slate-400 group-hover:text-white transition-transform duration-200 shrink-0 ${expandedMenus.bookings ? 'rotate-90' : 'rotate-0'}`} />
-            )}
-          </button>
-          
-          <AnimatePresence initial={false}>
-            {expandedMenus.bookings && !collapsed && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                className="overflow-hidden pl-8 pr-1 py-0.5 space-y-0.5"
-              >
-                <NavLink
-                  to="/bookings"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
-                      isActive 
-                        ? 'text-white font-bold' 
-                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
-                    }`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {isActive && (
-                        <motion.span
-                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
-                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
-                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
-                        />
-                      )}
-                      <FileText className="relative z-10 w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
-                      <span className="relative z-10">Orders</span>
-                    </>
-                  )}
-                </NavLink>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Agents Link */}
+        {/* 2. Bookings */}
         <NavLink
-          to="/analytics"
+          to="/bookings"
           onClick={() => setMobileMenuOpen(false)}
-          title={collapsed ? "Agents" : undefined}
+          title={collapsed ? "Bookings" : undefined}
           className={({ isActive }) =>
             `relative flex items-center transition-all duration-150 text-sm group ${
-              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : 'w-full gap-2.5 px-3 py-2 rounded-xl'
+              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : `w-full gap-2.5 px-3 ${isMobile ? 'py-2.5' : 'py-2'} rounded-xl`
+            } ${
+              isActive 
+                ? 'text-white font-bold' 
+                : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <motion.span
+                  layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                  transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                  className="absolute inset-0 rounded-xl bg-sky-500/20 border border-sky-400/40 shadow-xs shadow-sky-500/10 pointer-events-none"
+                />
+              )}
+              <Calendar className="relative z-10 w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
+              <span className={`relative z-10 transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
+                Bookings
+              </span>
+            </>
+          )}
+        </NavLink>
+
+        {/* 3. Activities */}
+        <NavLink
+          to="/inventory"
+          onClick={() => setMobileMenuOpen(false)}
+          title={collapsed ? "Activities" : undefined}
+          className={({ isActive }) =>
+            `relative flex items-center transition-all duration-150 text-sm group ${
+              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : `w-full gap-2.5 px-3 ${isMobile ? 'py-2.5' : 'py-2'} rounded-xl`
+            } ${
+              isActive 
+                ? 'text-white font-bold' 
+                : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <motion.span
+                  layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                  transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                  className="absolute inset-0 rounded-xl bg-sky-500/20 border border-sky-400/40 shadow-xs shadow-sky-500/10 pointer-events-none"
+                />
+              )}
+              <Ticket className="relative z-10 w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
+              <span className={`relative z-10 transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
+                Activities
+              </span>
+            </>
+          )}
+        </NavLink>
+
+        {/* 4. Customers */}
+        <NavLink
+          to="/customers"
+          onClick={() => setMobileMenuOpen(false)}
+          title={collapsed ? "Customers" : undefined}
+          className={({ isActive }) =>
+            `relative flex items-center transition-all duration-150 text-sm group ${
+              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : `w-full gap-2.5 px-3 ${isMobile ? 'py-2.5' : 'py-2'} rounded-xl`
             } ${
               isActive 
                 ? 'text-white font-bold' 
@@ -367,51 +363,149 @@ export default function AdminLayout() {
               )}
               <Users className="relative z-10 w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
               <span className={`relative z-10 transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
-                Agents
+                Customers
               </span>
             </>
           )}
         </NavLink>
 
-        {/* Website Menu */}
+        {/* 5. Marketing (Expandable) */}
         <div>
-          <button 
+          <button
+            type="button"
             onClick={() => {
               if (collapsed) {
                 setSidebarCollapsed(false);
-                setExpandedMenus(prev => ({ ...prev, website: true }));
+                setExpandedMenus(prev => ({ ...prev, marketing: true }));
               } else {
-                toggleMenu('website');
+                toggleMenu('marketing');
               }
             }}
-            title={collapsed ? "Website" : undefined}
+            title={collapsed ? "Marketing" : undefined}
             className={`flex items-center transition-all duration-150 text-sm cursor-pointer w-full group ${
               collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : 'justify-between px-3 py-2 rounded-xl'
             } ${
-              expandedMenus.website && !collapsed
+              expandedMenus.marketing && !collapsed
                 ? 'text-white bg-white/10 font-bold'
                 : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
             }`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <Globe className="w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
+              <Megaphone className="w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
               <span className={`transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
-                Website
+                Marketing
               </span>
             </div>
             {!collapsed && (
-              <ChevronRight className={`w-4 h-4 text-slate-400 group-hover:text-white transition-transform duration-200 shrink-0 ${expandedMenus.website ? 'rotate-90' : 'rotate-0'}`} />
+              <ChevronRight className={`w-4 h-4 text-slate-400 group-hover:text-white transition-transform duration-200 shrink-0 ${expandedMenus.marketing ? 'rotate-90' : 'rotate-0'}`} />
             )}
           </button>
-          
+
           <AnimatePresence initial={false}>
-            {expandedMenus.website && !collapsed && (
+            {expandedMenus.marketing && !collapsed && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                className="overflow-hidden pl-8 pr-1 py-0.5 space-y-0.5"
+                className="overflow-hidden pl-7 pr-1 py-0.5 space-y-0.5"
+              >
+                <NavLink
+                  to="/promotional-banners"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                      isActive 
+                        ? 'text-amber-200 font-bold' 
+                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-amber-500/20 border border-amber-400/35 pointer-events-none"
+                        />
+                      )}
+                      <Sparkles className="relative z-10 w-3.5 h-3.5 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10 truncate">Promotional Banners</span>
+                    </>
+                  )}
+                </NavLink>
+
+                <NavLink
+                  to="/marketing/coupons"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                      isActive 
+                        ? 'text-white font-bold' 
+                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
+                        />
+                      )}
+                      <Tag className="relative z-10 w-3.5 h-3.5 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10 truncate">Coupons & Promos</span>
+                    </>
+                  )}
+                </NavLink>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* 6. Content (Expandable) */}
+        <div>
+          <button
+            type="button"
+            onClick={() => {
+              if (collapsed) {
+                setSidebarCollapsed(false);
+                setExpandedMenus(prev => ({ ...prev, content: true }));
+              } else {
+                toggleMenu('content');
+              }
+            }}
+            title={collapsed ? "Content" : undefined}
+            className={`flex items-center transition-all duration-150 text-sm cursor-pointer w-full group ${
+              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : 'justify-between px-3 py-2 rounded-xl'
+            } ${
+              expandedMenus.content && !collapsed
+                ? 'text-white bg-white/10 font-bold'
+                : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
+            }`}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <FileText className="w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
+              <span className={`transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
+                Content
+              </span>
+            </div>
+            {!collapsed && (
+              <ChevronRight className={`w-4 h-4 text-slate-400 group-hover:text-white transition-transform duration-200 shrink-0 ${expandedMenus.content ? 'rotate-90' : 'rotate-0'}`} />
+            )}
+          </button>
+
+          <AnimatePresence initial={false}>
+            {expandedMenus.content && !collapsed && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                className="overflow-hidden pl-7 pr-1 py-0.5 space-y-0.5"
               >
                 <NavLink
                   to="/blog"
@@ -435,58 +529,6 @@ export default function AdminLayout() {
                       )}
                       <Text className="relative z-10 w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
                       <span className="relative z-10">Blog</span>
-                    </>
-                  )}
-                </NavLink>
-
-                <NavLink
-                  to="/promotional-banners"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
-                      isActive 
-                        ? 'text-amber-200 font-bold' 
-                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
-                    }`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {isActive && (
-                        <motion.span
-                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
-                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
-                          className="absolute inset-0 rounded-lg bg-amber-500/20 border border-amber-400/35 pointer-events-none"
-                        />
-                      )}
-                      <Sparkles className="relative z-10 w-3.5 h-3.5 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
-                      <span className="relative z-10">Promotional Banners</span>
-                    </>
-                  )}
-                </NavLink>
-
-                <NavLink
-                  to="/favicon"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
-                      isActive 
-                        ? 'text-white font-bold' 
-                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
-                    }`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {isActive && (
-                        <motion.span
-                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
-                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
-                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
-                        />
-                      )}
-                      <ImageIcon className="relative z-10 w-3.5 h-3.5 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
-                      <span className="relative z-10">Favicon</span>
                     </>
                   )}
                 </NavLink>
@@ -520,7 +562,387 @@ export default function AdminLayout() {
             )}
           </AnimatePresence>
         </div>
+
+        {/* 7. Appearance (Expandable) */}
+        <div>
+          <button
+            type="button"
+            onClick={() => {
+              if (collapsed) {
+                setSidebarCollapsed(false);
+                setExpandedMenus(prev => ({ ...prev, appearance: true }));
+              } else {
+                toggleMenu('appearance');
+              }
+            }}
+            title={collapsed ? "Appearance" : undefined}
+            className={`flex items-center transition-all duration-150 text-sm cursor-pointer w-full group ${
+              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : 'justify-between px-3 py-2 rounded-xl'
+            } ${
+              expandedMenus.appearance && !collapsed
+                ? 'text-white bg-white/10 font-bold'
+                : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
+            }`}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Palette className="w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
+              <span className={`transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
+                Appearance
+              </span>
+            </div>
+            {!collapsed && (
+              <ChevronRight className={`w-4 h-4 text-slate-400 group-hover:text-white transition-transform duration-200 shrink-0 ${expandedMenus.appearance ? 'rotate-90' : 'rotate-0'}`} />
+            )}
+          </button>
+
+          <AnimatePresence initial={false}>
+            {expandedMenus.appearance && !collapsed && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                className="overflow-hidden pl-7 pr-1 py-0.5 space-y-0.5"
+              >
+                <NavLink
+                  to="/appearance/website"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                      isActive 
+                        ? 'text-white font-bold' 
+                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
+                        />
+                      )}
+                      <Globe className="relative z-10 w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10 truncate">Website Settings</span>
+                    </>
+                  )}
+                </NavLink>
+
+                <NavLink
+                  to="/favicon"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                      isActive 
+                        ? 'text-white font-bold' 
+                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
+                        />
+                      )}
+                      <ImageIcon className="relative z-10 w-3.5 h-3.5 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10 truncate">Logo & Favicon</span>
+                    </>
+                  )}
+                </NavLink>
+
+                <NavLink
+                  to="/appearance/theme"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                      isActive 
+                        ? 'text-white font-bold' 
+                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
+                        />
+                      )}
+                      <Sliders className="relative z-10 w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10 truncate">Theme Settings</span>
+                    </>
+                  )}
+                </NavLink>
+
+                <NavLink
+                  to="/appearance/menus"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                      isActive 
+                        ? 'text-white font-bold' 
+                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
+                        />
+                      )}
+                      <LayoutList className="relative z-10 w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10">Menus</span>
+                    </>
+                  )}
+                </NavLink>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* 8. Payments */}
+        <NavLink
+          to="/payments"
+          onClick={() => setMobileMenuOpen(false)}
+          title={collapsed ? "Payments" : undefined}
+          className={({ isActive }) =>
+            `relative flex items-center transition-all duration-150 text-sm group ${
+              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : `w-full gap-2.5 px-3 ${isMobile ? 'py-2.5' : 'py-2'} rounded-xl`
+            } ${
+              isActive 
+                ? 'text-white font-bold' 
+                : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <motion.span
+                  layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                  transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                  className="absolute inset-0 rounded-xl bg-sky-500/20 border border-sky-400/40 shadow-xs shadow-sky-500/10 pointer-events-none"
+                />
+              )}
+              <CreditCard className="relative z-10 w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
+              <span className={`relative z-10 transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
+                Payments
+              </span>
+            </>
+          )}
+        </NavLink>
+
+        {/* 9. Reports (Expandable) */}
+        <div>
+          <button
+            type="button"
+            onClick={() => {
+              if (collapsed) {
+                setSidebarCollapsed(false);
+                setExpandedMenus(prev => ({ ...prev, reports: true }));
+              } else {
+                toggleMenu('reports');
+              }
+            }}
+            title={collapsed ? "Reports" : undefined}
+            className={`flex items-center transition-all duration-150 text-sm cursor-pointer w-full group ${
+              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : 'justify-between px-3 py-2 rounded-xl'
+            } ${
+              expandedMenus.reports && !collapsed
+                ? 'text-white bg-white/10 font-bold'
+                : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
+            }`}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <BarChart3 className="w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
+              <span className={`transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
+                Reports
+              </span>
+            </div>
+            {!collapsed && (
+              <ChevronRight className={`w-4 h-4 text-slate-400 group-hover:text-white transition-transform duration-200 shrink-0 ${expandedMenus.reports ? 'rotate-90' : 'rotate-0'}`} />
+            )}
+          </button>
+
+          <AnimatePresence initial={false}>
+            {expandedMenus.reports && !collapsed && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                className="overflow-hidden pl-7 pr-1 py-0.5 space-y-0.5"
+              >
+                <NavLink
+                  to="/reports"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                      isActive 
+                        ? 'text-white font-bold' 
+                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
+                        />
+                      )}
+                      <BarChart3 className="relative z-10 w-3.5 h-3.5 shrink-0 text-current group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10 truncate">Business Reports</span>
+                    </>
+                  )}
+                </NavLink>
+
+                <NavLink
+                  to="/analytics"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 group ${
+                      isActive 
+                        ? 'text-white font-bold' 
+                        : 'text-slate-300 hover:text-white font-medium hover:bg-white/5'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                          transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                          className="absolute inset-0 rounded-lg bg-sky-500/20 border border-sky-400/35 pointer-events-none"
+                        />
+                      )}
+                      <LineChart className="relative z-10 w-3.5 h-3.5 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
+                      <span className="relative z-10 truncate">Agents & Analytics</span>
+                    </>
+                  )}
+                </NavLink>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* 10. Support */}
+        <NavLink
+          to="/support"
+          onClick={() => setMobileMenuOpen(false)}
+          title={collapsed ? "Support" : undefined}
+          className={({ isActive }) =>
+            `relative flex items-center transition-all duration-150 text-sm group ${
+              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : `w-full gap-2.5 px-3 ${isMobile ? 'py-2.5' : 'py-2'} rounded-xl`
+            } ${
+              isActive 
+                ? 'text-white font-bold' 
+                : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <motion.span
+                  layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                  transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                  className="absolute inset-0 rounded-xl bg-sky-500/20 border border-sky-400/40 shadow-xs shadow-sky-500/10 pointer-events-none"
+                />
+              )}
+              <Headphones className="relative z-10 w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
+              <span className={`relative z-10 transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
+                Support
+              </span>
+            </>
+          )}
+        </NavLink>
+
+        {/* 11. Settings */}
+        <NavLink
+          to="/settings"
+          onClick={() => setMobileMenuOpen(false)}
+          title={collapsed ? "Settings" : undefined}
+          className={({ isActive }) =>
+            `relative flex items-center transition-all duration-150 text-sm group ${
+              collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : `w-full gap-2.5 px-3 ${isMobile ? 'py-2.5' : 'py-2'} rounded-xl`
+            } ${
+              isActive 
+                ? 'text-white font-bold' 
+                : 'text-slate-300 hover:bg-white/10 hover:text-white font-medium active:scale-[0.98]'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <motion.span
+                  layoutId={isMobile ? 'admin-mobile-active-nav' : 'admin-desktop-active-nav'}
+                  transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                  className="absolute inset-0 rounded-xl bg-sky-500/20 border border-sky-400/40 shadow-xs shadow-sky-500/10 pointer-events-none"
+                />
+              )}
+              <Settings className="relative z-10 w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
+              <span className={`relative z-10 transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
+                Settings
+              </span>
+            </>
+          )}
+        </NavLink>
       </nav>
+
+      {/* Visit Website Promo Card (Styled in existing Tiqsey dark navy/sky palette) */}
+      <div className="px-2.5 pb-2 pt-1">
+        {collapsed ? (
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Visit Tiqsey Website"
+            className="mx-auto w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-400/30 text-sky-300 hover:bg-sky-500/25 hover:text-white flex items-center justify-center transition-colors"
+          >
+            <Rocket className="w-4.5 h-4.5" />
+          </a>
+        ) : (
+          <div className="rounded-xl bg-slate-900/90 border border-slate-800/90 p-3 space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-400/30 text-sky-400 flex items-center justify-center shrink-0">
+                <Rocket className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white leading-tight truncate">Tiqsey</p>
+                <p className="text-[10.5px] text-slate-400 leading-tight truncate mt-0.5">
+                  More Culture, More Experience
+                </p>
+              </div>
+            </div>
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/35 text-sky-200 hover:text-white text-xs font-semibold transition-colors"
+            >
+              <span>Visit Website</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        )}
+      </div>
 
       {/* Logout button */}
       <div className="p-2 border-t border-slate-800/60">

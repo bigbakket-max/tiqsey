@@ -18,6 +18,15 @@ import PromotionalBannerForm from './pages/PromotionalBannerForm';
 import GeminiLogoShowcase from './pages/GeminiLogoShowcase';
 import FaviconManagement from './pages/FaviconManagement';
 import StorageManager from './pages/StorageManager';
+import Customers from './pages/Customers';
+import CouponsManager from './pages/CouponsManager';
+import WebsiteSettings from './pages/WebsiteSettings';
+import ThemeSettings from './pages/ThemeSettings';
+import MenusManager from './pages/MenusManager';
+import Payments from './pages/Payments';
+import Reports from './pages/Reports';
+import Support from './pages/Support';
+import AdminSettings from './pages/AdminSettings';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 function RequireAdmin({ children }: { children: React.ReactNode }) {
@@ -57,19 +66,28 @@ export default function AdminApp() {
                 <Route path="/login" element={<RequireAdmin><Navigate to="/" replace /></RequireAdmin>} />
                 <Route path="/" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
                   <Route index element={<Dashboard />} />
+                  <Route path="bookings" element={<Bookings />} />
                   <Route path="inventory" element={<Inventory />} />
                   <Route path="inventory/edit/:id" element={<Inventory />} />
                   <Route path="inventory/new" element={<Inventory />} />
-                  <Route path="bookings" element={<Bookings />} />
-                  <Route path="analytics" element={<Analytics />} />
-                  <Route path="blog" element={<Blog />} />
-                  <Route path="blog/new" element={<BlogPostForm />} />
-                  <Route path="blog/:id" element={<BlogPostForm />} />
+                  <Route path="customers" element={<Customers />} />
                   <Route path="promotional-banners" element={<PromotionalBanners />} />
                   <Route path="promotional-banners/new" element={<PromotionalBannerForm />} />
                   <Route path="promotional-banners/edit/:id" element={<PromotionalBannerForm />} />
-                  <Route path="favicon" element={<FaviconManagement />} />
+                  <Route path="marketing/coupons" element={<CouponsManager />} />
+                  <Route path="blog" element={<Blog />} />
+                  <Route path="blog/new" element={<BlogPostForm />} />
+                  <Route path="blog/:id" element={<BlogPostForm />} />
                   <Route path="storage" element={<StorageManager />} />
+                  <Route path="appearance/website" element={<WebsiteSettings />} />
+                  <Route path="favicon" element={<FaviconManagement />} />
+                  <Route path="appearance/theme" element={<ThemeSettings />} />
+                  <Route path="appearance/menus" element={<MenusManager />} />
+                  <Route path="payments" element={<Payments />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="analytics" element={<Analytics />} />
+                  <Route path="support" element={<Support />} />
+                  <Route path="settings" element={<AdminSettings />} />
                   <Route path="custom-domain" element={<Navigate to="/" replace />} />
                   <Route path="website/domain" element={<Navigate to="/" replace />} />
                   <Route path="gemini-logo" element={<GeminiLogoShowcase />} />
