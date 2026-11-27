@@ -30,8 +30,6 @@ import {
   Tag,
   Sliders,
   LayoutList,
-  Rocket,
-  ArrowUpRight,
   LineChart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -905,44 +903,6 @@ export default function AdminLayout() {
           )}
         </NavLink>
       </nav>
-
-      {/* Visit Website Promo Card (Styled in existing Tiqsey dark navy/sky palette) */}
-      <div className="px-2.5 pb-2 pt-1">
-        {collapsed ? (
-          <a
-            href="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Visit Tiqsey Website"
-            className="mx-auto w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-400/30 text-sky-300 hover:bg-sky-500/25 hover:text-white flex items-center justify-center transition-colors"
-          >
-            <Rocket className="w-4.5 h-4.5" />
-          </a>
-        ) : (
-          <div className="rounded-xl bg-slate-900/90 border border-slate-800/90 p-3 space-y-2.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-400/30 text-sky-400 flex items-center justify-center shrink-0">
-                <Rocket className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-white leading-tight truncate">Tiqsey</p>
-                <p className="text-[10.5px] text-slate-400 leading-tight truncate mt-0.5">
-                  More Culture, More Experience
-                </p>
-              </div>
-            </div>
-            <a
-              href="/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/35 text-sky-200 hover:text-white text-xs font-semibold transition-colors"
-            >
-              <span>Visit Website</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        )}
-      </div>
 
       {/* Logout button */}
       <div className="p-2 border-t border-slate-800/60">
