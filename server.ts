@@ -4705,11 +4705,109 @@ async function startServer() {
     }
   });
 
+  const ADMIN_CREDENTIAL_KEY = 'admin_credential_hash';
+
+  const getClaimedAdminCredential = (): { salt: string; hash: string; claimedBy?: string; claimedAt?: string } | null => {
+    try {
+      const row = db
+        .prepare("SELECT value FROM site_settings WHERE key = ?")
+        .get(ADMIN_CREDENTIAL_KEY) as { value?: string } | undefined;
+      if (!row?.value) return null;
+      const parsed = JSON.parse(row.value);
+      if (parsed && typeof parsed.salt === 'string' && typeof parsed.hash === 'string') {
+        return parsed;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const buildPublicAdminSessionUser = (normalizedEmail: string) => ({
+    id: normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
+    name: normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
+    email: normalizedEmail,
+    role: 'admin',
+    avatarUrl:
+      normalizedEmail === 'bigbakket@gmail.com'
+        ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'
+        : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
+    exp: Date.now() + SESSION_TTL_MS,
+  });
+
+  app.get("/api/auth/admin-setup-status", (_req, res) => {
+    const configuredAdminPass = (process.env.ADMIN_PASSWORD || '').trim();
+    if (configuredAdminPass) {
+      return res.json({ configured: true, source: 'env' });
+    }
+    const claimed = getClaimedAdminCredential();
+    if (claimed) {
+      return res.json({ configured: true, source: 'claimed' });
+    }
+    return res.json({ configured: false, source: 'unclaimed' });
+  });
+
+  app.post("/api/auth/admin-setup", (req, res) => {
+    const configuredAdminPass = (process.env.ADMIN_PASSWORD || '').trim();
+    if (configuredAdminPass) {
+      return res.status(409).json({
+        error: "Administrator passcode is already configured via server environment secrets.",
+      });
+    }
+
+    const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    const normalizedEmail = rawEmail.toLowerCase();
+
+    if (!normalizedEmail || !ADMIN_EMAILS.includes(normalizedEmail)) {
+      return res.status(400).json({
+        error: "Please use an authorized administrator email address.",
+      });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({
+        error: "Choose a strong administrator password of at least 8 characters.",
+      });
+    }
+
+    try {
+      const salt = crypto.randomBytes(16).toString('hex');
+      const derivedHash = crypto.scryptSync(password, salt, 64).toString('hex');
+      const now = new Date().toISOString();
+      const record = JSON.stringify({
+        salt,
+        hash: derivedHash,
+        claimedBy: normalizedEmail,
+        claimedAt: now,
+      });
+
+      // Atomic insert-once: locks immediately once claimed
+      const info = db
+        .prepare("INSERT OR IGNORE INTO site_settings (key, value, updated_at) VALUES (?, ?, ?)")
+        .run(ADMIN_CREDENTIAL_KEY, record, now);
+
+      if (!info.changes) {
+        return res.status(409).json({
+          error: "Administrator password has already been claimed. Please sign in with your password.",
+        });
+      }
+
+      const sessionUser = buildPublicAdminSessionUser(normalizedEmail);
+      const signedCookie = signSessionCookiePayload(sessionUser);
+      res.setHeader('Set-Cookie', buildSessionCookieHeader(req, signedCookie, Math.floor(SESSION_TTL_MS / 1000)));
+      const { exp: _exp, ...publicUser } = sessionUser;
+      return res.status(201).json({ success: true, user: publicUser });
+    } catch (err: any) {
+      console.error("[Admin Setup] Error saving admin credential:", err);
+      return res.status(500).json({ error: "Failed to save administrator password." });
+    }
+  });
+
   app.post("/api/auth/login", (req, res) => {
     const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
     if (!rawEmail || !password) {
-      return res.status(400).json({ error: "Invalid credentials" });
+      return res.status(400).json({ error: "Please enter both email and password." });
     }
 
     const normalizedEmail = rawEmail.toLowerCase();
@@ -4723,43 +4821,54 @@ async function startServer() {
         const b = Buffer.from(configuredAdminPass, 'utf8');
         verified = a.length === b.length && crypto.timingSafeEqual(a, b);
       } else {
-        // Fallback: verify against salted PBKDF2 hash in backend_users when ADMIN_PASSWORD env is unset
-        try {
-          const beUser = db
-            .prepare("SELECT password_hash, password_salt, status FROM backend_users WHERE lower(email) = ?")
-            .get(normalizedEmail) as any;
-          if (beUser && beUser.status === 'Active' && beUser.password_hash && beUser.password_salt) {
-            const calc = crypto.pbkdf2Sync(password, beUser.password_salt, 1000, 64, 'sha512').toString('hex');
+        const claimed = getClaimedAdminCredential();
+        if (claimed) {
+          try {
+            const calc = crypto.scryptSync(password, claimed.salt, 64).toString('hex');
             const a = Buffer.from(calc, 'utf8');
-            const b = Buffer.from(String(beUser.password_hash), 'utf8');
+            const b = Buffer.from(claimed.hash, 'utf8');
             verified = a.length === b.length && crypto.timingSafeEqual(a, b);
+          } catch {
+            verified = false;
           }
-        } catch {
-          verified = false;
+        } else {
+          // Check if the specific admin email exists in backend_users
+          try {
+            const beUser = db
+              .prepare("SELECT password_hash, password_salt, status FROM backend_users WHERE lower(email) = ?")
+              .get(normalizedEmail) as any;
+            if (beUser && beUser.status === 'Active' && beUser.password_hash && beUser.password_salt) {
+              const calc = crypto.pbkdf2Sync(password, beUser.password_salt, 1000, 64, 'sha512').toString('hex');
+              const a = Buffer.from(calc, 'utf8');
+              const b = Buffer.from(String(beUser.password_hash), 'utf8');
+              verified = a.length === b.length && crypto.timingSafeEqual(a, b);
+            } else {
+              return res.status(403).json({
+                error: "Administrator password has not been set up yet. Complete first-time admin setup to continue.",
+                needsSetup: true,
+              });
+            }
+          } catch {
+            verified = false;
+          }
         }
       }
 
       if (!verified) {
-        return res.status(401).json({ error: "Incorrect administrator password." });
+        return res.status(401).json({ error: "Incorrect administrator password. Please check your credentials." });
       }
     }
 
-    const sessionUser = {
-      id: isAdmin
-        ? (normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456')
-        : `user-${crypto.createHash('sha256').update(normalizedEmail).digest('hex').slice(0, 12)}`,
-      name: isAdmin
-        ? (normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin')
-        : normalizedEmail.split('@')[0],
-      email: normalizedEmail,
-      role: isAdmin ? 'admin' : 'user',
-      avatarUrl: isAdmin
-        ? (normalizedEmail === 'bigbakket@gmail.com'
-            ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'
-            : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200')
-        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-      exp: Date.now() + SESSION_TTL_MS,
-    };
+    const sessionUser = isAdmin
+      ? buildPublicAdminSessionUser(normalizedEmail)
+      : {
+          id: `user-${crypto.createHash('sha256').update(normalizedEmail).digest('hex').slice(0, 12)}`,
+          name: normalizedEmail.split('@')[0],
+          email: normalizedEmail,
+          role: 'user',
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+          exp: Date.now() + SESSION_TTL_MS,
+        };
 
     const signedCookie = signSessionCookiePayload(sessionUser);
     res.setHeader('Set-Cookie', buildSessionCookieHeader(req, signedCookie, Math.floor(SESSION_TTL_MS / 1000)));

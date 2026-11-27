@@ -18,6 +18,7 @@ import {
   fetchAdminLiveBookings,
   fetchAdminLiveAttractions,
   exportRowsToCsv,
+  parseSafeTimestamp,
   LiveBookingRecord,
 } from '../../utils/adminConfigClient';
 
@@ -60,7 +61,7 @@ export default function Reports() {
     if (range === 'all') return bookings;
     const days = range === '7d' ? 7 : 30;
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-    return bookings.filter((b) => new Date(b.createdAt).getTime() >= cutoff);
+    return bookings.filter((b) => parseSafeTimestamp(b.createdAt) >= cutoff);
   }, [bookings, range]);
 
   const metrics = useMemo(() => {

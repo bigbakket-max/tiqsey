@@ -9,6 +9,7 @@ interface AuthContextType {
   isAuthModalOpen: boolean;
   setAuthModalOpen: (isOpen: boolean) => void;
   login: (email: string, password: string) => Promise<User>;
+  claimAdminSetup: (email: string, password: string) => Promise<User>;
   register: (name: string, email: string, password: string) => Promise<User>;
   loginWithGoogle: (email: string, name: string, avatarUrl: string) => Promise<User>;
   logout: () => void;
@@ -43,10 +44,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Default demo credentials
+// Default demo credentials (non-admin preview account)
 const DEMO_EMAIL = 'demo@tiqsey.com';
 const DEMO_PASSWORD = 'password123';
-export const ADMIN_PASSWORD = 'bigbakket@admin@1997';
 export const ADMIN_EMAILS = ['admin@tiqsey.com', 'superadmin@tiqsey.com', 'bigbakket@gmail.com'];
 
 export const deriveNameFromEmail = (emailStr: string): string => {
@@ -216,7 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let active = true;
 
-    // Prime the mock users database safely (never throw if storage quota is full)
+    // Prime the demo traveler user safely (never store admin credentials in client localStorage)
     const registeredUsers = safeStorageGet(window.localStorage, 'tiqsey_users');
     if (!registeredUsers) {
       const initialUsers = [
@@ -230,62 +230,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           createdAt: new Date().toLocaleDateString(),
           role: 'user',
         },
-        {
-          id: 'admin-user-456',
-          name: 'System Admin',
-          email: 'admin@tiqsey.com',
-          password: ADMIN_PASSWORD,
-          bio: 'Super Administrator.',
-          avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
-          createdAt: new Date().toLocaleDateString(),
-          role: 'admin',
-        },
-        {
-          id: 'admin-user-bigbakket',
-          name: 'Lead Admin',
-          email: 'bigbakket@gmail.com',
-          password: ADMIN_PASSWORD,
-          bio: 'Lead Administrator.',
-          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
-          createdAt: new Date().toLocaleDateString(),
-          role: 'admin',
-        }
       ];
       safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(initialUsers));
     } else {
       try {
         const users = JSON.parse(registeredUsers);
         if (Array.isArray(users)) {
-          let modified = false;
-
-          ADMIN_EMAILS.forEach((admEmail) => {
-            const found = users.find((u: any) => u.email?.toLowerCase() === admEmail.toLowerCase());
-            if (!found) {
-              users.push({
-                id: admEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
-                name: admEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
-                email: admEmail,
-                password: ADMIN_PASSWORD,
-                bio: 'Administrator.',
-                avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
-                createdAt: new Date().toLocaleDateString(),
-                role: 'admin',
-              });
-              modified = true;
-            } else {
-              if (found.role !== 'admin') {
-                found.role = 'admin';
-                modified = true;
-              }
-              if (found.password !== ADMIN_PASSWORD) {
-                found.password = ADMIN_PASSWORD;
-                modified = true;
-              }
-            }
-          });
-
-          if (modified) {
-            safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
+          const cleaned = users.filter((u: any) => !ADMIN_EMAILS.includes(String(u?.email || '').toLowerCase()));
+          if (cleaned.length !== users.length) {
+            safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(cleaned));
           }
         }
       } catch (e) {
@@ -350,32 +303,104 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
   // (bookings hydration handled by hydrateUserBookings above)
 
+  const claimAdminSetup = async (email: string, password: string): Promise<User> => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      throw new Error('Please enter your administrator email and choose a password.');
+    }
+
+    const response = await fetch('/api/auth/admin-setup', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({ email: trimmedEmail, password }),
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error('Admin setup requires the backend server to be running.');
+    }
+
+    const data = await response.json();
+    if (!response.ok || !data?.success || !data?.user) {
+      throw new Error(data?.error || 'Could not complete administrator setup.');
+    }
+
+    const userSession = sanitizeSessionUser({
+      ...data.user,
+      bio: 'Super Administrator.',
+      createdAt: new Date().toLocaleDateString(),
+      role: 'admin',
+    });
+    if (!userSession) {
+      throw new Error('Invalid administrator session returned by server.');
+    }
+
+    persistStoredSession(userSession);
+    setUser(userSession);
+    setIsAuthReady(true);
+    hydrateUserBookings(userSession);
+    return userSession;
+  };
+
   const login = async (email: string, password: string): Promise<User> => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
       throw new Error('Please fill in both email and password.');
     }
 
-    // Attempt backend sync & HttpOnly session cookie safely without breaking if backend returns HTML (e.g., on static host)
+    const normalizedEmail = trimmedEmail.toLowerCase();
+    const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
+
+    // Server-side verification & signed HttpOnly session cookie
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        credentials: "include",
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        credentials: 'include',
         headers: {
-          "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest",
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
         },
         body: JSON.stringify({ email: trimmedEmail, password }),
       });
-      const contentType = response.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
         const data = await response.json();
-        if (!response.ok && data?.error) {
-          console.warn("[Backend Login Warning]:", data.error);
+        if (response.ok && data?.success && data?.user) {
+          const userSession = sanitizeSessionUser({
+            ...data.user,
+            bio: isAdmin ? 'Super Administrator.' : 'Explorer on Tiqsey',
+            createdAt: new Date().toLocaleDateString(),
+            role: isAdmin ? 'admin' : data.user.role || 'user',
+          });
+          if (userSession) {
+            persistStoredSession(userSession);
+            setUser(userSession);
+            setIsAuthReady(true);
+            hydrateUserBookings(userSession);
+            return userSession;
+          }
         }
+        if (isAdmin) {
+          const err: any = new Error(
+            data?.error || 'Incorrect administrator password. Please check your credentials.'
+          );
+          if (data?.needsSetup) err.needsSetup = true;
+          throw err;
+        }
+      } else if (isAdmin) {
+        throw new Error('Administrator sign-in requires the backend server to verify credentials.');
       }
-    } catch (_) {
-      // Backend unreachable or static hosting - fall back seamlessly to client session
+    } catch (err: any) {
+      if (isAdmin) {
+        throw err instanceof Error
+          ? err
+          : new Error('Unable to verify administrator credentials.');
+      }
+      // For standard customer accounts on static hosting, fall back seamlessly to local preview session
     }
 
     return new Promise((resolve, reject) => {
@@ -388,78 +413,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (_) {
           users = [];
         }
-        
-        const normalizedEmail = trimmedEmail.toLowerCase();
-        const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
-        let matched = users.find((u: any) => u.email?.toLowerCase() === normalizedEmail);
-        
-        if (isAdmin) {
-          if (!matched) {
-            matched = {
-              id: normalizedEmail === 'bigbakket@gmail.com' ? 'admin-user-bigbakket' : 'admin-user-456',
-              name: normalizedEmail === 'bigbakket@gmail.com' ? 'Lead Admin' : 'System Admin',
-              email: normalizedEmail,
-              password: ADMIN_PASSWORD,
-              bio: 'Super Administrator.',
-              avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
-              createdAt: new Date().toLocaleDateString(),
-              role: 'admin',
-            };
-            users.push(matched);
-            safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
-          } else {
-            let userModified = false;
-            if (matched.role !== 'admin') {
-              matched.role = 'admin';
-              userModified = true;
-            }
-            if (matched.password !== ADMIN_PASSWORD) {
-              matched.password = ADMIN_PASSWORD;
-              userModified = true;
-            }
-            if (userModified) {
-              safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
-            }
-          }
-        }
-        
+
+        const matched = users.find((u: any) => u.email?.toLowerCase() === normalizedEmail);
+
         if (matched) {
-          // Verify password
-          if (isAdmin) {
-            if (password !== ADMIN_PASSWORD) {
-              reject(new Error('Incorrect administrator password. Please check your credentials.'));
-              return;
-            }
-          } else if (matched.password && matched.password !== password) {
+          if (matched.password && matched.password !== password) {
             reject(new Error('Incorrect password. Please verify your credentials or use the demo password.'));
             return;
           }
 
-          // Clean password before setting state
           const { password: _, ...userSession } = matched;
-          if (isAdmin) {
-            userSession.role = 'admin';
-          }
           persistStoredSession(userSession);
           setUser(userSession);
           setIsAuthReady(true);
-          
-          // Load bookings
-          const storedBookings = safeStorageGet(window.localStorage, `tiqsey_bookings_${userSession.id}`);
-          if (storedBookings) {
-            try {
-              const parsed = JSON.parse(storedBookings);
-              setBookings(Array.isArray(parsed) ? parsed : []);
-            } catch {
-              setBookings([]);
-            }
-          } else {
-            setBookings([]);
-          }
-          
+          hydrateUserBookings(userSession);
           resolve(userSession);
         } else {
-          // Create user account seamlessly for new email
           const tempUser: any = {
             id: `user-${Date.now()}`,
             name: deriveNameFromEmail(trimmedEmail),
@@ -468,7 +437,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             bio: 'New explorer on Tiqsey!',
             avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200`,
             createdAt: new Date().toLocaleDateString(),
-            role: isAdmin ? 'admin' : 'user',
+            role: 'user',
           };
           users.push(tempUser);
           safeStorageSet(window.localStorage, 'tiqsey_users', JSON.stringify(users));
@@ -1002,7 +971,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       bookings, 
       isAuthModalOpen, 
       setAuthModalOpen, 
-      login, 
+      login,
+      claimAdminSetup,
       register, 
       loginWithGoogle,
       logout, 

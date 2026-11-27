@@ -18,6 +18,9 @@ import { AdminModalShell, AdminStatusBadge, TableSkeleton } from '../components/
 import {
   fetchAdminLiveBookings,
   exportRowsToCsv,
+  formatSafeDate,
+  formatSafeDateTime,
+  toSafeIsoString,
   LiveBookingRecord,
 } from '../../utils/adminConfigClient';
 
@@ -141,7 +144,7 @@ export default function Payments() {
         tx.currency,
         tx.amount.toFixed(2),
         tx.state,
-        new Date(tx.createdAt).toISOString(),
+        toSafeIsoString(tx.createdAt),
       ])
     );
     notify('success', `Exported ${filteredTransactions.length} payment ledger rows to CSV.`);
@@ -314,7 +317,7 @@ export default function Payments() {
                       <p className="text-[11px] text-slate-400">{tx.method}</p>
                     </td>
                     <td className="py-3.5 px-4 font-mono tabular-nums text-slate-600 dark:text-slate-300">
-                      {new Date(tx.createdAt).toLocaleDateString()}
+                      {formatSafeDate(tx.createdAt)}
                     </td>
                     <td className="py-3.5 px-4">
                       <AdminStatusBadge status={tx.state} />
@@ -392,7 +395,7 @@ export default function Payments() {
                 <div className="py-2.5 flex justify-between gap-4">
                   <dt className="text-slate-500">Recorded At</dt>
                   <dd className="font-mono tabular-nums text-slate-800 dark:text-slate-200">
-                    {new Date(selectedTx.createdAt).toLocaleString()}
+                    {formatSafeDateTime(selectedTx.createdAt)}
                   </dd>
                 </div>
               </dl>

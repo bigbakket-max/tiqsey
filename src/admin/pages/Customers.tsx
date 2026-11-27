@@ -27,6 +27,8 @@ import {
 import {
   fetchAdminLiveBookings,
   exportRowsToCsv,
+  parseSafeTimestamp,
+  formatSafeDate,
   LiveBookingRecord,
 } from '../../utils/adminConfigClient';
 
@@ -103,7 +105,7 @@ export default function Customers() {
         existing.totalSpent += spend;
         existing.totalTravelers += Number(b.travelers || 1);
         if (b.customerPhone && existing.phone === '—') existing.phone = b.customerPhone;
-        if (new Date(b.createdAt).getTime() > new Date(existing.lastBookingDate).getTime()) {
+        if (parseSafeTimestamp(b.createdAt) > parseSafeTimestamp(existing.lastBookingDate)) {
           existing.lastBookingDate = b.createdAt;
           existing.lastAttraction = b.attractionName;
         }
@@ -126,7 +128,7 @@ export default function Customers() {
     return customers.filter((c) => {
       if (segment === 'repeat' && c.bookingsCount < 2) return false;
       if (segment === 'high_value' && c.totalSpent < 200) return false;
-      if (segment === 'recent' && new Date(c.lastBookingDate).getTime() < thirtyDaysAgo) return false;
+      if (segment === 'recent' && parseSafeTimestamp(c.lastBookingDate) < thirtyDaysAgo) return false;
 
       if (!q) return true;
       return (
@@ -159,7 +161,7 @@ export default function Customers() {
         c.totalTravelers,
         c.totalSpent.toFixed(2),
         c.lastAttraction,
-        c.lastBookingDate ? new Date(c.lastBookingDate).toLocaleDateString() : '—',
+        formatSafeDate(c.lastBookingDate),
       ])
     );
     notify('success', `Exported ${filteredCustomers.length} customer records to CSV.`);
@@ -379,7 +381,7 @@ export default function Customers() {
                       <td className="py-3.5 px-4">
                         <p className="text-slate-700 dark:text-slate-300 truncate max-w-[200px]">{c.lastAttraction}</p>
                         <p className="text-[11px] text-slate-400 font-mono tabular-nums">
-                          {c.lastBookingDate ? new Date(c.lastBookingDate).toLocaleDateString() : '—'}
+                          {formatSafeDate(c.lastBookingDate)}
                         </p>
                       </td>
                       <td className="py-3.5 px-4 text-right">
@@ -488,7 +490,7 @@ export default function Customers() {
                         <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400">
                           <span className="inline-flex items-center gap-1 font-mono tabular-nums">
                             <Calendar className="w-3 h-3" />
-                            {b.bookingDate || new Date(b.createdAt).toLocaleDateString()}
+                            {b.bookingDate || formatSafeDate(b.createdAt)}
                           </span>
                           <span className="font-mono font-bold text-slate-900 dark:text-white tabular-nums">
                             {b.paymentSymbol || '€'}

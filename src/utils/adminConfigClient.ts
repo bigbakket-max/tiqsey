@@ -293,23 +293,96 @@ export async function saveAdminConfig<T>(
   return { ok: true, source: 'local', updatedAt: new Date().toISOString() };
 }
 
+export function parseSafeTimestamp(val?: string | null): number {
+  if (!val) return 0;
+  const parsed = Date.parse(val);
+  if (!Number.isNaN(parsed)) return parsed;
+  // Normalize formats like "17 Jul 2026 09:12 PM" for Safari compatibility
+  const match = String(val).trim().match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})(?:\s+(\d{1,2}):(\d{2})(?:\s*(AM|PM))?)?$/i);
+  if (match) {
+    const [, dayStr, monStr, yearStr, hourStr, minStr, ampm] = match;
+    const months: Record<string, number> = {
+      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+    };
+    const m = months[monStr.slice(0, 3).toLowerCase()];
+    if (m !== undefined) {
+      let hours = hourStr ? Number(hourStr) : 0;
+      const mins = minStr ? Number(minStr) : 0;
+      if (ampm) {
+        const up = ampm.toUpperCase();
+        if (up === 'PM' && hours < 12) hours += 12;
+        if (up === 'AM' && hours === 12) hours = 0;
+      }
+      const d = new Date(Number(yearStr), m, Number(dayStr), hours, mins);
+      if (!Number.isNaN(d.getTime())) return d.getTime();
+    }
+  }
+  return 0;
+}
+
+export function formatSafeDate(val?: string | null): string {
+  const ts = parseSafeTimestamp(val);
+  if (!ts) return val ? String(val) : '—';
+  return new Date(ts).toLocaleDateString();
+}
+
+export function formatSafeDateTime(val?: string | null): string {
+  const ts = parseSafeTimestamp(val);
+  if (!ts) return val ? String(val) : '—';
+  return new Date(ts).toLocaleString();
+}
+
+export function toSafeIsoString(val?: string | null): string {
+  const ts = parseSafeTimestamp(val);
+  if (!ts) return val ? String(val) : '';
+  return new Date(ts).toISOString();
+}
+
 function normalizeBookingRecord(raw: any): LiveBookingRecord {
   const totalPrice = Number(raw?.totalPrice ?? raw?.total_price ?? raw?.price ?? 0) || 0;
   const collectedAmount = Number(raw?.collectedAmount ?? raw?.collected_amount ?? totalPrice) || 0;
+  const guest = raw?.guestInfo && typeof raw.guestInfo === 'object' ? raw.guestInfo : {};
+  const customerName = String(
+    raw?.customerName ||
+      raw?.customer_name ||
+      guest?.name ||
+      raw?.guest_name ||
+      raw?.userName ||
+      'Guest Customer'
+  ).trim() || 'Guest Customer';
+  const customerEmail = String(
+    raw?.customerEmail ||
+      raw?.customer_email ||
+      guest?.email ||
+      raw?.guest_email ||
+      raw?.userEmail ||
+      ''
+  ).trim();
+  const customerPhone = String(
+    raw?.customerPhone ||
+      raw?.customer_phone ||
+      guest?.phone ||
+      raw?.guest_phone ||
+      ''
+  ).trim();
+  const travelers =
+    Number(raw?.ticketsCount ?? raw?.tickets_count ?? raw?.travelers ?? raw?.guests ?? 1) || 1;
+
   return {
     id: String(raw?.id || raw?.bookingRef || raw?.booking_ref || Math.random().toString(36).slice(2)),
     bookingRef: String(raw?.bookingRef || raw?.booking_ref || raw?.pnr_number || raw?.orderId || 'N/A'),
     orderId: String(raw?.orderId || raw?.order_number || raw?.bookingRef || raw?.id || 'N/A'),
-    customerName: String(raw?.customerName || raw?.customer_name || raw?.userName || 'Guest Customer'),
-    customerEmail: String(raw?.customerEmail || raw?.customer_email || raw?.userEmail || ''),
-    customerPhone: String(raw?.customerPhone || raw?.customer_phone || ''),
+    customerName,
+    customerEmail,
+    customerPhone,
     createdAt: String(raw?.createdAt || raw?.created_at || new Date().toISOString()),
     attractionId: String(raw?.attractionId || raw?.attraction_id || ''),
     attractionName: String(raw?.attractionName || raw?.attraction_name || raw?.title || 'Tiqsey Experience'),
     variant: String(raw?.variant || raw?.optionName || 'Standard Admission'),
     totalPrice,
     collectedAmount,
-    travelers: Number(raw?.travelers ?? raw?.guests ?? 1) || 1,
+    travelers,
     bookingDate: String(raw?.bookingDate || raw?.booking_date || raw?.date || ''),
     status: String(raw?.status || 'confirmed').toLowerCase(),
     city: raw?.city ? String(raw.city) : undefined,
@@ -356,7 +429,7 @@ export async function fetchAdminLiveBookings(adminEmail?: string): Promise<LiveB
   }
 
   return rows.map(normalizeBookingRecord).sort((a, b) => {
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return parseSafeTimestamp(b.createdAt) - parseSafeTimestamp(a.createdAt);
   });
 }
 
