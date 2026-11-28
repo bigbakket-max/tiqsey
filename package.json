@@ -11,7 +11,8 @@
     "start": "node dist/server.cjs",
     "start:admin": "NODE_ENV=production APP_MODE=admin node dist/server.cjs",
     "clean": "rm -rf dist dist-admin dist-public",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "build:admin:static": "BUILD_TARGET=admin VITE_APP_MODE=admin vite build"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
