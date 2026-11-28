@@ -6491,16 +6491,39 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
     const publicDistPath = path.join(process.cwd(), 'dist-public');
     const defaultDistPath = path.join(process.cwd(), 'dist');
 
-    const resolvedDistPath =
-      APP_MODE === 'admin' && fs.existsSync(path.join(adminDistPath, 'index.html'))
-        ? adminDistPath
-        : APP_MODE === 'public' && fs.existsSync(path.join(publicDistPath, 'index.html'))
-          ? publicDistPath
-          : defaultDistPath;
+    const hasAdminDist = fs.existsSync(path.join(adminDistPath, 'index.html'));
+    const hasPublicDist = fs.existsSync(path.join(publicDistPath, 'index.html'));
+    const hasDefaultDist = fs.existsSync(path.join(defaultDistPath, 'index.html'));
 
-    app.use(express.static(resolvedDistPath));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(resolvedDistPath, 'index.html'));
+    const adminStatic = hasAdminDist ? express.static(adminDistPath) : null;
+    const publicStatic = hasPublicDist ? express.static(publicDistPath) : null;
+    const defaultStatic = hasDefaultDist ? express.static(defaultDistPath) : null;
+
+    const pickDistForRequest = (req: express.Request) => {
+      if (APP_MODE === 'admin' || isAdminRequestHost(req)) {
+        if (hasAdminDist) return { dir: adminDistPath, staticMw: adminStatic! };
+        if (hasDefaultDist) return { dir: defaultDistPath, staticMw: defaultStatic! };
+      }
+      if (APP_MODE === 'public') {
+        if (hasPublicDist) return { dir: publicDistPath, staticMw: publicStatic! };
+        if (hasDefaultDist) return { dir: defaultDistPath, staticMw: defaultStatic! };
+      }
+      if (hasPublicDist && !isAdminRequestHost(req)) {
+        return { dir: publicDistPath, staticMw: publicStatic! };
+      }
+      if (hasDefaultDist) return { dir: defaultDistPath, staticMw: defaultStatic! };
+      if (hasAdminDist) return { dir: adminDistPath, staticMw: adminStatic! };
+      return { dir: defaultDistPath, staticMw: express.static(defaultDistPath) };
+    };
+
+    app.use((req, res, next) => {
+      const target = pickDistForRequest(req);
+      return target.staticMw(req, res, next);
+    });
+
+    app.get('*', (req, res) => {
+      const target = pickDistForRequest(req);
+      return res.sendFile(path.join(target.dir, 'index.html'));
     });
   }
 

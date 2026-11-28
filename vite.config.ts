@@ -2,7 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
-import { defineConfig, loadEnv, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin, type PluginOption } from 'vite';
 
 function renameEntryHtmlToIndex(sourceFileName: string, outDir: string): Plugin {
   return {
@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
   const outDir = isAdminBuild ? 'dist-admin' : isPublicBuild ? 'dist-public' : 'dist';
   const entryHtml = isAdminBuild ? 'admin.html' : isPublicBuild ? 'public.html' : 'index.html';
 
-  const plugins: Plugin[] = [react(), tailwindcss()];
+  const plugins: PluginOption[] = [react(), tailwindcss()];
   if (isAdminBuild) {
     plugins.push(renameEntryHtmlToIndex('admin.html', outDir));
   } else if (isPublicBuild) {
