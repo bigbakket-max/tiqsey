@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { DiamondDotsSpinner, ADMIN_EASE } from '../components/AdminMotion';
 import { fetchJsonSafely } from '../../utils/safeFetch';
+import { getLiveSiteUrl, isDedicatedAdminContext } from '../../utils/appConfig';
 
 interface AdminSignInPageProps {
   onSuccess?: () => void;
@@ -181,6 +182,11 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
           <h2 className="text-[#334e68] text-base font-semibold mt-1">
             {needsSetup ? 'Tiqsey Admin First-Time Setup' : 'Tiqsey Admin Login'}
           </h2>
+          {isDedicatedAdminContext() && (
+            <p className="text-[11px] font-mono text-[#627d98] mt-1">
+              admin.tiqsey.com · Protected Portal
+            </p>
+          )}
         </div>
 
         {/* Crisp White Card */}
@@ -364,11 +370,11 @@ export default function AdminSignInPage({ onSuccess }: AdminSignInPageProps) {
         {/* Back to Home Link */}
         <div className="mt-6 text-center">
           <a
-            href="/"
+            href={getLiveSiteUrl()}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#486581] hover:text-[#0f243e] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Return to Tiqsey Home
+            Return to Tiqsey Website
           </a>
         </div>
       </motion.div>

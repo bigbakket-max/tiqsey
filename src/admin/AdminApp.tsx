@@ -28,6 +28,7 @@ import Reports from './pages/Reports';
 import Support from './pages/Support';
 import AdminSettings from './pages/AdminSettings';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { getAdminBasePath } from '../utils/appConfig';
 
 function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { user, isAuthReady } = useAuth();
@@ -55,15 +56,24 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export default function AdminApp() {
+interface AdminAppProps {
+  basename?: string;
+}
+
+export default function AdminApp({ basename }: AdminAppProps = {}) {
+  const resolvedBase = basename ?? getAdminBasePath();
+  const routerBasename = resolvedBase === '/' ? undefined : resolvedBase;
+
   return (
     <MotionConfig reducedMotion="user">
       <AdminLoaderProvider>
         <AdminToastProvider>
-          <BrowserRouter basename="/secure-panel">
+          <BrowserRouter basename={routerBasename}>
             <ErrorBoundary>
               <Routes>
                 <Route path="/login" element={<RequireAdmin><Navigate to="/" replace /></RequireAdmin>} />
+                <Route path="/admin/*" element={<Navigate to="/" replace />} />
+                <Route path="/secure-panel/*" element={<Navigate to="/" replace />} />
                 <Route path="/" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
                   <Route index element={<Dashboard />} />
                   <Route path="bookings" element={<Bookings />} />

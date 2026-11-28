@@ -1,4 +1,5 @@
 import type { MediaAssetItem, MediaFolderItem, MediaUsageRef } from '../types';
+import { resolveApiUrl } from './appConfig';
 import {
   SUPABASE_STORAGE_BUCKET_LIST,
   SUPABASE_PROJECT_ID,
@@ -545,9 +546,10 @@ function uploadChunkWithXhr(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('PUT', url, true);
+    xhr.open('PUT', resolveApiUrl(url), true);
     xhr.withCredentials = true;
     xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     xhr.setRequestHeader('x-chunk-index', String(chunkIndex));
     xhr.setRequestHeader('x-admin-email', adminEmail);
 
@@ -1041,13 +1043,18 @@ export async function downloadMediaFile(
   file: Pick<MediaAssetItem, 'bucket' | 'path' | 'name' | 'publicUrl'>,
   onProgress?: (percent: number) => void
 ): Promise<void> {
-  const proxyUrl = `/api/admin/storage/download?bucket=${encodeURIComponent(file.bucket)}&path=${encodeURIComponent(file.path)}`;
+  const proxyUrl = resolveApiUrl(
+    `/api/admin/storage/download?bucket=${encodeURIComponent(file.bucket)}&path=${encodeURIComponent(file.path)}`
+  );
   onProgress?.(5);
 
   try {
     const res = await fetch(proxyUrl, {
       credentials: 'include',
-      headers: { 'x-admin-email': adminEmail },
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'x-admin-email': adminEmail,
+      },
     });
     const contentType = (res.headers.get('content-type') || '').toLowerCase();
     // Ensure static hosts returning index.html on 200/404 are never saved as the file

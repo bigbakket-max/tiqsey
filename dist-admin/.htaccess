@@ -1,0 +1,19 @@
+ErrorDocument 404 /404.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Return HTTP 404 Not Found for /admin and /admin/*
+  RewriteRule ^admin(/.*)?$ - [R=404,L]
+
+  # Do not rewrite /api/* to index.html on static-only hosting
+  RewriteRule ^api(/.*)?$ - [R=404,L]
+
+  RewriteRule ^404\.html$ - [L]
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+  RewriteRule . /index.html [L]
+</IfModule>

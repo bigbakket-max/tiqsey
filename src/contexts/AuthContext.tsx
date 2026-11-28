@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Booking } from '../types';
 import { TRAVEL_AVATARS } from '../utils/avatars';
+import {
+  APP_MODE,
+  ADMIN_SITE_URL,
+  isPublicProductionHost,
+  resolveApiUrl,
+} from '../utils/appConfig';
 
 interface AuthContextType {
   user: User | null;
@@ -135,8 +141,22 @@ const persistStoredSession = (sessionUser: User | null): void => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => readStoredSession());
-  const [isAuthReady, setIsAuthReady] = useState<boolean>(() => readStoredSession() !== null);
+  const [user, setUser] = useState<User | null>(() => {
+    const initial = readStoredSession();
+    // Never trust an unverified cached admin session on initial paint before /api/auth/session confirms the HttpOnly cookie
+    if (initial && (initial.role === 'admin' || ADMIN_EMAILS.includes(initial.email.toLowerCase()))) {
+      return null;
+    }
+    return initial;
+  });
+  const [isAuthReady, setIsAuthReady] = useState<boolean>(() => {
+    const initial = readStoredSession();
+    if (!initial) return false;
+    if (initial.role === 'admin' || ADMIN_EMAILS.includes(initial.email.toLowerCase())) {
+      return false;
+    }
+    return true;
+  });
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
 
@@ -247,27 +267,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const storedUser = readStoredSession();
-    if (storedUser) {
-      // Ensure both localStorage and sessionStorage stay mirrored
+    const storedIsAdmin = Boolean(
+      storedUser && (storedUser.role === 'admin' || ADMIN_EMAILS.includes(storedUser.email.toLowerCase()))
+    );
+
+    if (storedUser && !storedIsAdmin) {
+      // Standard customer session
       persistStoredSession(storedUser);
       setUser(storedUser);
       hydrateUserBookings(storedUser);
       setIsAuthReady(true);
     } else {
-      // Fallback: check server-side signed HttpOnly session cookie (when Node server is active)
-      fetch('/api/auth/session', { credentials: 'include' })
+      // Always verify admin sessions (and empty sessions) against the server-signed HttpOnly session cookie
+      fetch(resolveApiUrl('/api/auth/session'), { credentials: 'include' })
         .then(async (res) => {
           const ct = res.headers.get('content-type') || '';
-          if (!res.ok || !ct.includes('application/json')) return null;
+          if (!res.ok || !ct.includes('application/json')) return { reachable: false, user: null };
           const data = await res.json();
-          return data?.authenticated && data?.user ? sanitizeSessionUser(data.user) : null;
+          const verifiedUser = data?.authenticated && data?.user ? sanitizeSessionUser(data.user) : null;
+          return { reachable: true, user: verifiedUser };
         })
-        .then((serverUser) => {
+        .then(({ reachable, user: serverUser }) => {
           if (!active) return;
           if (serverUser) {
             persistStoredSession(serverUser);
             setUser(serverUser);
             hydrateUserBookings(serverUser);
+          } else if (reachable && storedIsAdmin) {
+            // Backend confirmed no valid signed HttpOnly cookie exists; clear stale cached admin state
+            persistStoredSession(null);
+            setUser(null);
+            setBookings([]);
           }
           setIsAuthReady(true);
         })
@@ -309,7 +339,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Please enter your administrator email and choose a password.');
     }
 
-    const response = await fetch('/api/auth/admin-setup', {
+    const response = await fetch(resolveApiUrl('/api/auth/admin-setup'), {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -355,9 +385,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const normalizedEmail = trimmedEmail.toLowerCase();
     const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
 
+    if (isAdmin && (APP_MODE === 'public' || isPublicProductionHost())) {
+      throw new Error(`Administrator sign-in is only available at ${ADMIN_SITE_URL}.`);
+    }
+
     // Server-side verification & signed HttpOnly session cookie
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(resolveApiUrl('/api/auth/login'), {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -475,9 +509,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Attempt backend sync safely without breaking if backend returns HTML (e.g. on static hosting like Hostinger)
     try {
-      const response = await fetch("/api/auth/register", {
+      const response = await fetch(resolveApiUrl("/api/auth/register"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
         body: JSON.stringify({ name, email: trimmedEmail, password }),
       });
       const contentType = response.headers.get("content-type") || "";
@@ -587,7 +625,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     persistStoredSession(null);
     setUser(null);
     setBookings([]);
-    fetch('/api/auth/logout', {
+    fetch(resolveApiUrl('/api/auth/logout'), {
       method: 'POST',
       credentials: 'include',
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -714,7 +752,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let order_number = '';
     let pnr_number = '';
     try {
-      const response = await fetch('/api/bookings/generate-ids', { method: 'POST' });
+      const response = await fetch(resolveApiUrl('/api/bookings/generate-ids'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
       const contentType = response.headers.get("content-type") || "";
       if (response.ok && contentType.includes("application/json")) {
         const data = await response.json();
@@ -768,9 +810,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Save/Sync the completed booking to the backend database if available
     let backendSyncedToSupabase = false;
     try {
-      const saveResponse = await fetch('/api/bookings', {
+      const saveResponse = await fetch(resolveApiUrl('/api/bookings'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
         body: JSON.stringify(newBooking)
       });
       const saveContentType = saveResponse.headers.get("content-type") || "";
@@ -858,9 +904,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       let reviewSyncedToSupabase = false;
       try {
-        const response = await fetch('/api/reviews', {
+        const response = await fetch(resolveApiUrl('/api/reviews'), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
           body: JSON.stringify({
             id: reviewId,
             bookingId,
@@ -934,9 +984,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setBookings(updatedBookings);
 
         // Sync cancellation to backend (and fallback to direct Supabase if backend unavailable)
-        fetch(`/api/bookings/${encodeURIComponent(bookingId)}`, {
+        fetch(resolveApiUrl(`/api/bookings/${encodeURIComponent(bookingId)}`), {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
           body: JSON.stringify({ status: 'cancelled' })
         })
           .then(async (res) => {

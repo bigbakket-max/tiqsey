@@ -1,7 +1,6 @@
-import {StrictMode, useEffect} from 'react';
-import {createRoot} from 'react-dom/client';
+import { StrictMode, Suspense, lazy, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
-import AdminApp from './admin/AdminApp.tsx';
 import './index.css';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -10,12 +9,34 @@ import { BlogProvider } from './contexts/BlogContext';
 import { HelmetProvider } from 'react-helmet-async';
 import { fetchActiveFavicon, applyFaviconToDocument, FAVICON_STORAGE_KEY } from './utils/faviconManager';
 import ErrorBoundary from './components/ErrorBoundary';
+import {
+  APP_MODE,
+  isAdminHost,
+  isPublicProductionHost,
+  getAdminBasePath,
+} from './utils/appConfig';
+
+// Lazy-load the Admin Panel chunk so public storefront visitors never download admin code
+const AdminApp = lazy(() => import('./admin/AdminApp.tsx'));
 
 function Root() {
-  const isBlockedAdminPath = /^\/admin(\/|$)/i.test(window.location.pathname);
-  const isAdminRoute = /^\/secure-panel(\/|$)/i.test(window.location.pathname);
+  const hostname = window.location.hostname;
+  const pathname = window.location.pathname;
 
-  // Set page title to 404 Not Found when accessing blocked /admin paths
+  const isDedicatedAdmin = APP_MODE === 'admin' || isAdminHost(hostname);
+  const isStrictPublic = APP_MODE === 'public' || isPublicProductionHost(hostname);
+
+  const isBlockedAdminPath = isDedicatedAdmin
+    ? false
+    : isStrictPublic
+      ? /^\/(admin|secure-panel)(\/|$)/i.test(pathname)
+      : /^\/admin(\/|$)/i.test(pathname);
+
+  const isAdminRoute = isDedicatedAdmin
+    ? true
+    : !isStrictPublic && /^\/secure-panel(\/|$)/i.test(pathname);
+
+  // Set page title to 404 Not Found when accessing blocked admin paths on public host
   useEffect(() => {
     if (isBlockedAdminPath) {
       document.title = '404 Not Found';
@@ -31,7 +52,9 @@ function Root() {
       if (e.key === FAVICON_STORAGE_KEY && e.newValue) {
         try {
           applyFaviconToDocument(JSON.parse(e.newValue));
-        } catch (_) {}
+        } catch {
+          // Ignore malformed storage updates
+        }
       }
     };
 
@@ -54,14 +77,29 @@ function Root() {
       </div>
     );
   }
-  
+
   return (
     <HelmetProvider>
       <SettingsProvider>
         <AuthProvider>
           <WishlistProvider>
             <BlogProvider>
-              {isAdminRoute ? <AdminApp /> : <ErrorBoundary><App /></ErrorBoundary>}
+              {isAdminRoute ? (
+                <Suspense
+                  fallback={
+                    <div className="min-h-[100dvh] w-full bg-[#0f172a] flex flex-col items-center justify-center gap-3 text-slate-300 font-sans text-xs">
+                      <div className="w-7 h-7 rounded-full border-2 border-sky-400/30 border-t-sky-400 animate-spin" />
+                      <span>Loading Tiqsey Admin...</span>
+                    </div>
+                  }
+                >
+                  <AdminApp basename={getAdminBasePath()} />
+                </Suspense>
+              ) : (
+                <ErrorBoundary>
+                  <App />
+                </ErrorBoundary>
+              )}
             </BlogProvider>
           </WishlistProvider>
         </AuthProvider>
@@ -73,5 +111,5 @@ function Root() {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Root />
-  </StrictMode>,
+  </StrictMode>
 );

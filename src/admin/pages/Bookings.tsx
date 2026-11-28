@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAdminLoader } from '../contexts/AdminLoaderContext';
+import { buildAdminUrl, resolveApiUrl } from '../../utils/appConfig';
 import { 
   Search, 
   RefreshCw, 
@@ -292,7 +293,10 @@ export default function Bookings() {
     let backendLoaded = false;
 
     try {
-      const response = await fetch('/api/bookings');
+      const response = await fetch(resolveApiUrl('/api/bookings'), {
+        credentials: 'include',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
       const contentType = response.headers.get("content-type") || "";
       if (response.ok && contentType.includes("application/json")) {
         const data = await response.json();
@@ -1404,7 +1408,7 @@ export default function Bookings() {
 
                       {/* Small external link indicator to open booking details in a new tab */}
                       <a 
-                        href={`/secure-panel/bookings?orderId=${encodeURIComponent(booking.orderId)}`}
+                        href={buildAdminUrl(`/bookings?orderId=${encodeURIComponent(booking.orderId)}`)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[#8892a0] hover:text-[#5fa6d9] transition-colors p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex items-center justify-center min-w-[36px] min-h-[36px]"

@@ -36,6 +36,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ADMIN_EASE } from '../components/AdminMotion';
+import { getLiveSiteUrl } from '../../utils/appConfig';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -237,9 +238,11 @@ export default function AdminLayout() {
     setExpandedMenus(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const liveSiteUrl = getLiveSiteUrl();
+
   const handleLogout = () => {
     logout();
-    window.location.href = window.location.hostname.includes('tiqsey.com') ? 'https://tiqsey.com' : '/';
+    navigate('/login', { replace: true });
   };
 
   const renderSidebarContent = (collapsed: boolean, isMobile: boolean) => (
@@ -986,7 +989,7 @@ export default function AdminLayout() {
           </button>
 
           <a
-            href="/"
+            href={liveSiteUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 min-h-[38px] rounded-xl text-xs font-bold text-white bg-white/15 hover:bg-white/25 transition-all duration-150 border border-white/25 shadow-xs hover:shadow-sm active:scale-95"

@@ -1230,7 +1230,97 @@ function generatePnrNumber(): string {
 
 async function startServer() {
   const app = express();
+  app.set('trust proxy', 1);
   const PORT = Number(process.env.PORT) || 3000;
+  const rawAppMode = (process.env.APP_MODE || 'dual').trim().toLowerCase();
+  const APP_MODE: 'admin' | 'public' | 'dual' =
+    rawAppMode === 'admin' || rawAppMode === 'public' ? rawAppMode : 'dual';
+
+  // Explicit CORS allowlist for admin.tiqsey.com and tiqsey.com (never wildcard '*' on authenticated routes)
+  const DEFAULT_ALLOWED_ORIGINS = [
+    'https://admin.tiqsey.com',
+    'https://tiqsey.com',
+    'https://www.tiqsey.com',
+  ];
+  const ENV_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((o) => o.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+  const ALLOWED_ORIGINS = new Set<string>([...DEFAULT_ALLOWED_ORIGINS, ...ENV_ALLOWED_ORIGINS]);
+
+  const getRequestHost = (req: express.Request): string =>
+    String(req.headers['x-forwarded-host'] || req.headers.host || '')
+      .split(',')[0]
+      .trim()
+      .toLowerCase();
+
+  const isAdminRequestHost = (req: express.Request): boolean => {
+    const hostWithoutPort = getRequestHost(req).replace(/:\d+$/, '');
+    return (
+      APP_MODE === 'admin' ||
+      hostWithoutPort === 'admin.tiqsey.com' ||
+      hostWithoutPort === 'admin.localhost' ||
+      hostWithoutPort.startsWith('admin.tiqsey.')
+    );
+  };
+
+  const isAllowedOrigin = (req: express.Request, origin: string): boolean => {
+    const normalized = origin.trim().replace(/\/+$/, '');
+    if (!normalized) return false;
+    if (ALLOWED_ORIGINS.has(normalized)) return true;
+    try {
+      const parsed = new URL(normalized);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+      const expectedHost = getRequestHost(req);
+      if (expectedHost && parsed.host.toLowerCase() === expectedHost) return true;
+      if (
+        process.env.NODE_ENV !== 'production' &&
+        (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')
+      ) {
+        return true;
+      }
+    } catch {
+      return false;
+    }
+    return false;
+  };
+
+  // Security headers + strict origin-allowlisted CORS middleware
+  app.use((req, res, next) => {
+    const forwardedProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
+    const isSecure = req.secure || forwardedProto.includes('https');
+
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    if (isSecure) {
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    if (isAdminRequestHost(req)) {
+      res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    }
+
+    const origin = String(req.headers.origin || '').trim();
+    if (origin && isAllowedOrigin(req, origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, X-Requested-With, X-Admin-Email, X-Chunk-Index'
+      );
+      res.setHeader('Access-Control-Max-Age', '600');
+    }
+
+    if (req.method === 'OPTIONS') {
+      if (origin && !isAllowedOrigin(req, origin)) {
+        return res.status(403).json({ error: 'Origin not allowed by CORS policy' });
+      }
+      return res.sendStatus(204);
+    }
+
+    return next();
+  });
 
   // Use JSON middleware with 70MB limit to support 50MB media/video uploads (base64 overhead)
   app.use(express.json({ limit: '70mb' }));
@@ -1290,6 +1380,7 @@ async function startServer() {
     }
   };
 
+  // Host-only session cookie (intentionally omits Domain=.tiqsey.com so customer pages on tiqsey.com never receive admin cookies)
   const buildSessionCookieHeader = (req: express.Request, value: string, maxAgeSeconds: number): string => {
     const forwardedProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
     const isSecure = req.secure || forwardedProto.includes('https');
@@ -1308,19 +1399,15 @@ async function startServer() {
   };
 
   const isValidCsrfRequest = (req: express.Request): boolean => {
-    if (req.headers['x-requested-with']) return true;
     const origin = String(req.headers.origin || '').trim();
-    if (!origin) return true;
-    try {
-      const originHost = new URL(origin).host.toLowerCase();
-      const expectedHost = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
-      return Boolean(expectedHost && originHost === expectedHost);
-    } catch {
-      return false;
+    if (origin) {
+      return isAllowedOrigin(req, origin);
     }
+    return Boolean(req.headers['x-requested-with']);
   };
 
   const checkAdminAuth = (req: express.Request): boolean => {
+    // 1. Cryptographically verified HttpOnly signed admin session cookie
     const signedUser = getSignedSessionUser(req);
     if (
       signedUser &&
@@ -1329,37 +1416,43 @@ async function startServer() {
     ) {
       return true;
     }
-    const adminEmail = (req.headers['x-admin-email'] || req.query.adminEmail || req.body?.adminEmail || '') as string;
-    const normalizedAdminEmail = adminEmail.toLowerCase().trim();
-    if (normalizedAdminEmail && ADMIN_EMAILS.includes(normalizedAdminEmail)) {
-      return true;
-    }
-    if (normalizedAdminEmail) {
-      try {
-        const dbUser = db
-          .prepare("SELECT role FROM users WHERE LOWER(email) = ? LIMIT 1")
-          .get(normalizedAdminEmail) as { role?: string } | undefined;
-        if (dbUser && String(dbUser.role || '').toLowerCase() === 'admin') {
-          return true;
-        }
-      } catch {
-        // Ignore lookup error
-      }
-    }
+    // 2. Valid non-expired Bearer session token in backend_sessions belonging to an active admin user
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
+      const token = authHeader.substring(7).trim();
+      if (!token) return false;
       const session = db.prepare("SELECT * FROM backend_sessions WHERE id = ?").get(token) as any;
       if (session) {
         if (session.expires_at && new Date() > new Date(session.expires_at)) {
           db.prepare("DELETE FROM backend_sessions WHERE id = ?").run(token);
           return false;
         }
-        return true;
+        const beUser = db
+          .prepare("SELECT email, role, status FROM backend_users WHERE id = ?")
+          .get(session.user_id) as { email?: string; role?: string; status?: string } | undefined;
+        if (!beUser || beUser.status !== 'Active') return false;
+        const roleLower = String(beUser.role || '').toLowerCase();
+        const emailLower = String(beUser.email || '').toLowerCase();
+        return roleLower.includes('admin') || ADMIN_EMAILS.includes(emailLower);
       }
     }
     return false;
   };
+
+  // Global admin API isolation & authentication guard (blocks all /api/admin/* on public-only deployments
+  // and enforces verified admin sessions + CSRF checks across every admin endpoint)
+  app.use('/api/admin', (req, res, next) => {
+    if (APP_MODE === 'public') {
+      return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    if (!checkAdminAuth(req)) {
+      return res.status(401).json({ error: 'Unauthorized: Administrator sign-in required.' });
+    }
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method.toUpperCase()) && !isValidCsrfRequest(req)) {
+      return res.status(403).json({ error: 'Invalid request origin' });
+    }
+    return next();
+  });
 
   // Public endpoint: Fetch current active favicon configuration
   app.get("/api/site/favicon", (req, res) => {
@@ -4736,6 +4829,9 @@ async function startServer() {
   });
 
   app.get("/api/auth/admin-setup-status", (_req, res) => {
+    if (APP_MODE === 'public') {
+      return res.status(404).json({ error: "API endpoint not found" });
+    }
     const configuredAdminPass = (process.env.ADMIN_PASSWORD || '').trim();
     if (configuredAdminPass) {
       return res.json({ configured: true, source: 'env' });
@@ -4748,6 +4844,12 @@ async function startServer() {
   });
 
   app.post("/api/auth/admin-setup", (req, res) => {
+    if (APP_MODE === 'public') {
+      return res.status(404).json({ error: "API endpoint not found" });
+    }
+    if (!isValidCsrfRequest(req)) {
+      return res.status(403).json({ error: "Invalid request origin" });
+    }
     const configuredAdminPass = (process.env.ADMIN_PASSWORD || '').trim();
     if (configuredAdminPass) {
       return res.status(409).json({
@@ -4812,6 +4914,11 @@ async function startServer() {
 
     const normalizedEmail = rawEmail.toLowerCase();
     const isAdmin = ADMIN_EMAILS.includes(normalizedEmail);
+    if (isAdmin && APP_MODE === 'public') {
+      return res.status(403).json({
+        error: "Administrator sign-in is only available on https://admin.tiqsey.com.",
+      });
+    }
     const configuredAdminPass = (process.env.ADMIN_PASSWORD || '').trim();
 
     if (isAdmin) {
@@ -6154,8 +6261,12 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
     }
   });
 
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      status: "ok",
+      mode: APP_MODE,
+      timestamp: new Date().toISOString(),
+    });
   });
 
   app.get("/api/message", (req, res) => {
@@ -6291,8 +6402,8 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
     res.status(404).json({ error: "API endpoint not found" });
   });
 
-  // Return 404 Not Found for /admin and /admin/* (excluding /api/admin)
-  app.all(/^\/admin(\/.*)?$/, (_req, res) => {
+  // Return 404 Not Found for /admin and /admin/* (and /secure-panel on strict public servers)
+  const sendNotFoundPage = (res: express.Response) =>
     res
       .status(404)
       .type('html')
@@ -6350,6 +6461,22 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
   </div>
 </body>
 </html>`);
+
+  app.all(/^\/admin(\/.*)?$/, (req, res) => {
+    if (isAdminRequestHost(req)) {
+      return res.redirect(302, '/');
+    }
+    return sendNotFoundPage(res);
+  });
+
+  app.all(/^\/secure-panel(\/.*)?$/, (req, res, next) => {
+    if (isAdminRequestHost(req)) {
+      return res.redirect(302, '/');
+    }
+    if (APP_MODE === 'public') {
+      return sendNotFoundPage(res);
+    }
+    return next();
   });
 
   // Vite middleware for development
@@ -6360,17 +6487,25 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    // app.get('*', ...) is for Express v4, for Express v5 we'd use '*' or '*all' 
-    // In package.json express is ^4.21.2
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    const adminDistPath = path.join(process.cwd(), 'dist-admin');
+    const publicDistPath = path.join(process.cwd(), 'dist-public');
+    const defaultDistPath = path.join(process.cwd(), 'dist');
+
+    const resolvedDistPath =
+      APP_MODE === 'admin' && fs.existsSync(path.join(adminDistPath, 'index.html'))
+        ? adminDistPath
+        : APP_MODE === 'public' && fs.existsSync(path.join(publicDistPath, 'index.html'))
+          ? publicDistPath
+          : defaultDistPath;
+
+    app.use(express.static(resolvedDistPath));
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(resolvedDistPath, 'index.html'));
     });
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://localhost:${PORT} (mode: ${APP_MODE})`);
   });
 }
 

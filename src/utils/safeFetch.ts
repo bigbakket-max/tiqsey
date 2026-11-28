@@ -1,3 +1,5 @@
+import { resolveApiUrl } from './appConfig';
+
 /**
  * Safe JSON response helpers for dual-hosting (Node.js server + static Hostinger hosting).
  * Prevents "Unexpected token '<', \"<!doctype \"... is not valid JSON" whenever a static
@@ -51,7 +53,27 @@ export async function fetchJsonSafely<T = any>(
   init?: RequestInit
 ): Promise<SafeJsonResult<T>> {
   try {
-    const resp = await fetch(input, init);
+    let resolvedInput: RequestInfo | URL = input;
+    let isApiRequest = false;
+    if (typeof input === 'string' && input.startsWith('/api/')) {
+      resolvedInput = resolveApiUrl(input);
+      isApiRequest = true;
+    }
+
+    let finalInit = init;
+    if (isApiRequest) {
+      const headers = new Headers(init?.headers || {});
+      if (!headers.has('X-Requested-With')) {
+        headers.set('X-Requested-With', 'XMLHttpRequest');
+      }
+      finalInit = {
+        ...init,
+        credentials: init?.credentials ?? 'include',
+        headers,
+      };
+    }
+
+    const resp = await fetch(resolvedInput, finalInit);
     return await parseJsonSafely<T>(resp);
   } catch {
     return {

@@ -28,7 +28,6 @@ import {
   Landmark
 } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
-import { useAuth } from '../contexts/AuthContext';
 import SettingsModal from './SettingsModal';
 import { getCurrencyCountryCode, getCurrencyFlag } from '../utils/currencyFlags';
 
@@ -50,12 +49,6 @@ const SafeFlag = ({ src, alt, fallbackEmoji, className }: { src: string; alt: st
 };
 
 export default function Footer({ onExplore, onNavigate }: { onExplore?: () => void, onNavigate?: (page: 'home' | 'attractions-and-museums' | 'hot-deals' | 'blog' | 'wishlist' | 'about' | 'privacy-policy' | 'cookie-policy' | 'terms-and-conditions') => void }) {
-  const { user } = useAuth();
-  const isAdmin = user && (
-    user.email.toLowerCase() === 'admin@tiqsey.com' || 
-    user.email.toLowerCase() === 'bigbakket@gmail.com' || 
-    user.role === 'admin'
-  );
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [subscribed, setSubscribed] = useState(false);
@@ -159,14 +152,6 @@ export default function Footer({ onExplore, onNavigate }: { onExplore?: () => vo
                     <span>Travel Blog</span>
                   </a>
                 </li>
-                {isAdmin && (
-                  <li>
-                    <a href="/secure-panel" className="flex items-center gap-2.5 text-indigo-400 font-bold hover:text-indigo-300 transition-colors group">
-                      <ShieldCheck className="w-4 h-4 text-indigo-400 fill-indigo-400/10 group-hover:text-indigo-300 transition-colors" />
-                      <span>Admin Command Center</span>
-                    </a>
-                  </li>
-                )}
               </ul>
             </div>
 
