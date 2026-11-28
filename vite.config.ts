@@ -4,14 +4,24 @@ import fs from 'fs';
 import path from 'path';
 import { defineConfig, loadEnv, type Plugin, type PluginOption } from 'vite';
 
-function renameEntryHtmlToIndex(sourceFileName: string, outDir: string): Plugin {
+function finalizeTargetBundle(sourceFileName: string, outDir: string, isAdminBuild: boolean): Plugin {
   return {
-    name: 'rename-entry-html-to-index',
+    name: 'finalize-target-bundle',
     closeBundle() {
-      const from = path.resolve(__dirname, outDir, sourceFileName);
-      const to = path.resolve(__dirname, outDir, 'index.html');
+      const targetDir = path.resolve(__dirname, outDir);
+      const from = path.resolve(targetDir, sourceFileName);
+      const to = path.resolve(targetDir, 'index.html');
       if (fs.existsSync(from)) {
         fs.renameSync(from, to);
+      }
+      if (isAdminBuild && fs.existsSync(targetDir)) {
+        // Admin bundle must not inherit public _redirects blocking /admin or /api
+        fs.writeFileSync(path.resolve(targetDir, '_redirects'), '/* /index.html 200\n', 'utf8');
+        fs.writeFileSync(
+          path.resolve(targetDir, 'robots.txt'),
+          'User-agent: *\nDisallow: /\n',
+          'utf8'
+        );
       }
     },
   };
@@ -28,9 +38,9 @@ export default defineConfig(({ mode }) => {
 
   const plugins: PluginOption[] = [react(), tailwindcss()];
   if (isAdminBuild) {
-    plugins.push(renameEntryHtmlToIndex('admin.html', outDir));
+    plugins.push(finalizeTargetBundle('admin.html', outDir, true));
   } else if (isPublicBuild) {
-    plugins.push(renameEntryHtmlToIndex('public.html', outDir));
+    plugins.push(finalizeTargetBundle('public.html', outDir, false));
   }
 
   return {

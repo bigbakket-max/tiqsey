@@ -97,14 +97,36 @@ export function getLiveSiteUrl(): string {
   return '/';
 }
 
+const PUBLIC_STOREFRONT_API_PREFIXES = [
+  '/api/site/',
+  '/api/bookings',
+  '/api/reviews',
+  '/api/inventory/',
+  '/api/blogs',
+  '/api/health',
+];
+
 /**
- * Resolves an API path (e.g. '/api/auth/login') against VITE_API_BASE_URL when configured,
- * or keeps it same-origin when the Express backend serves the current host directly.
+ * Resolves an API path (e.g. '/api/auth/login') against VITE_API_BASE_URL when configured.
+ * When running on the static public storefront (https://tiqsey.com) without an explicit
+ * VITE_API_BASE_URL, public read/booking endpoints automatically target ADMIN_SITE_URL
+ * (https://admin.tiqsey.com) so live changes made in the Admin Panel reflect on tiqsey.com.
  */
 export function resolveApiUrl(path: string): string {
   if (!path) return path;
   if (/^https?:\/\//i.test(path)) return path;
-  if (!API_BASE_URL) return path;
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${API_BASE_URL}${normalizedPath}`;
+  if (API_BASE_URL) {
+    return `${API_BASE_URL}${normalizedPath}`;
+  }
+  const onPublicStorefront =
+    APP_MODE === 'public' ||
+    (typeof window !== 'undefined' && isPublicProductionHost(window.location.hostname));
+  if (
+    onPublicStorefront &&
+    PUBLIC_STOREFRONT_API_PREFIXES.some((prefix) => normalizedPath.startsWith(prefix))
+  ) {
+    return `${ADMIN_SITE_URL}${normalizedPath}`;
+  }
+  return normalizedPath;
 }

@@ -8,6 +8,7 @@ import { WishlistProvider } from './contexts/WishlistContext';
 import { BlogProvider } from './contexts/BlogContext';
 import { HelmetProvider } from 'react-helmet-async';
 import { fetchActiveFavicon, applyFaviconToDocument, FAVICON_STORAGE_KEY } from './utils/faviconManager';
+import { syncPublicSiteConfigFromServer } from './utils/adminConfigClient';
 import ErrorBoundary from './components/ErrorBoundary';
 import {
   APP_MODE,
@@ -47,6 +48,9 @@ function Root() {
   useEffect(() => {
     if (isBlockedAdminPath) return;
     fetchActiveFavicon().then(applyFaviconToDocument).catch(() => {});
+    if (!isAdminRoute) {
+      syncPublicSiteConfigFromServer().catch(() => {});
+    }
 
     const handleStorage = (e: StorageEvent) => {
       if (e.key === FAVICON_STORAGE_KEY && e.newValue) {

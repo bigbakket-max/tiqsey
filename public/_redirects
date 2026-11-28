@@ -1,4 +1,6 @@
 /admin /404.html 404
 /admin/* /404.html 404
+/secure-panel /404.html 404
+/secure-panel/* /404.html 404
 /api/* /404.html 404
 /* /index.html 200

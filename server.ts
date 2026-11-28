@@ -1285,10 +1285,18 @@ async function startServer() {
     return false;
   };
 
-  // Security headers + strict origin-allowlisted CORS middleware
-  app.use((req, res, next) => {
+  const isSecureRequest = (req: express.Request): boolean => {
+    if (req.secure) return true;
     const forwardedProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
-    const isSecure = req.secure || forwardedProto.includes('https');
+    if (forwardedProto.includes('https')) return true;
+    const cfVisitor = String(req.headers['cf-visitor'] || '').toLowerCase();
+    if (cfVisitor.includes('"https"')) return true;
+    return false;
+  };
+
+  // Security headers, Cloudflare-safe cache directives, and strict origin-allowlisted CORS middleware
+  app.use((req, res, next) => {
+    const isSecure = isSecureRequest(req);
 
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -1297,6 +1305,16 @@ async function startServer() {
     }
     if (isAdminRequestHost(req)) {
       res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    }
+
+    // Prevent Cloudflare / proxy caches from storing private auth or admin API responses
+    const reqPath = req.path || '';
+    if (reqPath.startsWith('/api/auth') || reqPath.startsWith('/api/admin')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('CDN-Cache-Control', 'no-store');
+      res.setHeader('Pragma', 'no-cache');
+    } else if (reqPath.startsWith('/api/site/')) {
+      res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60');
     }
 
     const origin = String(req.headers.origin || '').trim();
@@ -1382,8 +1400,7 @@ async function startServer() {
 
   // Host-only session cookie (intentionally omits Domain=.tiqsey.com so customer pages on tiqsey.com never receive admin cookies)
   const buildSessionCookieHeader = (req: express.Request, value: string, maxAgeSeconds: number): string => {
-    const forwardedProto = String(req.headers['x-forwarded-proto'] || '').toLowerCase();
-    const isSecure = req.secure || forwardedProto.includes('https');
+    const isSecure = isSecureRequest(req);
     const attrs = [`${SESSION_COOKIE_NAME}=${encodeURIComponent(value)}`, 'Path=/', `Max-Age=${maxAgeSeconds}`, 'HttpOnly'];
     if (isSecure) {
       attrs.push('Secure', 'SameSite=None', 'Partitioned');
@@ -1454,12 +1471,146 @@ async function startServer() {
     return next();
   });
 
-  // Public endpoint: Fetch current active favicon configuration
-  app.get("/api/site/favicon", (req, res) => {
+  // Supabase persistence mirror for site_settings so admin edits survive stateless deploys
+  // and stay synchronized between https://admin.tiqsey.com and https://tiqsey.com
+  let supabaseSiteSettingsTableAvailable: boolean | null = null;
+  let supabaseSiteSettingsCheckedAt = 0;
+  const SITE_SETTINGS_RETRY_MS = 5 * 60 * 1000;
+
+  const isMissingSiteSettingsTableError = (err: any): boolean => {
+    const msg = String(err?.message || err?.code || '').toLowerCase();
+    return (
+      msg.includes('42p01') ||
+      msg.includes('pgrst205') ||
+      msg.includes('could not find the table') ||
+      msg.includes('does not exist')
+    );
+  };
+
+  const canUseSupabaseSiteSettings = (): boolean => {
+    if (supabaseSiteSettingsTableAvailable === false) {
+      if (Date.now() - supabaseSiteSettingsCheckedAt < SITE_SETTINGS_RETRY_MS) {
+        return false;
+      }
+      supabaseSiteSettingsTableAvailable = null;
+    }
+    return Boolean(getSupabaseClient());
+  };
+
+  async function syncSiteSettingToSupabase(key: string, value: string, updatedAt: string): Promise<boolean> {
+    if (!canUseSupabaseSiteSettings()) return false;
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
     try {
-      const row = db.prepare("SELECT value FROM site_settings WHERE key = 'favicon'").get() as any;
-      if (row && row.value) {
-        return res.json(JSON.parse(row.value));
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({ key, value, updated_at: updatedAt }, { onConflict: 'key' });
+      if (error) {
+        if (isMissingSiteSettingsTableError(error)) {
+          supabaseSiteSettingsTableAvailable = false;
+          supabaseSiteSettingsCheckedAt = Date.now();
+        }
+        return false;
+      }
+      supabaseSiteSettingsTableAvailable = true;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function fetchSiteSettingFromSupabase(key: string): Promise<{ value: string; updated_at: string } | null> {
+    if (!canUseSupabaseSiteSettings()) return null;
+    const supabase = getSupabaseClient();
+    if (!supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('value, updated_at')
+        .eq('key', key)
+        .maybeSingle();
+      if (error) {
+        if (isMissingSiteSettingsTableError(error)) {
+          supabaseSiteSettingsTableAvailable = false;
+          supabaseSiteSettingsCheckedAt = Date.now();
+        }
+        return null;
+      }
+      supabaseSiteSettingsTableAvailable = true;
+      if (data && typeof data.value === 'string') {
+        const updatedAt = String(data.updated_at || new Date().toISOString());
+        try {
+          db.prepare(`
+            INSERT INTO site_settings (key, value, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+          `).run(key, data.value, updatedAt);
+        } catch {
+          // Ignore local cache write error
+        }
+        return { value: data.value, updated_at: updatedAt };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function hydrateSiteSettingsFromSupabase(): Promise<void> {
+    if (!canUseSupabaseSiteSettings()) return;
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('key, value, updated_at')
+        .limit(100);
+      if (error) {
+        if (isMissingSiteSettingsTableError(error)) {
+          supabaseSiteSettingsTableAvailable = false;
+          supabaseSiteSettingsCheckedAt = Date.now();
+        }
+        return;
+      }
+      supabaseSiteSettingsTableAvailable = true;
+      if (Array.isArray(data) && data.length > 0) {
+        const upsertStmt = db.prepare(`
+          INSERT INTO site_settings (key, value, updated_at)
+          VALUES (?, ?, ?)
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+        `);
+        for (const row of data) {
+          if (row && typeof row.key === 'string' && typeof row.value === 'string') {
+            upsertStmt.run(row.key, row.value, String(row.updated_at || new Date().toISOString()));
+          }
+        }
+        console.log(`[Supabase] Hydrated ${data.length} site_settings records on startup.`);
+      }
+    } catch {
+      // Non-blocking startup hydration
+    }
+  }
+
+  // Trigger non-blocking hydration on server startup so stateless hosts recover all saved settings
+  void hydrateSiteSettingsFromSupabase();
+
+  // Public endpoint: Fetch current active favicon configuration
+  app.get("/api/site/favicon", async (_req, res) => {
+    try {
+      let row = db.prepare("SELECT value FROM site_settings WHERE key = 'favicon'").get() as any;
+      let parsedFavicon = row?.value ? JSON.parse(row.value) : null;
+      if (!parsedFavicon || parsedFavicon.isDefault) {
+        const remote = await fetchSiteSettingFromSupabase('favicon');
+        if (remote?.value) {
+          try {
+            parsedFavicon = JSON.parse(remote.value);
+          } catch {
+            // Keep local value
+          }
+        }
+      }
+      if (parsedFavicon) {
+        return res.json(parsedFavicon);
       }
       return res.json({
         url: "/favicon.png",
@@ -1479,16 +1630,24 @@ async function startServer() {
     }
   });
 
-  // Allowlisted admin configuration namespaces stored in site_settings
+  // Allowlisted admin configuration namespaces stored in site_settings (mirrored to Supabase)
   const ALLOWED_ADMIN_CONFIG_SECTIONS = new Set([
     'website_settings',
     'theme_settings',
     'navigation_menus',
     'platform_settings',
     'marketing_coupons',
+    'promotional_banners',
+    'large_hero_banner',
   ]);
 
-  const PUBLIC_CONFIG_SECTIONS = ['website_settings', 'theme_settings', 'navigation_menus'] as const;
+  const PUBLIC_CONFIG_SECTIONS = [
+    'website_settings',
+    'theme_settings',
+    'navigation_menus',
+    'promotional_banners',
+    'large_hero_banner',
+  ] as const;
 
   const isSafeExternalOrRelativeUrl = (val: unknown): boolean => {
     if (typeof val !== 'string') return false;
@@ -1503,14 +1662,21 @@ async function startServer() {
     }
   };
 
-  // Public read-only sanitized site config (website_settings, theme_settings, navigation_menus)
-  app.get("/api/site/public-config", (_req, res) => {
+  // Public read-only sanitized site config (website_settings, theme_settings, navigation_menus, banners)
+  app.get("/api/site/public-config", async (_req, res) => {
     try {
       const result: Record<string, any> = {};
       for (const section of PUBLIC_CONFIG_SECTIONS) {
-        const row = db
+        const key = `admin_${section}`;
+        let row = db
           .prepare("SELECT value, updated_at FROM site_settings WHERE key = ?")
-          .get(`admin_${section}`) as { value?: string; updated_at?: string } | undefined;
+          .get(key) as { value?: string; updated_at?: string } | undefined;
+        if (!row?.value) {
+          const remote = await fetchSiteSettingFromSupabase(key);
+          if (remote?.value) {
+            row = remote;
+          }
+        }
         if (row?.value) {
           try {
             result[section] = JSON.parse(row.value);
@@ -1529,7 +1695,7 @@ async function startServer() {
   });
 
   // Admin endpoint: Read allowlisted config section
-  app.get("/api/admin/config/:section", (req, res) => {
+  app.get("/api/admin/config/:section", async (req, res) => {
     if (!checkAdminAuth(req)) {
       return res.status(403).json({ error: "Access denied. Only authorized administrators can read platform configuration." });
     }
@@ -1538,9 +1704,16 @@ async function startServer() {
       return res.status(400).json({ error: `Invalid configuration section "${section}".` });
     }
     try {
-      const row = db
+      const key = `admin_${section}`;
+      let row = db
         .prepare("SELECT value, updated_at FROM site_settings WHERE key = ?")
-        .get(`admin_${section}`) as { value?: string; updated_at?: string } | undefined;
+        .get(key) as { value?: string; updated_at?: string } | undefined;
+      if (!row?.value) {
+        const remote = await fetchSiteSettingFromSupabase(key);
+        if (remote?.value) {
+          row = remote;
+        }
+      }
       if (!row?.value) {
         return res.json({ success: true, section, value: null, updatedAt: null });
       }
@@ -1557,7 +1730,7 @@ async function startServer() {
   });
 
   // Admin endpoint: Save allowlisted config section
-  app.put("/api/admin/config/:section", (req, res) => {
+  app.put("/api/admin/config/:section", async (req, res) => {
     if (!checkAdminAuth(req)) {
       return res.status(403).json({ error: "Access denied. Only authorized administrators can update platform configuration." });
     }
@@ -1590,18 +1763,20 @@ async function startServer() {
     }
 
     const serialized = JSON.stringify(payload);
-    if (serialized.length > 150_000) {
-      return res.status(413).json({ error: "Configuration payload exceeds the 150 KB size limit." });
+    if (serialized.length > 250_000) {
+      return res.status(413).json({ error: "Configuration payload exceeds the 250 KB size limit." });
     }
 
     try {
       const now = new Date().toISOString();
+      const key = `admin_${section}`;
       db.prepare(`
         INSERT INTO site_settings (key, value, updated_at)
         VALUES (?, ?, ?)
         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
-      `).run(`admin_${section}`, serialized, now);
-      return res.json({ success: true, section, value: payload, updatedAt: now });
+      `).run(key, serialized, now);
+      const syncedToSupabase = await syncSiteSettingToSupabase(key, serialized, now);
+      return res.json({ success: true, section, value: payload, updatedAt: now, syncedToSupabase });
     } catch (err: any) {
       console.error(`[Admin Config API] Error saving ${section}:`, err);
       return res.status(500).json({ error: "Failed to save configuration" });
@@ -1746,24 +1921,37 @@ async function startServer() {
   });
 
   // Admin endpoint: Fetch full favicon configuration
-  app.get("/api/admin/favicon", (req, res) => {
+  app.get("/api/admin/favicon", async (req, res) => {
     if (!checkAdminAuth(req)) {
       return res.status(403).json({ error: "Access denied. Only authorized administrators can access favicon management." });
     }
     try {
       const row = db.prepare("SELECT value FROM site_settings WHERE key = 'favicon'").get() as any;
-      const faviconData = row && row.value ? JSON.parse(row.value) : {
-        url: "/favicon.png",
-        appleTouchIconUrl: "/favicon.png",
-        format: "png",
-        mimeType: "image/png",
-        fileName: "tiqsey-brand-favicon.png",
-        fileSize: 43581,
-        dimensions: { width: 512, height: 512 },
-        updatedAt: "2026-09-27T07:30:10.000Z",
-        updatedBy: "system",
-        isDefault: true
-      };
+      let faviconData = row && row.value ? JSON.parse(row.value) : null;
+      if (!faviconData || faviconData.isDefault) {
+        const remote = await fetchSiteSettingFromSupabase('favicon');
+        if (remote?.value) {
+          try {
+            faviconData = JSON.parse(remote.value);
+          } catch {
+            // Keep local value
+          }
+        }
+      }
+      if (!faviconData) {
+        faviconData = {
+          url: "/favicon.png",
+          appleTouchIconUrl: "/favicon.png",
+          format: "png",
+          mimeType: "image/png",
+          fileName: "tiqsey-brand-favicon.png",
+          fileSize: 43581,
+          dimensions: { width: 512, height: 512 },
+          updatedAt: "2026-09-27T07:30:10.000Z",
+          updatedBy: "system",
+          isDefault: true
+        };
+      }
       return res.json({ success: true, favicon: faviconData });
     } catch (err: any) {
       console.error("[Favicon Admin API] Error:", err);
@@ -1879,11 +2067,13 @@ async function startServer() {
         storage: storageResult.url ? 'supabase' : 'local',
       };
 
+      const serializedFavicon = JSON.stringify(faviconConfig);
       db.prepare("INSERT OR REPLACE INTO site_settings (key, value, updated_at) VALUES (?, ?, ?)").run(
         "favicon",
-        JSON.stringify(faviconConfig),
+        serializedFavicon,
         faviconConfig.updatedAt
       );
+      await syncSiteSettingToSupabase("favicon", serializedFavicon, faviconConfig.updatedAt);
 
       // Log action in backend_logs if table exists
       try {
@@ -3622,11 +3812,13 @@ async function startServer() {
         isDefault: true
       };
 
+      const serializedDefaultFavicon = JSON.stringify(defaultFavicon);
       db.prepare("INSERT OR REPLACE INTO site_settings (key, value, updated_at) VALUES (?, ?, ?)").run(
         "favicon",
-        JSON.stringify(defaultFavicon),
+        serializedDefaultFavicon,
         defaultFavicon.updatedAt
       );
+      void syncSiteSettingToSupabase("favicon", serializedDefaultFavicon, defaultFavicon.updatedAt);
 
       return res.json({ success: true, favicon: defaultFavicon });
     } catch (err: any) {
@@ -4893,6 +5085,9 @@ async function startServer() {
           error: "Administrator password has already been claimed. Please sign in with your password.",
         });
       }
+
+      // Mirror claimed credential hash to Supabase so stateless redeploys retain it
+      void syncSiteSettingToSupabase(ADMIN_CREDENTIAL_KEY, record, now);
 
       const sessionUser = buildPublicAdminSessionUser(normalizedEmail);
       const signedCookie = signSessionCookiePayload(sessionUser);
@@ -6261,10 +6456,12 @@ Do not include quotation marks or meta-commentary, output ONLY the complete Inst
     }
   });
 
-  app.get("/api/health", (_req, res) => {
+  app.get("/api/health", (req, res) => {
     res.json({
       status: "ok",
       mode: APP_MODE,
+      supabaseConfigured: isSupabaseConfigured(),
+      cloudflareProxied: Boolean(req.headers['cf-ray']),
       timestamp: new Date().toISOString(),
     });
   });

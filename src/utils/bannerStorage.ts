@@ -153,7 +153,16 @@ export function saveStoredBanners(banners: PromotionalBanner[]): void {
   try {
     const sorted = [...banners].sort((a, b) => (a.order || 0) - (b.order || 0));
     localStorage.setItem(BANNER_STORAGE_KEY, JSON.stringify(sorted));
+    localStorage.setItem(PROMOTIONAL_BANNERS_VERSION_KEY, PROMOTIONAL_BANNERS_VERSION);
     window.dispatchEvent(new Event(BANNER_UPDATE_EVENT));
+    // Persist banner edits from Admin Panel to backend + Supabase for live tiqsey.com sync
+    void import('./appConfig').then(({ isDedicatedAdminContext }) => {
+      if (isDedicatedAdminContext() || window.location.pathname.startsWith('/secure-panel')) {
+        void import('./adminConfigClient').then(({ saveAdminConfig }) => {
+          void saveAdminConfig('promotional_banners', sorted, undefined);
+        });
+      }
+    });
   } catch (err) {
     console.error('Error saving promotional banners:', err);
   }
@@ -361,8 +370,7 @@ export function getStoredLargeHeroBannerConfig(): LargeHeroBannerConfig {
     }
     const parsed = JSON.parse(raw);
     if (parsed && Array.isArray(parsed.slides)) {
-      // Check if user has legacy mock slides or needs update to the latest Rome reference
-      const isLatest = parsed.version === LARGE_HERO_BANNER_VERSION && parsed.slides.length > 0 && parsed.slides[0]?.id === 'slide-rome-beyond';
+      const isLatest = parsed.version === LARGE_HERO_BANNER_VERSION && parsed.slides.length > 0;
       if (!isLatest) {
         localStorage.setItem(LARGE_BANNER_STORAGE_KEY, JSON.stringify(DEFAULT_LARGE_HERO_BANNER_CONFIG));
         return DEFAULT_LARGE_HERO_BANNER_CONFIG;
@@ -380,12 +388,21 @@ export function getStoredLargeHeroBannerConfig(): LargeHeroBannerConfig {
 export function saveStoredLargeHeroBannerConfig(config: LargeHeroBannerConfig): void {
   if (typeof window === 'undefined') return;
   try {
-    const sorted = {
+    const sorted: LargeHeroBannerConfig = {
       ...config,
+      version: LARGE_HERO_BANNER_VERSION,
       slides: [...config.slides].sort((a, b) => (a.order || 0) - (b.order || 0))
     };
     localStorage.setItem(LARGE_BANNER_STORAGE_KEY, JSON.stringify(sorted));
     window.dispatchEvent(new Event(LARGE_BANNER_UPDATE_EVENT));
+    // Persist large hero banner edits from Admin Panel to backend + Supabase for live tiqsey.com sync
+    void import('./appConfig').then(({ isDedicatedAdminContext }) => {
+      if (isDedicatedAdminContext() || window.location.pathname.startsWith('/secure-panel')) {
+        void import('./adminConfigClient').then(({ saveAdminConfig }) => {
+          void saveAdminConfig('large_hero_banner', sorted, undefined);
+        });
+      }
+    });
   } catch (err) {
     console.error('Error saving large hero banner config:', err);
   }

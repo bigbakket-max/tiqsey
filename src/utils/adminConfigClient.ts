@@ -6,7 +6,9 @@ export type AdminConfigSection =
   | 'theme_settings'
   | 'navigation_menus'
   | 'platform_settings'
-  | 'marketing_coupons';
+  | 'marketing_coupons'
+  | 'promotional_banners'
+  | 'large_hero_banner';
 
 export interface WebsiteSettingsConfig {
   siteName: string;
@@ -291,6 +293,81 @@ export async function saveAdminConfig<T>(
 
   // Static deployment or offline fallback succeeded via localStorage
   return { ok: true, source: 'local', updatedAt: new Date().toISOString() };
+}
+
+export const PUBLIC_SITE_CONFIG_EVENT = 'tiqsey_public_site_config_updated';
+
+export async function syncPublicSiteConfigFromServer(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const res = await fetchJsonSafely<{
+      success?: boolean;
+      config?: {
+        website_settings?: WebsiteSettingsConfig | null;
+        theme_settings?: ThemeSettingsConfig | null;
+        navigation_menus?: NavigationMenusConfig | null;
+        promotional_banners?: any[] | null;
+        large_hero_banner?: any | null;
+      };
+    }>('/api/site/public-config', { method: 'GET', cache: 'no-cache' });
+
+    if (!res.ok || !res.data?.success || !res.data.config) return;
+    const cfg = res.data.config;
+
+    if (cfg.website_settings) {
+      try {
+        localStorage.setItem(`${LOCAL_CONFIG_PREFIX}website_settings`, JSON.stringify(cfg.website_settings));
+      } catch {
+        // Ignore storage errors
+      }
+      if (cfg.website_settings.seoTitle) {
+        document.title = cfg.website_settings.seoTitle;
+      }
+      if (cfg.website_settings.seoDescription) {
+        const meta = document.querySelector('meta[name="description"]');
+        if (meta) meta.setAttribute('content', cfg.website_settings.seoDescription);
+      }
+    }
+
+    if (cfg.theme_settings) {
+      try {
+        localStorage.setItem(`${LOCAL_CONFIG_PREFIX}theme_settings`, JSON.stringify(cfg.theme_settings));
+      } catch {
+        // Ignore storage errors
+      }
+    }
+
+    if (cfg.navigation_menus) {
+      try {
+        localStorage.setItem(`${LOCAL_CONFIG_PREFIX}navigation_menus`, JSON.stringify(cfg.navigation_menus));
+      } catch {
+        // Ignore storage errors
+      }
+    }
+
+    if (Array.isArray(cfg.promotional_banners) && cfg.promotional_banners.length > 0) {
+      try {
+        localStorage.setItem('tiqsey_promotional_banners', JSON.stringify(cfg.promotional_banners));
+        localStorage.setItem('tiqsey_promotional_banners_version', 'v4_rich_travel_scenery_4grid');
+        window.dispatchEvent(new Event('tiqsey_banners_updated'));
+      } catch {
+        // Ignore storage errors
+      }
+    }
+
+    if (cfg.large_hero_banner && Array.isArray(cfg.large_hero_banner.slides)) {
+      try {
+        localStorage.setItem('tiqsey_large_hero_banner_config', JSON.stringify(cfg.large_hero_banner));
+        window.dispatchEvent(new Event('tiqsey_large_banner_updated'));
+      } catch {
+        // Ignore storage errors
+      }
+    }
+
+    window.dispatchEvent(new CustomEvent(PUBLIC_SITE_CONFIG_EVENT, { detail: cfg }));
+  } catch {
+    // Graceful silent fallback when offline
+  }
 }
 
 export function parseSafeTimestamp(val?: string | null): number {

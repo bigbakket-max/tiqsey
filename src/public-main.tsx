@@ -12,6 +12,7 @@ import {
   applyFaviconToDocument,
   FAVICON_STORAGE_KEY,
 } from './utils/faviconManager';
+import { syncPublicSiteConfigFromServer } from './utils/adminConfigClient';
 import ErrorBoundary from './components/ErrorBoundary';
 
 function PublicRoot() {
@@ -26,6 +27,7 @@ function PublicRoot() {
   useEffect(() => {
     if (isBlockedAdminPath) return;
     fetchActiveFavicon().then(applyFaviconToDocument).catch(() => {});
+    syncPublicSiteConfigFromServer().catch(() => {});
 
     const handleStorage = (e: StorageEvent) => {
       if (e.key === FAVICON_STORAGE_KEY && e.newValue) {
