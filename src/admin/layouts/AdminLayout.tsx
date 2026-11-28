@@ -10,6 +10,7 @@ import {
   Search,
   Bell,
   ChevronRight,
+  ChevronDown,
   Box,
   FileText,
   Text,
@@ -45,9 +46,11 @@ export default function AdminLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const isCollapsed = sidebarCollapsed;
 
@@ -59,6 +62,7 @@ export default function AdminLayout() {
         searchInputRef.current?.focus();
       } else if (e.key === 'Escape') {
         setShowNotifications(false);
+        setShowUserMenu(false);
         setMobileMenuOpen(false);
       }
     };
@@ -66,18 +70,21 @@ export default function AdminLayout() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Click outside to close notifications
+  // Click outside to close header popovers
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (notificationRef.current && !notificationRef.current.contains(e.target as Node)) {
         setShowNotifications(false);
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
     };
-    if (showNotifications) {
+    if (showNotifications || showUserMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showNotifications]);
+  }, [showNotifications, showUserMenu]);
 
   const handleGlobalSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -903,41 +910,6 @@ export default function AdminLayout() {
           )}
         </NavLink>
       </nav>
-
-      {/* Logout button */}
-      <div className="p-2 border-t border-slate-800/60">
-        <button 
-          onClick={handleLogout}
-          title={collapsed ? "Logout" : undefined}
-          className={`flex items-center transition-all duration-150 text-sm cursor-pointer group ${
-            collapsed ? 'justify-center mx-auto w-10 h-10 rounded-xl' : 'w-full gap-2.5 px-3 py-2 rounded-xl'
-          } text-slate-300 hover:bg-rose-500/10 hover:text-rose-300 font-medium active:scale-[0.98]`}
-        >
-          <LogOut className="w-4.5 h-4.5 shrink-0 text-current transition-transform duration-150 group-hover:scale-110" />
-          <span className={`transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
-            Logout
-          </span>
-        </button>
-      </div>
-
-      {/* User profile capsule */}
-      <div className="p-3 border-t border-slate-800/80 bg-slate-950/40">
-        <div className="flex items-center gap-2.5">
-          <div 
-            className="w-8 h-8 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs"
-            title={collapsed ? `${user?.name || 'Administrator'} (Super Admin)` : undefined}
-          >
-            {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'AD'}
-          </div>
-          <div className={`flex-1 min-w-0 transition-all duration-200 overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-xs opacity-100'}`}>
-            <p className="text-xs font-bold text-white truncate">{user?.name || 'Administrator'}</p>
-            <p className="text-[10.5px] text-slate-400 truncate flex items-center gap-1 font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-              Super Admin
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 
@@ -1028,7 +1000,11 @@ export default function AdminLayout() {
           {/* Notifications Dropdown */}
           <div className="relative" ref={notificationRef}>
             <button 
-              onClick={() => setShowNotifications(!showNotifications)}
+              type="button"
+              onClick={() => {
+                setShowUserMenu(false);
+                setShowNotifications(!showNotifications);
+              }}
               aria-label="Notifications"
               className="relative w-10 h-10 flex items-center justify-center text-blue-100 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-150 cursor-pointer active:scale-95"
               title="Notifications"
@@ -1069,6 +1045,97 @@ export default function AdminLayout() {
                       </p>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">All tour products, variants, and pricing tiers synchronized with storage.</p>
                     </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Admin Account & Logout Dropdown */}
+          <div className="relative" ref={userMenuRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setShowNotifications(false);
+                setShowUserMenu(!showUserMenu);
+              }}
+              aria-label="Admin account menu"
+              aria-expanded={showUserMenu}
+              className="inline-flex items-center gap-2 pl-1.5 pr-2 sm:pr-2.5 min-h-[38px] rounded-xl bg-white/15 hover:bg-white/25 border border-white/25 text-white transition-all duration-150 shadow-xs hover:shadow-sm cursor-pointer active:scale-95"
+              title={`${user?.name || 'System Admin'} (Super Admin)`}
+            >
+              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-sky-400 to-blue-700 text-white flex items-center justify-center font-bold text-[11px] shrink-0 ring-1 ring-white/30 shadow-xs">
+                {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'SA'}
+              </div>
+              <div className="hidden lg:flex flex-col items-start leading-tight text-left max-w-[120px]">
+                <span className="text-xs font-bold text-white truncate w-full">
+                  {user?.name || 'System Admin'}
+                </span>
+                <span className="text-[10px] text-blue-100/90 flex items-center gap-1 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                  Super Admin
+                </span>
+              </div>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-white/80 transition-transform duration-150 shrink-0 ${
+                  showUserMenu ? 'rotate-180' : 'rotate-0'
+                }`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {showUserMenu && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                  transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                  className="fixed sm:absolute right-3 sm:right-0 top-16 sm:top-auto sm:mt-2 w-[calc(100vw-24px)] max-w-[260px] sm:w-60 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden"
+                >
+                  <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2.5 bg-slate-50/70 dark:bg-slate-800/40">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                      {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'SA'}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        {user?.name || 'System Admin'}
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                        {user?.email || 'admin@tiqsey.com'}
+                      </p>
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 mt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                        Super Admin
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-1.5 space-y-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        navigate('/settings');
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      <Settings className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Account Settings</span>
+                    </button>
+
+                    <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4 shrink-0" />
+                      <span>Logout</span>
+                    </button>
                   </div>
                 </motion.div>
               )}
