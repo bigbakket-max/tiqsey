@@ -4,7 +4,6 @@ import {
   DollarSign, 
   Activity, 
   Users, 
-  Plus, 
   ArrowUpRight, 
   Box, 
   Sparkles, 
@@ -234,23 +233,6 @@ export default function Dashboard() {
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Real-time management for tour tickets, promotional campaigns, and customer reservations.
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-          <button
-            onClick={() => navigate('/inventory/new')}
-            className="flex-1 sm:flex-none min-h-[42px] flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Activity</span>
-          </button>
-          <button
-            onClick={() => navigate('/promotional-banners/new')}
-            className="flex-1 sm:flex-none min-h-[42px] flex items-center justify-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md transition-all duration-150 cursor-pointer active:scale-95"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>New Banner</span>
-          </button>
         </div>
       </div>
 
